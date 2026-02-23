@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { Honeypot } from "@/components/auth/honeypot";
 import { OtpInput } from "@/components/auth/otp-input";
 import { Button } from "@/components/ui/button";
 import { useResendOtp, useVerifyOtp } from "@/services/users/hooks";
@@ -19,6 +20,7 @@ export default function RecoveryVerifyPage() {
   const email = searchParams.get("email") ?? "";
 
   const [otp, setOtp] = useState("");
+  const [nickname, setNickname] = useState(""); // Honeypot field
   const [resendCountdown, setResendCountdown] = useState(RESEND_SECONDS);
 
   const isOtpComplete = useMemo(() => otp.length === 6, [otp]);
@@ -58,6 +60,12 @@ export default function RecoveryVerifyPage() {
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // Honeypot check
+    if (nickname) {
+      console.log("Bot detected via honeypot.");
+      return;
+    }
+
     if (!email || !isOtpComplete) {
       toast.error("Please enter the 6-digit code.");
       return;
@@ -96,6 +104,11 @@ export default function RecoveryVerifyPage() {
             className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-6"
             onSubmit={handleVerify}
           >
+            <Honeypot
+              name="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
             <OtpInput value={otp} onChange={setOtp} />
 
             <Button

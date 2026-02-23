@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useForgotPassword } from "@/services/users/hooks";
@@ -14,11 +15,18 @@ import { useForgotPassword } from "@/services/users/hooks";
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState(""); // Honeypot field
 
   const forgotPasswordMutation = useForgotPassword();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Honeypot check
+    if (nickname) {
+      console.log("Bot detected via honeypot.");
+      return;
+    }
 
     try {
       await forgotPasswordMutation.mutateAsync({ email });
@@ -54,6 +62,11 @@ export default function ForgotPasswordPage() {
             className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
             onSubmit={handleSubmit}
           >
+            <Honeypot
+              name="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
             <Input
               label="Email"
               type="email"

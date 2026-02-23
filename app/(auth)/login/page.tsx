@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,6 +44,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState(""); // Honeypot field
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -174,6 +176,12 @@ export default function LoginPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // Honeypot check
+    if (nickname) {
+      console.log("Bot detected via honeypot.");
+      return;
+    }
+
     try {
       await loginMutation.mutateAsync({ email, password });
       toast.success("Signed in successfully.");
@@ -215,6 +223,11 @@ export default function LoginPage() {
             className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
             onSubmit={handleSubmit}
           >
+            <Honeypot
+              name="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
             <Input
               label="Email"
               type="email"

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useResetPassword } from "@/services/users/hooks";
@@ -19,6 +20,7 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [nickname, setNickname] = useState(""); // Honeypot field
 
   const resetPasswordMutation = useResetPassword();
 
@@ -30,6 +32,12 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Honeypot check
+    if (nickname) {
+      console.log("Bot detected via honeypot.");
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match.");
@@ -77,6 +85,11 @@ export default function ResetPasswordPage() {
             className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
             onSubmit={handleSubmit}
           >
+            <Honeypot
+              name="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
             <Input
               label="New Password"
               type={showPassword ? "text" : "password"}

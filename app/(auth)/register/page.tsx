@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -41,11 +42,18 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState(""); // Starts empty
   const [jobTitle, setJobTitle] = useState("");
+  const [nickname, setNickname] = useState(""); // Honeypot field
 
   const registerMutation = useRegisterUser();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Honeypot check
+    if (nickname) {
+      console.log("Bot detected via honeypot.");
+      return;
+    }
 
     try {
       await registerMutation.mutateAsync({
@@ -83,6 +91,11 @@ export default function RegisterPage() {
             className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
             onSubmit={handleSubmit}
           >
+            <Honeypot
+              name="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="First Name"
