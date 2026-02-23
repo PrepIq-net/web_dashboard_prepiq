@@ -1,14 +1,14 @@
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-6 py-20">
-      <section className="w-full rounded-2xl border border-white/20 bg-white/70 p-8 shadow-xl backdrop-blur md:p-12">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1440px] items-center px-8 py-20">
+      <section className="w-full rounded-card border border-border-default bg-surface-2 p-8 shadow-[var(--shadow-level-1)] md:p-12">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
           PrepIQ
         </p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-5xl">
+        <h1 className="mt-3 font-display text-3xl font-semibold leading-[1.2] tracking-tight text-text-primary md:text-5xl">
           Kitchen Intelligence & Margin Protection
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
+        <p className="mt-4 max-w-2xl text-base leading-7 text-text-secondary md:text-lg">
           PrepIQ is an operational control layer for professional kitchens. It
           turns daily operational noise into clear actions: what to produce,
           where margin is leaking, who owns the problem, and what to fix before
