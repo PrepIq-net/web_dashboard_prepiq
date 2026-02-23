@@ -3,12 +3,33 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeClosed, GoogleCircle, Lock, Mail } from "iconoir-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSessionLoginUser } from "@/services/users/hooks";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const loginMutation = useSessionLoginUser();
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage(null);
+
+    try {
+      await loginMutation.mutateAsync({ email, password });
+
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Network error. Please try again.");
+    }
+  }
 
   return (
     <div className="grid min-h-screen w-full grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)]">
@@ -35,13 +56,19 @@ export default function LoginPage() {
             Sign in to access your kitchen command layer.
           </p>
 
-          <form className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4">
+          <form
+            className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
+            onSubmit={handleSubmit}
+          >
             <Input
               label="Email"
               type="email"
               placeholder="Enter your email"
               leadingIcon={<Mail />}
               autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
             />
             <Input
               label="Password"
@@ -49,6 +76,9 @@ export default function LoginPage() {
               placeholder="Enter your password"
               leadingIcon={<Lock />}
               autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
               trailingIcon={
                 <button
                   type="button"
@@ -69,13 +99,17 @@ export default function LoginPage() {
                 />
                 Remember me
               </label>
-              <Link href="#" className="text-xs text-brand-gold hover:text-brand-gold-hover">
+              <Link href="/forgot-password" className="text-xs text-brand-gold hover:text-brand-gold-hover">
                 Forgot password?
               </Link>
             </div>
 
-            <Button type="button" fullWidth>
-              Sign In
+            {errorMessage ? (
+              <p className="text-sm text-status-critical">{errorMessage}</p>
+            ) : null}
+
+            <Button type="submit" fullWidth disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? "Signing In..." : "Sign In"}
             </Button>
 
             <div className="flex items-center gap-3 py-2">
@@ -91,7 +125,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-text-secondary">
             Not registered yet?{" "}
-            <Link href="#" className="font-medium text-brand-gold hover:text-brand-gold-hover">
+            <Link href="/register" className="font-medium text-brand-gold hover:text-brand-gold-hover">
               Create an account
             </Link>
           </p>

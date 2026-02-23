@@ -45,6 +45,16 @@ export const loginResponseSchema = z.object({
   missing_setup_fields: z.array(z.string()),
 });
 
+export const sessionLoginResponseSchema = z.object({
+  user: z.object({
+    user_id: z.string(),
+    email: z.string().email(),
+    is_volunteer: z.boolean(),
+    is_setup_complete: z.boolean(),
+    missing_setup_fields: z.array(z.string()),
+  }),
+});
+
 export const googleLoginPayloadSchema = z.object({
   id_token: z.string().min(1),
 });
@@ -86,6 +96,12 @@ export const verificationStatusResponseSchema = z.object({
   phone_verified: z.boolean(),
   email: z.string().email(),
   phone: z.string().nullable(),
+});
+
+export const sessionStateResponseSchema = z.object({
+  authenticated: z.boolean(),
+  hasAccessToken: z.boolean(),
+  hasRefreshToken: z.boolean(),
 });
 
 export const userProfileSchema = z.object({
@@ -178,6 +194,7 @@ export type RegisterResponse = z.infer<typeof registerResponseSchema>;
 
 export type LoginPayload = z.infer<typeof loginPayloadSchema>;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
+export type SessionLoginResponse = z.infer<typeof sessionLoginResponseSchema>;
 
 export type GoogleLoginPayload = z.infer<typeof googleLoginPayloadSchema>;
 export type GoogleLoginResponse = z.infer<typeof googleLoginResponseSchema>;
@@ -192,6 +209,7 @@ export type EmailPayload = z.infer<typeof emailPayloadSchema>;
 export type ResetPasswordPayload = z.infer<typeof resetPasswordPayloadSchema>;
 
 export type VerificationStatusResponse = z.infer<typeof verificationStatusResponseSchema>;
+export type SessionStateResponse = z.infer<typeof sessionStateResponseSchema>;
 
 export type UserProfile = z.infer<typeof userProfileSchema>;
 export type UpdateProfilePayload = z.infer<typeof updateProfilePayloadSchema>;

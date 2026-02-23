@@ -15,6 +15,8 @@ import {
   registerPayloadSchema,
   registerResponseSchema,
   resetPasswordPayloadSchema,
+  sessionLoginResponseSchema,
+  sessionStateResponseSchema,
   tokenRefreshPayloadSchema,
   tokenRefreshResponseSchema,
   updateLocationDeprecatedResponseSchema,
@@ -65,6 +67,33 @@ export async function loginUser(payload: LoginPayload) {
   });
 }
 
+export async function loginUserWithSession(payload: LoginPayload) {
+  const body = loginPayloadSchema.parse(payload);
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+
+  const data = (await response.json().catch(() => ({}))) as unknown;
+
+  if (!response.ok) {
+    throw new Error(
+      typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        typeof (data as Record<string, unknown>).message === "string"
+        ? ((data as Record<string, string>).message ?? "Login failed")
+        : "Login failed",
+    );
+  }
+
+  return sessionLoginResponseSchema.parse(data);
+}
+
 export async function loginWithGoogle(payload: GoogleLoginPayload) {
   const body = googleLoginPayloadSchema.parse(payload);
   return apiClientWithSchema(usersEndpoints.auth.googleLogin, googleLoginResponseSchema, {
@@ -87,6 +116,37 @@ export async function logoutUser(payload: LogoutPayload) {
     method: "POST",
     body,
   });
+}
+
+export async function logoutUserSession() {
+  const response = await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+
+  const data = (await response.json().catch(() => ({}))) as unknown;
+
+  if (!response.ok) {
+    throw new Error("Logout failed");
+  }
+
+  return apiMessageResponseSchema.parse(data);
+}
+
+export async function getAuthSessionState() {
+  const response = await fetch("/api/auth/session", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  const data = (await response.json().catch(() => ({}))) as unknown;
+
+  if (!response.ok) {
+    throw new Error("Failed to resolve auth session state");
+  }
+
+  return sessionStateResponseSchema.parse(data);
 }
 
 export async function verifyOtp(payload: OtpPayload) {

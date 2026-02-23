@@ -4,14 +4,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteAccount,
   forgotPassword,
+  getAuthSessionState,
   getCurrentUserProfile,
   getUserDetailsById,
   getUserQrCode,
   getUserRoleInfo,
   getVerificationStatus,
   loginUser,
+  loginUserWithSession,
   loginWithGoogle,
   logoutUser,
+  logoutUserSession,
   refreshAccessToken,
   registerUser,
   resendOtp,
@@ -98,6 +101,12 @@ export function useLoginUser() {
   });
 }
 
+export function useSessionLoginUser() {
+  return useMutation({
+    mutationFn: (payload: LoginPayload) => loginUserWithSession(payload),
+  });
+}
+
 export function useGoogleLogin() {
   return useMutation({
     mutationFn: (payload: GoogleLoginPayload) => loginWithGoogle(payload),
@@ -113,6 +122,20 @@ export function useRefreshAccessToken() {
 export function useLogoutUser() {
   return useMutation({
     mutationFn: (payload: LogoutPayload) => logoutUser(payload),
+  });
+}
+
+export function useSessionLogoutUser() {
+  return useMutation({
+    mutationFn: logoutUserSession,
+  });
+}
+
+export function useAuthSessionState() {
+  return useQuery({
+    queryKey: [...usersQueryKeys.root, "session-state"],
+    queryFn: getAuthSessionState,
+    staleTime: 0,
   });
 }
 
