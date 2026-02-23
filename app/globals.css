@@ -1,22 +1,93 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5efe3;
-  --foreground: #122029;
+  --color-bg-base: #141416;
+  --color-surface-1: #141416;
+  --color-surface-2: #1c1c1f;
+  --color-surface-3: #232327;
+  --color-surface-4: #2a2a2e;
+
+  --color-brand-gold: #a8821f;
+  --color-brand-gold-hover: #b8962e;
+  --color-brand-gold-pressed: #8f6f18;
+
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #c7c7cc;
+  --color-text-muted: #8e8e93;
+  --color-text-disabled: #5a5a60;
+
+  --color-status-critical: #c44949;
+  --color-status-warning: #c48b2a;
+  --color-status-success: #3f8f68;
+  --color-status-info: #3a6ea5;
+
+  --color-border-default: #2e2e33;
+  --color-chart-baseline: #6c6c73;
+  --color-chart-grid: #2a2a2e;
+
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+
+  --shadow-level-1: 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-level-2: 0px 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-level-3: 0px 4px 12px rgba(0, 0, 0, 0.35);
+
+  --motion-duration-fast: 150ms;
+  --motion-duration-standard: 220ms;
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-satoshi: "Satoshi", "Inter", system-ui, -apple-system, sans-serif;
+  --font-inter: var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-bg-base);
+  --color-foreground: var(--color-text-primary);
+
+  --color-surface-1: var(--color-surface-1);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+  --color-surface-4: var(--color-surface-4);
+
+  --color-brand-gold: var(--color-brand-gold);
+  --color-brand-gold-hover: var(--color-brand-gold-hover);
+  --color-brand-gold-pressed: var(--color-brand-gold-pressed);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-disabled: var(--color-text-disabled);
+
+  --color-status-critical: var(--color-status-critical);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-success: var(--color-status-success);
+  --color-status-info: var(--color-status-info);
+
+  --color-border-default: var(--color-border-default);
+  --color-chart-baseline: var(--color-chart-baseline);
+  --color-chart-grid: var(--color-chart-grid);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-satoshi);
+
+  --radius-button: var(--radius-button);
+  --radius-card: var(--radius-card);
+  --radius-modal: var(--radius-modal);
 }
 
 body {
-  background:
-    radial-gradient(circle at 15% 10%, rgba(245, 158, 11, 0.26), transparent 36%),
-    radial-gradient(circle at 100% 80%, rgba(15, 118, 110, 0.22), transparent 34%),
-    var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-inter);
+  line-height: 1.5;
+}
+
+* {
+  border-color: var(--color-border-default);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
+  color: var(--color-text-primary);
 }
