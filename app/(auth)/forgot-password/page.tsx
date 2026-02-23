@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Mail, ArrowLeft } from "iconoir-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useForgotPassword } from "@/services/users/hooks";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -23,7 +25,12 @@ export default function ForgotPasswordPage() {
 
     try {
       await forgotPasswordMutation.mutateAsync({ email });
-      setSuccessMessage("Recovery instructions have been sent to your email.");
+      // We redirect regardless of the actual result to prevent user enumeration,
+      // as confirmed by the backend implementation.
+      const params = new URLSearchParams();
+      params.set("email", email);
+      params.set("context", "password_reset");
+      router.push(`/verify-otp?${params.toString()}`);
     } catch (error) {
       setErrorMessage(
         error instanceof Error

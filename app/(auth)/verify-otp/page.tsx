@@ -29,6 +29,7 @@ export default function VerifyOtpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
+  const context = searchParams.get("context") ?? "";
 
   const [otp, setOtp] = useState("");
   const [resendCountdown, setResendCountdown] = useState(RESEND_SECONDS);
@@ -38,6 +39,9 @@ export default function VerifyOtpPage() {
   const isOtpComplete = useMemo(() => otp.length === 6, [otp]);
   const verifyOtpMutation = useVerifyOtp();
   const resendOtpMutation = useResendOtp();
+
+  const isPasswordReset = context === "password_reset";
+
   const resendLabel = useMemo(() => {
     if (resendOtpMutation.isPending) {
       return "Resending...";
@@ -70,7 +74,12 @@ export default function VerifyOtpPage() {
     setSuccessMessage(null);
 
     try {
-      await resendOtpMutation.mutateAsync({ email });
+      if (isPasswordReset) {
+        const { forgotPassword } = await import("@/services/users/service");
+        await forgotPassword({ email });
+      } else {
+        await resendOtpMutation.mutateAsync({ email });
+      }
       setResendCountdown(RESEND_SECONDS);
       setSuccessMessage("A new OTP has been sent.");
     } catch (error) {
@@ -96,8 +105,16 @@ export default function VerifyOtpPage() {
     }
 
     try {
-      await verifyOtpMutation.mutateAsync({ email, otp });
-      router.push(`/login?email=${encodeURIComponent(email)}&verified=1`);
+      await verifyOtpMutation.mutateAsync({ email, otp, context });
+      if (isPasswordReset) {
+        router.push(
+          `/reset-password?email=${encodeURIComponent(
+            email,
+          )}&otp=${encodeURIComponent(otp)}`,
+        );
+      } else {
+        router.push(`/login?email=${encodeURIComponent(email)}&verified=1`);
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "OTP verification failed.",
@@ -112,16 +129,14 @@ export default function VerifyOtpPage() {
           <AuthLogoRow size={64} />
 
           <h1 className="font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
-            Verify OTP
+            {isPasswordReset ? "Verify Reset Code" : "Verify OTP"}
           </h1>
           <p className="mt-3 text-[14px] leading-[22px] text-text-secondary">
-            Enter the 6-digit code sent to{" "}
-            {email ? (
-              <span className="text-text-primary">{maskEmail(email)}</span>
-            ) : (
-              "your email"
-            )}
-            .
+            {isPasswordReset
+              ? "Enter the 6-digit code we sent to your email to reset your password."
+              : `Enter the 6-digit code sent to ${
+                  email ? maskEmail(email) : "your email"
+                }.`}
           </p>
 
           <form
@@ -159,13 +174,27 @@ export default function VerifyOtpPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-text-secondary">
-            Entered the wrong email?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-brand-gold hover:text-brand-gold-hover"
-            >
-              Go back
-            </Link>
+            {isPasswordReset ? (
+              <>
+                Wait, I remember it!{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-brand-gold hover:text-brand-gold-hover"
+                >
+                  Sign in
+                </Link>
+              </>
+            ) : (
+              <>
+                Entered the wrong email?{" "}
+                <Link
+                  href="/register"
+                  className="font-medium text-brand-gold hover:text-brand-gold-hover"
+                >
+                  Go back
+                </Link>
+              </>
+            )}
           </p>
         </div>
       </section>
