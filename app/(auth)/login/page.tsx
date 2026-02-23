@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeClosed, Lock, Mail } from "iconoir-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
@@ -38,10 +38,12 @@ type GoogleWindow = Window & {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -52,6 +54,19 @@ export default function LoginPage() {
     () => loginMutation.isPending || googleLoginMutation.isPending,
     [loginMutation.isPending, googleLoginMutation.isPending],
   );
+
+  useEffect(() => {
+    const redirectEmail = searchParams.get("email");
+    const verified = searchParams.get("verified");
+
+    if (redirectEmail) {
+      setEmail(redirectEmail);
+    }
+
+    if (verified === "1") {
+      setSuccessMessage("OTP verified. You can now sign in.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let active = true;
@@ -160,6 +175,7 @@ export default function LoginPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
@@ -250,6 +266,10 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
+
+            {successMessage ? (
+              <p className="text-sm text-status-success">{successMessage}</p>
+            ) : null}
 
             {errorMessage ? (
               <p className="text-sm text-status-critical">{errorMessage}</p>
