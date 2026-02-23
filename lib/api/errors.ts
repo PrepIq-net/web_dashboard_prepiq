@@ -23,14 +23,42 @@ export class ApiError extends Error {
       details = null;
     }
 
-    const message =
-      typeof details === "object" &&
-      details !== null &&
-      "message" in details &&
-      typeof (details as Record<string, unknown>).message === "string"
-        ? ((details as Record<string, string>).message ?? "Request failed")
-        : response.statusText || "Request failed";
+    const message = ApiError.extractMessage(details, response.statusText || "Request failed");
 
     return new ApiError(message, response.status, details);
+  }
+
+  private static extractMessage(details: unknown, fallback: string): string {
+    if (typeof details !== "object" || details === null) {
+      return fallback;
+    }
+
+    const record = details as Record<string, unknown>;
+
+    if (typeof record.message === "string") {
+      return record.message;
+    }
+
+    if (typeof record.error === "string") {
+      return record.error;
+    }
+
+    if (typeof record.detail === "string") {
+      return record.detail;
+    }
+
+    const firstFieldError = Object.values(record).find((value) =>
+      Array.isArray(value) ? typeof value[0] === "string" : typeof value === "string",
+    );
+
+    if (Array.isArray(firstFieldError) && typeof firstFieldError[0] === "string") {
+      return firstFieldError[0];
+    }
+
+    if (typeof firstFieldError === "string") {
+      return firstFieldError;
+    }
+
+    return fallback;
   }
 }
