@@ -37,7 +37,7 @@
   --motion-duration-standard: 220ms;
   --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --font-satoshi: "Satoshi", "Inter", system-ui, -apple-system, sans-serif;
+  --font-satoshi: var(--font-satoshi-next), var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
   --font-inter: var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
 }
 

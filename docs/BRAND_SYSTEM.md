@@ -116,7 +116,14 @@ This file is the implementation checkpoint for design and UI decisions.
 ## Implementation Map (Current Codebase)
 - CSS tokens and theme mapping: `app/globals.css`
 - App fonts and root setup: `app/layout.tsx`
+- Font loaders (Inter + Satoshi local): `lib/fonts.ts`
 - Typed brand constants for app logic: `lib/brand-tokens.ts`
+
+## Tailwind Font Usage
+- Body/default text: `font-sans` (Inter)
+- Titles/headlines: `font-display` (Satoshi)
+- Example:
+  - `<h1 className="font-display text-3xl md:text-5xl">...</h1>`
 
 ## QA Checklist
 - [ ] UI uses only approved color tokens

@@ -1,7 +1,7 @@
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1440px] items-center px-8 py-20">
-      <section className="w-full rounded-card border border-border-default bg-surface-2 p-8 shadow-(--shadow-level-1) md:p-12">
+      <section className="w-full rounded-card border border-border-default bg-surface-2 p-8 shadow-[var(--shadow-level-1)] md:p-12">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
           PrepIQ
         </p>

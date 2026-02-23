@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { inter, satoshi } from "@/lib/fonts";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter-next",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "PrepIQ",
@@ -20,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
