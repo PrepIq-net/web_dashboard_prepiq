@@ -63,6 +63,17 @@ export const googleLoginResponseSchema = loginResponseSchema.extend({
   created: z.boolean(),
 });
 
+export const sessionGoogleLoginResponseSchema = z.object({
+  user: z.object({
+    user_id: z.string(),
+    email: z.string().email(),
+    is_volunteer: z.boolean(),
+    is_setup_complete: z.boolean(),
+    missing_setup_fields: z.array(z.string()),
+    created: z.boolean(),
+  }),
+});
+
 export const tokenRefreshPayloadSchema = z.object({
   refresh: z.string(),
 });
@@ -198,6 +209,7 @@ export type SessionLoginResponse = z.infer<typeof sessionLoginResponseSchema>;
 
 export type GoogleLoginPayload = z.infer<typeof googleLoginPayloadSchema>;
 export type GoogleLoginResponse = z.infer<typeof googleLoginResponseSchema>;
+export type SessionGoogleLoginResponse = z.infer<typeof sessionGoogleLoginResponseSchema>;
 
 export type TokenRefreshPayload = z.infer<typeof tokenRefreshPayloadSchema>;
 export type TokenRefreshResponse = z.infer<typeof tokenRefreshResponseSchema>;

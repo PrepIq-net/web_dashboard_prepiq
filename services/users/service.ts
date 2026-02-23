@@ -15,6 +15,7 @@ import {
   registerPayloadSchema,
   registerResponseSchema,
   resetPasswordPayloadSchema,
+  sessionGoogleLoginResponseSchema,
   sessionLoginResponseSchema,
   sessionStateResponseSchema,
   tokenRefreshPayloadSchema,
@@ -100,6 +101,33 @@ export async function loginWithGoogle(payload: GoogleLoginPayload) {
     method: "POST",
     body,
   });
+}
+
+export async function loginWithGoogleSession(payload: GoogleLoginPayload) {
+  const body = googleLoginPayloadSchema.parse(payload);
+  const response = await fetch("/api/auth/google", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+
+  const data = (await response.json().catch(() => ({}))) as unknown;
+
+  if (!response.ok) {
+    throw new Error(
+      typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        typeof (data as Record<string, unknown>).message === "string"
+        ? ((data as Record<string, string>).message ?? "Google login failed")
+        : "Google login failed",
+    );
+  }
+
+  return sessionGoogleLoginResponseSchema.parse(data);
 }
 
 export async function refreshAccessToken(payload: TokenRefreshPayload) {

@@ -13,6 +13,7 @@ import {
   loginUser,
   loginUserWithSession,
   loginWithGoogle,
+  loginWithGoogleSession,
   logoutUser,
   logoutUserSession,
   refreshAccessToken,
@@ -110,6 +111,12 @@ export function useSessionLoginUser() {
 export function useGoogleLogin() {
   return useMutation({
     mutationFn: (payload: GoogleLoginPayload) => loginWithGoogle(payload),
+  });
+}
+
+export function useSessionGoogleLogin() {
+  return useMutation({
+    mutationFn: (payload: GoogleLoginPayload) => loginWithGoogleSession(payload),
   });
 }
 
