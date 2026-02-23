@@ -60,6 +60,21 @@ This file is the implementation checkpoint for design and UI decisions.
   - Small `12/18`
   - KPI `32-48`, `600`, tracking `-0.5`
 
+## Icon System (iconoir-react)
+- Package: `iconoir-react`
+- Use React icon components directly:
+  - `import { IconName } from "iconoir-react"`
+- Global defaults are controlled through `IconoirProvider` in `app/providers.tsx`:
+  - `color: currentColor`
+  - `strokeWidth: 1.5`
+  - `width: 1.1em`
+  - `height: 1.1em`
+- Color behavior:
+  - Default icon color follows text color (`currentColor`)
+  - Use gold only for active/meaningful states
+  - Use status red only for critical alerts
+- Keep icons outlined and minimal (no filled colorful treatments by default)
+
 ## Layout and Spacing
 - Grid: 8pt
 - Spacing scale: `4, 8, 12, 16, 24, 32, 40, 48, 64, 80`
