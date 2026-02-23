@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Eye, EyeClosed, Lock, Mail } from "iconoir-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
+import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,29 +35,6 @@ type GoogleWindow = Window & {
     accounts?: GoogleAccounts;
   };
 };
-
-function GoogleColorMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-      <path
-        fill="#EA4335"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.86 2.7-6.62Z"
-      />
-      <path
-        fill="#4285F4"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.96 10.71A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.18.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l3-2.33Z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 3.58c1.32 0 2.5.45 3.43 1.34l2.58-2.58A8.97 8.97 0 0 0 9 0a9 9 0 0 0-8.04 4.96l3 2.33c.71-2.13 2.69-3.71 5.04-3.71Z"
-      />
-    </svg>
-  );
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -212,19 +191,7 @@ export default function LoginPage() {
     <div className="mx-auto grid min-h-screen w-full  grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
       <section className="flex min-h-screen items-center justify-center border-r border-border-default bg-surface-2 p-8 md:p-12">
         <div className="mx-auto w-full max-w-lg">
-          <div className="mb-10 flex items-center gap-3">
-            <Image
-              src="/logo/golden-main-transparent.png"
-              alt="PrepIQ logo"
-              width={50}
-              height={50}
-              className="h-14 w-14"
-              priority
-            />
-            <span className="font-display text-2xl font-semibold tracking-tight text-text-primary">
-              PrepIQ
-            </span>
-          </div>
+          <AuthLogoRow size={64} />
 
           <h1 className="font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
             Welcome Back
@@ -304,7 +271,15 @@ export default function LoginPage() {
               type="button"
               variant="secondary"
               fullWidth
-              leftIcon={<GoogleColorMark />}
+              leftIcon={
+                <Image
+                  src="/app_logo/logo-google.png"
+                  alt="Google"
+                  width={18}
+                  height={18}
+                  className="h-[18px] w-[18px]"
+                />
+              }
               onClick={handleGoogleSignIn}
               disabled={isBusy || !googleClientId}
             >
@@ -325,36 +300,7 @@ export default function LoginPage() {
           </p>
         </div>
       </section>
-
-      <aside className="relative hidden min-h-screen bg-surface-3 p-8 md:p-12 lg:flex lg:items-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(168,130,31,0.2),transparent_45%),radial-gradient(circle_at_10%_100%,rgba(58,110,165,0.2),transparent_48%)]" />
-
-        <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col gap-12">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-gold">
-              Kitchen Intelligence
-            </p>
-            <h2 className="mt-5 font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
-              Control margin variance before service starts.
-            </h2>
-            <p className="mt-6 text-[16px] leading-[24px] text-text-secondary">
-              PrepIQ translates prep activity into financial signal. Detect
-              leakage, assign ownership, and execute corrective actions by the
-              next shift.
-            </p>
-          </div>
-
-          <div className="rounded-card border border-border-default bg-surface-2/70 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              Daily Discipline
-            </p>
-            <p className="mt-3 text-[14px] leading-[22px] text-text-secondary">
-              "Production delta flagged at +12%. Recommended action issued
-              before opening."
-            </p>
-          </div>
-        </div>
-      </aside>
+      <AuthBrandAside />
     </div>
   );
 }
