@@ -11,6 +11,7 @@ import {
   User,
   UserBag,
 } from "iconoir-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useRegisterUser } from "@/services/users/hooks";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -47,6 +49,7 @@ export default function RegisterPage() {
       });
 
       setSuccessMessage("Account created. Check your email/phone for OTP verification.");
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Failed to create account.",

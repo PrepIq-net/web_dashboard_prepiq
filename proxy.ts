@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIES } from "@/lib/auth/cookies";
 
-const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password"]);
+const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password", "/verify-otp"]);
 
 function isPublicAsset(pathname: string): boolean {
   return (
