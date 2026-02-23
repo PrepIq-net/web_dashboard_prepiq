@@ -23,8 +23,16 @@ function buildUrl(endpoint: string): string {
     return endpoint;
   }
 
+  const baseUrl = resolveBaseUrl();
   const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  return `${resolveBaseUrl()}${normalizedEndpoint}`;
+
+  // Avoid double "/api/api/..." when base URL already includes "/api".
+  const normalizedBase = baseUrl.endsWith("/api")
+    ? baseUrl.slice(0, -4)
+    : baseUrl;
+  const endpointWithoutApiPrefix = normalizedEndpoint.replace(/^\/api(?=\/)/, "");
+
+  return `${normalizedBase}/api${endpointWithoutApiPrefix}`;
 }
 
 async function resolveAuthToken(authToken?: string | null): Promise<string | null> {

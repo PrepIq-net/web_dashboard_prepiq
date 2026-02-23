@@ -16,9 +16,43 @@ import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRegisterUser } from "@/services/users/hooks";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const registerMutation = useRegisterUser();
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    try {
+      await registerMutation.mutateAsync({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone.trim() ? phone.trim() : undefined,
+        job_title: jobTitle.trim() ? jobTitle.trim() : undefined,
+      });
+
+      setSuccessMessage("Account created. Check your email/phone for OTP verification.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to create account.",
+      );
+    }
+  }
 
   return (
     <div className="mx-auto grid min-h-screen w-full grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
@@ -33,7 +67,10 @@ export default function RegisterPage() {
             Set up your workspace access with your core profile details.
           </p>
 
-          <form className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4">
+          <form
+            className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
+            onSubmit={handleSubmit}
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="First Name"
@@ -41,6 +78,8 @@ export default function RegisterPage() {
                 placeholder="First name"
                 leadingIcon={<User />}
                 autoComplete="given-name"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
                 required
               />
               <Input
@@ -49,6 +88,8 @@ export default function RegisterPage() {
                 placeholder="Last name"
                 leadingIcon={<User />}
                 autoComplete="family-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
                 required
               />
             </div>
@@ -59,6 +100,8 @@ export default function RegisterPage() {
               placeholder="Enter your email"
               leadingIcon={<Mail />}
               autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
 
@@ -68,6 +111,8 @@ export default function RegisterPage() {
               placeholder="Create password"
               leadingIcon={<Lock />}
               autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               required
               trailingIcon={
                 <button
@@ -88,6 +133,8 @@ export default function RegisterPage() {
                 placeholder="Optional"
                 leadingIcon={<Phone />}
                 autoComplete="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
               />
               <Input
                 label="Job Title"
@@ -95,11 +142,20 @@ export default function RegisterPage() {
                 placeholder="Optional"
                 leadingIcon={<UserBag />}
                 autoComplete="organization-title"
+                value={jobTitle}
+                onChange={(event) => setJobTitle(event.target.value)}
               />
             </div>
 
-            <Button type="submit" fullWidth>
-              Create Account
+            {successMessage ? (
+              <p className="text-sm text-status-success">{successMessage}</p>
+            ) : null}
+            {errorMessage ? (
+              <p className="text-sm text-status-critical">{errorMessage}</p>
+            ) : null}
+
+            <Button type="submit" fullWidth disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? "Creating Account..." : "Create Account"}
             </Button>
 
             <div className="flex items-center gap-3 py-2">
