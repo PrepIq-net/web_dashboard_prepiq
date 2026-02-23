@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Eye, EyeClosed, Lock, Mail } from "iconoir-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
@@ -42,8 +43,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -64,7 +63,7 @@ export default function LoginPage() {
     }
 
     if (verified === "1") {
-      setSuccessMessage("OTP verified. You can now sign in.");
+      toast.success("OTP verified. You can now sign in.");
     }
   }, [searchParams]);
 
@@ -92,7 +91,7 @@ export default function LoginPage() {
         }
       } catch (error) {
         if (active) {
-          setErrorMessage(
+          toast.error(
             error instanceof Error
               ? error.message
               : "Failed to initialize Google login.",
@@ -122,7 +121,7 @@ export default function LoginPage() {
       const accounts = gWindow.google?.accounts;
 
       if (!accounts?.id) {
-        setErrorMessage("Google Identity script did not load correctly.");
+        toast.error("Google Identity script did not load correctly.");
         return;
       }
 
@@ -131,20 +130,19 @@ export default function LoginPage() {
         use_fedcm_for_prompt: true,
         callback: async (response) => {
           if (!response.credential) {
-            setErrorMessage("Google sign-in failed. Missing credential token.");
+            toast.error("Google sign-in failed. Missing credential token.");
             return;
           }
-
-          setErrorMessage(null);
 
           try {
             await googleLoginMutation.mutateAsync({
               id_token: response.credential,
             });
+            toast.success("Signed in successfully.");
             router.replace("/");
             router.refresh();
           } catch (error) {
-            setErrorMessage(
+            toast.error(
               error instanceof Error
                 ? error.message
                 : "Google login failed. Please try again.",
@@ -167,7 +165,7 @@ export default function LoginPage() {
     script.defer = true;
     script.onload = initializeGoogle;
     script.onerror = () => {
-      setErrorMessage("Unable to load Google Identity script.");
+      toast.error("Unable to load Google Identity script.");
     };
 
     document.head.appendChild(script);
@@ -175,15 +173,14 @@ export default function LoginPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSuccessMessage(null);
-    setErrorMessage(null);
 
     try {
       await loginMutation.mutateAsync({ email, password });
+      toast.success("Signed in successfully.");
       router.replace("/");
       router.refresh();
     } catch (error) {
-      setErrorMessage(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Network error. Please try again.",
@@ -192,10 +189,8 @@ export default function LoginPage() {
   }
 
   function handleGoogleSignIn() {
-    setErrorMessage(null);
-
     if (!googleReady) {
-      setErrorMessage("Google sign-in is still loading. Please try again.");
+      toast.error("Google sign-in is still loading. Please try again.");
       return;
     }
 
@@ -266,14 +261,6 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-
-            {successMessage ? (
-              <p className="text-sm text-status-success">{successMessage}</p>
-            ) : null}
-
-            {errorMessage ? (
-              <p className="text-sm text-status-critical">{errorMessage}</p>
-            ) : null}
 
             <Button type="submit" fullWidth disabled={isBusy}>
               {loginMutation.isPending ? "Signing In..." : "Sign In"}

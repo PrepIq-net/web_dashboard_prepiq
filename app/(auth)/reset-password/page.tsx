@@ -3,6 +3,7 @@
 import { Eye, EyeClosed, Lock } from "iconoir-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
@@ -18,29 +19,25 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const resetPasswordMutation = useResetPassword();
 
   useEffect(() => {
     if (!email || !otp) {
-      setErrorMessage("Invalid reset link. Please start the process again.");
+      toast.error("Invalid reset link. Please start the process again.");
     }
   }, [email, otp]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSuccessMessage(null);
-    setErrorMessage(null);
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
     if (newPassword.length < 8) {
-      setErrorMessage("Password must be at least 8 characters.");
+      toast.error("Password must be at least 8 characters.");
       return;
     }
 
@@ -50,12 +47,12 @@ export default function ResetPasswordPage() {
         otp,
         new_password: newPassword,
       });
-      setSuccessMessage("Password reset successfully. Redirecting to login...");
+      toast.success("Password reset successfully. Redirecting to login...");
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (error) {
-      setErrorMessage(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Reset failed. Please try again.",
@@ -110,14 +107,6 @@ export default function ResetPasswordPage() {
               onChange={(event) => setConfirmPassword(event.target.value)}
               required
             />
-
-            {successMessage ? (
-              <p className="text-sm text-status-success">{successMessage}</p>
-            ) : null}
-
-            {errorMessage ? (
-              <p className="text-sm text-status-critical">{errorMessage}</p>
-            ) : null}
 
             <Button
               type="submit"

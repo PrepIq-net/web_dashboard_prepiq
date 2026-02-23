@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Mail, ArrowLeft } from "iconoir-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
@@ -13,15 +14,11 @@ import { useForgotPassword } from "@/services/users/hooks";
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const forgotPasswordMutation = useForgotPassword();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSuccessMessage(null);
-    setErrorMessage(null);
 
     try {
       await forgotPasswordMutation.mutateAsync({ email });
@@ -29,10 +26,10 @@ export default function ForgotPasswordPage() {
       // as confirmed by the backend implementation.
       const params = new URLSearchParams();
       params.set("email", email);
-      params.set("context", "password_reset");
-      router.push(`/verify-otp?${params.toString()}`);
+      toast.success("Check your email for recovery instructions.");
+      router.push(`/forgot-password/verify?${params.toString()}`);
     } catch (error) {
-      setErrorMessage(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Network error. Please try again.",
@@ -67,14 +64,6 @@ export default function ForgotPasswordPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
-
-            {successMessage ? (
-              <p className="text-sm text-status-success">{successMessage}</p>
-            ) : null}
-
-            {errorMessage ? (
-              <p className="text-sm text-status-critical">{errorMessage}</p>
-            ) : null}
 
             <Button
               type="submit"

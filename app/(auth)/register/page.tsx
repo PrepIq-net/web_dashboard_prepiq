@@ -13,6 +13,7 @@ import {
 } from "iconoir-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
@@ -28,15 +29,11 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [jobTitle, setJobTitle] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const registerMutation = useRegisterUser();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSuccessMessage(null);
-    setErrorMessage(null);
 
     try {
       await registerMutation.mutateAsync({
@@ -48,10 +45,10 @@ export default function RegisterPage() {
         job_title: jobTitle.trim() ? jobTitle.trim() : undefined,
       });
 
-      setSuccessMessage("Account created. Check your email/phone for OTP verification.");
+      toast.success("Account created. Please verify your email.");
       router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (error) {
-      setErrorMessage(
+      toast.error(
         error instanceof Error ? error.message : "Failed to create account.",
       );
     }
@@ -150,15 +147,14 @@ export default function RegisterPage() {
               />
             </div>
 
-            {successMessage ? (
-              <p className="text-sm text-status-success">{successMessage}</p>
-            ) : null}
-            {errorMessage ? (
-              <p className="text-sm text-status-critical">{errorMessage}</p>
-            ) : null}
-
-            <Button type="submit" fullWidth disabled={registerMutation.isPending}>
-              {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+            <Button
+              type="submit"
+              fullWidth
+              disabled={registerMutation.isPending}
+            >
+              {registerMutation.isPending
+                ? "Creating Account..."
+                : "Create Account"}
             </Button>
 
             <div className="flex items-center gap-3 py-2">
