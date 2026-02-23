@@ -9,6 +9,8 @@ const AUTH_PAGES = new Set([
   "/verify-otp",
   "/reset-password",
   "/verify",
+  "/terms",
+  "/privacy",
 ]);
 
 function isPublicAsset(pathname: string): boolean {

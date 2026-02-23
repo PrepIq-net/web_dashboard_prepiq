@@ -18,7 +18,19 @@ import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { Select } from "@/components/ui/select";
 import { useRegisterUser } from "@/services/users/hooks";
+
+const JOB_TITLE_OPTIONS = [
+  { value: "ORG_OWNER", label: "Organization Owner" },
+  { value: "OPS_DIRECTOR", label: "Operations Director" },
+  { value: "ORG_ADMIN", label: "Organization Admin" },
+  { value: "GM", label: "General Manager" },
+  { value: "BRANCH_MANAGER", label: "Branch Manager" },
+  { value: "STAFF_OPERATOR", label: "Staff Operator" },
+  { value: "AUDITOR", label: "Auditor / Read Only" },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,7 +39,7 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // Starts empty
   const [jobTitle, setJobTitle] = useState("");
 
   const registerMutation = useRegisterUser();
@@ -127,24 +139,32 @@ export default function RegisterPage() {
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input
-                label="Phone"
-                type="tel"
-                placeholder="Optional"
-                leadingIcon={<Phone />}
-                autoComplete="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-              />
-              <Input
+              <PhoneInput label="Phone" value={phone} onChange={setPhone} />
+              <Select
                 label="Job Title"
-                type="text"
-                placeholder="Optional"
+                placeholder="Select role"
+                options={JOB_TITLE_OPTIONS}
                 leadingIcon={<UserBag />}
-                autoComplete="organization-title"
                 value={jobTitle}
-                onChange={(event) => setJobTitle(event.target.value)}
+                onChange={setJobTitle}
               />
+            </div>
+
+            <div className="py-2">
+              <p className="text-xs text-text-secondary leading-relaxed">
+                By creating an account, you agree to our{" "}
+                <Link href="/terms" className="text-brand-gold hover:underline">
+                  Terms and Conditions
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-brand-gold hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
             </div>
 
             <Button
