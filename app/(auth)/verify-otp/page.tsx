@@ -151,7 +151,7 @@ export default function VerifyOtpPage() {
                 type="button"
                 onClick={handleResend}
                 disabled={resendCountdown > 0 || resendOtpMutation.isPending}
-                className="font-medium text-brand-gold transition-colors hover:text-brand-gold-hover disabled:cursor-not-allowed disabled:text-text-disabled"
+                className="font-medium text-brand-gold transition-colors hover:text-brand-gold-hover disabled:cursor-not-allowed disabled:text-text-disabled cursor-pointer"
               >
                 {resendLabel}
               </button>

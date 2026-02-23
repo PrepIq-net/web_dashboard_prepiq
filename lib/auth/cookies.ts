@@ -45,10 +45,13 @@ export function getExpiredCookieOptions(): CookieOptions {
 }
 
 export function resolveBackendBaseUrl(): string {
-  const baseUrl = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl =
+    process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
 
   if (!baseUrl) {
-    throw new Error("Set API_BASE_URL or NEXT_PUBLIC_API_BASE_URL to call backend auth endpoints.");
+    throw new Error(
+      "Set API_BASE_URL or NEXT_PUBLIC_API_BASE_URL to call backend auth endpoints.",
+    );
   }
 
   return baseUrl.replace(/\/$/, "");
@@ -59,7 +62,8 @@ export function resolveBackendApiUrl(path: string): string {
   const root = baseUrl.endsWith("/api") ? baseUrl.slice(0, -4) : baseUrl;
   const normalizedPath = path
     .replace(/^\/+/, "")
-    .replace(/^api\/+/, "");
+    .replace(/^api\/+/, "")
+    .replace(/\/$/, "");
 
-  return `${root}/api/${normalizedPath}`;
+  return `${root}/api/${normalizedPath}/`;
 }
