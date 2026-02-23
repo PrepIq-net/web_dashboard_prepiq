@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrentUserProfile } from "@/services/users/hooks";
+import { useCurrentUserProfile } from "@/services";
 
 export default function Home() {
   const { data: user, isLoading } = useCurrentUserProfile();

@@ -1,3 +1,4 @@
+import { ApiError } from "@/lib/api/errors";
 import { apiClientWithSchema } from "@/lib/api/client";
 import { usersEndpoints } from "@/services/users/endpoints";
 import {
@@ -42,9 +43,12 @@ function toFormData(payload: UpdateProfilePayload): FormData {
   const formData = new FormData();
 
   if (payload.phone !== undefined) formData.append("phone", payload.phone);
-  if (payload.job_title !== undefined) formData.append("job_title", payload.job_title);
-  if (payload.first_name !== undefined) formData.append("first_name", payload.first_name);
-  if (payload.last_name !== undefined) formData.append("last_name", payload.last_name);
+  if (payload.job_title !== undefined)
+    formData.append("job_title", payload.job_title);
+  if (payload.first_name !== undefined)
+    formData.append("first_name", payload.first_name);
+  if (payload.last_name !== undefined)
+    formData.append("last_name", payload.last_name);
   if (payload.profile_picture !== undefined) {
     formData.append("profile_picture", payload.profile_picture);
   }
@@ -54,10 +58,14 @@ function toFormData(payload: UpdateProfilePayload): FormData {
 
 export async function registerUser(payload: RegisterPayload) {
   const body = registerPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.register, registerResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.register,
+    registerResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function loginUser(payload: LoginPayload) {
@@ -79,28 +87,24 @@ export async function loginUserWithSession(payload: LoginPayload) {
     credentials: "include",
   });
 
-  const data = (await response.json().catch(() => ({}))) as unknown;
-
   if (!response.ok) {
-    throw new Error(
-      typeof data === "object" &&
-        data !== null &&
-        "message" in data &&
-        typeof (data as Record<string, unknown>).message === "string"
-        ? ((data as Record<string, string>).message ?? "Login failed")
-        : "Login failed",
-    );
+    throw await ApiError.fromResponse(response);
   }
 
+  const data = (await response.json()) as unknown;
   return sessionLoginResponseSchema.parse(data);
 }
 
 export async function loginWithGoogle(payload: GoogleLoginPayload) {
   const body = googleLoginPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.googleLogin, googleLoginResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.googleLogin,
+    googleLoginResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function loginWithGoogleSession(payload: GoogleLoginPayload) {
@@ -114,36 +118,36 @@ export async function loginWithGoogleSession(payload: GoogleLoginPayload) {
     credentials: "include",
   });
 
-  const data = (await response.json().catch(() => ({}))) as unknown;
-
   if (!response.ok) {
-    throw new Error(
-      typeof data === "object" &&
-        data !== null &&
-        "message" in data &&
-        typeof (data as Record<string, unknown>).message === "string"
-        ? ((data as Record<string, string>).message ?? "Google login failed")
-        : "Google login failed",
-    );
+    throw await ApiError.fromResponse(response);
   }
 
+  const data = (await response.json()) as unknown;
   return sessionGoogleLoginResponseSchema.parse(data);
 }
 
 export async function refreshAccessToken(payload: TokenRefreshPayload) {
   const body = tokenRefreshPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.refresh, tokenRefreshResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.refresh,
+    tokenRefreshResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function logoutUser(payload: LogoutPayload) {
   const body = logoutPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.logout, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.logout,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function logoutUserSession() {
@@ -179,34 +183,50 @@ export async function getAuthSessionState() {
 
 export async function verifyOtp(payload: OtpPayload) {
   const body = otpPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.verifyOtp, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.verifyOtp,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function resendOtp(payload: EmailPayload) {
   const body = emailPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.resendOtp, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.resendOtp,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function forgotPassword(payload: EmailPayload) {
   const body = emailPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.forgotPassword, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.forgotPassword,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function resetPassword(payload: ResetPasswordPayload) {
   const body = resetPasswordPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.auth.resetPassword, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.auth.resetPassword,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function getVerificationStatus() {
@@ -241,10 +261,14 @@ export async function uploadUserPhoto(photo: File) {
   const formData = new FormData();
   formData.append("photo", photo);
 
-  return apiClientWithSchema(usersEndpoints.profile.uploadPhoto, photoUploadResponseSchema, {
-    method: "POST",
-    body: formData,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.profile.uploadPhoto,
+    photoUploadResponseSchema,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
 }
 
 export async function uploadUserDocument(verificationDocument: File) {
@@ -263,10 +287,14 @@ export async function uploadUserDocument(verificationDocument: File) {
 
 export async function deleteAccount(payload: DeleteAccountPayload) {
   const body = deleteAccountPayloadSchema.parse(payload);
-  return apiClientWithSchema(usersEndpoints.profile.deleteAccount, apiMessageResponseSchema, {
-    method: "POST",
-    body,
-  });
+  return apiClientWithSchema(
+    usersEndpoints.profile.deleteAccount,
+    apiMessageResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export async function getUserRoleInfo() {
@@ -278,5 +306,8 @@ export async function getUserQrCode() {
 }
 
 export async function getUserDetailsById(userId: string) {
-  return apiClientWithSchema(usersEndpoints.profile.details(userId), comprehensiveUserSchema);
+  return apiClientWithSchema(
+    usersEndpoints.profile.details(userId),
+    comprehensiveUserSchema,
+  );
 }

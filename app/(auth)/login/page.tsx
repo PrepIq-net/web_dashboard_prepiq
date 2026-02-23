@@ -11,6 +11,7 @@ import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ApiError } from "@/lib/api/errors";
 import {
   useSessionGoogleLogin,
   useSessionLoginUser,
@@ -45,6 +46,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState(""); // Honeypot field
+  const [isUnverified, setIsUnverified] = useState(false);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -182,12 +184,31 @@ export default function LoginPage() {
       return;
     }
 
+    setIsUnverified(false);
+
     try {
       await loginMutation.mutateAsync({ email, password });
       toast.success("Signed in successfully.");
       router.replace("/");
       router.refresh();
     } catch (error) {
+      const details = error instanceof ApiError ? (error.details as any) : null;
+
+      // Robust error code extraction
+      const errorCode = details?.error?.details?.code?.[0] || details?.code;
+
+      console.log("Login Error Debug:", {
+        details,
+        errorCode,
+        isApiError: error instanceof ApiError,
+      });
+
+      if (errorCode === "USER_NOT_VERIFIED") {
+        setIsUnverified(true);
+        toast.error("Account not verified.");
+        return;
+      }
+
       toast.error(
         error instanceof Error
           ? error.message
@@ -235,7 +256,10 @@ export default function LoginPage() {
               leadingIcon={<Mail />}
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setIsUnverified(false);
+              }}
               required
             />
             <Input
@@ -278,6 +302,22 @@ export default function LoginPage() {
             <Button type="submit" fullWidth disabled={isBusy}>
               {loginMutation.isPending ? "Signing In..." : "Sign In"}
             </Button>
+
+            {isUnverified && (
+              <div className="rounded-card border border-brand-gold/20 bg-brand-gold/5 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-xs leading-relaxed text-text-secondary">
+                  Your account isn&apos;t verified yet. To continue, please{" "}
+                  <Link
+                    href={`/verify-otp?email=${encodeURIComponent(email)}`}
+                    className="font-semibold text-brand-gold hover:underline"
+                  >
+                    verify your email
+                  </Link>{" "}
+                  using the code sent during registration. You can request a
+                  fresh code there if needed.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-3 py-2">
               <div className="h-px flex-1 bg-border-default" />
