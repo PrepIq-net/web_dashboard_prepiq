@@ -21,7 +21,10 @@ import {
 export async function listBranches(orgId: string) {
   return apiClientWithSchema(
     branchEndpoints.list(orgId),
-    z.array(branchSchema),
+    z.union([
+      z.array(branchSchema),
+      z.object({ results: z.array(branchSchema) }),
+    ]).transform((payload) => ("results" in payload ? payload.results : payload)),
     { method: "GET" },
   );
 }

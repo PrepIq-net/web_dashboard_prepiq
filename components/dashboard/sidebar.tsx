@@ -35,33 +35,49 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
   if (role === "AUDITOR" || role === "ACCOUNTANT") {
     return [
       {
-        title: "Financial Intelligence",
+        title: "Financial",
         items: [
+          {
+            label: "Overview",
+            href: "/",
+            icon: <Home className="h-4 w-4" />,
+          },
+          {
+            label: "Command",
+            href: "/workspace/finance-command",
+            icon: <WarningTriangle className="h-4 w-4" />,
+          },
+          {
+            label: "Sales Overview",
+            href: "/workspace/sales-overview",
+            icon: <Folder className="h-4 w-4" />,
+          },
           {
             label: "Margin Protection",
             href: "/workspace/margin-protection",
             icon: <WarningTriangle className="h-4 w-4" />,
           },
           {
-            label: "Waste Cost Report",
+            label: "Waste Cost",
             href: "/workspace/waste-cost-report",
             icon: <Folder className="h-4 w-4" />,
           },
           {
-            label: "Tax Engine",
+            label: "Tax",
             href: "/workspace/tax-engine",
             icon: <Settings className="h-4 w-4" />,
           },
           {
-            label: "Purchase Variance",
+            label: "Purchasing",
             href: "/workspace/purchase-variance",
             icon: <Brain className="h-4 w-4" />,
           },
           {
-            label: "Branch Financial Summary",
+            label: "Branch Summary",
             href: "/workspace/branch-financial-summary",
             icon: <Shop className="h-4 w-4" />,
           },
+          { label: "Exports", href: "/workspace/exports", icon: <Clock className="h-4 w-4" /> },
         ],
       },
     ];
@@ -72,7 +88,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
       {
         title: "Production",
         items: [
-          { label: "Today's Plan", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Log Batch", href: "/workspace/log-batch", icon: <Brain className="h-4 w-4" /> },
           { label: "History", href: "/workspace/history", icon: <Clock className="h-4 w-4" /> },
           { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
@@ -87,7 +103,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Branch",
         items: [
           { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
-          { label: "Production Plan", href: "/workspace/production-plan", icon: <Brain className="h-4 w-4" /> },
+          { label: "Production", href: "/workspace/production-plan", icon: <Brain className="h-4 w-4" /> },
           { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
           { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
           { label: "Staff", href: "/workspace/staff", icon: <User className="h-4 w-4" /> },
@@ -102,19 +118,21 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
       {
         title: "Operations",
         items: [
-          { label: "Command Center", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
           {
-            label: "Production Intelligence",
+            label: "Production",
             href: "/workspace/production-intelligence",
             icon: <Brain className="h-4 w-4" />,
           },
           {
-            label: "Purchase Optimizer",
+            label: "Purchasing",
             href: "/workspace/purchase-intelligence",
             icon: <Folder className="h-4 w-4" />,
           },
-          { label: "Staff Performance", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
+          { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
+          { label: "Risk", href: "/workspace/risk-compliance", icon: <WarningTriangle className="h-4 w-4" /> },
           { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
         ],
       },
@@ -126,32 +144,34 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
       {
         title: "Executive",
         items: [
-          { label: "Command Center", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           {
-            label: "Branch Performance",
-            href: "/workspace/branch-performance",
+            label: "Branches",
+            href: "/workspace/branches",
             icon: <Shop className="h-4 w-4" />,
           },
           {
-            label: "Margin Protection Report",
+            label: "Financial",
             href: "/workspace/margin-protection",
             icon: <WarningTriangle className="h-4 w-4" />,
           },
           {
-            label: "Purchase Intelligence",
+            label: "Purchasing",
             href: "/workspace/purchase-intelligence",
             icon: <Folder className="h-4 w-4" />,
           },
           {
-            label: "Staff Intelligence",
+            label: "Staff",
             href: "/workspace/staff-intelligence",
             icon: <User className="h-4 w-4" />,
           },
           {
-            label: "Risk & Compliance",
+            label: "Risk",
             href: "/workspace/risk-compliance",
             icon: <WarningTriangle className="h-4 w-4" />,
           },
+          { label: "Billing", href: "/workspace/billing", icon: <Folder className="h-4 w-4" /> },
           { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
           { label: "Settings", href: "/workspace/settings", icon: <Settings className="h-4 w-4" /> },
         ],
@@ -163,8 +183,9 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     {
       title: "Workspace",
       items: [
-        { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
-        { label: "Production Plan", href: "/workspace/production-plan", icon: <Brain className="h-4 w-4" /> },
+        { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+        { label: "Today", href: "/workspace/today", icon: <Clock className="h-4 w-4" /> },
+        { label: "Production", href: "/workspace/production-plan", icon: <Brain className="h-4 w-4" /> },
         { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
         { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
         { label: "Staff", href: "/workspace/staff", icon: <User className="h-4 w-4" /> },

@@ -2,6 +2,7 @@
 
 import { Brain } from "iconoir-react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { DashboardTopNav } from "@/components/dashboard/top-nav";
 import { useCurrentUserProfile } from "@/services";
 
 type WorkspaceShellProps = {
@@ -39,6 +40,7 @@ export function WorkspaceShell({
       <DashboardSidebar user={user} />
       <main className="ml-64 flex-1 py-8">
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
+          <DashboardTopNav />
           <section className="pb-8 border-b border-[#2A2A2E]">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
               {eyebrow}

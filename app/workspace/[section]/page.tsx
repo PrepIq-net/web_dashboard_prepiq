@@ -11,6 +11,118 @@ type SectionDefinition = {
 };
 
 const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
+  command: {
+    eyebrow: "Executive",
+    title: "Command",
+    description: "Organization-level command view for performance, risk, and margin posture.",
+    insight: "One branch is drifting on waste; prioritize drill-down before closing today's cycle.",
+    metrics: [
+      { label: "Revenue today", value: "$12,430" },
+      { label: "Waste risk", value: "4.1%" },
+      { label: "Critical alerts", value: "1" },
+    ],
+    bullets: [
+      "Branch North is driving most of the waste deviation.",
+      "Forecast reliability is stable across top-selling items.",
+      "Command page will be wired to live tiles next.",
+    ],
+  },
+  today: {
+    eyebrow: "Branch Workspace",
+    title: "Today",
+    description: "Default branch operating view with tactical production focus.",
+    insight: "Reducing late-day prep by 8% should cut avoidable waste for this branch.",
+    metrics: [
+      { label: "Prep commands", value: "22" },
+      { label: "Prepared", value: "1,240" },
+      { label: "Waste cost", value: "$74" },
+    ],
+    bullets: [
+      "Top priority items are croissant, muffin, and latte.",
+      "Afternoon variance is improving versus last week.",
+      "Team compliance is above target this morning.",
+    ],
+  },
+  production: {
+    eyebrow: "Production",
+    title: "Production",
+    description: "Minimal production mode for kitchen execution teams.",
+    insight: "Team is on track if batch logging remains under 10-minute lag.",
+    metrics: [
+      { label: "Items today", value: "18" },
+      { label: "Batches logged", value: "23" },
+      { label: "Open actions", value: "3" },
+    ],
+    bullets: [
+      "Keep focus on highest-volume morning products.",
+      "Use log batch flow to reduce missed entries.",
+      "Escalate stockout risk items immediately in chat.",
+    ],
+  },
+  "finance-command": {
+    eyebrow: "Financial",
+    title: "Finance Command",
+    description: "Financial command center for leakage, variance, and compliance exposure.",
+    insight: "Supplier variance and waste together represent the largest controllable margin drag.",
+    metrics: [
+      { label: "Waste impact", value: "$418" },
+      { label: "Leakage", value: "4.2%" },
+      { label: "Anomalies", value: "3" },
+    ],
+    bullets: [
+      "Dairy procurement variance remains above threshold.",
+      "Two branches need tighter end-of-day prep controls.",
+      "Tax automation pilot is ready for production.",
+    ],
+  },
+  "sales-overview": {
+    eyebrow: "Financial",
+    title: "Sales Overview",
+    description: "Sales-level context for accountants and auditors.",
+    insight: "Sales conversion improved, but margin gain is capped by overproduction in one branch.",
+    metrics: [
+      { label: "Gross sales", value: "$12,430" },
+      { label: "Units sold", value: "1,122" },
+      { label: "Conversion", value: "84%" },
+    ],
+    bullets: [
+      "Highest volume comes from beverages and pastry bundles.",
+      "Conversion gap is concentrated in afternoon window.",
+      "Branch-normalized sales trend is net positive.",
+    ],
+  },
+  exports: {
+    eyebrow: "Financial",
+    title: "Exports",
+    description: "Operational and financial export center for reporting workflows.",
+    insight: "Daily export automation can remove manual reconciliation effort for finance.",
+    metrics: [
+      { label: "Export jobs", value: "6" },
+      { label: "Scheduled", value: "3" },
+      { label: "Last run", value: "8 min ago" },
+    ],
+    bullets: [
+      "CSV and PDF exports are available for all summary modules.",
+      "Branch-level filters can be included in export presets.",
+      "SFTP delivery mode planned for next iteration.",
+    ],
+  },
+  billing: {
+    eyebrow: "Executive",
+    title: "Billing",
+    description: "Plan, subscription, and payment operations for organization owners.",
+    insight: "Current plan utilization is healthy; no immediate upgrade pressure detected.",
+    metrics: [
+      { label: "Plan", value: "Core" },
+      { label: "Next renewal", value: "12 days" },
+      { label: "Branch capacity", value: "5 / 10" },
+    ],
+    bullets: [
+      "Billing history sync is complete and up to date.",
+      "Plan limits are aligned with current org footprint.",
+      "Upgrade recommendations will be surfaced proactively.",
+    ],
+  },
   "margin-protection": {
     eyebrow: "Financial Intelligence",
     title: "Margin Protection",
