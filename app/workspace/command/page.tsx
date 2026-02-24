@@ -561,8 +561,8 @@ export default function CommandPage() {
       columnHelper.accessor("rank", {
         header: "Priority",
         cell: (info) => (
-          <span className="text-[12px] font-medium text-[#F5F5F7]">
-            {info.getValue()}
+          <span className="inline-flex min-w-9 items-center justify-center rounded-[6px] border border-[#2E2E33] px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.06em] text-[#F5F5F7]">
+            P{info.getValue()}
           </span>
         ),
       }),
@@ -577,13 +577,27 @@ export default function CommandPage() {
               : row.severity === "AMBER"
                 ? "text-[#C48B2A]"
                 : "text-[#3F8F68]";
+          const severityDot =
+            row.severity === "RED"
+              ? "bg-[#C44949]"
+              : row.severity === "AMBER"
+                ? "bg-[#C48B2A]"
+                : "bg-[#3F8F68]";
           return (
-            <div className="space-y-0.5">
-              <p className="text-[13px] text-[#F5F5F7]">{row.title}</p>
-              <p className="text-[11px] text-[#8E8E93]">
-                {row.sectionLabel} · {row.impactedBranch}
+            <div className="space-y-1">
+              <p className="text-[13px] font-medium leading-[20px] text-[#F5F5F7]">
+                {row.title}
               </p>
-              <p className={`text-[11px] ${severityTone}`}>{row.severity}</p>
+              <p className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">
+                {row.sectionLabel}
+              </p>
+              <div className="inline-flex items-center gap-2">
+                <span className="text-[11px] text-[#C7C7CC]">{row.impactedBranch}</span>
+                <span className={`h-1.5 w-1.5 rounded-full ${severityDot}`} />
+                <span className={`text-[11px] font-medium ${severityTone}`}>
+                  {row.severity}
+                </span>
+              </div>
             </div>
           );
         },
@@ -591,7 +605,7 @@ export default function CommandPage() {
       columnHelper.accessor("financialImpact", {
         header: isOwnerRole ? "Monthly Impact" : "Impact",
         cell: (info) => (
-          <span className="text-[12px] text-[#F5F5F7]">
+          <span className="text-[12px] font-medium text-[#F5F5F7]">
             {toCurrency(info.getValue())}
           </span>
         ),
@@ -603,9 +617,13 @@ export default function CommandPage() {
           const row = info.row.original;
           return (
             <div className="space-y-1">
-              <p className="text-[12px] text-[#C7C7CC]">{row.actionRecommendation}</p>
+              <p className="text-[12px] leading-[18px] text-[#C7C7CC]">
+                {row.actionRecommendation}
+              </p>
               {row.rootCauseHint ? (
-                <p className="text-[11px] text-[#8E8E93]">{row.rootCauseHint}</p>
+                <p className="text-[11px] leading-[16px] text-[#8E8E93]">
+                  {row.rootCauseHint}
+                </p>
               ) : null}
             </div>
           );
@@ -619,7 +637,7 @@ export default function CommandPage() {
           return (
             <Link
               href={row.viewHref}
-              className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#2E2E33] px-2.5 text-[11px] font-medium text-[#F5F5F7] transition-colors hover:border-[#A8821F] hover:text-[#A8821F]"
+              className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#A8821F]/40 bg-[#1C1C1F] px-2.5 text-[11px] font-medium text-[#E8C97A] transition-colors hover:border-[#A8821F] hover:bg-[#232327] hover:text-[#F3D48E]"
             >
               View breakdown
               <ArrowRight className="h-3.5 w-3.5" />
@@ -706,13 +724,21 @@ export default function CommandPage() {
         </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[980px]">
-            <thead className="border-b border-[#2A2A2E]">
+            <thead className="sticky top-0 z-[1] border-b border-[#2A2A2E] bg-[#1C1C1F]/95 backdrop-blur-sm">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]"
+                      className={`px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] ${
+                        header.id.includes("rank")
+                          ? "w-[90px]"
+                          : header.id.includes("financialImpact")
+                            ? "w-[150px]"
+                            : header.id.includes("cta")
+                              ? "w-[160px]"
+                              : ""
+                      }`}
                     >
                       {header.isPlaceholder
                         ? null
@@ -737,10 +763,10 @@ export default function CommandPage() {
                 return (
                   <tr
                     key={row.id}
-                    className={`border-b border-[#2A2A2E] align-top ${rowToneClass} border-l-2`}
+                    className={`border-b border-[#2A2A2E] align-top transition-colors hover:bg-[#1C1C1F] ${rowToneClass} border-l-2`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-2 py-3">
+                      <td key={cell.id} className="px-3 py-3.5">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
