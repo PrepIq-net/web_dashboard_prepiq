@@ -1,6 +1,7 @@
 "use client";
 
 import { useCurrentUserProfile } from "@/services";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -52,6 +53,12 @@ export default function Home() {
             Connected as {user.first_name} {user.last_name}
           </div>
         )}
+
+        <Link href="/setup/branch">
+          <button className="mt-8 w-full h-12 bg-brand-gold hover:bg-brand-gold/80 active:bg-brand-gold/60 text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150">
+            Get started
+          </button>
+        </Link>
       </section>
     </main>
   );
