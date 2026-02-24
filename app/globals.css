@@ -37,11 +37,14 @@
   --motion-duration-standard: 220ms;
   --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
+  --font-satoshi-next: system-ui, -apple-system, "Segoe UI", "Roboto", "sans-serif";
+  --font-inter-next: system-ui, -apple-system, "Segoe UI", "Roboto", "sans-serif";
+
   --font-satoshi:
-    var(--font-satoshi-next), var(--font-inter-next), "Inter", system-ui,
+    var(--font-satoshi-next), "Inter", system-ui,
     -apple-system, sans-serif;
   --font-inter:
-    var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
+    var(--font-inter-next), "Segoe UI", "Roboto", system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
