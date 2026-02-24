@@ -27,22 +27,6 @@ const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
       "Team compliance is above target this morning.",
     ],
   },
-  production: {
-    eyebrow: "Production",
-    title: "Production",
-    description: "Minimal production mode for kitchen execution teams.",
-    insight: "Team is on track if batch logging remains under 10-minute lag.",
-    metrics: [
-      { label: "Items today", value: "18" },
-      { label: "Batches logged", value: "23" },
-      { label: "Open actions", value: "3" },
-    ],
-    bullets: [
-      "Keep focus on highest-volume morning products.",
-      "Use log batch flow to reduce missed entries.",
-      "Escalate stockout risk items immediately in chat.",
-    ],
-  },
   "finance-command": {
     eyebrow: "Financial",
     title: "Finance Command",
