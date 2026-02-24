@@ -29,6 +29,7 @@ const initialData: OrganizationRegisterPayload = {
   phone: "",
   email: "",
   website: "",
+  capacity: undefined,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
