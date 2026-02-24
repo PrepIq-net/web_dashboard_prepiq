@@ -27,6 +27,8 @@ type PhoneInputProps = {
   value: string; // The full number e.g. +254712345678
   onChange: (value: string) => void;
   required?: boolean;
+  error?: string;
+  className?: string;
 };
 
 export function PhoneInput({
@@ -34,6 +36,8 @@ export function PhoneInput({
   value,
   onChange,
   required,
+  error,
+  className = "",
 }: PhoneInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(
@@ -79,9 +83,15 @@ export function PhoneInput({
   }
 
   return (
-    <label className="block space-y-2">
+    <div className={`block space-y-2 ${className}`}>
       <span className="text-sm font-medium text-text-secondary">{label}</span>
-      <div className="flex h-12 items-stretch rounded-button border border-border-default bg-surface-3 transition-[border-color,box-shadow] duration-200 focus-within:border-brand-gold focus-within:shadow-[0_0_0_1px_rgba(168,130,31,0.45)]">
+      <div
+        className={`flex h-12 items-stretch rounded-button border bg-surface-3 transition-[border-color,box-shadow] duration-200 focus-within:ring-1 ${
+          error
+            ? "border-red-500/50 focus-within:border-red-500 focus-within:ring-red-500/20"
+            : "border-border-default focus-within:border-brand-gold focus-within:ring-brand-gold/20"
+        }`}
+      >
         {/* Country Selector */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -135,6 +145,7 @@ export function PhoneInput({
           />
         </div>
       </div>
-    </label>
+      {error && <p className="text-[11px] font-medium text-red-500">{error}</p>}
+    </div>
   );
 }

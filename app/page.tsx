@@ -1,23 +1,35 @@
 "use client";
 
 import { useCurrentUserProfile } from "@/services";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const { data: user, isLoading } = useCurrentUserProfile();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user && !user.has_organization) {
+      router.replace("/onboarding");
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || (user && !user.has_organization)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="h-12 w-12 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted">
+            Getting things ready...
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1440px] items-center px-8 py-20">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1440px] items-center px-8 py-20 animate-fade-in">
       <section className="w-full rounded-card border border-border-default bg-surface-2 p-8 shadow-[var(--shadow-level-1)] md:p-12">
-        {user && (
-          <div className="mb-6 flex items-center gap-2 rounded-full bg-brand-gold/10 px-4 py-1.5 text-xs font-medium text-brand-gold">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-gold opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-gold"></span>
-            </span>
-            Authenticated: {user.first_name} {user.last_name} ({user.email})
-          </div>
-        )}
-
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
           PrepIQ
         </p>
@@ -31,10 +43,14 @@ export default function Home() {
           tomorrow service.
         </p>
 
-        {isLoading && (
-          <p className="mt-8 text-sm text-text-muted animate-pulse">
-            Verifying session...
-          </p>
+        {user && (
+          <div className="mt-8 flex items-center gap-2 rounded-full bg-brand-gold/5 border border-brand-gold/10 px-4 py-2 text-xs font-medium text-text-secondary w-fit">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-gold opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-gold"></span>
+            </span>
+            Connected as {user.first_name} {user.last_name}
+          </div>
         )}
       </section>
     </main>

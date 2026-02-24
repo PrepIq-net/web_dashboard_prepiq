@@ -1,15 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { Eye, EyeClosed, Lock } from "iconoir-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useResetPassword } from "@/services/users/hooks";
+import { useResetPassword } from "@/services";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -69,71 +69,109 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="mx-auto grid min-h-screen w-full grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-      <section className="flex min-h-screen items-center justify-center border-r border-border-default bg-surface-2 p-8 md:p-12">
-        <div className="mx-auto w-full max-w-lg">
-          <AuthLogoRow size={64} />
+    <main className="min-h-screen bg-bg-base overflow-x-hidden">
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12 md:px-12 md:py-24">
+        {/* Background glow for a "pro" feel */}
+        <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-brand-gold/5 blur-[120px]" />
 
-          <h1 className="font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
-            New Password
-          </h1>
-          <p className="mt-3 text-[14px] leading-[22px] text-text-secondary">
-            Set a strong, unique password for your workspace access.
-          </p>
+        <header className="relative z-10 flex items-center justify-between mb-20">
+          <AuthLogoRow size={48} />
+          <div className="hidden md:block">
+            <p className="text-sm font-medium text-text-muted">
+              Security Protocol
+            </p>
+          </div>
+        </header>
 
-          <form
-            className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
-            onSubmit={handleSubmit}
-          >
-            <Honeypot
-              name="nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
-            <Input
-              label="New Password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Min. 8 characters"
-              leadingIcon={<Lock />}
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              required
-              trailingIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
+        <section className="relative z-10 flex-1 flex flex-col items-center">
+          <div className="w-full max-w-md space-y-12 animate-fade-in">
+            <div className="space-y-3 text-center">
+              <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
+                New Identity.
+              </h1>
+              <p className="text-lg text-text-secondary leading-relaxed">
+                Set a strong, unique password for your workspace access.
+              </p>
+            </div>
+
+            <form className="space-y-8" onSubmit={handleSubmit}>
+              <Honeypot
+                name="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
+
+              <div className="space-y-6">
+                <Input
+                  label="New Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Min. 8 characters"
+                  leadingIcon={<Lock />}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                  trailingIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
+                    >
+                      {showPassword ? <EyeClosed /> : <Eye />}
+                    </button>
+                  }
+                />
+
+                <Input
+                  label="Confirm Identity"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Re-enter password"
+                  leadingIcon={<Lock />}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                />
+              </div>
+
+              <div className="space-y-6 pt-2">
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={resetPasswordMutation.isPending || !email || !otp}
+                  className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  {showPassword ? <EyeClosed /> : <Eye />}
-                </button>
-              }
-            />
+                  {resetPasswordMutation.isPending
+                    ? "Updating Identity..."
+                    : "Finalize Reset"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </section>
 
-            <Input
-              label="Confirm Password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Confirm your password"
-              leadingIcon={<Lock />}
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              required
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              disabled={resetPasswordMutation.isPending || !email || !otp}
+        <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
+          <p className="text-xs text-text-muted">
+            PrepIQ Infrastructure &copy; 2026.
+          </p>
+          <div className="flex gap-6">
+            <Link
+              href="/terms"
+              className="text-xs text-text-muted hover:text-text-primary"
             >
-              {resetPasswordMutation.isPending
-                ? "Updating..."
-                : "Reset Password"}
-            </Button>
-          </form>
-        </div>
-      </section>
-      <AuthBrandAside />
-    </div>
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-xs text-text-muted hover:text-text-primary"
+            >
+              Privacy
+            </Link>
+          </div>
+        </footer>
+      </div>
+    </main>
   );
 }

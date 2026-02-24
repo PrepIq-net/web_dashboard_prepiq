@@ -37,8 +37,11 @@
   --motion-duration-standard: 220ms;
   --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --font-satoshi: var(--font-satoshi-next), var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
-  --font-inter: var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
+  --font-satoshi:
+    var(--font-satoshi-next), var(--font-inter-next), "Inter", system-ui,
+    -apple-system, sans-serif;
+  --font-inter:
+    var(--font-inter-next), "Inter", system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
@@ -90,4 +93,52 @@ body {
 ::selection {
   background: color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
   color: var(--color-text-primary);
+}
+
+@layer utilities {
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-step-forward {
+    animation: slide-in-right var(--motion-duration-standard)
+      var(--motion-ease-standard);
+  }
+
+  .animate-step-backward {
+    animation: slide-in-left var(--motion-duration-standard)
+      var(--motion-ease-standard);
+  }
+
+  .animate-fade-in {
+    animation: fade-in var(--motion-duration-standard)
+      var(--motion-ease-standard);
+  }
 }
