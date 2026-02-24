@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopNav } from "@/components/dashboard/top-nav";
+import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import {
   Shop,
   WarningTriangle,
@@ -39,6 +40,7 @@ export default function Home() {
 }
 
 function HomeContent() {
+  const { collapsed } = useSidebarState();
   const { data: user, isLoading } = useCurrentUserProfile();
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const accessScopeQuery = useProductionIntelligenceAccessScope();
@@ -173,7 +175,11 @@ function HomeContent() {
       <DashboardSidebar user={user} />
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 py-8">
+      <main
+        className={`flex-1 py-8 transition-[margin-left] duration-200 ${
+          collapsed ? "ml-20" : "ml-64"
+        }`}
+      >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
           <DashboardTopNav />
 

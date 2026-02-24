@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   Check,
+  LogOut,
   MapPin,
   NavArrowDown,
   PlusCircle,
@@ -17,6 +18,7 @@ import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
   useNotifications,
+  useSessionLogoutUser,
 } from "@/services";
 import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 
@@ -27,6 +29,7 @@ export function DashboardTopNav() {
   const accessScopeQuery = useProductionIntelligenceAccessScope();
   const notificationsQuery = useNotifications();
   const markAsReadMutation = useMarkNotificationsAsRead();
+  const logoutMutation = useSessionLogoutUser();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,6 +108,19 @@ export function DashboardTopNav() {
 
   const handleMarkAllRead = () => {
     markAsReadMutation.mutate({});
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        setAvatarMenuOpen(false);
+        router.replace("/login");
+      },
+      onError: () => {
+        setAvatarMenuOpen(false);
+        router.replace("/login");
+      },
+    });
   };
 
   return (
@@ -358,9 +374,12 @@ export function DashboardTopNav() {
                   </Link>
                   <button
                     type="button"
-                    className="w-full rounded-[8px] px-2 py-2 text-left text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7]"
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                    className="w-full rounded-[8px] px-2 py-2 text-left text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] inline-flex items-center gap-2"
                   >
-                    Sign out
+                    <LogOut className="h-4 w-4" />
+                    {logoutMutation.isPending ? "Signing out..." : "Sign out"}
                   </button>
                 </div>
               </div>

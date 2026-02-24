@@ -3,6 +3,7 @@
 import { Brain } from "iconoir-react";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopNav } from "@/components/dashboard/top-nav";
+import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { useCurrentUserProfile } from "@/services";
 
 type WorkspaceShellProps = {
@@ -20,6 +21,7 @@ export function WorkspaceShell({
   insight,
   children,
 }: WorkspaceShellProps) {
+  const { collapsed } = useSidebarState();
   const { data: user, isLoading } = useCurrentUserProfile();
 
   if (isLoading) {
@@ -38,7 +40,11 @@ export function WorkspaceShell({
   return (
     <div className="flex min-h-screen bg-surface-1">
       <DashboardSidebar user={user} />
-      <main className="ml-64 flex-1 py-8">
+      <main
+        className={`flex-1 py-8 transition-[margin-left] duration-200 ${
+          collapsed ? "ml-20" : "ml-64"
+        }`}
+      >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
           <DashboardTopNav />
           <section className="pb-8 border-b border-[#2A2A2E]">
