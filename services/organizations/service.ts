@@ -8,6 +8,23 @@ import {
 } from "./types";
 import { z } from "zod";
 
+const organizationsListResponseSchema = z.union([
+  z.array(organizationSchema),
+  z.object({
+    results: z.array(organizationSchema),
+  }),
+  z.object({
+    success: z.boolean(),
+    message: z.string().optional(),
+    data: z.object({
+      count: z.number().optional(),
+      next: z.string().nullable().optional(),
+      previous: z.string().nullable().optional(),
+      results: z.array(organizationSchema),
+    }),
+  }),
+]);
+
 export async function registerOrganization(
   payload: OrganizationRegisterPayload,
 ) {
@@ -44,13 +61,17 @@ export async function registerOrganization(
 }
 
 export async function getMyOrganizations() {
-  return apiClientWithSchema(
+  const response = await apiClientWithSchema(
     organizationsEndpoints.list,
-    z.array(organizationSchema),
+    organizationsListResponseSchema,
     {
       method: "GET",
     },
   );
+
+  if (Array.isArray(response)) return response;
+  if ("results" in response) return response.results;
+  return response.data.results;
 }
 
 export async function getOrganizationDetail(id: string) {

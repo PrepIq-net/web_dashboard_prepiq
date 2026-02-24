@@ -40,7 +40,11 @@ const DAYS = [
 
 export default function CreateBranchPage() {
   const router = useRouter();
-  const { data: orgs } = useMyOrganizations();
+  const {
+    data: orgs,
+    isLoading: isOrgsLoading,
+    error: orgsError,
+  } = useMyOrganizations();
 
   // Use the first org the user owns
   const orgId = orgs?.[0]?.id ?? "";
@@ -90,8 +94,29 @@ export default function CreateBranchPage() {
     e.preventDefault();
     setSubmitError("");
 
-    if (!isValid || !orgId) {
-      setSubmitError("Please fix the errors before continuing.");
+    if (!isValid) {
+      setSubmitError("Please fix the highlighted fields before continuing.");
+      return;
+    }
+
+    if (isOrgsLoading) {
+      setSubmitError("Resolving organization context. Please try again.");
+      return;
+    }
+
+    if (orgsError) {
+      setSubmitError(
+        orgsError instanceof Error
+          ? orgsError.message
+          : "Failed to load organization context.",
+      );
+      return;
+    }
+
+    if (!orgId) {
+      setSubmitError(
+        "No organization found for this account. Create or join an organization first.",
+      );
       return;
     }
 
@@ -134,6 +159,24 @@ export default function CreateBranchPage() {
         <p className="text-[14px] text-[#8E8E93] mb-10">
           This is where your operations live. You can add more branches later.
         </p>
+
+        {isOrgsLoading && (
+          <div className="mb-6 p-3 rounded-[8px] bg-[#3A6EA5]/10 border border-[#3A6EA5]/20">
+            <p className="text-xs text-[#C7C7CC]">
+              Loading organization context...
+            </p>
+          </div>
+        )}
+
+        {!isOrgsLoading && orgsError && (
+          <div className="mb-6 p-3 rounded-[8px] bg-[#C44949]/10 border border-[#C44949]/20">
+            <p className="text-xs text-[#C44949]">
+              {orgsError instanceof Error
+                ? orgsError.message
+                : "Failed to load organizations."}
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Branch name */}
@@ -275,11 +318,25 @@ export default function CreateBranchPage() {
             </div>
           )}
 
+          {!isOrgsLoading && !orgsError && !orgId && (
+            <div className="p-3 rounded-[8px] bg-[#C48B2A]/10 border border-[#C48B2A]/20">
+              <p className="text-xs text-[#C7C7CC]">
+                This account is not linked to an organization yet. Branches can
+                only be created inside an organization.
+              </p>
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
             disabled={
-              !isValid || createBranch.isPending || operatingDays.length === 0
+              !isValid ||
+              createBranch.isPending ||
+              operatingDays.length === 0 ||
+              isOrgsLoading ||
+              !!orgsError ||
+              !orgId
             }
             className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-50 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
           >

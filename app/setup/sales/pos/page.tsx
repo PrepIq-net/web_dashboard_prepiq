@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowRight, Check, Link } from "iconoir-react";
 
 interface POSSystem {
@@ -10,6 +11,7 @@ interface POSSystem {
   description: string;
   color: string; // brand accent for the logo tile
   initials: string; // until real logos are available
+  logoSrc?: string;
   pulls: string[];
   authType: "oauth" | "api_key";
   authLabel: string;
@@ -22,6 +24,7 @@ const POS_SYSTEMS: POSSystem[] = [
     description: "Used worldwide by cafés, restaurants, and food trucks.",
     color: "#000000",
     initials: "SQ",
+    logoSrc: "/app_logo/square-point-of-sale-logo.png",
     pulls: [
       "30–90 days of itemised sales",
       "Menu items auto-created",
@@ -152,10 +155,20 @@ export default function POSSelectionPage() {
                 <div className="flex items-start gap-3">
                   {/* Logo tile */}
                   <span
-                    className="h-10 w-10 rounded-[8px] flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    className="h-10 w-10 rounded-[8px] flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden"
                     style={{ backgroundColor: pos.color }}
                   >
-                    {pos.initials}
+                    {pos.logoSrc ? (
+                      <Image
+                        src={pos.logoSrc}
+                        alt={`${pos.name} logo`}
+                        width={28}
+                        height={28}
+                        className="object-contain"
+                      />
+                    ) : (
+                      pos.initials
+                    )}
                   </span>
 
                   {/* Text */}
