@@ -39,7 +39,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Financial",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
-          { label: "Command", href: "/workspace/finance-command", icon: <Brain className="h-4 w-4" /> },
+          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Sales Overview", href: "/workspace/sales-overview", icon: <Folder className="h-4 w-4" /> },
           { label: "Margin Protection", href: "/workspace/margin-protection", icon: <Folder className="h-4 w-4" /> },
           { label: "Waste Cost", href: "/workspace/waste-cost-report", icon: <Folder className="h-4 w-4" /> },

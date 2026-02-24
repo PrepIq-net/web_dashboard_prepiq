@@ -11,22 +11,6 @@ type SectionDefinition = {
 };
 
 const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
-  command: {
-    eyebrow: "Executive",
-    title: "Command",
-    description: "Organization-level command view for performance, risk, and margin posture.",
-    insight: "One branch is drifting on waste; prioritize drill-down before closing today's cycle.",
-    metrics: [
-      { label: "Revenue today", value: "$12,430" },
-      { label: "Waste risk", value: "4.1%" },
-      { label: "Critical alerts", value: "1" },
-    ],
-    bullets: [
-      "Branch North is driving most of the waste deviation.",
-      "Forecast reliability is stable across top-selling items.",
-      "Command page will be wired to live tiles next.",
-    ],
-  },
   today: {
     eyebrow: "Branch Workspace",
     title: "Today",

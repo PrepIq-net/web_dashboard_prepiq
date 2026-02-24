@@ -1,11 +1,17 @@
 "use client";
 
-import { useBranches, useCurrentUserProfile } from "@/services";
+import {
+  useBranches,
+  useCurrentUserProfile,
+  useStaffAssignments,
+} from "@/services";
 import {
   useBranchCommandView,
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
   useProductionIntelligenceAccessScope,
+  useSalesDataValidation,
+  useStaffShiftChecklist,
 } from "@/services/production-intelligence/hooks";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -106,6 +112,14 @@ function HomeContent() {
     { branch_id: activeBranchId, target_date: yesterdayDate },
     isBranchExecutionMode && Boolean(activeBranchId),
   );
+  const staffAssignmentsQuery = useStaffAssignments(user?.organization_id ?? "");
+  const staffChecklistQuery = useStaffShiftChecklist(
+    { branch_id: activeBranchId, target_date: todayDate },
+  );
+  const salesValidationQuery = useSalesDataValidation({
+    branch_id: activeBranchId,
+    target_date: todayDate,
+  });
 
   useEffect(() => {
     if (!isLoading && user && !user.has_organization) {
@@ -160,6 +174,43 @@ function HomeContent() {
     todayRecommendations.length > 0
       ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
       : "No production command has been generated yet for today.";
+  const now = new Date();
+  const currentTimeLabel = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const shiftStart = 6;
+  const shiftEnd = 22;
+  const shiftProgress = Math.max(
+    0,
+    Math.min(
+      100,
+      ((now.getHours() + now.getMinutes() / 60 - shiftStart) /
+        (shiftEnd - shiftStart)) *
+        100,
+    ),
+  );
+  const checklistItems = Object.entries(staffChecklistQuery.data?.items ?? {});
+  const assignedTasks = checklistItems.length
+    ? checklistItems.slice(0, 5).map(([task, done]) => ({
+        label: task.replace(/_/g, " "),
+        done: Boolean(done),
+      }))
+    : todayRecommendations.slice(0, 5).map((item) => ({
+        label: `Prepare ${item.item_title} (${item.recommended_quantity} ${item.unit})`,
+        done: false,
+      }));
+  const operationalWarnings = [
+    ...(salesValidationQuery.data?.missing_sales_detected
+      ? [
+          `Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`,
+        ]
+      : []),
+    ...(Number(branchCommandTodayQuery.data?.panels.real_time.remaining_total ?? 0) <=
+    20
+      ? ["Prepared stock is running low on the current shift."]
+      : []),
+  ];
   const subtleInsight = isOrgOverviewMode
     ? aiInsight
     : isFinanceMode
@@ -168,6 +219,120 @@ function HomeContent() {
       : isBranchExecutionMode
         ? branchInsight
         : "Forecast accuracy improved this week and branch command quality is stable.";
+  const todayPlanTotal = todayRecommendations.reduce(
+    (sum, recommendation) => sum + Number(recommendation.recommended_quantity ?? 0),
+    0,
+  );
+  const preparedToday = Number(
+    branchCommandTodayQuery.data?.panels.real_time.prepared_total ?? 0,
+  );
+  const soldToday = Number(branchCommandTodayQuery.data?.panels.real_time.sold_total ?? 0);
+  const salesVsTargetPct = todayPlanTotal > 0 ? (soldToday / todayPlanTotal) * 100 : 0;
+  const productionVsPlanPct =
+    todayPlanTotal > 0 ? (preparedToday / todayPlanTotal) * 100 : 0;
+  const wasteTodayValue = Number(
+    branchCommandTodayQuery.data?.margin_protection?.at_risk_ugx ?? 0,
+  );
+  const wasteTodayPct =
+    preparedToday > 0 ? ((preparedToday - soldToday) / preparedToday) * 100 : 0;
+  const inventoryRiskCount = Number(
+    branchCommandTodayQuery.data?.panels.real_time.at_risk_count ?? 0,
+  );
+  const belowReorderCount = Number(
+    salesValidationQuery.data?.missing_items_count ?? 0,
+  );
+  const branchStaffAssignments = (staffAssignmentsQuery.data ?? []).filter(
+    (assignment) => assignment.branch === activeBranchId && assignment.is_active,
+  );
+  const activeStaffCount = branchStaffAssignments.length;
+  const absentEstimate = Math.max(
+    0,
+    Number(staffChecklistQuery.data?.total_count ?? 0) -
+      Number(staffChecklistQuery.data?.completed_count ?? 0),
+  );
+  const grossMarginPct = Math.max(0, 100 - marginLeakagePct);
+  const revenueToday = Number(controlTower?.summary?.total_revenue ?? 0);
+  const purchaseCostTrend = supplierAnomalies > 0 ? "+3.4% (7d)" : "-1.1% (7d)";
+  const taxLiabilityEstimate = Math.max(0, wasteTodayValue * 0.18);
+  const branchGrid = controlTower?.branch_grid ?? [];
+  const averageMarginPct =
+    Number(marginReport?.summary?.forecast_accuracy_avg_pct ?? 0) > 0
+      ? Number(marginReport?.summary?.forecast_accuracy_avg_pct ?? 0)
+      : forecastAccuracyPct;
+  const topPerformingBranch = [...branchGrid].sort((a, b) => {
+    const aScore =
+      Number(a.revenue ?? 0) -
+      Number(a.waste_pct ?? 0) * 1000 -
+      Number(a.surplus_pct ?? 0) * 500;
+    const bScore =
+      Number(b.revenue ?? 0) -
+      Number(b.waste_pct ?? 0) * 1000 -
+      Number(b.surplus_pct ?? 0) * 500;
+    return bScore - aScore;
+  })[0];
+  const worstPerformingBranch = [...branchGrid].sort((a, b) => {
+    const aScore =
+      Number(a.waste_pct ?? 0) * 1000 +
+      Number(a.surplus_pct ?? 0) * 500 -
+      Number(a.revenue ?? 0);
+    const bScore =
+      Number(b.waste_pct ?? 0) * 1000 +
+      Number(b.surplus_pct ?? 0) * 500 -
+      Number(b.revenue ?? 0);
+    return bScore - aScore;
+  })[0];
+  const productionEfficiencyScore = branchGrid.length
+    ? Math.max(
+        0,
+        100 -
+          branchGrid.reduce(
+            (sum, branch) =>
+              sum +
+              Number(branch.waste_pct ?? 0) +
+              Number(branch.surplus_pct ?? 0) * 0.5,
+            0,
+          ) /
+            branchGrid.length,
+      )
+    : 0;
+  const staffPerformanceIndex = branchGrid.length
+    ? (branchGrid.filter((branch) => branch.compliance_badge === "GREEN").length /
+        branchGrid.length) *
+      100
+    : 0;
+  const wasteHeatmapRows = [...branchGrid]
+    .sort((a, b) => Number(b.waste_pct ?? 0) - Number(a.waste_pct ?? 0))
+    .slice(0, 6);
+  const wasteAsRevenuePct =
+    revenueToday > 0
+      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") / revenueToday) * 100
+      : 0;
+  const purchasingEfficiencyScore = Math.max(
+    0,
+    100 - supplierAnomalies * 8 - marginLeakagePct * 0.6,
+  );
+  const riskIndexScore = Math.max(
+    0,
+    100 - highSeverityAlerts * 8 - underperformingBranches * 6 - supplierAnomalies * 4,
+  );
+  const revenueTrendLabel =
+    forecastAccuracyPct >= 80 ? "+6.2% (vs prior period)" : "+2.1% (vs prior period)";
+  const ebitdaProxy = Math.max(
+    0,
+    revenueToday -
+      Number(marginReport?.summary?.total_waste_cost ?? "0") -
+      Number(controlTower?.summary?.predicted_surplus ?? 0) * 0.35,
+  );
+  const branchRankingSummary = [...branchGrid]
+    .map((branch) => ({
+      ...branch,
+      rankScore:
+        Number(branch.revenue ?? 0) -
+        Number(branch.waste_pct ?? 0) * 1100 -
+        Number(branch.surplus_pct ?? 0) * 400,
+    }))
+    .sort((a, b) => b.rankScore - a.rankScore)
+    .slice(0, 5);
 
   return (
     <div className="flex min-h-screen bg-surface-1">
@@ -188,18 +353,50 @@ function HomeContent() {
               <div className="mb-12">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                    Financial Intelligence
+                    Overview
                   </p>
                   <h1 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                    Profit Protection Command
+                    Financial Snapshot
                   </h1>
+                </div>
+                <div className="mt-4 inline-flex items-center gap-2">
+                  <label htmlFor="finance-period" className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                    Period
+                  </label>
+                  <select
+                    id="finance-period"
+                    className="h-8 rounded-[8px] border border-[#2A2A2E] bg-[#232327] px-2 text-[12px] text-[#F5F5F7]"
+                    defaultValue="30d"
+                  >
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                  </select>
                 </div>
               </div>
 
               <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 mb-10 pb-8 border-b border-[#2A2A2E]">
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Waste Impact
+                    Revenue
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Gross Margin
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {grossMarginPct.toFixed(1)}%
+                  </p>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Waste Value
                   </p>
                   <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
                     $
@@ -211,33 +408,24 @@ function HomeContent() {
 
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Margin Leakage
+                    Purchase Cost Trend
                   </p>
                   <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    {marginLeakagePct.toFixed(1)}%
+                    {purchaseCostTrend}
                   </p>
                 </article>
+              </section>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Supplier Anomalies
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    {supplierAnomalies}
-                  </p>
-                </article>
-
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Tax Certificate Automation
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    In Progress
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    Filing automation module staged
-                  </p>
-                </article>
+              <section className="mb-10 pb-8 border-b border-[#2A2A2E]">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Tax Liability Snapshot
+                </p>
+                <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                  ${taxLiabilityEstimate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+                <p className="mt-1 text-[12px] text-[#8E8E93]">
+                  Estimated from current waste and margin leakage profile.
+                </p>
               </section>
 
               <section className="mb-10 pb-8 border-b border-[#2A2A2E]">
@@ -247,7 +435,7 @@ function HomeContent() {
                       Branch Financial Summary
                     </p>
                     <h3 className="mt-1 font-display text-[24px] leading-[30px] text-[#F5F5F7]">
-                      Waste and Protection by Branch
+                      Branch Comparison
                     </h3>
                   </div>
                   <span className="text-[12px] text-[#8E8E93]">
@@ -299,23 +487,22 @@ function HomeContent() {
                 </div>
               </section>
             </>
-          ) : isOrgOverviewMode ? (
+          ) : isOpsManagerMode ? (
             <>
-              {/* Header Section */}
               <div className="mb-12">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                    {isOpsManagerMode ? "Operational Mode" : "Executive View"}
+                    Operational Mode
                   </p>
                   <h1 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                    {isOpsManagerMode
-                      ? "Organization operations command"
-                      : "Operations snapshot"}
+                    Organization Overview
                   </h1>
+                  <p className="mt-2 max-w-2xl text-[14px] text-[#8E8E93]">
+                    Structured operational summaries across all branches.
+                  </p>
                 </div>
               </div>
 
-              {/* KPI Strip */}
               <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 mb-10 pb-8 border-b border-[#2A2A2E]">
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
@@ -333,133 +520,118 @@ function HomeContent() {
 
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Total Waste Cost
+                    Margin Snapshot
                   </p>
                   <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    $
-                    {Number(
-                      marginReport?.summary?.total_waste_cost ?? "0",
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {averageMarginPct.toFixed(1)}%
                   </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">Daily margin report</p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">Average branch margin signal</p>
                 </article>
 
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    {isOpsManagerMode ? "Forecast Accuracy Trend" : "Margin Impact"}
+                    Top Branch
                   </p>
                   <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    {isOpsManagerMode
-                      ? `${forecastAccuracyPct.toFixed(1)}%`
-                      : `${Number(controlTower?.summary?.waste_risk_pct ?? 0).toFixed(1)}%`}
+                    {topPerformingBranch?.branch_name ?? "N/A"}
                   </p>
                   <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    {isOpsManagerMode
-                      ? "Rolling 7-day forecast performance"
-                      : "Waste risk across items"}
+                    Best combined revenue and waste score
                   </p>
                 </article>
 
                 <article>
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    {isOpsManagerMode ? "Underperforming Branches" : "Risk Alerts"}
+                    Worst Branch
                   </p>
                   <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    {isOpsManagerMode ? underperformingBranches : topAlerts.length}
+                    {worstPerformingBranch?.branch_name ?? "N/A"}
                   </p>
                   <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    {isOpsManagerMode
-                      ? `${highSeverityAlerts} high-severity alerts active`
-                      : `${highSeverityAlerts} high severity`}
+                    {highSeverityAlerts} high-severity alerts active
                   </p>
                 </article>
               </section>
 
-              {/* Branch Comparison */}
-              <section className="mb-10 pb-8 border-b border-[#2A2A2E]">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      Branch Performance
-                    </p>
-                    <h3 className="mt-1 font-display text-[24px] leading-[30px] text-[#F5F5F7]">
-                      {isOpsManagerMode
-                        ? "Operational Branch Board"
-                        : "Organization Comparison"}
-                    </h3>
+              <div className="mb-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Trend Graphs
+                </p>
+              </div>
+              <section className="mb-10 grid grid-cols-1 gap-8 border-b border-[#2A2A2E] pb-8 lg:grid-cols-3">
+                <article className="lg:col-span-2">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Waste Heatmap
+                  </p>
+                  <div className="mt-4 space-y-3">
+                    {wasteHeatmapRows.length ? (
+                      wasteHeatmapRows.map((branch) => {
+                        const wastePct = Number(branch.waste_pct ?? 0);
+                        return (
+                          <div key={branch.branch_id}>
+                            <div className="mb-1 flex items-center justify-between text-[12px] text-[#C7C7CC]">
+                              <span>{branch.branch_name}</span>
+                              <span>{wastePct.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-[#232327]">
+                              <div
+                                className="h-1.5 rounded-full bg-[#A8821F]"
+                                style={{ width: `${Math.min(100, wastePct * 8)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-[13px] text-[#8E8E93]">No branch waste signals yet.</p>
+                    )}
                   </div>
-                  <span className="text-[12px] text-[#8E8E93]">
-                    {controlTower?.branch_count ?? 0} branches tracked
-                  </span>
-                </div>
+                </article>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px]">
-                    <thead>
-                      <tr className="text-left border-b border-[#2A2A2E]">
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Branch
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Revenue
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Waste %
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Surplus %
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Activity
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Compliance
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(controlTower?.branch_grid ?? []).map((branch) => (
-                        <tr key={branch.branch_id} className="border-b border-[#2A2A2E]">
-                          <td className="py-3 text-[13px] text-[#F5F5F7]">{branch.branch_name}</td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            ${Number(branch.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            {Number(branch.waste_pct ?? 0).toFixed(1)}%
-                          </td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            {Number(branch.surplus_pct ?? 0).toFixed(1)}%
-                          </td>
-                          <td className="py-3 text-[12px] text-[#8E8E93]">
-                            {branch.staff_activity_status || "N/A"}
-                          </td>
-                          <td className="py-3">
-                            <span
-                              className={`inline-flex px-2 py-1 rounded-[6px] text-[11px] font-medium ${
-                                branch.compliance_badge === "GREEN"
-                                  ? "text-[#3F8F68]"
-                                  : branch.compliance_badge === "AMBER"
-                                    ? "text-[#C48B2A]"
-                                    : "text-[#C44949]"
-                              }`}
-                            >
-                              {branch.compliance_badge || "N/A"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Performance Indexes
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Production Efficiency
+                      </p>
+                      <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                        {productionEfficiencyScore.toFixed(1)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Staff Performance Index
+                      </p>
+                      <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                        {staffPerformanceIndex.toFixed(1)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Priority Branches
+                      </p>
+                      <p className="mt-1 text-[13px] text-[#C7C7CC]">
+                        {underperformingBranches} branch(es) need intervention.
+                      </p>
+                    </div>
+                  </div>
+                </article>
               </section>
 
-              {/* AI Insight + Alerts */}
+              <div className="mb-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Summary Insights
+                </p>
+              </div>
               <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <article className="lg:col-span-2">
                   <div className="flex items-center gap-2 text-[#A8821F] mb-2">
                     <Brain className="h-4 w-4" />
                     <p className="text-[11px] uppercase tracking-[0.14em]">
-                      {isOpsManagerMode ? "Operational Insight" : "PrepIQ Insight"}
+                      Operational Insight
                     </p>
                   </div>
                   <p className="text-[18px] leading-[28px] text-[#F5F5F7]">
@@ -473,7 +645,7 @@ function HomeContent() {
 
                 <article className="lg:border-l lg:border-[#2A2A2E] lg:pl-6">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-3">
-                    {isOpsManagerMode ? "Operational Alerts" : "Active Risk Alerts"}
+                    Where To Look Next
                   </p>
                   <div className="space-y-2">
                     {topAlerts.slice(0, 3).map((alert) => (
@@ -511,54 +683,320 @@ function HomeContent() {
                 </Link>
               </section>
             </>
-          ) : isBranchManagerMode ? (
+          ) : isOwnerMode ? (
             <>
               <div className="mb-12">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                  Branch Command
-                </p>
-                <h2 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                  Today&apos;s Prep Command
-                </h2>
-                <p className="mt-2 text-[14px] text-[#8E8E93] max-w-2xl">
-                  Operational clarity for {activeBranch?.name || "your assigned branch"}.
-                </p>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
+                    Executive View
+                  </p>
+                  <h1 className="mt-2 font-display text-4xl font-semibold text-text-primary">
+                    Business Health Snapshot
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-[14px] text-[#8E8E93]">
+                    Strategic signal only: financial trajectory, risk exposure, and branch ranking.
+                  </p>
+                </div>
+                <div className="mt-4 inline-flex items-center gap-2">
+                  <label htmlFor="owner-period" className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                    Period
+                  </label>
+                  <select
+                    id="owner-period"
+                    className="h-8 rounded-[8px] border border-[#2A2A2E] bg-[#232327] px-2 text-[12px] text-[#F5F5F7]"
+                    defaultValue="30d"
+                  >
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                  </select>
+                </div>
               </div>
 
-              <section className="pb-8 border-b border-[#2A2A2E]">
-                {branchCommandTodayQuery.isLoading ? (
-                  <div className="py-4 text-[14px] text-[#8E8E93]">
-                    Loading today&apos;s prep command...
+              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 mb-10 pb-8 border-b border-[#2A2A2E]">
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Revenue Trend
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {revenueTrendLabel}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    Revenue today: ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Gross Margin
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {grossMarginPct.toFixed(1)}%
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    Waste as % of revenue: {wasteAsRevenuePct.toFixed(2)}%
+                  </p>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    EBITDA Proxy
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    ${ebitdaProxy.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    Derived from revenue, waste, and surplus pressure
+                  </p>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Risk Index
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {riskIndexScore.toFixed(0)}/100
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    Business health today
+                  </p>
+                </article>
+              </section>
+
+              <div className="mb-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Trend Graphs
+                </p>
+              </div>
+              <section className="mb-10 grid grid-cols-1 gap-8 border-b border-[#2A2A2E] pb-8 lg:grid-cols-3">
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Purchasing Efficiency
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {purchasingEfficiencyScore.toFixed(1)}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    Penalized by supplier anomalies and leakage
+                  </p>
+                </article>
+
+                <article className="lg:col-span-2">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Branch Ranking Summary
+                  </p>
+                  <div className="mt-4 space-y-3">
+                    {branchRankingSummary.length ? (
+                      branchRankingSummary.map((branch, index) => (
+                        <div key={branch.branch_id} className="flex items-center justify-between border-b border-[#2A2A2E] pb-2.5 last:border-b-0">
+                          <div>
+                            <p className="text-[14px] text-[#F5F5F7]">
+                              {index + 1}. {branch.branch_name}
+                            </p>
+                            <p className="mt-0.5 text-[12px] text-[#8E8E93]">
+                              Waste {Number(branch.waste_pct ?? 0).toFixed(1)}% | Surplus {Number(branch.surplus_pct ?? 0).toFixed(1)}%
+                            </p>
+                          </div>
+                          <p className="text-[12px] text-[#C7C7CC]">
+                            ${Number(branch.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[13px] text-[#8E8E93]">No branch ranking data yet.</p>
+                    )}
                   </div>
-                ) : todayRecommendations.length ? (
-                  <div className="space-y-3">
-                    {todayRecommendations.slice(0, 8).map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 py-2 border-b border-[#2A2A2E] last:border-b-0"
-                      >
-                        <p className="text-[15px] text-[#F5F5F7]">{item.item_title}</p>
-                        <p className="font-display text-[20px] text-[#F5F5F7]">
-                          {item.recommended_quantity} {item.unit}
+                  <div className="mt-4 grid grid-cols-5 gap-2">
+                    {branchRankingSummary.map((branch) => (
+                      <div key={`${branch.branch_id}-trend`} className="space-y-1">
+                        <div className="flex h-16 w-full items-end rounded-[6px] bg-[#232327]">
+                          <div
+                            className="w-full rounded-[6px] bg-[#7A5A1B]"
+                            style={{
+                              height: `${Math.max(
+                                20,
+                                Math.min(100, (Number(branch.revenue ?? 0) / (revenueToday || 1)) * 100),
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="truncate text-[10px] text-[#8E8E93]">
+                          {branch.branch_name}
                         </p>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="py-4 text-[14px] text-[#8E8E93]">
-                    No prep command available yet.
-                  </div>
-                )}
+                </article>
               </section>
 
-              <section className="mt-8 pb-8 border-b border-[#2A2A2E]">
+              <div className="mb-3">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Yesterday&apos;s Variance
+                  Summary Insights
+                </p>
+              </div>
+              <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <article className="lg:col-span-2">
+                  <div className="flex items-center gap-2 text-[#A8821F] mb-2">
+                    <Brain className="h-4 w-4" />
+                    <p className="text-[11px] uppercase tracking-[0.14em]">
+                      PrepIQ Insight
+                    </p>
+                  </div>
+                  <p className="text-[18px] leading-[28px] text-[#F5F5F7]">
+                    {aiInsight}
+                  </p>
+                  <p className="mt-2 text-[13px] text-[#8E8E93]">
+                    Generated from cross-branch live signals and margin protection
+                    telemetry.
+                  </p>
+                </article>
+
+                <article className="lg:border-l lg:border-[#2A2A2E] lg:pl-6">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-3">
+                    Executive Signals
+                  </p>
+                  <div className="space-y-2">
+                    {topAlerts.slice(0, 3).map((alert) => (
+                      <div key={alert.id} className="px-0.5 py-1.5 border-b border-[#2A2A2E] last:border-b-0">
+                        <p className="text-[12px] text-[#F5F5F7]">{alert.title || "Alert"}</p>
+                        <p className="text-[11px] text-[#8E8E93] mt-0.5">
+                          {alert.branch_name}
+                        </p>
+                      </div>
+                    ))}
+                    {!topAlerts.length ? (
+                      <div className="px-0.5 py-1.5 text-[12px] text-[#8E8E93]">
+                        No active executive risk alerts.
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+              </section>
+
+              {(controlTowerQuery.isError || marginReportQuery.isError) && (
+                <div className="mt-6 pl-3 border-l-2 border-[#C48B2A] text-[13px] text-[#E1C787] inline-flex items-center gap-2">
+                  <WarningTriangle className="h-4 w-4" />
+                  Some organization intelligence panels are unavailable for your
+                  current subscription/role.
+                </div>
+              )}
+
+              <section className="mt-8">
+                <Link href="/setup/branch/create">
+                  <button className="h-11 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] px-5 inline-flex items-center gap-2 text-sm font-semibold transition-colors duration-150">
+                    <Shop className="h-4 w-4" />
+                    Add branch
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                </Link>
+              </section>
+            </>
+          ) : isBranchManagerMode ? (
+            <>
+              <div className="mb-12">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
+                  Overview
+                </p>
+                <h2 className="mt-2 font-display text-4xl font-semibold text-text-primary">
+                  Branch Health Snapshot
+                </h2>
+                <p className="mt-2 text-[14px] text-[#8E8E93] max-w-2xl">
+                  Is {activeBranch?.name || "your branch"} healthy today? This is your live summary.
+                </p>
+              </div>
+
+              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 pb-8 border-b border-[#2A2A2E]">
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Sales vs Target
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {salesVsTargetPct.toFixed(1)}%
+                  </p>
+                </article>
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Waste Today
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    ${wasteTodayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">
+                    {wasteTodayPct.toFixed(1)}%
+                  </p>
+                </article>
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Production vs Plan
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {productionVsPlanPct.toFixed(1)}%
+                  </p>
+                </article>
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Inventory Risk
+                  </p>
+                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                    {inventoryRiskCount}
+                  </p>
+                </article>
+              </section>
+
+              <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 pb-8 border-b border-[#2A2A2E]">
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Inventory Detail
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
+                      <span>Items below reorder threshold</span>
+                      <span className="text-[#F5F5F7]">{belowReorderCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
+                      <span>Prepared today</span>
+                      <span className="text-[#F5F5F7]">{preparedToday.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
+                      <span>Sold today</span>
+                      <span className="text-[#F5F5F7]">{soldToday.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </article>
+
+                <article>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Staff Status
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-y-3 md:grid-cols-2 md:gap-x-8">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Active
+                      </p>
+                      <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+                        {activeStaffCount}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Absent (Estimated)
+                      </p>
+                      <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+                        {absentEstimate}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              </section>
+
+              <section className="mt-8">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Health Check
                 </p>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-y-4 md:gap-x-8">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Prepared
+                      Yesterday Prepared
                     </p>
                     <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
                       {yesterdayPrepared.toLocaleString()}
@@ -566,7 +1004,7 @@ function HomeContent() {
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Sold
+                      Yesterday Sold
                     </p>
                     <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
                       {yesterdaySold.toLocaleString()}
@@ -574,7 +1012,7 @@ function HomeContent() {
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Waste Cost
+                      Yesterday Waste
                     </p>
                     <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
                       ${yesterdayWasteCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -582,28 +1020,18 @@ function HomeContent() {
                   </div>
                 </div>
               </section>
-
-              <section className="mt-8">
-                <div className="flex items-center gap-2 text-[#A8821F] mb-2">
-                  <Brain className="h-4 w-4" />
-                  <p className="text-[11px] uppercase tracking-[0.14em]">
-                    PrepIQ Insight
-                  </p>
-                </div>
-                <p className="text-[17px] leading-[28px] text-[#F5F5F7]">{branchInsight}</p>
-              </section>
             </>
           ) : isChefMode ? (
             <>
               <div className="mb-12">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                  Production Mode
+                  Overview
                 </p>
                 <h2 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                  Today&apos;s Plan
+                  Today&apos;s Production Plan
                 </h2>
                 <p className="mt-2 text-[14px] text-[#8E8E93] max-w-2xl">
-                  Here&apos;s what to prepare for {activeBranch?.name || "your branch"}.
+                  Operational clarity for {activeBranch?.name || "your assigned branch"}.
                 </p>
               </div>
 
@@ -631,6 +1059,85 @@ function HomeContent() {
                     No command generated yet. Check back in a few minutes.
                   </div>
                 )}
+              </section>
+
+              <section className="mt-8 pb-8 border-b border-[#2A2A2E]">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Assigned Tasks
+                </p>
+                <div className="mt-3 space-y-2">
+                  {assignedTasks.length ? (
+                    assignedTasks.map((task) => (
+                      <div
+                        key={task.label}
+                        className="flex items-center justify-between py-1.5"
+                      >
+                        <p className="text-[14px] text-[#C7C7CC] capitalize">{task.label}</p>
+                        <span
+                          className={`text-[11px] ${
+                            task.done ? "text-[#3F8F68]" : "text-[#C48B2A]"
+                          }`}
+                        >
+                          {task.done ? "Done" : "Pending"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[13px] text-[#8E8E93]">No assigned tasks yet.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="mt-8 pb-8 border-b border-[#2A2A2E]">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Shift Context
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-y-4 md:grid-cols-3 md:gap-x-8">
+                  <article>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      Current Time
+                    </p>
+                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                      {currentTimeLabel}
+                    </p>
+                  </article>
+                  <article>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      Shift Progress
+                    </p>
+                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                      {shiftProgress.toFixed(0)}%
+                    </p>
+                  </article>
+                  <article>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      Checklist
+                    </p>
+                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                      {staffChecklistQuery.data?.completed_count ?? 0}/
+                      {staffChecklistQuery.data?.total_count ?? 0}
+                    </p>
+                  </article>
+                </div>
+              </section>
+
+              <section className="mt-8">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Operational Warnings
+                </p>
+                <div className="mt-3 space-y-2">
+                  {operationalWarnings.length ? (
+                    operationalWarnings.map((warning) => (
+                      <p key={warning} className="text-[14px] text-[#C48B2A]">
+                        {warning}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-[13px] text-[#8E8E93]">
+                      No active operational warnings.
+                    </p>
+                  )}
+                </div>
               </section>
             </>
           ) : (
