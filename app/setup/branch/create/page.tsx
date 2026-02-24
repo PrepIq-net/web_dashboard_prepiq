@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
@@ -49,6 +49,9 @@ export default function CreateBranchPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("UTC");
+  const [code, setCode] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [operatingDays, setOperatingDays] = useState<string[]>([
     "MON",
     "TUE",
@@ -56,13 +59,24 @@ export default function CreateBranchPage() {
     "THU",
     "FRI",
   ]);
+  const [submitError, setSubmitError] = useState("");
+
+  // Navigate after successful branch creation
+  useEffect(() => {
+    if (createBranch.isSuccess) {
+      router.push("/setup/sales");
+    }
+  }, [createBranch.isSuccess, router]);
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Branch name is required.";
     if (!address.trim()) e.address = "Address is required.";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      e.email = "Please enter a valid email.";
+    }
     return e;
-  }, [name, address]);
+  }, [name, address, email]);
 
   const isValid = Object.keys(errors).length === 0;
 
@@ -74,16 +88,33 @@ export default function CreateBranchPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValid || !orgId) return;
+    setSubmitError("");
 
-    await createBranch.mutateAsync(
-      { name, address, timezone },
-      {
-        onSuccess: () => {
-          router.push("/setup/sales");
-        },
-      },
-    );
+    if (!isValid || !orgId) {
+      setSubmitError("Please fix the errors before continuing.");
+      return;
+    }
+
+    if (operatingDays.length === 0) {
+      setSubmitError("Please select at least one operating day.");
+      return;
+    }
+
+    try {
+      await createBranch.mutateAsync({
+        name: name.trim(),
+        address: address.trim(),
+        timezone,
+        code: code.trim() || undefined,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+      });
+      // Navigation happens via mutation's onSuccess callback in hooks
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to create branch.",
+      );
+    }
   }
 
   return (
@@ -136,6 +167,51 @@ export default function CreateBranchPage() {
             />
             {errors.address && (
               <p className="text-xs text-[#C44949]">{errors.address}</p>
+            )}
+          </div>
+
+          {/* Branch code (optional) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
+              Branch code <span className="text-[#5A5A60]">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g. BR001"
+              className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
+            />
+          </div>
+
+          {/* Phone (optional) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
+              Phone <span className="text-[#5A5A60]">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +254 700 000 000"
+              className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
+            />
+          </div>
+
+          {/* Email (optional) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
+              Email <span className="text-[#5A5A60]">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. manager@branch.com"
+              className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
+            />
+            {errors.email && (
+              <p className="text-xs text-[#C44949]">{errors.email}</p>
             )}
           </div>
 
@@ -192,16 +268,19 @@ export default function CreateBranchPage() {
           {/* Divider */}
           <div className="h-px bg-[#2E2E33]" />
 
+          {/* Error message */}
+          {submitError && (
+            <div className="p-3 rounded-[8px] bg-[#C44949]/10 border border-[#C44949]/20">
+              <p className="text-xs text-[#C44949]">{submitError}</p>
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
             disabled={
               !isValid || createBranch.isPending || operatingDays.length === 0
             }
-            onClick={() => {
-              // navigate to "/sales"
-              router.push("/setup/sales");
-            }}
             className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-50 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
           >
             {createBranch.isPending ? (
