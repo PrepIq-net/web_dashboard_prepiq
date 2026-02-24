@@ -14,13 +14,13 @@ export default function Home() {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || (user && !user.has_organization)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-surface-1">
         <div className="flex flex-col items-center gap-4 animate-pulse">
           <div className="h-12 w-12 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted">
-            Resolving workspace state...
+            Getting things ready...
           </p>
         </div>
       </main>

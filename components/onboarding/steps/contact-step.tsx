@@ -5,13 +5,27 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useOnboardingStore } from "../store";
 import { Globe, Mail } from "iconoir-react";
+import { organizationRegisterPayloadSchema } from "@/services/organizations/types";
+import { useState, useMemo } from "react";
 
 export function ContactStep() {
   const { formData, updateData, nextStep, prevStep } = useOnboardingStore();
 
-  const isValid =
-    (formData.email && formData.email.includes("@")) ||
-    (formData.phone && formData.phone.length >= 5);
+  const errors = useMemo(() => {
+    const result = organizationRegisterPayloadSchema.safeParse(formData);
+    if (result.success) return {};
+
+    return result.error.issues.reduce((acc: any, issue) => {
+      acc[issue.path[0] as string] = issue.message;
+      return acc;
+    }, {});
+  }, [formData]);
+
+  const isValid = useMemo(() => {
+    const hasAtLeastOneContact =
+      formData.email?.trim() || formData.phone?.trim();
+    return hasAtLeastOneContact && Object.keys(errors).length === 0;
+  }, [formData, errors]);
 
   return (
     <div className="space-y-12 animate-fade-in">
@@ -33,13 +47,15 @@ export function ContactStep() {
             value={formData.email || ""}
             onChange={(e) => updateData({ email: e.target.value })}
             leadingIcon={<Mail />}
-            className="text-lg py-6"
+            error={formData.email ? errors.email : undefined}
+            className="text-lg"
           />
 
           <PhoneInput
             label="Direct Phone Line"
             value={formData.phone || ""}
             onChange={(val) => updateData({ phone: val })}
+            error={formData.phone ? errors.phone : undefined}
             className="text-lg"
           />
 
@@ -50,7 +66,8 @@ export function ContactStep() {
             value={formData.website || ""}
             onChange={(e) => updateData({ website: e.target.value })}
             leadingIcon={<Globe />}
-            className="text-lg py-6"
+            error={formData.website ? errors.website : undefined}
+            className="text-lg"
           />
         </div>
       </div>

@@ -42,15 +42,15 @@ export function ReviewStep() {
         <div className="flex items-center gap-3 text-brand-gold mb-4">
           <CheckCircle className="h-6 w-6" />
           <span className="text-sm font-bold uppercase tracking-widest text-brand-gold">
-            Ready for Launch
+            Ready to go
           </span>
         </div>
         <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary">
           Verify your setup.
         </h2>
         <p className="text-xl text-text-secondary leading-relaxed">
-          Almost there. Review your organizational data before we initialize
-          your kitchen intelligence layer.
+          Almost there. Review your organizational data before we set up your
+          kitchen workspace.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function ReviewStep() {
       {formData.description && (
         <div className="space-y-4 pt-10 border-t border-border-default/50">
           <p className="text-xs font-bold text-text-muted uppercase tracking-[0.2em]">
-            Operational Narrative
+            About your kitchen
           </p>
           <p className="text-xl text-text-secondary leading-relaxed max-w-3xl italic">
             &ldquo;{formData.description}&rdquo;
@@ -108,9 +108,7 @@ export function ReviewStep() {
           disabled={registerMutation.isPending}
           className="px-16 py-8 text-lg font-semibold shadow-level-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
         >
-          {registerMutation.isPending
-            ? "Configuring Environment..."
-            : "Complete & Open Workspace"}
+          {registerMutation.isPending ? "Setting things up..." : "Finish setup"}
         </Button>
       </div>
     </div>

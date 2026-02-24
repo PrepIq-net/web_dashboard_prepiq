@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as organizationService from "./service";
 import { toast } from "react-hot-toast";
 import type { OrganizationRegisterPayload } from "./types";
+import { usersQueryKeys } from "../users/hooks";
 
 export const organizationKeys = {
   all: ["organizations"] as const,
@@ -28,8 +29,11 @@ export function useRegisterOrganization() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: organizationService.registerOrganization,
-    onSuccess: (org) => {
-      queryClient.invalidateQueries({ queryKey: organizationKeys.lists() });
+    onSuccess: async (org) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
       toast.success(`Organization "${org.name}" created successfully!`);
     },
     onError: (error: any) => {

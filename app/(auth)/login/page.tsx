@@ -232,9 +232,7 @@ export default function LoginPage() {
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">
-              Kitchen Intelligence Layer
-            </p>
+            <p className="text-sm font-medium text-text-muted">Sign In</p>
           </div>
         </header>
 
@@ -245,7 +243,7 @@ export default function LoginPage() {
                 Welcome Back.
               </h1>
               <p className="text-lg text-text-secondary leading-relaxed">
-                Enter your credentials to access your command center.
+                Welcome back! Please enter your details to sign in.
               </p>
             </div>
 
@@ -269,7 +267,7 @@ export default function LoginPage() {
                     setIsUnverified(false);
                   }}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                 />
                 <Input
                   label="Password"
@@ -280,7 +278,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                   trailingIcon={
                     <button
                       type="button"
@@ -340,7 +338,7 @@ export default function LoginPage() {
                 <div className="flex items-center gap-4 py-2">
                   <div className="h-px flex-1 bg-border-default/50" />
                   <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">
-                    System Bridge
+                    Or sign in with
                   </span>
                   <div className="h-px flex-1 bg-border-default/50" />
                 </div>
@@ -375,7 +373,7 @@ export default function LoginPage() {
                 href="/register"
                 className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
               >
-                Create access
+                Create an account
               </Link>
             </p>
           </div>

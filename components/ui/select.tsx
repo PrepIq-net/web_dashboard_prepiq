@@ -16,6 +16,7 @@ type SelectProps = {
   leadingIcon?: ReactNode;
   placeholder?: string;
   disabled?: boolean;
+  error?: string;
   className?: string;
 };
 
@@ -27,6 +28,7 @@ export function Select({
   leadingIcon,
   placeholder = "Select an option",
   disabled = false,
+  error,
   className = "",
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,10 +62,12 @@ export function Select({
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex h-12 w-full items-center gap-2 rounded-button border border-border-default bg-surface-3 px-3 text-left transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus:border-brand-gold focus:shadow-[0_0_0_1px_rgba(168,130,31,0.45)] hover:bg-surface-4 disabled:cursor-not-allowed disabled:opacity-60 ${
-            isOpen
-              ? "border-brand-gold shadow-[0_0_0_1px_rgba(168,130,31,0.45)]"
-              : ""
+          className={`flex h-12 w-full items-center gap-2 rounded-button border bg-surface-3 px-3 text-left transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus:ring-1 hover:bg-surface-4 disabled:cursor-not-allowed disabled:opacity-60 ${
+            error
+              ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+              : isOpen
+                ? "border-brand-gold ring-brand-gold/20"
+                : "border-border-default focus:border-brand-gold focus:ring-brand-gold/20"
           }`}
         >
           {leadingIcon ? (
@@ -102,6 +106,7 @@ export function Select({
           </div>
         )}
       </div>
+      {error && <p className="text-[11px] font-medium text-red-500">{error}</p>}
     </div>
   );
 }

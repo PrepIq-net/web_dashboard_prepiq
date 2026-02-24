@@ -16,13 +16,13 @@ export default function OnboardingPage() {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || (user && user?.has_organization)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-surface-1">
         <div className="flex flex-col items-center gap-4 animate-pulse">
           <div className="h-12 w-12 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted">
-            Verifying workspace state...
+            Checking your setup...
           </p>
         </div>
       </main>
@@ -38,9 +38,7 @@ export default function OnboardingPage() {
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">
-              Initialization Phase
-            </p>
+            <p className="text-sm font-medium text-text-muted">Setting up</p>
           </div>
         </header>
 

@@ -15,10 +15,22 @@ const INDUSTRY_OPTIONS = [
   { value: "INSTITUTIONAL", label: "Institutional Kitchen" },
 ];
 
+import { organizationRegisterPayloadSchema } from "@/services/organizations/types";
+import { useMemo } from "react";
+
 export function IdentityStep() {
   const { formData, updateData, nextStep } = useOnboardingStore();
 
-  const isValid = formData.name.length >= 2 && formData.business_type;
+  const errors = useMemo(() => {
+    const result = organizationRegisterPayloadSchema.safeParse(formData);
+    if (result.success) return {};
+    return result.error.issues.reduce((acc: any, issue) => {
+      acc[issue.path[0] as string] = issue.message;
+      return acc;
+    }, {});
+  }, [formData]);
+
+  const isValid = !errors.name && !!formData.business_type;
 
   return (
     <div className="space-y-12 animate-fade-in">
@@ -40,7 +52,8 @@ export function IdentityStep() {
             onChange={(e) => updateData({ name: e.target.value })}
             leadingIcon={<Building />}
             required
-            className="text-lg py-6"
+            error={formData.name.length > 0 ? errors.name : undefined}
+            className="text-lg"
           />
 
           <Select
@@ -55,7 +68,8 @@ export function IdentityStep() {
             }
             leadingIcon={<Shop />}
             placeholder="Select your industry"
-            className="text-lg py-6"
+            error={errors.business_type}
+            className="text-lg"
           />
         </div>
       </div>

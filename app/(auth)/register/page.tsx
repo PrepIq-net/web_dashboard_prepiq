@@ -82,9 +82,7 @@ export default function RegisterPage() {
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">
-              Access Initialization
-            </p>
+            <p className="text-sm font-medium text-text-muted">Setting up</p>
           </div>
         </header>
 
@@ -92,11 +90,11 @@ export default function RegisterPage() {
           <div className="w-full max-w-2xl space-y-12 animate-fade-in">
             <div className="space-y-3 text-center">
               <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-                Create Access.
+                Create your account.
               </h1>
               <p className="text-lg text-text-secondary leading-relaxed max-w-lg mx-auto">
-                Join the platform to translate your kitchen operations into
-                actionable intelligence.
+                Sign up to start managing your kitchen operations with smart
+                insights and clear actions.
               </p>
             </div>
 
@@ -117,7 +115,7 @@ export default function RegisterPage() {
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                 />
                 <Input
                   label="Last Name"
@@ -128,7 +126,7 @@ export default function RegisterPage() {
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                 />
               </div>
 
@@ -142,7 +140,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                 />
                 <Input
                   label="Secure Password"
@@ -153,7 +151,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  className="text-lg py-6"
+                  className="text-lg"
                   trailingIcon={
                     <button
                       type="button"
@@ -177,13 +175,13 @@ export default function RegisterPage() {
                   className="text-lg"
                 />
                 <Select
-                  label="Operational Role"
+                  label="Your Position"
                   placeholder="Select your position"
                   options={JOB_TITLE_OPTIONS}
                   leadingIcon={<UserBag />}
                   value={jobTitle}
                   onChange={setJobTitle}
-                  className="text-lg py-6"
+                  className="text-lg"
                 />
               </div>
 
@@ -223,7 +221,7 @@ export default function RegisterPage() {
                 <div className="flex items-center gap-4 py-2">
                   <div className="h-px flex-1 bg-border-default/50" />
                   <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">
-                    Fast Track Access
+                    Or sign up with
                   </span>
                   <div className="h-px flex-1 bg-border-default/50" />
                 </div>
