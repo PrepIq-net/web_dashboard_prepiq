@@ -23,8 +23,8 @@ export default function StaffInvitePage() {
     setIsSubmitting(true);
     // Simulate sending invite
     setTimeout(() => {
-      // Flow complete: route to dashboard to start Day 1
-      router.push("/");
+      // Route to plan selection after invite action.
+      router.push("/setup/pricing");
     }, 1000);
   }
 
@@ -111,17 +111,17 @@ export default function StaffInvitePage() {
           >
             {isSubmitting
               ? "Sending invite..."
-              : "Send Invite & Go to Dashboard"}
+              : "Send Invite & Continue"}
             {!isSubmitting && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
 
         <button
           type="button"
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/setup/pricing")}
           className="w-full mt-4 text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
         >
-          Skip — I&apos;ll log the first batch myself
+          Skip — choose plan first
         </button>
       </div>
     </div>
