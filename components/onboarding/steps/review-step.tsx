@@ -4,14 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useOnboardingStore } from "../store";
 import { useRegisterOrganization } from "@/services/organizations/hooks";
 import { useRouter } from "next/navigation";
-import {
-  Building,
-  MapPin,
-  Phone,
-  Globe,
-  Mail,
-  CheckCircle,
-} from "iconoir-react";
+import { Building, Phone, Globe, Mail, CheckCircle } from "iconoir-react";
 
 export function ReviewStep() {
   const router = useRouter();
@@ -82,6 +75,11 @@ export function ReviewStep() {
           icon={Globe}
           label="Digital Presence"
           value={formData.website}
+        />
+        <SummaryItem
+          icon={Building}
+          label="Operational Capacity"
+          value={formData.capacity ? `${formData.capacity} Units` : null}
         />
       </div>
 

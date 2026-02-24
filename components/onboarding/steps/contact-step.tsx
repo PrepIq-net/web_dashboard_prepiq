@@ -9,6 +9,10 @@ import { Globe, Mail } from "iconoir-react";
 export function ContactStep() {
   const { formData, updateData, nextStep, prevStep } = useOnboardingStore();
 
+  const isValid =
+    (formData.email && formData.email.includes("@")) ||
+    (formData.phone && formData.phone.length >= 5);
+
   return (
     <div className="space-y-12 animate-fade-in">
       <div className="space-y-3">
@@ -61,6 +65,7 @@ export function ContactStep() {
         </Button>
         <Button
           onClick={nextStep}
+          disabled={!isValid}
           className="px-12 py-7 text-base font-semibold shadow-level-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           Review Workspace

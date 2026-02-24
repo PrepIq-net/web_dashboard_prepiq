@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStore } from "../store";
-import { Page, MapPin } from "iconoir-react";
+import { Page, Building } from "iconoir-react";
 
 export function OperationsStep() {
   const { formData, updateData, nextStep, prevStep } = useOnboardingStore();
@@ -22,6 +22,18 @@ export function OperationsStep() {
 
       <div className="space-y-10">
         <div className="grid grid-cols-1 gap-8">
+          <Input
+            label="Storage Capacity (Units)"
+            type="number"
+            placeholder="e.g. 5000"
+            value={formData.capacity || ""}
+            onChange={(e) =>
+              updateData({ capacity: parseInt(e.target.value) || undefined })
+            }
+            leadingIcon={<Building className="h-4 w-4" />}
+            className="text-lg py-6"
+          />
+
           <div className="space-y-3">
             <label className="text-sm font-semibold uppercase tracking-widest text-text-muted">
               Workspace Description
