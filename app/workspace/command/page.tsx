@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { WarningTriangle, ArrowRight } from "iconoir-react";
+import { ArrowRight } from "iconoir-react";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile } from "@/services";
 import {
@@ -22,6 +28,11 @@ type CommandCard = {
 };
 
 type SeverityTone = "RED" | "AMBER" | "GREEN";
+type PriorityRow = CommandCard & {
+  sectionLabel: string;
+  severity: SeverityTone;
+  rank: number;
+};
 
 type CommandSection = {
   label: string;
@@ -538,8 +549,92 @@ export default function CommandPage() {
       })),
     )
     .sort((a, b) => b.financialImpact - a.financialImpact);
+  const priorityRows: PriorityRow[] = priorityQueue.map((item, index) => ({
+    ...item,
+    rank: index + 1,
+  }));
   const redCount = priorityQueue.filter((item) => item.severity === "RED").length;
   const amberCount = priorityQueue.filter((item) => item.severity === "AMBER").length;
+  const columnHelper = createColumnHelper<PriorityRow>();
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("rank", {
+        header: "Priority",
+        cell: (info) => (
+          <span className="text-[12px] font-medium text-[#F5F5F7]">
+            {info.getValue()}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "signal",
+        header: "Signal",
+        cell: (info) => {
+          const row = info.row.original;
+          const severityTone =
+            row.severity === "RED"
+              ? "text-[#C44949]"
+              : row.severity === "AMBER"
+                ? "text-[#C48B2A]"
+                : "text-[#3F8F68]";
+          return (
+            <div className="space-y-0.5">
+              <p className="text-[13px] text-[#F5F5F7]">{row.title}</p>
+              <p className="text-[11px] text-[#8E8E93]">
+                {row.sectionLabel} · {row.impactedBranch}
+              </p>
+              <p className={`text-[11px] ${severityTone}`}>{row.severity}</p>
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor("financialImpact", {
+        header: isOwnerRole ? "Monthly Impact" : "Impact",
+        cell: (info) => (
+          <span className="text-[12px] text-[#F5F5F7]">
+            {toCurrency(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "action",
+        header: "Action Recommendation",
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <div className="space-y-1">
+              <p className="text-[12px] text-[#C7C7CC]">{row.actionRecommendation}</p>
+              {row.rootCauseHint ? (
+                <p className="text-[11px] text-[#8E8E93]">{row.rootCauseHint}</p>
+              ) : null}
+            </div>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: "cta",
+        header: "",
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <Link
+              href={row.viewHref}
+              className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#2E2E33] px-2.5 text-[11px] font-medium text-[#F5F5F7] transition-colors hover:border-[#A8821F] hover:text-[#A8821F]"
+            >
+              View breakdown
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          );
+        },
+      }),
+    ],
+    [columnHelper, isOwnerRole],
+  );
+  const table = useReactTable({
+    data: priorityRows,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   return (
     <WorkspaceShell
@@ -566,7 +661,7 @@ export default function CommandPage() {
             : "Executive command should answer one question quickly: where are we losing money next month?"
       }
     >
-      <section className="grid grid-cols-1 gap-5 border-b border-[#3A2626] pb-8 md:grid-cols-4">
+      <section className="grid grid-cols-1 gap-5 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
         <article>
           <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
             Open Command Cards
@@ -599,74 +694,61 @@ export default function CommandPage() {
             Severity Mix
           </p>
           <p className="mt-2 text-[14px] text-[#F5F5F7]">
-            <span className="text-[#D85C5C]">{redCount} red</span> /{" "}
-            <span className="text-[#D8A15C]">{amberCount} amber</span>
+            <span className="text-[#C44949]">{redCount} red</span> /{" "}
+            <span className="text-[#C48B2A]">{amberCount} amber</span>
           </p>
         </article>
       </section>
 
       <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#D8A15C]">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-[#A8821F]">
           Priority Queue
         </p>
-        <div className="mt-3 space-y-3">
-          {priorityQueue.map((card, index) => (
-            <article
-              key={card.id}
-              className={`rounded-[10px] border px-4 py-3 ${
-                card.severity === "RED"
-                  ? "border-[#5B2A2A] bg-[#211314]"
-                  : card.severity === "AMBER"
-                    ? "border-[#5E4630] bg-[#1F1A14]"
-                    : "border-[#2D3330] bg-[#161A17]"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                    Priority {index + 1} · {card.sectionLabel}
-                  </p>
-                  <p className="mt-1 text-[14px] text-[#F5F5F7]">{card.title}</p>
-                  <p className="mt-0.5 text-[12px] text-[#AFAFB6]">
-                    Impacted branch: {card.impactedBranch}
-                  </p>
-                </div>
-                <span
-                  className={`inline-flex items-center gap-1 text-[11px] ${
-                    card.severity === "RED"
-                      ? "text-[#D85C5C]"
-                      : card.severity === "AMBER"
-                        ? "text-[#D8A15C]"
-                        : "text-[#6CB48B]"
-                  }`}
-                >
-                  <WarningTriangle className="h-3.5 w-3.5" />
-                  {card.severity}
-                </span>
-              </div>
-              <p className="mt-2 text-[13px] text-[#D5D5DA]">
-                {isOwnerRole ? "Estimated monthly impact" : "Financial impact estimate"}:{" "}
-                {toCurrency(card.financialImpact)}
-              </p>
-              <p className="mt-1 text-[13px] text-[#C7C7CC]">
-                Action recommendation: {card.actionRecommendation}
-              </p>
-              {card.rootCauseHint ? (
-                <p className="mt-1 text-[12px] text-[#9D9DA4]">
-                  Root cause hint: {card.rootCauseHint}
-                </p>
-              ) : null}
-              <div className="mt-3">
-                <Link
-                  href={card.viewHref}
-                  className="inline-flex h-8 items-center gap-1 rounded-[8px] bg-[#F1C661] px-3 text-[12px] font-semibold text-[#1A1713] transition-colors hover:bg-[#F7D98A]"
-                >
-                  View breakdown
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </article>
-          ))}
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[980px]">
+            <thead className="border-b border-[#2A2A2E]">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]"
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => {
+                const rowSeverity = row.original.severity;
+                const rowToneClass =
+                  rowSeverity === "RED"
+                    ? "border-l-[#C44949]"
+                    : rowSeverity === "AMBER"
+                      ? "border-l-[#C48B2A]"
+                      : "border-l-[#3F8F68]";
+                return (
+                  <tr
+                    key={row.id}
+                    className={`border-b border-[#2A2A2E] align-top ${rowToneClass} border-l-2`}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-2 py-3">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
     </WorkspaceShell>
