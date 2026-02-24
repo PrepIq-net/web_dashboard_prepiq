@@ -16,6 +16,7 @@ type SelectProps = {
   leadingIcon?: ReactNode;
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
 };
 
 export function Select({
@@ -26,6 +27,7 @@ export function Select({
   leadingIcon,
   placeholder = "Select an option",
   disabled = false,
+  className = "",
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export function Select({
   }
 
   return (
-    <div className="block space-y-2" ref={containerRef}>
+    <div className={`block space-y-2 ${className}`} ref={containerRef}>
       <span className="text-sm font-medium text-text-secondary">{label}</span>
       <div className="relative">
         <button

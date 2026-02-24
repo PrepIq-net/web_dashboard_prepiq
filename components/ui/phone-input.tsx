@@ -27,6 +27,7 @@ type PhoneInputProps = {
   value: string; // The full number e.g. +254712345678
   onChange: (value: string) => void;
   required?: boolean;
+  className?: string;
 };
 
 export function PhoneInput({
@@ -34,6 +35,7 @@ export function PhoneInput({
   value,
   onChange,
   required,
+  className = "",
 }: PhoneInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(
@@ -79,7 +81,7 @@ export function PhoneInput({
   }
 
   return (
-    <label className="block space-y-2">
+    <label className={`block space-y-2 ${className}`}>
       <span className="text-sm font-medium text-text-secondary">{label}</span>
       <div className="flex h-12 items-stretch rounded-button border border-border-default bg-surface-3 transition-[border-color,box-shadow] duration-200 focus-within:border-brand-gold focus-within:shadow-[0_0_0_1px_rgba(168,130,31,0.45)]">
         {/* Country Selector */}

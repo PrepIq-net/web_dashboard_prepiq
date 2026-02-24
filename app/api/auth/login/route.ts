@@ -21,6 +21,7 @@ const loginResponseSchema = z.object({
   email: z.string().email(),
   is_volunteer: z.boolean(),
   is_setup_complete: z.boolean(),
+  has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
 });
 
@@ -28,17 +29,14 @@ export async function POST(request: Request) {
   try {
     const body = loginRequestSchema.parse(await request.json());
 
-    const backendResponse = await fetch(
-      resolveBackendApiUrl("auth/login/"),
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        cache: "no-store",
+    const backendResponse = await fetch(resolveBackendApiUrl("auth/login/"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
 
     const raw = await backendResponse.text();
     let payload: unknown = {};
@@ -69,6 +67,7 @@ export async function POST(request: Request) {
           email: parsed.email,
           is_volunteer: parsed.is_volunteer,
           is_setup_complete: parsed.is_setup_complete,
+          has_organization: parsed.has_organization,
           missing_setup_fields: parsed.missing_setup_fields,
         },
       },

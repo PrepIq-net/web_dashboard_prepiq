@@ -14,14 +14,13 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Select } from "@/components/ui/select";
-import { useRegisterUser } from "@/services/users/hooks";
+import { useRegisterUser } from "@/services";
 
 const JOB_TITLE_OPTIONS = [
   { value: "ORG_OWNER", label: "Organization Owner" },
@@ -75,160 +74,212 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto grid min-h-screen w-full grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-      <section className="flex min-h-screen items-center justify-center border-r border-border-default bg-surface-2 p-8 md:p-12">
-        <div className="mx-auto w-full max-w-lg">
-          <AuthLogoRow size={64} />
+    <main className="min-h-screen bg-bg-base overflow-x-hidden">
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12 md:px-12 md:py-24">
+        {/* Background glow for a "pro" feel */}
+        <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-brand-gold/5 blur-[120px]" />
 
-          <h1 className="font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
-            Create Account
-          </h1>
-          <p className="mt-3 text-[14px] leading-[22px] text-text-secondary">
-            Set up your workspace access with your core profile details.
-          </p>
+        <header className="relative z-10 flex items-center justify-between mb-20">
+          <AuthLogoRow size={48} />
+          <div className="hidden md:block">
+            <p className="text-sm font-medium text-text-muted">
+              Access Initialization
+            </p>
+          </div>
+        </header>
 
-          <form
-            className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
-            onSubmit={handleSubmit}
-          >
-            <Honeypot
-              name="nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input
-                label="First Name"
-                type="text"
-                placeholder="First name"
-                leadingIcon={<User />}
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                required
-              />
-              <Input
-                label="Last Name"
-                type="text"
-                placeholder="Last name"
-                leadingIcon={<User />}
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                required
-              />
-            </div>
-
-            <Input
-              label="Email"
-              type="email"
-              placeholder="Enter your email"
-              leadingIcon={<Mail />}
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-
-            <Input
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Create password"
-              leadingIcon={<Lock />}
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              trailingIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeClosed /> : <Eye />}
-                </button>
-              }
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <PhoneInput label="Phone" value={phone} onChange={setPhone} />
-              <Select
-                label="Job Title"
-                placeholder="Select role"
-                options={JOB_TITLE_OPTIONS}
-                leadingIcon={<UserBag />}
-                value={jobTitle}
-                onChange={setJobTitle}
-              />
-            </div>
-
-            <div className="py-2">
-              <p className="text-xs text-text-secondary leading-relaxed">
-                By creating an account, you agree to our{" "}
-                <Link href="/terms" className="text-brand-gold hover:underline">
-                  Terms and Conditions
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="/privacy"
-                  className="text-brand-gold hover:underline"
-                >
-                  Privacy Policy
-                </Link>
-                .
+        <section className="relative z-10 flex-1 flex flex-col items-center">
+          <div className="w-full max-w-2xl space-y-12 animate-fade-in">
+            <div className="space-y-3 text-center">
+              <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
+                Create Access.
+              </h1>
+              <p className="text-lg text-text-secondary leading-relaxed max-w-lg mx-auto">
+                Join the platform to translate your kitchen operations into
+                actionable intelligence.
               </p>
             </div>
 
-            <Button
-              type="submit"
-              fullWidth
-              disabled={registerMutation.isPending}
-            >
-              {registerMutation.isPending
-                ? "Creating Account..."
-                : "Create Account"}
-            </Button>
+            <form className="space-y-8" onSubmit={handleSubmit}>
+              <Honeypot
+                name="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
 
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-px flex-1 bg-border-default" />
-              <span className="text-xs uppercase tracking-[0.18em] text-text-muted">
-                or
-              </span>
-              <div className="h-px flex-1 bg-border-default" />
-            </div>
-
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-              leftIcon={
-                <Image
-                  src="/app_logo/logo-google.png"
-                  alt="Google"
-                  width={18}
-                  height={18}
-                  className="h-[18px] w-[18px]"
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <Input
+                  label="First Name"
+                  type="text"
+                  placeholder="e.g. Marcus"
+                  leadingIcon={<User />}
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                  className="text-lg py-6"
                 />
-              }
-            >
-              Continue with Google
-            </Button>
-          </form>
+                <Input
+                  label="Last Name"
+                  type="text"
+                  placeholder="e.g. Holloway"
+                  leadingIcon={<User />}
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                />
+              </div>
 
-          <p className="mt-6 text-center text-sm text-text-secondary">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-brand-gold hover:text-brand-gold-hover"
-            >
-              Sign in
-            </Link>
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <Input
+                  label="Work Email"
+                  type="email"
+                  placeholder="name@organization.com"
+                  leadingIcon={<Mail />}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                />
+                <Input
+                  label="Secure Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  leadingIcon={<Lock />}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                  trailingIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? <EyeClosed /> : <Eye />}
+                    </button>
+                  }
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <PhoneInput
+                  label="Contact Phone"
+                  value={phone}
+                  onChange={setPhone}
+                  className="text-lg"
+                />
+                <Select
+                  label="Operational Role"
+                  placeholder="Select your position"
+                  options={JOB_TITLE_OPTIONS}
+                  leadingIcon={<UserBag />}
+                  value={jobTitle}
+                  onChange={setJobTitle}
+                  className="text-lg py-6"
+                />
+              </div>
+
+              <div className="py-4 border-y border-border-default/30">
+                <p className="text-xs text-text-muted leading-relaxed text-center">
+                  By clicking &ldquo;Create Account&rdquo; you agree to the
+                  PrepIQ{" "}
+                  <Link
+                    href="/terms"
+                    className="text-brand-gold hover:underline"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    className="text-brand-gold hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={registerMutation.isPending}
+                  className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {registerMutation.isPending
+                    ? "Creating Account..."
+                    : "Create Account"}
+                </Button>
+
+                <div className="flex items-center gap-4 py-2">
+                  <div className="h-px flex-1 bg-border-default/50" />
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">
+                    Fast Track Access
+                  </span>
+                  <div className="h-px flex-1 bg-border-default/50" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  className="py-7 border-border-default/50 hover:bg-surface-3 transition-all"
+                  leftIcon={
+                    <Image
+                      src="/app_logo/logo-google.png"
+                      alt="Google"
+                      width={18}
+                      height={18}
+                      className="h-[18px] w-[18px]"
+                    />
+                  }
+                >
+                  Continue with Google
+                </Button>
+              </div>
+            </form>
+
+            <p className="text-center text-sm text-text-secondary pt-8">
+              Already have access?{" "}
+              <Link
+                href="/login"
+                className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </section>
+
+        <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
+          <p className="text-xs text-text-muted">
+            PrepIQ Infrastructure &copy; 2026.
           </p>
-        </div>
-      </section>
-
-      <AuthBrandAside />
-    </div>
+          <div className="flex gap-6">
+            <Link
+              href="/terms"
+              className="text-xs text-text-muted hover:text-text-primary"
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-xs text-text-muted hover:text-text-primary"
+            >
+              Privacy
+            </Link>
+          </div>
+        </footer>
+      </div>
+    </main>
   );
 }

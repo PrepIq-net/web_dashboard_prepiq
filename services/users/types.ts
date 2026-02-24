@@ -42,6 +42,7 @@ export const loginResponseSchema = z.object({
   user_id: z.string(),
   is_volunteer: z.boolean(),
   is_setup_complete: z.boolean(),
+  has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
 });
 
@@ -51,6 +52,7 @@ export const sessionLoginResponseSchema = z.object({
     email: z.string().email(),
     is_volunteer: z.boolean(),
     is_setup_complete: z.boolean(),
+    has_organization: z.boolean(),
     missing_setup_fields: z.array(z.string()),
   }),
 });
@@ -69,6 +71,7 @@ export const sessionGoogleLoginResponseSchema = z.object({
     email: z.string().email(),
     is_volunteer: z.boolean(),
     is_setup_complete: z.boolean(),
+    has_organization: z.boolean(),
     missing_setup_fields: z.array(z.string()),
     created: z.boolean(),
   }),
@@ -129,6 +132,7 @@ export const userProfileSchema = z.object({
   organization_role: z.string().nullable(),
   organization_id: z.string().nullable(),
   organization_logo: z.string().nullable(),
+  has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
 });
 
@@ -180,9 +184,11 @@ export const userSecuritySchema = z.object({
   updated_at: z.string(),
 });
 
-export const organizationMembershipSchema = z.object({
-  id: z.string(),
-}).passthrough();
+export const organizationMembershipSchema = z
+  .object({
+    id: z.string(),
+  })
+  .passthrough();
 
 export const comprehensiveUserSchema = z.object({
   id: z.string(),
@@ -209,7 +215,9 @@ export type SessionLoginResponse = z.infer<typeof sessionLoginResponseSchema>;
 
 export type GoogleLoginPayload = z.infer<typeof googleLoginPayloadSchema>;
 export type GoogleLoginResponse = z.infer<typeof googleLoginResponseSchema>;
-export type SessionGoogleLoginResponse = z.infer<typeof sessionGoogleLoginResponseSchema>;
+export type SessionGoogleLoginResponse = z.infer<
+  typeof sessionGoogleLoginResponseSchema
+>;
 
 export type TokenRefreshPayload = z.infer<typeof tokenRefreshPayloadSchema>;
 export type TokenRefreshResponse = z.infer<typeof tokenRefreshResponseSchema>;
@@ -220,7 +228,9 @@ export type OtpPayload = z.infer<typeof otpPayloadSchema>;
 export type EmailPayload = z.infer<typeof emailPayloadSchema>;
 export type ResetPasswordPayload = z.infer<typeof resetPasswordPayloadSchema>;
 
-export type VerificationStatusResponse = z.infer<typeof verificationStatusResponseSchema>;
+export type VerificationStatusResponse = z.infer<
+  typeof verificationStatusResponseSchema
+>;
 export type SessionStateResponse = z.infer<typeof sessionStateResponseSchema>;
 
 export type UserProfile = z.infer<typeof userProfileSchema>;

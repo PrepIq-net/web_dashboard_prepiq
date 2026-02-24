@@ -20,6 +20,7 @@ const googleLoginResponseSchema = z.object({
   email: z.string().email(),
   is_volunteer: z.boolean(),
   is_setup_complete: z.boolean(),
+  has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
   created: z.boolean().optional(),
 });
@@ -52,7 +53,10 @@ export async function POST(request: Request) {
       if (payload && typeof payload === "object") {
         return NextResponse.json(payload, { status: backendResponse.status });
       }
-      return NextResponse.json({ message: "Google login failed" }, { status: backendResponse.status });
+      return NextResponse.json(
+        { message: "Google login failed" },
+        { status: backendResponse.status },
+      );
     }
 
     const parsed = googleLoginResponseSchema.parse(payload);
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
           email: parsed.email,
           is_volunteer: parsed.is_volunteer,
           is_setup_complete: parsed.is_setup_complete,
+          has_organization: parsed.has_organization,
           missing_setup_fields: parsed.missing_setup_fields,
           created: parsed.created ?? false,
         },
@@ -92,6 +97,9 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ message: "Failed to login with Google" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to login with Google" },
+      { status: 500 },
+    );
   }
 }

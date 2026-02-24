@@ -3,14 +3,9 @@ import { organizationsEndpoints } from "./endpoints";
 import {
   organizationSchema,
   organizationRegisterPayloadSchema,
-  organizationMemberSchema,
-  addOrganizationMemberPayloadSchema,
   type Organization,
   type OrganizationRegisterPayload,
-  type OrganizationMember,
-  type AddOrganizationMemberPayload,
 } from "./types";
-import { apiMessageResponseSchema } from "@/services/users/types";
 import { z } from "zod";
 
 export async function registerOrganization(
@@ -57,41 +52,6 @@ export async function updateOrganization(
     {
       method: "PATCH",
       body: payload,
-    },
-  );
-}
-
-export async function getOrganizationMembers(id: string) {
-  return apiClientWithSchema(
-    organizationsEndpoints.members(id),
-    z.array(organizationMemberSchema),
-    {
-      method: "GET",
-    },
-  );
-}
-
-export async function addOrganizationMember(
-  orgId: string,
-  payload: AddOrganizationMemberPayload,
-) {
-  const body = addOrganizationMemberPayloadSchema.parse(payload);
-  return apiClientWithSchema(
-    organizationsEndpoints.addMember(orgId),
-    organizationMemberSchema,
-    {
-      method: "POST",
-      body,
-    },
-  );
-}
-
-export async function removeOrganizationMember(orgId: string, userId: string) {
-  return apiClientWithSchema(
-    organizationsEndpoints.removeMember(orgId, userId),
-    apiMessageResponseSchema,
-    {
-      method: "DELETE",
     },
   );
 }

@@ -6,16 +6,12 @@ import { Eye, EyeClosed, Lock, Mail } from "iconoir-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { AuthBrandAside } from "@/components/auth/auth-brand-aside";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
-import {
-  useSessionGoogleLogin,
-  useSessionLoginUser,
-} from "@/services/users/hooks";
+import { useSessionGoogleLogin, useSessionLoginUser } from "@/services";
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -228,139 +224,183 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto grid min-h-screen w-full  grid-cols-1 bg-surface-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-      <section className="flex min-h-screen items-center justify-center border-r border-border-default bg-surface-2 p-8 md:p-12">
-        <div className="mx-auto w-full max-w-lg">
-          <AuthLogoRow size={64} />
+    <main className="min-h-screen bg-bg-base overflow-x-hidden">
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12 md:px-12 md:py-24">
+        {/* Background glow for a "pro" feel */}
+        <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-brand-gold/5 blur-[120px]" />
 
-          <h1 className="font-display text-[40px] font-semibold leading-[48px] tracking-tight text-text-primary">
-            Welcome Back
-          </h1>
-          <p className="mt-3 text-[14px] leading-[22px] text-text-secondary">
-            Sign in to access your kitchen command layer.
-          </p>
+        <header className="relative z-10 flex items-center justify-between mb-20">
+          <AuthLogoRow size={48} />
+          <div className="hidden md:block">
+            <p className="text-sm font-medium text-text-muted">
+              Kitchen Intelligence Layer
+            </p>
+          </div>
+        </header>
 
-          <form
-            className="mt-10 rounded-card border border-border-default bg-surface-3 p-6 space-y-4"
-            onSubmit={handleSubmit}
-          >
-            <Honeypot
-              name="nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
-            <Input
-              label="Email"
-              type="email"
-              placeholder="Enter your email"
-              leadingIcon={<Mail />}
-              autoComplete="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setIsUnverified(false);
-              }}
-              required
-            />
-            <Input
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              leadingIcon={<Lock />}
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              trailingIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeClosed /> : <Eye />}
-                </button>
-              }
-            />
-
-            <div className="flex items-center justify-between pt-1">
-              <label className="inline-flex items-center gap-2 text-xs text-text-secondary">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded-[4px] border border-border-default bg-surface-2 accent-[var(--color-brand-gold)]"
-                />
-                Remember me
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-brand-gold hover:text-brand-gold-hover"
-              >
-                Forgot password?
-              </Link>
+        <section className="relative z-10 flex-1 flex flex-col items-center">
+          <div className="w-full max-w-md space-y-12 animate-fade-in">
+            <div className="space-y-3 text-center">
+              <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
+                Welcome Back.
+              </h1>
+              <p className="text-lg text-text-secondary leading-relaxed">
+                Enter your credentials to access your command center.
+              </p>
             </div>
 
-            <Button type="submit" fullWidth disabled={isBusy}>
-              {loginMutation.isPending ? "Signing In..." : "Sign In"}
-            </Button>
+            <form className="space-y-8" onSubmit={handleSubmit}>
+              <Honeypot
+                name="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+              />
 
-            {isUnverified && (
-              <div className="rounded-card border border-brand-gold/20 bg-brand-gold/5 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <p className="text-xs leading-relaxed text-text-secondary">
-                  Your account isn&apos;t verified yet. To continue, please{" "}
-                  <Link
-                    href={`/verify-otp?email=${encodeURIComponent(email)}`}
-                    className="font-semibold text-brand-gold hover:underline"
-                  >
-                    verify your email
-                  </Link>{" "}
-                  using the code sent during registration. You can request a
-                  fresh code there if needed.
-                </p>
+              <div className="space-y-6">
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="name@organization.com"
+                  leadingIcon={<Mail />}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setIsUnverified(false);
+                  }}
+                  required
+                  className="text-lg py-6"
+                />
+                <Input
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  leadingIcon={<Lock />}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  className="text-lg py-6"
+                  trailingIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? <EyeClosed /> : <Eye />}
+                    </button>
+                  }
+                />
               </div>
-            )}
 
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-px flex-1 bg-border-default" />
-              <span className="text-xs uppercase tracking-[0.18em] text-text-muted">
-                or
-              </span>
-              <div className="h-px flex-1 bg-border-default" />
-            </div>
+              <div className="flex items-center justify-between">
+                <label className="inline-flex items-center gap-2 text-sm text-text-secondary cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded-[4px] border border-border-default bg-surface-2 accent-brand-gold cursor-pointer transition-colors group-hover:border-brand-gold/50"
+                  />
+                  Remember me
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-brand-gold hover:text-brand-gold-hover transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              fullWidth
-              leftIcon={
-                <Image
-                  src="/app_logo/logo-google.png"
-                  alt="Google"
-                  width={18}
-                  height={18}
-                  className="h-[18px] w-[18px]"
-                />
-              }
-              onClick={handleGoogleSignIn}
-              disabled={isBusy || !googleClientId}
-            >
-              {googleLoginMutation.isPending
-                ? "Connecting Google..."
-                : "Continue with Google"}
-            </Button>
-          </form>
+              <div className="space-y-6 pt-2">
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={isBusy}
+                  className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {loginMutation.isPending ? "Authenticating..." : "Sign In"}
+                </Button>
 
-          <p className="mt-6 text-center text-sm text-text-secondary">
-            Not registered yet?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-brand-gold hover:text-brand-gold-hover"
-            >
-              Create an account
-            </Link>
+                {isUnverified && (
+                  <div className="rounded-card border border-brand-gold/20 bg-brand-gold/5 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-xs leading-relaxed text-text-secondary text-center">
+                      Your account isn&apos;t verified yet. To continue, please{" "}
+                      <Link
+                        href={`/verify-otp?email=${encodeURIComponent(email)}`}
+                        className="font-semibold text-brand-gold hover:underline"
+                      >
+                        verify your email
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4 py-2">
+                  <div className="h-px flex-1 bg-border-default/50" />
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">
+                    System Bridge
+                  </span>
+                  <div className="h-px flex-1 bg-border-default/50" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  className="py-7 border-border-default/50 hover:bg-surface-3 transition-all"
+                  leftIcon={
+                    <Image
+                      src="/app_logo/logo-google.png"
+                      alt="Google"
+                      width={18}
+                      height={18}
+                      className="h-[18px] w-[18px]"
+                    />
+                  }
+                  onClick={handleGoogleSignIn}
+                  disabled={isBusy || !googleClientId}
+                >
+                  {googleLoginMutation.isPending
+                    ? "Connecting..."
+                    : "Continue with Google"}
+                </Button>
+              </div>
+            </form>
+
+            <p className="text-center text-sm text-text-secondary pt-8">
+              New to the platform?{" "}
+              <Link
+                href="/register"
+                className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
+              >
+                Create access
+              </Link>
+            </p>
+          </div>
+        </section>
+
+        <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
+          <p className="text-xs text-text-muted">
+            PrepIQ Infrastructure &copy; 2026.
           </p>
-        </div>
-      </section>
-      <AuthBrandAside />
-    </div>
+          <div className="flex gap-6">
+            <Link
+              href="/terms"
+              className="text-xs text-text-muted hover:text-text-primary"
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-xs text-text-muted hover:text-text-primary"
+            >
+              Privacy
+            </Link>
+          </div>
+        </footer>
+      </div>
+    </main>
   );
 }
