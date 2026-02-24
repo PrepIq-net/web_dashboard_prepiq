@@ -1,0 +1,25 @@
+export const usersEndpoints = {
+  auth: {
+    register: "/api/auth/register/",
+    login: "/api/auth/login/",
+    googleLogin: "/api/auth/google/",
+    refresh: "/api/auth/refresh/",
+    logout: "/api/auth/logout/",
+    verifyOtp: "/api/auth/verify-otp/",
+    resendOtp: "/api/auth/resend-otp/",
+    forgotPassword: "/api/auth/forgot-password/",
+    resetPassword: "/api/auth/reset-password/",
+    verificationStatus: "/api/auth/verification-status/",
+  },
+  profile: {
+    me: "/api/user/me/",
+    update: "/api/user/update-profile/",
+    updateLocation: "/api/user/update-location/",
+    uploadPhoto: "/api/user/upload-photo/",
+    uploadDocuments: "/api/user/upload-documents/",
+    deleteAccount: "/api/user/delete/",
+    roles: "/api/user/roles/",
+    qrCode: "/api/user/qr-code/",
+    details: (id: string) => `/api/user/details/${id}/`,
+  },
+} as const;
