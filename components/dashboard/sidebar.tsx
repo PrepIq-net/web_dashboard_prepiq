@@ -9,11 +9,14 @@ import {
   Clock,
   User,
   Folder,
-  FileNotFound,
   HelpCircle,
   NavArrowLeft,
   LogOut,
   UserBadgeCheck,
+  Brain,
+  WarningTriangle,
+  ChatBubble,
+  Shop,
 } from "iconoir-react";
 import type { UserProfile } from "@/services/users/types";
 
@@ -21,53 +24,154 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  section: "workspace" | "management";
 }
 
-const navItems: NavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/",
-    icon: <Home className="h-4 w-4" />,
-    section: "workspace",
-  },
-  {
-    label: "Projects",
-    href: "/projects",
-    icon: <Folder className="h-4 w-4" />,
-    section: "workspace",
-  },
-  {
-    label: "Time log",
-    href: "/time-log",
-    icon: <Clock className="h-4 w-4" />,
-    section: "workspace",
-  },
-  {
-    label: "Resource mgnt",
-    href: "/resources",
-    icon: <Settings className="h-4 w-4" />,
-    section: "workspace",
-  },
-  {
-    label: "Users",
-    href: "/users",
-    icon: <User className="h-4 w-4" />,
-    section: "management",
-  },
-  {
-    label: "Project template",
-    href: "/templates",
-    icon: <FileNotFound className="h-4 w-4" />,
-    section: "management",
-  },
-  {
-    label: "Menu settings",
-    href: "/settings",
-    icon: <Settings className="h-4 w-4" />,
-    section: "management",
-  },
-];
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+function getNavSectionsByRole(role?: string | null): NavSection[] {
+  if (role === "AUDITOR" || role === "ACCOUNTANT") {
+    return [
+      {
+        title: "Financial Intelligence",
+        items: [
+          {
+            label: "Margin Protection",
+            href: "/",
+            icon: <WarningTriangle className="h-4 w-4" />,
+          },
+          {
+            label: "Waste Cost Report",
+            href: "/setup/sales",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Tax Engine",
+            href: "/setup/pricing",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Purchase Variance",
+            href: "/setup/pricing",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Branch Financial Summary",
+            href: "/setup/branch",
+            icon: <Shop className="h-4 w-4" />,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (role === "STAFF_OPERATOR") {
+    return [
+      {
+        title: "Production",
+        items: [
+          { label: "Today's Plan", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Log Batch", href: "/setup/forecast", icon: <Brain className="h-4 w-4" /> },
+          { label: "History", href: "/setup/sales", icon: <Clock className="h-4 w-4" /> },
+          { label: "Chat", href: "/chat", icon: <ChatBubble className="h-4 w-4" /> },
+        ],
+      },
+    ];
+  }
+
+  if (role === "BRANCH_MANAGER" || role === "GM") {
+    return [
+      {
+        title: "Branch",
+        items: [
+          { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Production Plan", href: "/setup/forecast", icon: <Brain className="h-4 w-4" /> },
+          { label: "Sales & Waste", href: "/setup/sales", icon: <Folder className="h-4 w-4" /> },
+          { label: "Inventory", href: "/setup/items", icon: <Clock className="h-4 w-4" /> },
+          { label: "Staff", href: "/setup/staff", icon: <User className="h-4 w-4" /> },
+          { label: "Chat", href: "/chat", icon: <ChatBubble className="h-4 w-4" /> },
+        ],
+      },
+    ];
+  }
+
+  if (role === "OPS_DIRECTOR") {
+    return [
+      {
+        title: "Operations",
+        items: [
+          { label: "Command Center", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Branches", href: "/setup/branch", icon: <Shop className="h-4 w-4" /> },
+          {
+            label: "Production Intelligence",
+            href: "/setup/forecast",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Purchase Optimizer",
+            href: "/setup/pricing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          { label: "Staff Performance", href: "/setup/staff", icon: <User className="h-4 w-4" /> },
+          { label: "Chat", href: "/chat", icon: <ChatBubble className="h-4 w-4" /> },
+        ],
+      },
+    ];
+  }
+
+  if (role === "ORG_OWNER" || role === "ORG_ADMIN") {
+    return [
+      {
+        title: "Executive",
+        items: [
+          { label: "Command Center", href: "/", icon: <Home className="h-4 w-4" /> },
+          {
+            label: "Branch Performance",
+            href: "/setup/branch",
+            icon: <Shop className="h-4 w-4" />,
+          },
+          {
+            label: "Margin Protection Report",
+            href: "/setup/sales",
+            icon: <WarningTriangle className="h-4 w-4" />,
+          },
+          {
+            label: "Purchase Intelligence",
+            href: "/setup/pricing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Staff Intelligence",
+            href: "/setup/staff",
+            icon: <User className="h-4 w-4" />,
+          },
+          {
+            label: "Risk & Compliance",
+            href: "/setup/sales/csv/map",
+            icon: <WarningTriangle className="h-4 w-4" />,
+          },
+          { label: "Chat", href: "/chat", icon: <ChatBubble className="h-4 w-4" /> },
+          { label: "Settings", href: "/settings", icon: <Settings className="h-4 w-4" /> },
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      title: "Workspace",
+      items: [
+        { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
+        { label: "Production Plan", href: "/setup/forecast", icon: <Brain className="h-4 w-4" /> },
+        { label: "Sales & Waste", href: "/setup/sales", icon: <Folder className="h-4 w-4" /> },
+        { label: "Inventory", href: "/setup/items", icon: <Clock className="h-4 w-4" /> },
+        { label: "Staff", href: "/setup/staff", icon: <User className="h-4 w-4" /> },
+      ],
+    },
+  ];
+}
 
 type DashboardSidebarProps = {
   user?: UserProfile | null;
@@ -111,8 +215,7 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
-  const workspaceLinks = navItems.filter((item) => item.section === "workspace");
-  const managementLinks = navItems.filter((item) => item.section === "management");
+  const navSections = getNavSectionsByRole(user?.organization_role);
 
   return (
     <aside className="fixed left-0 top-0 z-20 h-screen w-64 border-r border-[#2E2E33] bg-[#141416] flex flex-col">
@@ -149,31 +252,22 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-5">
-        {/* Workspace Navigation */}
-        <div className="mb-7">
-          <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8E8E93] mb-3">
-            Workspace
-          </p>
-          <nav className="space-y-1.5">
-            {workspaceLinks.map((item) => {
-              const active = isActive(item.href);
-              return <SidebarLink key={item.href} item={item} active={active} />;
-            })}
-          </nav>
-        </div>
-
-        {/* Management Navigation */}
-        <div className="pt-3 border-t border-[#2A2A2E]/70">
-          <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8E8E93] mb-3">
-            Management
-          </p>
-          <nav className="space-y-1.5">
-            {managementLinks.map((item) => {
-              const active = isActive(item.href);
-              return <SidebarLink key={item.href} item={item} active={active} />;
-            })}
-          </nav>
-        </div>
+        {navSections.map((section, index) => (
+          <div
+            key={section.title}
+            className={index === 0 ? "" : "mt-6 pt-3 border-t border-[#2A2A2E]/70"}
+          >
+            <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8E8E93] mb-3">
+              {section.title}
+            </p>
+            <nav className="space-y-1.5">
+              {section.items.map((item) => {
+                const active = isActive(item.href);
+                return <SidebarLink key={item.href} item={item} active={active} />;
+              })}
+            </nav>
+          </div>
+        ))}
       </div>
 
       {/* Footer */}

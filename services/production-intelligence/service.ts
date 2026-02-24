@@ -2,10 +2,13 @@ import { z } from "zod";
 import { apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
+  branchCommandViewSchema,
   createPrepRecommendationDecisionSchema,
   createStaffStockoutEventResponseSchema,
   createStaffStockoutEventSchema,
   dailyPrepRecommendationSchema,
+  executiveControlTowerSnapshotSchema,
+  ownerMarginProtectionReportSchema,
   ownerDailyPerformanceSchema,
   productionIntelligenceAccessScopeSchema,
   prepRecommendationDecisionSchema,
@@ -70,6 +73,19 @@ export async function getTodayPrepRecommendations(
   );
 }
 
+export type BranchCommandViewQuery = {
+  branch_id: string;
+  target_date?: string;
+};
+
+export async function getBranchCommandView(params: BranchCommandViewQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.branchCommand(), params),
+    branchCommandViewSchema,
+    { method: "GET" },
+  );
+}
+
 export async function createPrepRecommendationDecision(
   recommendationId: string,
   payload: CreatePrepRecommendationDecisionPayload,
@@ -97,6 +113,36 @@ export async function getOwnerDailyPerformance(
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.ownerDailyPerformance(), params),
     ownerDailyPerformanceSchema,
+    { method: "GET" },
+  );
+}
+
+export type ExecutiveControlTowerQuery = {
+  branch_id?: string;
+  target_date?: string;
+};
+
+export async function getExecutiveControlTower(
+  params?: ExecutiveControlTowerQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.controlTower(), params),
+    executiveControlTowerSnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export type OwnerMarginProtectionReportQuery = {
+  branch_id?: string;
+  target_date?: string;
+};
+
+export async function getOwnerMarginProtectionReport(
+  params?: OwnerMarginProtectionReportQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.ownerDailyMarginProtection(), params),
+    ownerMarginProtectionReportSchema,
     { method: "GET" },
   );
 }

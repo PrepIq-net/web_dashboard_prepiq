@@ -166,6 +166,91 @@ export const controlTowerSnapshotSchema = z.object({
 });
 export type ControlTowerSnapshot = z.infer<typeof controlTowerSnapshotSchema>;
 
+export const executiveControlTowerAlertSchema = z.object({
+  id: z.string(),
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  type: z.string().nullable().optional(),
+  severity: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  context: z.string().nullable().optional(),
+  root_cause: z.string().nullable().optional(),
+  suggested_action: z.string().nullable().optional(),
+  actions: z.array(z.string()).optional(),
+});
+
+export const executiveControlTowerBranchSchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  revenue: z.number().optional(),
+  prepared: z.number().optional(),
+  sold: z.number().optional(),
+  remaining: z.number().optional(),
+  waste_pct: z.number().optional(),
+  surplus_pct: z.number().optional(),
+  staff_activity_status: z.string().optional(),
+  compliance_badge: z.string().optional(),
+});
+
+export const executiveControlTowerSnapshotSchema = z.object({
+  target_date: z.string(),
+  scope_type: z.string().optional(),
+  summary: z.object({
+    total_revenue: z.number().optional(),
+    total_prepared: z.number().optional(),
+    total_sold: z.number().optional(),
+    predicted_surplus: z.number().optional(),
+    waste_risk_pct: z.number().optional(),
+    forecast_accuracy_rolling_7d: z.number().optional(),
+    cost_saved_today: z.number().optional(),
+  }),
+  alerts: z.array(executiveControlTowerAlertSchema),
+  branch_grid: z.array(executiveControlTowerBranchSchema),
+  branch_count: z.number(),
+});
+export type ExecutiveControlTowerSnapshot = z.infer<
+  typeof executiveControlTowerSnapshotSchema
+>;
+
+export const ownerMarginProtectionBranchSchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  margin_signal_status: z.string().optional(),
+  margin_deviation_pct: z.number().optional(),
+  total_waste_cost: z.string(),
+  money_protected_vs_baseline: z.string().optional(),
+  forecast_accuracy_summary: z.number().optional(),
+});
+
+export const ownerMarginProtectionReportSchema = z.object({
+  target_date: z.string(),
+  branch_count: z.number(),
+  summary: z.object({
+    total_waste_cost: z.string(),
+    total_money_protected_vs_baseline: z.string(),
+    forecast_accuracy_avg_pct: z.number().optional(),
+    margin_reliability: z
+      .object({
+        is_reliable: z.boolean(),
+        unreliable_items_count: z.number().optional(),
+        warning: z.string().optional(),
+      })
+      .optional(),
+  }),
+  branches: z.array(ownerMarginProtectionBranchSchema),
+  snapshot: z
+    .object({
+      id: z.string().uuid().optional(),
+      key: z.string().optional(),
+      immutable: z.boolean().optional(),
+      generated_at: z.string().optional(),
+    })
+    .optional(),
+});
+export type OwnerMarginProtectionReport = z.infer<
+  typeof ownerMarginProtectionReportSchema
+>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Operations Production Snapshot
 // ─────────────────────────────────────────────────────────────────────────────
@@ -355,6 +440,51 @@ export const productionIntelligenceAccessScopeSchema = z.object({
 export type ProductionIntelligenceAccessScope = z.infer<
   typeof productionIntelligenceAccessScopeSchema
 >;
+
+export const branchCommandRecommendationSchema = z.object({
+  id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  item_title: z.string(),
+  recommended_quantity: z.number(),
+  unit: z.string(),
+  baseline_forecast: z.number().nullable().optional(),
+});
+
+export const branchCommandViewSchema = z.object({
+  branch_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  branch_name: z.string(),
+  target_date: z.string(),
+  margin_protection: z
+    .object({
+      at_risk_ugx: z.string().optional(),
+      saved_ugx: z.string().optional(),
+      status: z.string().optional(),
+    })
+    .partial()
+    .optional(),
+  panels: z.object({
+    real_time: z.object({
+      prepared_total: z.number(),
+      sold_total: z.number(),
+      remaining_total: z.number(),
+      at_risk_count: z.number(),
+      unit: z.string().optional(),
+    }),
+    forecast: z.object({
+      recommendation_count: z.number(),
+      recommendations: z.array(branchCommandRecommendationSchema),
+    }),
+  }),
+  viewer: z
+    .object({
+      role: z.string(),
+      can_view_financials: z.boolean().optional(),
+    })
+    .partial()
+    .optional(),
+});
+export type BranchCommandView = z.infer<typeof branchCommandViewSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Square OAuth

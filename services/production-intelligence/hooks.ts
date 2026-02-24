@@ -2,7 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  getBranchCommandView,
   createPrepRecommendationDecision,
+  getExecutiveControlTower,
+  getOwnerMarginProtectionReport,
   createStaffStockoutEvent,
   getOwnerDailyPerformance,
   getProductionIntelligenceAccessScope,
@@ -13,6 +16,9 @@ import {
   startSquareOAuth,
   updateStaffShiftChecklist,
   type AccessScopeQuery,
+  type BranchCommandViewQuery,
+  type ExecutiveControlTowerQuery,
+  type OwnerMarginProtectionReportQuery,
   type OwnerDailyPerformanceQuery,
   type SalesDataValidationQuery,
   type StaffShiftChecklistQuery,
@@ -38,12 +44,33 @@ export const productionIntelligenceQueryKeys = {
       params?.target_date ?? "",
       params?.include_history ?? false,
     ] as const,
+  branchCommandView: (params: BranchCommandViewQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-command-view",
+      params.branch_id,
+      params.target_date ?? "",
+    ] as const,
   ownerDailyPerformance: (params: OwnerDailyPerformanceQuery) =>
     [
       ...productionIntelligenceQueryKeys.root,
       "owner-daily-performance",
       params.branch_id,
       params.target_date ?? "",
+    ] as const,
+  executiveControlTower: (params?: ExecutiveControlTowerQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "executive-control-tower",
+      params?.branch_id ?? "",
+      params?.target_date ?? "",
+    ] as const,
+  ownerMarginProtectionReport: (params?: OwnerMarginProtectionReportQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "owner-margin-protection-report",
+      params?.branch_id ?? "",
+      params?.target_date ?? "",
     ] as const,
   salesDataValidation: (params: SalesDataValidationQuery) =>
     [
@@ -82,6 +109,14 @@ export function useTodayPrepRecommendations(params?: TodayPrepRecommendationsQue
   });
 }
 
+export function useBranchCommandView(params: BranchCommandViewQuery, enabled = true) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchCommandView(params),
+    queryFn: () => getBranchCommandView(params),
+    enabled: enabled && Boolean(params.branch_id),
+  });
+}
+
 export function useCreatePrepRecommendationDecision() {
   const queryClient = useQueryClient();
 
@@ -109,6 +144,28 @@ export function useOwnerDailyPerformance(params: OwnerDailyPerformanceQuery) {
     queryKey: productionIntelligenceQueryKeys.ownerDailyPerformance(params),
     queryFn: () => getOwnerDailyPerformance(params),
     enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useExecutiveControlTower(
+  params?: ExecutiveControlTowerQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.executiveControlTower(params),
+    queryFn: () => getExecutiveControlTower(params),
+    enabled,
+  });
+}
+
+export function useOwnerMarginProtectionReport(
+  params?: OwnerMarginProtectionReportQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.ownerMarginProtectionReport(params),
+    queryFn: () => getOwnerMarginProtectionReport(params),
+    enabled,
   });
 }
 
