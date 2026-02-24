@@ -9,7 +9,13 @@ export function configureApiClient(config: ApiClientConfig): void {
 }
 
 function resolveBaseUrl(): string {
-  const baseUrl = runtimeConfig.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  // In the browser, we always route through our secure proxy to leverage HttpOnly cookies.
+  if (typeof window !== "undefined") {
+    return "/api/proxy";
+  }
+
+  const baseUrl =
+    runtimeConfig.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
   if (!baseUrl) {
     throw new Error("NEXT_PUBLIC_API_BASE_URL is not set.");
@@ -23,11 +29,26 @@ function buildUrl(endpoint: string): string {
     return endpoint;
   }
 
-  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  return `${resolveBaseUrl()}${normalizedEndpoint}`;
+  const baseUrl = resolveBaseUrl();
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
+
+  // Avoid double "/api/api/..." when base URL already includes "/api".
+  const normalizedBase = baseUrl.endsWith("/api")
+    ? baseUrl.slice(0, -4)
+    : baseUrl;
+  const endpointWithoutApiPrefix = normalizedEndpoint.replace(
+    /^\/api(?=\/)/,
+    "",
+  );
+
+  return `${normalizedBase}/api${endpointWithoutApiPrefix}`;
 }
 
-async function resolveAuthToken(authToken?: string | null): Promise<string | null> {
+async function resolveAuthToken(
+  authToken?: string | null,
+): Promise<string | null> {
   if (authToken !== undefined) {
     return authToken;
   }
@@ -56,7 +77,11 @@ export async function apiClient<T>(
 
   const requestHeaders = new Headers(headers ?? {});
 
-  if (body !== undefined && !requestHeaders.has("Content-Type") && !(body instanceof FormData)) {
+  if (
+    body !== undefined &&
+    !requestHeaders.has("Content-Type") &&
+    !(body instanceof FormData)
+  ) {
     requestHeaders.set("Content-Type", "application/json");
   }
 
