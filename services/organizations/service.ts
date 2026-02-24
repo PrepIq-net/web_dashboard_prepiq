@@ -11,13 +11,34 @@ import { z } from "zod";
 export async function registerOrganization(
   payload: OrganizationRegisterPayload,
 ) {
-  const body = organizationRegisterPayloadSchema.parse(payload);
+  // We don't use schema.parse here because it might strip the logo File object
+  // if not handled carefully, and we want to support multipart for the logo.
+  const hasLogo = payload.logo instanceof File;
+
+  if (hasLogo) {
+    const formData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value instanceof File ? value : String(value));
+      }
+    });
+
+    return apiClientWithSchema(
+      organizationsEndpoints.register,
+      organizationSchema,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+  }
+
   return apiClientWithSchema(
     organizationsEndpoints.register,
     organizationSchema,
     {
       method: "POST",
-      body,
+      body: payload,
     },
   );
 }

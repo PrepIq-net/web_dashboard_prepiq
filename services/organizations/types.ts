@@ -72,6 +72,7 @@ export const organizationRegisterPayloadSchema = z.object({
   website: z.string().url().optional().or(z.literal("")),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  logo: z.any().optional(),
 });
 
 export type OrganizationRegisterPayload = z.infer<

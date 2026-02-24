@@ -14,6 +14,9 @@ interface OnboardingState {
   currentStep: OnboardingStep;
   direction: "forward" | "backward";
   formData: OrganizationRegisterPayload;
+  /** Stable object URL for the cropped logo (managed outside formData to avoid re-creation issues). */
+  logoPreviewUrl: string | null;
+  setLogoPreviewUrl: (url: string | null) => void;
   setStep: (step: OnboardingStep) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -29,6 +32,7 @@ const initialData: OrganizationRegisterPayload = {
   phone: "",
   email: "",
   website: "",
+  logo: undefined,
   capacity: undefined,
 };
 
@@ -36,6 +40,8 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   currentStep: OnboardingStep.IDENTITY,
   direction: "forward",
   formData: initialData,
+  logoPreviewUrl: null,
+  setLogoPreviewUrl: (url) => set({ logoPreviewUrl: url }),
   setStep: (step) =>
     set((state) => ({
       direction: step > state.currentStep ? "forward" : "backward",
@@ -62,5 +68,9 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       formData: { ...state.formData, ...data },
     })),
   reset: () =>
-    set({ currentStep: OnboardingStep.IDENTITY, formData: initialData }),
+    set({
+      currentStep: OnboardingStep.IDENTITY,
+      formData: initialData,
+      logoPreviewUrl: null,
+    }),
 }));
