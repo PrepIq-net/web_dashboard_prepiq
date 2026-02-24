@@ -80,6 +80,14 @@ This file is the implementation checkpoint for design and UI decisions.
 - Spacing scale: `4, 8, 12, 16, 24, 32, 40, 48, 64, 80`
 - Max dashboard width: `1440px`
 - Horizontal container padding: `32px`
+- Layout posture: breathing, spacing-led composition by default.
+- Delimitation priority:
+  - 1) spacing rhythm
+  - 2) subtle separators (`#2A2A2E`)
+  - 3) soft surface shifts
+  - 4) boxed containers only when functionally required (modals, dropdowns, critical grouped controls)
+- Avoid stacked "card-in-card" layouts for dashboard pages.
+- Prefer open sections with clean vertical flow over repeated bordered boxes.
 
 ## Radius and Depth
 - Button radius: `8px`
@@ -107,6 +115,10 @@ This file is the implementation checkpoint for design and UI decisions.
 - Primary button: gold background, charcoal text
 - Secondary button: transparent, `1px` border `#2E2E33`, white text
 - Danger button: muted red background
+- Dashboard blocks:
+  - Default should be unboxed sections.
+  - KPI/insight/comparison regions should breathe using margin, line-height, and separators.
+  - Do not wrap every region in rounded bordered cards.
 - Notifications:
   - Critical left border red `4px`
   - Warning left border gold
@@ -149,3 +161,4 @@ This file is the implementation checkpoint for design and UI decisions.
 - [ ] Motion duration and easing match system
 - [ ] Icons are Iconoir style and not filled/colorful by default
 - [ ] Copy tone is factual and operational, not promotional
+- [ ] Dashboard surfaces are spacing-led (not box-stacked) unless functionally required

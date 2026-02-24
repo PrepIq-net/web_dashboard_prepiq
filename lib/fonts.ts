@@ -1,12 +1,6 @@
 import localFont from "next/font/local";
-import { Inter } from "next/font/google";
 
-export const inter = Inter({
-  variable: "--font-inter-next",
-  subsets: ["latin"],
-  display: "swap",
-});
-
+// Only define local fonts with actual files
 export const satoshi = localFont({
   src: [
     {
@@ -22,5 +16,10 @@ export const satoshi = localFont({
   ],
   variable: "--font-satoshi-next",
   display: "swap",
-  fallback: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
 });
+
+// Export a dummy object for inter to maintain compatibility
+export const inter = {
+  variable: "--font-inter-next",
+};

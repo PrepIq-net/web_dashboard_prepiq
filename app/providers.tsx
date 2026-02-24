@@ -5,6 +5,7 @@ import { IconoirProvider } from "iconoir-react";
 import { ReactNode, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { createQueryClient } from "@/lib/api/query-client";
+import { SidebarStateProvider } from "@/components/dashboard/sidebar-state";
 
 type ProvidersProps = {
   children: ReactNode;
@@ -23,33 +24,35 @@ export function Providers({ children }: ProvidersProps) {
           height: "1.1em",
         }}
       >
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#1C1C1F",
-              color: "#F5F5F7",
-              border: "1px solid #2A2A2E",
-              borderRadius: "12px",
-              fontSize: "14px",
-              padding: "12px 16px",
-            },
-            success: {
-              iconTheme: {
-                primary: "#3F8F68",
-                secondary: "#F5F5F7",
+        <SidebarStateProvider>
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#1C1C1F",
+                color: "#F5F5F7",
+                border: "1px solid #2A2A2E",
+                borderRadius: "12px",
+                fontSize: "14px",
+                padding: "12px 16px",
               },
-            },
-            error: {
-              iconTheme: {
-                primary: "#C44949",
-                secondary: "#F5F5F7",
+              success: {
+                iconTheme: {
+                  primary: "#3F8F68",
+                  secondary: "#F5F5F7",
+                },
               },
-            },
-          }}
-        />
+              error: {
+                iconTheme: {
+                  primary: "#C44949",
+                  secondary: "#F5F5F7",
+                },
+              },
+            }}
+          />
+        </SidebarStateProvider>
       </IconoirProvider>
     </QueryClientProvider>
   );
