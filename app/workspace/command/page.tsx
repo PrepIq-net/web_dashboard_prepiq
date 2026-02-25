@@ -492,7 +492,7 @@ export default function CommandPage() {
       financialImpact: normalizeImpact(highSeverityCount * 1200),
       rootCauseHint: `${highSeverityCount} high-severity system signal(s) across branches.`,
       actionRecommendation: "View breakdown and prioritize multi-branch mitigation.",
-      viewHref: "/workspace/risk-compliance",
+      viewHref: "/workspace/risk",
     };
 
     const forecastMiss = pickFirst(
