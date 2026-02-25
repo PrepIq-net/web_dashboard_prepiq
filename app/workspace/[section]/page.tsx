@@ -171,22 +171,6 @@ const SECTION_DEFINITIONS: Record<string, SectionDefinition> = {
       "One-click branch drill-down will be wired next.",
     ],
   },
-  branches: {
-    eyebrow: "Operations",
-    title: "Branches",
-    description: "Operational branch list, current health, and setup status.",
-    insight: "Two branches need staffing rebalance during afternoon peak windows.",
-    metrics: [
-      { label: "Total branches", value: "5" },
-      { label: "Healthy branches", value: "4" },
-      { label: "Action needed", value: "1" },
-    ],
-    bullets: [
-      "Branch North has delayed batch logging.",
-      "All branches have active data feed configured.",
-      "Primary branch remains Downtown Bakery.",
-    ],
-  },
   "production-intelligence": {
     eyebrow: "Operations",
     title: "Production Intelligence",

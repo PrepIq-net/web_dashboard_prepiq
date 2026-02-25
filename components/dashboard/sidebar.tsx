@@ -39,6 +39,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Financial",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Sales Overview", href: "/workspace/sales-overview", icon: <Folder className="h-4 w-4" /> },
           { label: "Margin Protection", href: "/workspace/margin-protection", icon: <Folder className="h-4 w-4" /> },
@@ -90,6 +91,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
+          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
           { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
@@ -110,7 +112,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
           { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-          { label: "Financial", href: "/workspace/margin-protection", icon: <Folder className="h-4 w-4" /> },
+          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
           { label: "Staff", href: "/workspace/staff-intelligence", icon: <User className="h-4 w-4" /> },
           { label: "Risk", href: "/workspace/risk-compliance", icon: <Settings className="h-4 w-4" /> },
