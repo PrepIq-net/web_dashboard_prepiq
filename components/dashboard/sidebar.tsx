@@ -12,7 +12,6 @@ import {
   HelpCircle,
   NavArrowLeft,
   LogOut,
-  UserBadgeCheck,
   Brain,
   ChatBubble,
   Shop,
@@ -29,6 +28,7 @@ interface NavItem {
 
 interface NavSection {
   title: string;
+  tone?: "operations" | "financial" | "governance" | "workspace" | "branch" | "production";
   items: NavItem[];
 }
 
@@ -37,13 +37,13 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     return [
       {
         title: "Financial",
+        tone: "financial",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Purchasing", href: "/workspace/purchasing", icon: <Brain className="h-4 w-4" /> },
           { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
-          { label: "Branch Summary", href: "/workspace/branch-financial-summary", icon: <Shop className="h-4 w-4" /> },
-          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
         ],
       },
     ];
@@ -53,6 +53,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     return [
       {
         title: "Production",
+        tone: "production",
         items: [
           { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
@@ -68,6 +69,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     return [
       {
         title: "Branch",
+        tone: "branch",
         items: [
           { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
@@ -85,15 +87,17 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     return [
       {
         title: "Operations",
+        tone: "operations",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
+          { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
           { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-          { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
           { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
+          { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
           { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
           { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
         ],
@@ -104,15 +108,30 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
   if (role === "ORG_OWNER" || role === "ORG_ADMIN") {
     return [
       {
-        title: "Executive",
+        title: "Operations",
+        tone: "operations",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
           { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
           { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
+          { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
+          { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
+        ],
+      },
+      {
+        title: "Financial",
+        tone: "financial",
+        items: [
           { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
           { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
           { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
+        ],
+      },
+      {
+        title: "Governance",
+        tone: "governance",
+        items: [
           { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
           { label: "Billing", href: "/workspace/billing", icon: <Folder className="h-4 w-4" /> },
           { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
@@ -125,6 +144,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
   return [
     {
       title: "Workspace",
+      tone: "workspace",
       items: [
         { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
         { label: "Today", href: "/workspace/today", icon: <Clock className="h-4 w-4" /> },
@@ -141,21 +161,29 @@ type DashboardSidebarProps = {
   user?: UserProfile | null;
 };
 
-function getUserInitials(user?: UserProfile | null) {
-  const first = user?.first_name?.[0] ?? "";
-  const last = user?.last_name?.[0] ?? "";
-  return `${first}${last}`.toUpperCase() || "U";
-}
-
 function SidebarLink({
   item,
   active,
   collapsed,
+  sectionTone,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
+  sectionTone?: NavSection["tone"];
 }) {
+  const commandItem = item.label === "Command";
+  const toneBaseClass =
+    sectionTone === "financial"
+      ? "bg-[#211e15] group-hover:bg-[#2A2416]"
+      : sectionTone === "operations" || sectionTone === "production"
+        ? "bg-[#1c2128] group-hover:bg-[#232a34]"
+        : sectionTone === "governance"
+          ? "bg-[#211f24] group-hover:bg-[#2a2730]"
+          : sectionTone === "branch" || sectionTone === "workspace"
+            ? "bg-[#1e1f22] group-hover:bg-[#26282d]"
+            : "bg-transparent group-hover:bg-[#232327]";
+
   return (
     <Link
       href={item.href}
@@ -163,7 +191,11 @@ function SidebarLink({
       className={`group relative w-full flex items-center ${
         collapsed ? "justify-center px-0" : "gap-2.5 px-2.5"
       } py-2 rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${
-        active ? "text-[#F5F5F7]" : "text-[#C7C7CC] hover:text-[#F5F5F7]"
+        active
+          ? "text-[#F5F5F7]"
+          : commandItem
+            ? "text-[#CFA23A] hover:text-[#F3C865]"
+            : "text-[#C7C7CC] hover:text-[#F5F5F7]"
       }`}
     >
       <span
@@ -172,10 +204,14 @@ function SidebarLink({
         }`}
       />
       <span
-        className={`h-7 w-7 rounded-[7px] inline-flex items-center justify-center flex-shrink-0 ${
+        className={`h-7 w-7 rounded-[7px] inline-flex items-center justify-center flex-shrink-0 transition-colors ${
           active
-            ? "text-[#A8821F] bg-[#232327]"
-            : "text-[#8E8E93] bg-transparent group-hover:text-[#C7C7CC] group-hover:bg-[#232327]"
+            ? commandItem
+              ? "text-[#F3C865] bg-[#2A2416] shadow-[0_0_18px_rgba(168,130,31,0.35)]"
+              : "text-[#A8821F] bg-[#232327]"
+            : commandItem
+              ? "text-[#CFA23A] bg-[#211e15] shadow-[0_0_12px_rgba(168,130,31,0.18)]"
+              : `text-[#8E8E93] ${toneBaseClass} group-hover:text-[#C7C7CC]`
         }`}
       >
         {item.icon}
@@ -207,8 +243,13 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       }`}
     >
       <div className="border-b border-[#2E2E33] px-4 py-5">
-        <div className="flex items-center justify-between">
-          <Link href="/" className={`inline-flex min-w-0 items-center ${collapsed ? "justify-center" : "gap-2.5"}`}>
+        <div className="relative flex items-center">
+          <Link
+            href="/"
+            className={`inline-flex min-w-0 items-center ${
+              collapsed ? "mx-auto justify-center" : "gap-2.5 pr-10"
+            }`}
+          >
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#232327]">
               <Image
                 src="/logo/golden-main-transparent.png"
@@ -228,7 +269,9 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
           <button
             aria-label="Toggle sidebar"
             onClick={toggle}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#2E2E33] bg-[#232327] text-[#8E8E93] transition-colors duration-150 hover:bg-[#2A2A2E] hover:text-[#F5F5F7]"
+            className={`absolute right-0 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[8px] border border-[#2E2E33] bg-[#232327] text-[#8E8E93] transition-colors duration-150 hover:bg-[#2A2A2E] hover:text-[#F5F5F7] ${
+              collapsed ? "shadow-[0_0_0_3px_rgba(20,20,22,0.95)]" : ""
+            }`}
           >
             <NavArrowLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
           </button>
@@ -242,7 +285,11 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         ) : null}
       </div>
 
-      <div className={`flex-1 overflow-y-auto py-5 ${collapsed ? "px-2" : "px-3"}`}>
+      <div
+        className={`flex-1 overflow-y-auto py-5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40] ${
+          collapsed ? "px-2" : "px-3"
+        }`}
+      >
         {navSections.map((section, index) => (
           <div
             key={section.title}
@@ -260,6 +307,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   item={item}
                   active={isActive(item.href)}
                   collapsed={collapsed}
+                  sectionTone={section.tone}
                 />
               ))}
             </nav>
@@ -267,59 +315,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         ))}
       </div>
 
-      <div className="space-y-3 border-t border-[#2E2E33] p-3">
-        <div className="px-2 py-1.5">
-          <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
-            {user?.profile_picture ? (
-              <Image
-                src={user.profile_picture}
-                alt={`${user.first_name} ${user.last_name}`}
-                width={36}
-                height={36}
-                className="h-10 w-10 rounded-[9px] object-cover"
-              />
-            ) : (
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-[9px] bg-[#232327] text-[12px] font-semibold text-[#A8821F]">
-                {getUserInitials(user)}
-              </div>
-            )}
-            {!collapsed ? (
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#F5F5F7]">
-                  {user ? `${user.first_name} ${user.last_name}` : "User"}
-                </p>
-                <p className="truncate text-[11px] text-[#8E8E93]">
-                  {user?.organization_role || "Workspace member"}
-                </p>
-              </div>
-            ) : null}
-          </div>
-          <div className={`mt-3 ${collapsed ? "space-y-1.5" : "grid grid-cols-2 gap-1.5"}`}>
-            <Link
-              href="/workspace/settings"
-              title={collapsed ? "Profile" : undefined}
-              className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-[8px] text-[11px] text-[#C7C7CC] transition-colors duration-150 hover:bg-[#232327] hover:text-[#F5F5F7] ${
-                collapsed ? "w-full" : ""
-              }`}
-            >
-              <UserBadgeCheck className="h-3.5 w-3.5" />
-              {!collapsed ? "Profile" : null}
-            </Link>
-            <button
-              className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-[8px] text-[11px] text-[#C7C7CC] transition-colors duration-150 hover:bg-[#232327] hover:text-[#F5F5F7] ${
-                collapsed ? "w-full" : ""
-              }`}
-              type="button"
-              onClick={handleLogout}
-              disabled={logoutMutation.isPending}
-              title={collapsed ? "Sign out" : undefined}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              {!collapsed ? "Sign out" : null}
-            </button>
-          </div>
-        </div>
-
+      <div className="space-y-2 border-t border-[#2E2E33] p-3">
         <Link
           href="/workspace/support"
           title={collapsed ? "Support" : undefined}
@@ -332,6 +328,20 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
           </span>
           {!collapsed ? <span className="truncate">Support</span> : null}
         </Link>
+        <button
+          className={`w-full rounded-[10px] px-3 py-2.5 text-[12px] font-medium text-[#C7C7CC] transition-colors duration-150 hover:bg-[#232327] hover:text-[#F5F5F7] flex items-center ${
+            collapsed ? "justify-center" : "gap-3"
+          }`}
+          type="button"
+          onClick={handleLogout}
+          disabled={logoutMutation.isPending}
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-[7px] bg-[#232327] text-[#8E8E93]">
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+          </span>
+          {!collapsed ? <span className="truncate">Sign out</span> : null}
+        </button>
       </div>
     </aside>
   );
