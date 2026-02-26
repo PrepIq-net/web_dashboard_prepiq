@@ -25,6 +25,80 @@ export type CreatePrepRecommendationDecisionPayload = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Branch Day / Morning Mode
+// ─────────────────────────────────────────────────────────────────────────────
+export const branchDayInitializePayloadSchema = z.object({
+  branch_id: z.string().uuid().optional(),
+  date: z.string().optional(),
+  expected_demand_index: z.number().optional(),
+  event_modifier_percentage: z.number().optional(),
+  weather_modifier_percentage: z.number().nullable().optional(),
+  reservation_modifier: z.number().optional(),
+});
+export type BranchDayInitializePayload = z.infer<typeof branchDayInitializePayloadSchema>;
+
+export const prepPlanItemSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  product_title: z.string(),
+  suggested_quantity: z.number(),
+  planned_quantity: z.number().nullable(),
+  final_quantity: z.number(),
+  unit: z.string(),
+  suggestion_reason_json: z.record(z.string(), z.unknown()),
+  accepted_suggestion: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type PrepPlanItem = z.infer<typeof prepPlanItemSchema>;
+
+export const branchDayTodaySchema = z.object({
+  id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  date: z.string(),
+  status: z.enum(["MORNING", "LIVE", "CLOSED"]),
+  expected_demand_index: z.number(),
+  forecast_confidence: z.number(),
+  event_modifier_percentage: z.number(),
+  weather_modifier_percentage: z.number().nullable(),
+  demand_signal: z.object({
+    expected_demand_index: z.number(),
+    forecast_confidence: z.number(),
+    event_modifier_percentage: z.number(),
+    weather_modifier_percentage: z.number().nullable(),
+  }),
+  prep_plan_items: z.array(prepPlanItemSchema),
+  created_at: z.string(),
+  meta: z
+    .object({
+      created_branch_day: z.boolean(),
+      created_prep_plan_items: z.number(),
+    })
+    .optional(),
+});
+export type BranchDayToday = z.infer<typeof branchDayTodaySchema>;
+
+export const prepPlanEvaluatePayloadSchema = z.object({
+  prep_plan_item_id: z.string().uuid(),
+  planned_quantity: z.number().min(0),
+});
+export type PrepPlanEvaluatePayload = z.infer<typeof prepPlanEvaluatePayloadSchema>;
+
+export const prepPlanEvaluateResponseSchema = z.object({
+  waste_risk_increase: z.number(),
+  marginal_cost_risk: z.number(),
+  stockout_risk_change: z.number(),
+});
+export type PrepPlanEvaluateResponse = z.infer<typeof prepPlanEvaluateResponseSchema>;
+
+export const updatePrepPlanItemPayloadSchema = z.object({
+  planned_quantity: z.number().min(0).optional(),
+  accepted_suggestion: z.boolean().optional(),
+});
+export type UpdatePrepPlanItemPayload = z.infer<typeof updatePrepPlanItemPayloadSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Daily Prep Recommendation
 // ─────────────────────────────────────────────────────────────────────────────
 export const dataSufficiencySchema = z.object({

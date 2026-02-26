@@ -2,6 +2,10 @@ import { z } from "zod";
 import { apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
+  branchDayInitializePayloadSchema,
+  branchDayTodaySchema,
+  prepPlanEvaluatePayloadSchema,
+  prepPlanEvaluateResponseSchema,
   branchCommandViewSchema,
   createPrepRecommendationDecisionSchema,
   createStaffStockoutEventResponseSchema,
@@ -18,9 +22,13 @@ import {
   squareOAuthStartPayloadSchema,
   squareOAuthStartResponseSchema,
   updateStaffShiftChecklistSchema,
+  updatePrepPlanItemPayloadSchema,
   type CreatePrepRecommendationDecisionPayload,
+  type BranchDayInitializePayload,
   type CreateStaffStockoutEventPayload,
+  type PrepPlanEvaluatePayload,
   type SquareOAuthStartPayload,
+  type UpdatePrepPlanItemPayload,
   type UpdateStaffShiftChecklistPayload,
 } from "@/services/production-intelligence/types";
 
@@ -63,6 +71,11 @@ export type TodayPrepRecommendationsQuery = {
   include_history?: boolean;
 };
 
+export type BranchDayTodayQuery = {
+  branch_id?: string;
+  date?: string;
+};
+
 export async function getTodayPrepRecommendations(
   params?: TodayPrepRecommendationsQuery,
 ) {
@@ -70,6 +83,65 @@ export async function getTodayPrepRecommendations(
     withQuery(productionIntelligenceEndpoints.todayRecommendations(), params),
     z.array(dailyPrepRecommendationSchema),
     { method: "GET" },
+  );
+}
+
+export async function initializeBranchDay(payload: BranchDayInitializePayload) {
+  const body = branchDayInitializePayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayInitialize(),
+    branchDayTodaySchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function getBranchDayToday(params?: BranchDayTodayQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.branchDayToday(), params),
+    branchDayTodaySchema,
+    { method: "GET" },
+  );
+}
+
+export async function evaluatePrepPlan(payload: PrepPlanEvaluatePayload) {
+  const body = prepPlanEvaluatePayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.prepPlanEvaluate(),
+    prepPlanEvaluateResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function updatePrepPlanItem(
+  prepPlanItemId: string,
+  payload: UpdatePrepPlanItemPayload,
+) {
+  const body = updatePrepPlanItemPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.prepPlanDetail(prepPlanItemId),
+    z.object({
+      id: z.string().uuid(),
+      product_id: z.string().uuid(),
+      product_title: z.string(),
+      suggested_quantity: z.number(),
+      planned_quantity: z.number().nullable(),
+      final_quantity: z.number(),
+      unit: z.string(),
+      suggestion_reason_json: z.record(z.string(), z.unknown()),
+      accepted_suggestion: z.boolean(),
+      created_at: z.string(),
+      updated_at: z.string(),
+    }),
+    {
+      method: "PATCH",
+      body,
+    },
   );
 }
 

@@ -55,7 +55,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Production",
         tone: "production",
         items: [
-          { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Today", href: "/workspace/today", icon: <Home className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
           { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
           { label: "History", href: "/workspace/history", icon: <Clock className="h-4 w-4" /> },
@@ -71,7 +71,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Branch",
         tone: "branch",
         items: [
-          { label: "Today", href: "/", icon: <Home className="h-4 w-4" /> },
+          { label: "Today", href: "/workspace/today", icon: <Home className="h-4 w-4" /> },
           { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
           { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
           { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },

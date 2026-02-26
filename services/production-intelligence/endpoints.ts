@@ -13,6 +13,14 @@ export const productionIntelligenceEndpoints = {
   // ── Recommendations ──────────────────────────────────────────────────────
   todayRecommendations: () =>
     `${BASE}/production-intelligence/recommendations/today/`,
+  branchDayInitialize: () =>
+    `${BASE}/production-intelligence/branch-day/initialize/`,
+  branchDayToday: () =>
+    `${BASE}/production-intelligence/branch-day/today/`,
+  prepPlanEvaluate: () =>
+    `${BASE}/production-intelligence/prep-plan/evaluate/`,
+  prepPlanDetail: (prepPlanItemId: string) =>
+    `${BASE}/production-intelligence/prep-plan/${prepPlanItemId}/`,
   generateForecast: () =>
     `${BASE}/production-intelligence/recommendations/generate/`,
   recommendationDecision: (recommendationId: string) =>
