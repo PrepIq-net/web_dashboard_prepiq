@@ -15,8 +15,8 @@ import {
 } from "@/services/production-intelligence/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo } from "react";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { DashboardTopNav } from "@/components/dashboard/top-nav";
+import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
+import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { InsightFooter } from "@/components/dashboard/home/insight-footer";
 import { FinanceView } from "@/components/dashboard/home/finance-view";
@@ -47,13 +47,10 @@ export default function Home() {
 function HomeContent() {
   const { collapsed } = useSidebarState();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const branchesQuery = useBranches(user?.organization_id ?? "");
-  const accessScopeQuery = useProductionIntelligenceAccessScope();
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
 
-  const branches = branchesQuery.data ?? [];
   const organizationRole = user?.organization_role ?? "";
   const isBranchManagerMode =
     organizationRole === "BRANCH_MANAGER" || organizationRole === "GM";
@@ -66,6 +63,11 @@ function HomeContent() {
   const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
   const isOrganizationIntelligenceMode = isOrgOverviewMode || isFinanceMode;
 
+  // Defer non-critical queries until user data is loaded
+  const branchesQuery = useBranches(user?.organization_id ?? "");
+  const accessScopeQuery = useProductionIntelligenceAccessScope();
+
+  const branches = branchesQuery.data ?? [];
   const accessibleBranches = accessScopeQuery.data?.accessible_branches ?? [];
   const branchOptions = useMemo(() => {
     if (!isBranchExecutionMode) return branches;
@@ -76,13 +78,14 @@ function HomeContent() {
     return branches.filter((branch) => accessibleBranchIds.has(branch.id));
   }, [branches, isBranchExecutionMode, accessibleBranches]);
 
+  // Only fetch org-level data when needed
   const controlTowerQuery = useExecutiveControlTower(
     undefined,
-    isOrganizationIntelligenceMode,
+    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
   const marginReportQuery = useOwnerMarginProtectionReport(
     undefined,
-    isOrganizationIntelligenceMode,
+    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
 
   const activeBranch = useMemo(() => {
@@ -103,6 +106,8 @@ function HomeContent() {
   }, []);
 
   const activeBranchId = activeBranch?.id ?? "";
+  
+  // Only fetch branch-specific data when in branch execution mode
   const branchCommandTodayQuery = useBranchCommandView(
     { branch_id: activeBranchId, target_date: todayDate },
     isBranchExecutionMode && Boolean(activeBranchId),
@@ -125,7 +130,8 @@ function HomeContent() {
     if (!isLoading && user && !user.has_organization) {
       router.replace("/onboarding");
     }
-  }, [user, isLoading, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.has_organization, isLoading]);
 
   if (isLoading || (user && !user.has_organization)) {
     return (
@@ -346,7 +352,7 @@ function HomeContent() {
 
   return (
     <div className="flex min-h-screen bg-surface-1">
-      <DashboardSidebar user={user} />
+      <DashboardSidebarWrapper user={user} />
 
       <main
         className={`flex-1 py-8 transition-[margin-left] duration-200 ${
@@ -354,7 +360,7 @@ function HomeContent() {
         }`}
       >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
-          <DashboardTopNav />
+          <DashboardTopNavWrapper />
 
           <div className="mt-10 animate-fade-in">
             {isFinanceMode ? (

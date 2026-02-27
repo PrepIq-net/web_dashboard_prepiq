@@ -84,7 +84,8 @@ export default function CommandPage() {
     if (!isLoading && (isStaffOperator || isBranchManagerRole)) {
       router.replace("/");
     }
-  }, [isLoading, isStaffOperator, isBranchManagerRole, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isStaffOperator, isBranchManagerRole]);
 
   const alerts = controlTowerQuery.data?.alerts ?? [];
   const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
@@ -561,7 +562,7 @@ export default function CommandPage() {
       columnHelper.accessor("rank", {
         header: "Priority",
         cell: (info) => (
-          <span className="inline-flex min-w-9 items-center justify-center rounded-[6px] border border-[#2E2E33] px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.06em] text-[#F5F5F7]">
+          <span className="inline-flex min-w-[44px] items-center justify-center rounded-lg border border-surface-4 bg-gradient-to-br from-surface-3 to-surface-2 px-3 py-1.5 text-xs font-bold tracking-[0.08em] text-text-primary shadow-sm">
             P{info.getValue()}
           </span>
         ),
@@ -573,28 +574,34 @@ export default function CommandPage() {
           const row = info.row.original;
           const severityTone =
             row.severity === "RED"
-              ? "text-[#C44949]"
+              ? "text-status-critical"
               : row.severity === "AMBER"
-                ? "text-[#C48B2A]"
-                : "text-[#3F8F68]";
+                ? "text-status-warning"
+                : "text-status-success";
           const severityDot =
             row.severity === "RED"
-              ? "bg-[#C44949]"
+              ? "bg-status-critical"
               : row.severity === "AMBER"
-                ? "bg-[#C48B2A]"
-                : "bg-[#3F8F68]";
+                ? "bg-status-warning"
+                : "bg-status-success";
+          const severityBg =
+            row.severity === "RED"
+              ? "bg-status-critical/10"
+              : row.severity === "AMBER"
+                ? "bg-status-warning/10"
+                : "bg-status-success/10";
           return (
-            <div className="space-y-1">
-              <p className="text-[13px] font-medium leading-[20px] text-[#F5F5F7]">
+            <div className="space-y-2.5">
+              <p className="text-sm font-semibold leading-tight text-text-primary">
                 {row.title}
               </p>
-              <p className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">
                 {row.sectionLabel}
               </p>
-              <div className="inline-flex items-center gap-2">
-                <span className="text-[11px] text-[#C7C7CC]">{row.impactedBranch}</span>
-                <span className={`h-1.5 w-1.5 rounded-full ${severityDot}`} />
-                <span className={`text-[11px] font-medium ${severityTone}`}>
+              <div className={`inline-flex items-center gap-2.5 ${severityBg} rounded-lg px-3 py-1.5 border border-surface-4`}>
+                <span className="text-xs font-medium text-text-secondary">{row.impactedBranch}</span>
+                <span className={`h-1.5 w-1.5 rounded-full ${severityDot} shadow-sm`} />
+                <span className={`text-xs font-bold tracking-wide ${severityTone}`}>
                   {row.severity}
                 </span>
               </div>
@@ -605,9 +612,12 @@ export default function CommandPage() {
       columnHelper.accessor("financialImpact", {
         header: isOwnerRole ? "Monthly Impact" : "Impact",
         cell: (info) => (
-          <span className="text-[12px] font-medium text-[#F5F5F7]">
-            {toCurrency(info.getValue())}
-          </span>
+          <div className="inline-flex items-baseline gap-1">
+            <span className="text-lg font-bold text-brand-gold tracking-tight">
+              {toCurrency(info.getValue())}
+            </span>
+            <span className="text-xs text-text-muted font-medium">USD</span>
+          </div>
         ),
       }),
       columnHelper.display({
@@ -616,14 +626,15 @@ export default function CommandPage() {
         cell: (info) => {
           const row = info.row.original;
           return (
-            <div className="space-y-1">
-              <p className="text-[12px] leading-[18px] text-[#C7C7CC]">
+            <div className="space-y-2.5">
+              <p className="text-sm leading-relaxed text-text-primary font-medium">
                 {row.actionRecommendation}
               </p>
               {row.rootCauseHint ? (
-                <p className="text-[11px] leading-[16px] text-[#8E8E93]">
-                  {row.rootCauseHint}
-                </p>
+                <div className="flex items-start gap-2 text-xs leading-relaxed text-text-muted bg-surface-3/50 rounded-lg px-3 py-2 border border-surface-4">
+                  <span className="inline-block mt-0.5 h-1 w-1 rounded-full bg-brand-gold flex-shrink-0" />
+                  <span>{row.rootCauseHint}</span>
+                </div>
               ) : null}
             </div>
           );
@@ -637,10 +648,10 @@ export default function CommandPage() {
           return (
             <Link
               href={row.viewHref}
-              className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#A8821F]/40 bg-[#1C1C1F] px-2.5 text-[11px] font-medium text-[#E8C97A] transition-colors hover:border-[#A8821F] hover:bg-[#232327] hover:text-[#F3D48E]"
+              className="group inline-flex h-9 items-center gap-2 rounded-lg border border-brand-gold/40 bg-surface-3 px-4 text-sm font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold-hover active:scale-[0.98]"
             >
-              View breakdown
-              <ArrowRight className="h-3.5 w-3.5" />
+              View
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           );
         },
@@ -679,102 +690,136 @@ export default function CommandPage() {
             : "Executive command should answer one question quickly: where are we losing money next month?"
       }
     >
-      <section className="grid grid-cols-1 gap-5 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+      <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 mb-12 md:grid-cols-4">
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
             Open Command Cards
           </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+          <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
             {activeSections.reduce((sum, section) => sum + section.cards.length, 0)}
           </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Active interventions</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
             Estimated Impact
           </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+          <p className="font-display text-4xl font-semibold text-brand-gold tracking-tight">
             {toCurrency(totalImpact)}
           </p>
-          <p className="mt-1 text-[12px] text-[#8E8E93]">
-            {isOwnerRole ? "Estimated monthly impact" : "Current exposure estimate"}
-          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">
+              {isOwnerRole ? "Monthly exposure" : "Current period"}
+            </p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-            High Severity Signals
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+            High Severity
           </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+          <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
             {highSeverityCount}
           </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Critical signals</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
             Severity Mix
           </p>
-          <p className="mt-2 text-[14px] text-[#F5F5F7]">
-            <span className="text-[#C44949]">{redCount} red</span> /{" "}
-            <span className="text-[#C48B2A]">{amberCount} amber</span>
-          </p>
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="font-display text-2xl font-semibold text-status-critical">{redCount}</span>
+            <span className="text-sm text-text-muted">/</span>
+            <span className="font-display text-2xl font-semibold text-status-warning">{amberCount}</span>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 h-2 bg-status-critical/20 rounded-full overflow-hidden">
+              <div 
+                className="h-2 bg-status-critical rounded-full"
+                style={{ width: `${priorityQueue.length > 0 ? (redCount / priorityQueue.length) * 100 : 0}%` }}
+              />
+            </div>
+            <div className="flex-1 h-2 bg-status-warning/20 rounded-full overflow-hidden">
+              <div 
+                className="h-2 bg-status-warning rounded-full"
+                style={{ width: `${priorityQueue.length > 0 ? (amberCount / priorityQueue.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
         </article>
       </section>
 
-      <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#A8821F]">
-          Priority Queue
-        </p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[980px]">
-            <thead className="sticky top-0 z-[1] border-b border-[#2A2A2E] bg-[#1C1C1F]/95 backdrop-blur-sm">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className={`px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] ${
-                        header.id.includes("rank")
-                          ? "w-[90px]"
-                          : header.id.includes("financialImpact")
-                            ? "w-[150px]"
-                            : header.id.includes("cta")
-                              ? "w-[160px]"
-                              : ""
-                      }`}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => {
-                const rowSeverity = row.original.severity;
-                const rowToneClass =
-                  rowSeverity === "RED"
-                    ? "border-l-[#C44949]"
-                    : rowSeverity === "AMBER"
-                      ? "border-l-[#C48B2A]"
-                      : "border-l-[#3F8F68]";
-                return (
-                  <tr
-                    key={row.id}
-                    className={`border-b border-[#2A2A2E] align-top transition-colors hover:bg-[#1C1C1F] ${rowToneClass} border-l-2`}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-3.5">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
+      <section className="mt-12">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Priority Queue
+          </p>
+          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+            Intervention Priorities
+          </h3>
+        </div>
+        
+        <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px]">
+              <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className={`px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted ${
+                          header.id.includes("rank")
+                            ? "w-[100px]"
+                            : header.id.includes("financialImpact")
+                              ? "w-[180px]"
+                              : header.id.includes("cta")
+                                ? "w-[200px]"
+                                : ""
+                        }`}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </th>
                     ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-surface-4">
+                {table.getRowModel().rows.map((row) => {
+                  const rowSeverity = row.original.severity;
+                  const rowToneClass =
+                    rowSeverity === "RED"
+                      ? "border-l-status-critical"
+                      : rowSeverity === "AMBER"
+                        ? "border-l-status-warning"
+                        : "border-l-status-success";
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`align-top transition-all duration-200 hover:bg-surface-3/50 ${rowToneClass} border-l-[3px]`}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-6 py-6">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </WorkspaceShell>

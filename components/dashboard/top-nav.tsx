@@ -1,102 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
-  Check,
   LogOut,
-  MapPin,
   NavArrowDown,
-  PlusCircle,
   Search,
   User,
 } from "iconoir-react";
 import {
-  useBranches,
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
   useNotifications,
   useSessionLogoutUser,
 } from "@/services";
-import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 
 export function DashboardTopNav() {
   const { data: user } = useCurrentUserProfile();
-  const organizationId = user?.organization_id ?? "";
-  const branchesQuery = useBranches(organizationId);
-  const accessScopeQuery = useProductionIntelligenceAccessScope();
   const notificationsQuery = useNotifications();
   const markAsReadMutation = useMarkNotificationsAsRead();
   const logoutMutation = useSessionLogoutUser();
-  const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedBranchFromUrl = searchParams.get("branch");
 
-  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const branchMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const avatarRef = useRef<HTMLDivElement | null>(null);
-
-  const branches = branchesQuery.data ?? [];
-  const role = user?.organization_role ?? "";
-  const isBranchExecutionRole =
-    role === "BRANCH_MANAGER" || role === "GM" || role === "STAFF_OPERATOR";
-  const accessibleBranches = accessScopeQuery.data?.accessible_branches ?? [];
-  const branchOptions = useMemo(() => {
-    const byId = new Map<string, (typeof branches)[number]>();
-    for (const branch of branches) {
-      byId.set(branch.id, branch);
-    }
-
-    for (const branch of accessibleBranches) {
-      if (byId.has(branch.id)) continue;
-      byId.set(branch.id, {
-        id: branch.id,
-        organization: organizationId as string,
-        organization_name: user?.organization_name ?? "",
-        name: branch.name,
-        code: "",
-        address: "",
-        phone: null,
-        email: null,
-        timezone: "UTC",
-        is_primary: branch.is_primary,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    }
-
-    if (!isBranchExecutionRole) {
-      return Array.from(byId.values());
-    }
-
-    if (!accessibleBranches.length) {
-      return Array.from(byId.values());
-    }
-
-    const allowed = new Set(accessibleBranches.map((branch) => branch.id));
-    return Array.from(byId.values()).filter((branch) => allowed.has(branch.id));
-  }, [branches, accessibleBranches, isBranchExecutionRole, organizationId, user?.organization_name]);
-
-  const activeBranch = useMemo(() => {
-    if (!branchOptions.length) return null;
-    if (selectedBranchFromUrl) {
-      const current = branchOptions.find(
-        (branch) => branch.id === selectedBranchFromUrl,
-      );
-      if (current) return current;
-    }
-    return branchOptions.find((branch) => branch.is_primary) ?? branchOptions[0];
-  }, [branchOptions, selectedBranchFromUrl]);
-
-  const shouldShowBranchSelector =
-    !isBranchExecutionRole || branchOptions.length > 1;
 
   const notifications = notificationsQuery.data ?? [];
   const unreadNotifications = notifications.filter(
@@ -104,20 +35,9 @@ export function DashboardTopNav() {
   );
 
   useEffect(() => {
-    if (!activeBranch) return;
-    if (selectedBranchFromUrl === activeBranch.id) return;
-    const next = new URLSearchParams(searchParams.toString());
-    next.set("branch", activeBranch.id);
-    router.replace(`${pathname}?${next.toString()}`);
-  }, [activeBranch, selectedBranchFromUrl, pathname, router, searchParams]);
-
-  useEffect(() => {
     const onOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      if (branchMenuRef.current && !branchMenuRef.current.contains(target)) {
-        setBranchMenuOpen(false);
-      }
       if (notificationsRef.current && !notificationsRef.current.contains(target)) {
         setNotificationsOpen(false);
       }
@@ -129,12 +49,6 @@ export function DashboardTopNav() {
     window.addEventListener("mousedown", onOutsideClick);
     return () => window.removeEventListener("mousedown", onOutsideClick);
   }, []);
-
-  const applyBranchToUrl = (branchId: string) => {
-    const next = new URLSearchParams(searchParams.toString());
-    next.set("branch", branchId);
-    router.replace(`${pathname}?${next.toString()}`);
-  };
 
   const handleMarkAllRead = () => {
     markAsReadMutation.mutate({});
@@ -166,116 +80,6 @@ export function DashboardTopNav() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-          {shouldShowBranchSelector ? (
-            <div className="relative" ref={branchMenuRef}>
-              <button
-                type="button"
-                onClick={() => setBranchMenuOpen((open) => !open)}
-                className="inline-flex h-10 min-w-[220px] items-center justify-between gap-2 rounded-[8px] bg-[#232327] pl-3 pr-2 text-left transition-colors duration-150 hover:bg-[#2A2A2E]"
-              >
-                <span className="inline-flex min-w-0 items-center gap-2">
-                  <MapPin className="h-4 w-4 text-[#A8821F]" />
-                  <span className="min-w-0">
-                    <span className="block text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Active branch
-                    </span>
-                    <span className="block max-w-[140px] truncate text-[12px] font-medium text-[#F5F5F7]">
-                      {branchesQuery.isLoading || accessScopeQuery.isLoading
-                        ? "Loading..."
-                        : activeBranch?.name || "No branch selected"}
-                    </span>
-                  </span>
-                </span>
-                <NavArrowDown
-                  className={`h-4 w-4 text-[#8E8E93] transition-transform duration-150 ${
-                    branchMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {branchMenuOpen ? (
-                <div className="absolute right-0 z-30 mt-2 w-[320px] rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-2 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-                  <div className="px-2 pb-2 pt-1">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      Switch branch context
-                    </p>
-                  </div>
-
-                  <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
-                    {branchesQuery.isLoading || accessScopeQuery.isLoading ? (
-                      <p className="px-2 py-2 text-[12px] text-[#8E8E93]">
-                        Loading branches...
-                      </p>
-                    ) : branchOptions.length ? (
-                      branchOptions.map((branch) => {
-                        const isActive = activeBranch?.id === branch.id;
-                        return (
-                          <button
-                            key={branch.id}
-                            type="button"
-                            onClick={() => {
-                              applyBranchToUrl(branch.id);
-                              setBranchMenuOpen(false);
-                            }}
-                            className={`inline-flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left transition-colors duration-150 ${
-                              isActive
-                                ? "bg-[#232327] text-[#F5F5F7]"
-                                : "text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7]"
-                            }`}
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate text-[12px] font-medium">
-                                {branch.name}
-                              </span>
-                              <span className="block text-[11px] text-[#8E8E93]">
-                                {branch.address}
-                              </span>
-                            </span>
-                            {isActive ? (
-                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#A8821F]/20 text-[#A8821F]">
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                            ) : null}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <p className="px-2 py-2 text-[12px] text-[#8E8E93]">
-                        No branches available yet.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-2 border-t border-[#2E2E33] pt-2">
-                    <Link
-                      href="/setup/branch/create"
-                      className="inline-flex w-full items-center justify-between rounded-[8px] px-2.5 py-2 text-[12px] font-medium text-[#F5F5F7] transition-colors duration-150 hover:bg-[#232327]"
-                      onClick={() => setBranchMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <PlusCircle className="h-4 w-4 text-[#A8821F]" />
-                        Add new branch
-                      </span>
-                      <span className="text-[#8E8E93]">Setup</span>
-                    </Link>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="inline-flex h-10 min-w-[220px] items-center gap-2 rounded-[8px] bg-[#232327] px-3">
-              <MapPin className="h-4 w-4 text-[#A8821F]" />
-              <div className="min-w-0">
-                <span className="block text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                  Assigned branch
-                </span>
-                <span className="block max-w-[160px] truncate text-[12px] font-medium text-[#F5F5F7]">
-                  {activeBranch?.name || "No branch assigned"}
-                </span>
-              </div>
-            </div>
-          )}
-
           <label className="relative min-w-[220px] flex-1 lg:min-w-[340px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
             <input

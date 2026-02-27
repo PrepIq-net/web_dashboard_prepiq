@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useTransition } from "react";
 import {
   Home,
   Settings,
@@ -166,150 +167,169 @@ function SidebarLink({
   active,
   collapsed,
   sectionTone,
+  onClick,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
   sectionTone?: NavSection["tone"];
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const commandItem = item.label === "Command";
   const toneBaseClass =
     sectionTone === "financial"
-      ? "bg-[#211e15] group-hover:bg-[#2A2416]"
+      ? "bg-[#1C1C1F] group-hover:bg-[#232327]"
       : sectionTone === "operations" || sectionTone === "production"
-        ? "bg-[#1c2128] group-hover:bg-[#232a34]"
+        ? "bg-[#1C1C1F] group-hover:bg-[#232327]"
         : sectionTone === "governance"
-          ? "bg-[#211f24] group-hover:bg-[#2a2730]"
+          ? "bg-[#1C1C1F] group-hover:bg-[#232327]"
           : sectionTone === "branch" || sectionTone === "workspace"
-            ? "bg-[#1e1f22] group-hover:bg-[#26282d]"
+            ? "bg-[#1C1C1F] group-hover:bg-[#232327]"
             : "bg-transparent group-hover:bg-[#232327]";
 
   return (
     <Link
       href={item.href}
+      onClick={onClick}
       title={collapsed ? item.label : undefined}
       className={`group relative w-full flex items-center ${
-        collapsed ? "justify-center px-0" : "gap-2.5 px-2.5"
-      } py-2 rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${
+        collapsed ? "justify-center px-0" : "gap-3 px-3"
+      } py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
         active
-          ? "text-[#F5F5F7]"
+          ? "text-text-primary bg-[#1C1C1F] shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
           : commandItem
-            ? "text-[#CFA23A] hover:text-[#F3C865]"
-            : "text-[#C7C7CC] hover:text-[#F5F5F7]"
+            ? "text-[#CFA23A] hover:text-[#F3C865] hover:bg-[#1C1C1F]/50"
+            : "text-text-secondary hover:text-text-primary hover:bg-[#1C1C1F]/50"
       }`}
+      prefetch={false}
+      scroll={false}
     >
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand-gold" />
+      )}
       <span
-        className={`absolute left-0 top-2.5 h-6 w-[2px] rounded-r ${
-          active ? "bg-[#A8821F]" : "bg-transparent"
-        }`}
-      />
-      <span
-        className={`h-7 w-7 rounded-[7px] inline-flex items-center justify-center flex-shrink-0 transition-colors ${
+        className={`h-8 w-8 rounded-lg inline-flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
           active
             ? commandItem
-              ? "text-[#F3C865] bg-[#2A2416] shadow-[0_0_18px_rgba(168,130,31,0.35)]"
-              : "text-[#A8821F] bg-[#232327]"
+              ? "text-brand-gold bg-[#232327] shadow-[0_0_16px_rgba(168,130,31,0.25)]"
+              : "text-brand-gold bg-[#232327]"
             : commandItem
-              ? "text-[#CFA23A] bg-[#211e15] shadow-[0_0_12px_rgba(168,130,31,0.18)]"
-              : `text-[#8E8E93] ${toneBaseClass} group-hover:text-[#C7C7CC]`
+              ? "text-[#CFA23A] bg-[#1C1C1F] shadow-[0_0_10px_rgba(168,130,31,0.12)]"
+              : `text-text-muted ${toneBaseClass} group-hover:text-text-secondary`
         }`}
       >
         {item.icon}
       </span>
-      {!collapsed ? <span className="truncate tracking-[-0.01em]">{item.label}</span> : null}
+      {!collapsed && <span className="truncate tracking-[-0.01em]">{item.label}</span>}
     </Link>
   );
 }
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const logoutMutation = useSessionLogoutUser();
   const { collapsed, toggle } = useSidebarState();
+  
   const normalizedPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
   const isStaffExecutionRole = user?.organization_role === "STAFF_OPERATOR";
+  
   const isActive = (href: string) => {
     const normalizedHref = href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
     if (normalizedPath === normalizedHref) return true;
-    if (isStaffExecutionRole && normalizedHref === "/workspace/today" && normalizedPath === "/") {
-      return true;
-    }
+    if (isStaffExecutionRole && normalizedHref === "/workspace/today" && normalizedPath === "/") return true;
     return false;
   };
+  
   const navSections = getNavSectionsByRole(user?.organization_role);
 
+  // Simple navigation handler - let Next.js handle it naturally
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Only prevent if already on the page
+    if (isActive(href)) {
+      e.preventDefault();
+      return;
+    }
+    // Let Next.js Link handle navigation - no manual intervention
+  };
+
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => router.replace("/login"),
-      onError: () => router.replace("/login"),
+    startTransition(() => {
+      logoutMutation.mutate(undefined, {
+        onSuccess: () => { window.location.href = "/login"; },
+        onError: () => { window.location.href = "/login"; },
+      });
     });
   };
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-20 h-screen border-r border-[#2E2E33] bg-[#141416] flex flex-col transition-[width] duration-200 ${
+      className={`fixed left-0 top-0 z-20 h-screen border-r border-[#1C1C1F] bg-[#141416] flex flex-col transition-[width] duration-200 ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      <div className="border-b border-[#2E2E33] px-4 py-5">
+      {/* Header */}
+      <div className="border-b border-[#1C1C1F] px-5 py-6">
         <div className="relative flex items-center">
           <Link
             href="/"
+            onClick={(e) => handleNavigation(e, "/")}
             className={`inline-flex min-w-0 items-center ${
-              collapsed ? "mx-auto justify-center" : "gap-2.5 pr-10"
+              collapsed ? "mx-auto justify-center" : "gap-3 pr-10"
             }`}
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#232327]">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#232327] to-[#1C1C1F] shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
               <Image
                 src="/logo/golden-main-transparent.png"
                 alt="PrepIQ"
-                width={24}
-                height={24}
-                className="h-6 w-6 object-contain"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] object-contain"
                 priority
               />
             </span>
-            {!collapsed ? (
-              <span className="font-display text-[19px] leading-6 tracking-[-0.015em] text-[#F5F5F7]">
+            {!collapsed && (
+              <span className="font-display text-xl leading-6 tracking-[-0.02em] text-text-primary font-semibold">
                 PrepIQ
               </span>
-            ) : null}
+            )}
           </Link>
           <button
             aria-label="Toggle sidebar"
             onClick={toggle}
-            className={`absolute right-0 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[8px] border border-[#2E2E33] bg-[#232327] text-[#8E8E93] transition-colors duration-150 hover:bg-[#2A2A2E] hover:text-[#F5F5F7] ${
-              collapsed ? "shadow-[0_0_0_3px_rgba(20,20,22,0.95)]" : ""
+            className={`absolute right-0 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-[#2A2A2E] bg-[#1C1C1F] text-text-muted transition-all duration-200 hover:bg-[#232327] hover:text-text-primary hover:border-[#3A3A40] active:scale-95 ${
+              collapsed ? "shadow-[0_0_0_4px_rgba(20,20,22,0.95)]" : ""
             }`}
           >
-            <NavArrowLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
+            <NavArrowLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
           </button>
         </div>
-        {!collapsed ? (
+        {!collapsed && (
           <div className="mt-4 px-1">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-[#8E8E93]">
-              Kitchen Intelligence Workspace
+            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-text-muted">
+              Kitchen Intelligence Platform
             </p>
           </div>
-        ) : null}
+        )}
       </div>
 
+      {/* Navigation */}
       <div
-        className={`flex-1 overflow-y-auto py-5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40] ${
-          collapsed ? "px-2" : "px-3"
+        className={`flex-1 overflow-y-auto py-6 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40] ${
+          collapsed ? "px-2.5" : "px-4"
         }`}
       >
         {navSections.map((section, index) => (
           <div
             key={section.title}
-            className={index === 0 ? "" : `mt-6 pt-3 ${collapsed ? "" : "border-t border-[#2A2A2E]/70"}`}
+            className={index === 0 ? "" : `mt-8 pt-4 ${collapsed ? "" : "border-t border-[#1C1C1F]"}`}
           >
-            {!collapsed ? (
-              <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8E8E93]">
+            {!collapsed && (
+              <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                 {section.title}
               </p>
-            ) : null}
-            <nav className="space-y-1.5">
+            )}
+            <nav className="space-y-1">
               {section.items.map((item) => (
                 <SidebarLink
                   key={item.href}
@@ -317,6 +337,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   active={isActive(item.href)}
                   collapsed={collapsed}
                   sectionTone={section.tone}
+                  onClick={(e) => handleNavigation(e, item.href)}
                 />
               ))}
             </nav>
@@ -324,32 +345,34 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         ))}
       </div>
 
-      <div className="space-y-2 border-t border-[#2E2E33] p-3">
+      {/* Footer Actions */}
+      <div className="space-y-2 border-t border-[#1C1C1F] p-4">
         <Link
           href="/workspace/support"
+          onClick={(e) => handleNavigation(e, "/workspace/support")}
           title={collapsed ? "Support" : undefined}
-          className={`w-full rounded-[10px] px-3 py-2.5 text-[12px] font-medium text-[#C7C7CC] transition-colors duration-150 hover:bg-[#232327] hover:text-[#F5F5F7] flex items-center ${
+          className={`w-full rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-[#1C1C1F] hover:text-text-primary flex items-center ${
             collapsed ? "justify-center" : "gap-3"
           }`}
         >
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-[7px] bg-[#232327] text-[#8E8E93]">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#1C1C1F] text-text-muted transition-colors group-hover:text-text-secondary">
             <HelpCircle className="h-4 w-4 flex-shrink-0" />
           </span>
-          {!collapsed ? <span className="truncate">Support</span> : null}
+          {!collapsed && <span className="truncate">Support</span>}
         </Link>
         <button
-          className={`w-full rounded-[10px] px-3 py-2.5 text-[12px] font-medium text-[#C7C7CC] transition-colors duration-150 hover:bg-[#232327] hover:text-[#F5F5F7] flex items-center ${
+          className={`w-full rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-[#1C1C1F] hover:text-text-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed ${
             collapsed ? "justify-center" : "gap-3"
           }`}
           type="button"
           onClick={handleLogout}
-          disabled={logoutMutation.isPending}
+          disabled={logoutMutation.isPending || isPending}
           title={collapsed ? "Sign out" : undefined}
         >
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-[7px] bg-[#232327] text-[#8E8E93]">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#1C1C1F] text-text-muted transition-colors group-hover:text-text-secondary">
             <LogOut className="h-4 w-4 flex-shrink-0" />
           </span>
-          {!collapsed ? <span className="truncate">Sign out</span> : null}
+          {!collapsed && <span className="truncate">Sign out</span>}
         </button>
       </div>
     </aside>

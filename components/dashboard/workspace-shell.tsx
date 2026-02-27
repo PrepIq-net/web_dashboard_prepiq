@@ -1,8 +1,8 @@
 "use client";
 
 import { Brain } from "iconoir-react";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { DashboardTopNav } from "@/components/dashboard/top-nav";
+import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
+import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { useCurrentUserProfile } from "@/services";
 
@@ -22,31 +22,18 @@ export function WorkspaceShell({
   children,
 }: WorkspaceShellProps) {
   const { collapsed } = useSidebarState();
-  const { data: user, isLoading } = useCurrentUserProfile();
-
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-1">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="h-12 w-12 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-text-muted">
-            Loading workspace...
-          </p>
-        </div>
-      </main>
-    );
-  }
+  const { data: user } = useCurrentUserProfile();
 
   return (
     <div className="flex min-h-screen bg-surface-1">
-      <DashboardSidebar user={user} />
+      <DashboardSidebarWrapper user={user} />
       <main
         className={`flex-1 py-8 transition-[margin-left] duration-200 ${
           collapsed ? "ml-20" : "ml-64"
         }`}
       >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
-          <DashboardTopNav />
+          <DashboardTopNavWrapper />
           <section className="pb-8 border-b border-[#2A2A2E]">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
               {eyebrow}

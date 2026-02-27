@@ -54,7 +54,8 @@ export default function BranchesPage() {
     if (!isLoading && !canAccess) {
       router.replace("/");
     }
-  }, [isLoading, canAccess, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, canAccess]);
 
   const branches = branchesQuery.data ?? [];
   const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
@@ -112,22 +113,42 @@ export default function BranchesPage() {
     () => [
       branchColumnHelper.accessor("branch", {
         header: "Branch",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm font-semibold text-text-primary">
+            {info.getValue()}
+          </span>
+        ),
       }),
       branchColumnHelper.accessor("revenue", {
         header: "Revenue",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
+        cell: (info) => (
+          <div className="inline-flex items-baseline gap-1">
+            <span className="text-sm font-bold text-brand-gold tracking-tight">
+              {toCurrency(info.getValue())}
+            </span>
+            <span className="text-xs text-text-muted font-medium">USD</span>
+          </div>
+        ),
       }),
       branchColumnHelper.accessor("marginPct", {
         header: "Margin",
-        cell: (info) => <span className="text-[12px] text-[#3F8F68]">{toPercent(info.getValue())}</span>,
+        cell: (info) => (
+          <span className="text-sm font-semibold text-status-success">
+            {toPercent(info.getValue())}
+          </span>
+        ),
       }),
       branchColumnHelper.accessor("riskScore", {
         header: "Risk Score",
         cell: (info) => {
           const value = info.getValue();
+          const colorClass = value >= 65 
+            ? "text-status-critical" 
+            : value >= 35 
+              ? "text-status-warning" 
+              : "text-status-success";
           return (
-            <span className={`text-[12px] ${value >= 65 ? "text-[#C44949]" : value >= 35 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
+            <span className={`text-sm font-bold ${colorClass}`}>
               {value.toFixed(0)}
             </span>
           );
@@ -135,11 +156,19 @@ export default function BranchesPage() {
       }),
       branchColumnHelper.accessor("wastePct", {
         header: "Waste %",
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{toPercent(info.getValue())}</span>,
+        cell: (info) => (
+          <span className="text-sm font-semibold text-status-warning">
+            {toPercent(info.getValue())}
+          </span>
+        ),
       }),
       branchColumnHelper.accessor("efficiencyScore", {
         header: "Efficiency",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue().toFixed(1)}</span>,
+        cell: (info) => (
+          <span className="text-sm font-medium text-text-secondary">
+            {info.getValue().toFixed(1)}
+          </span>
+        ),
       }),
       branchColumnHelper.accessor("status", {
         header: "Status",
@@ -147,11 +176,15 @@ export default function BranchesPage() {
           const status = info.getValue();
           const colorClass =
             status === "HEALTHY"
-              ? "text-[#3F8F68]"
+              ? "text-status-success bg-status-success/10 border-status-success/20"
               : status === "AT_RISK"
-                ? "text-[#C48B2A]"
-                : "text-[#C44949]";
-          return <span className={`text-[11px] ${colorClass}`}>{status}</span>;
+                ? "text-status-warning bg-status-warning/10 border-status-warning/20"
+                : "text-status-critical bg-status-critical/10 border-status-critical/20";
+          return (
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${colorClass}`}>
+              {status.replace("_", " ")}
+            </span>
+          );
         },
       }),
       branchColumnHelper.display({
@@ -161,26 +194,26 @@ export default function BranchesPage() {
           const row = info.row.original;
           const target = targetAdjustments[row.id] ?? 0;
           return (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => router.push(`/?branch=${row.id}`)}
-                className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#F5F5F7]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-gold/40 bg-surface-3 px-3 text-xs font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold-hover active:scale-[0.98]"
               >
-                Open dashboard
+                Open
               </button>
               <button
                 type="button"
                 onClick={() => setTargetAdjustments((prev) => ({ ...prev, [row.id]: target + 5 }))}
-                className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#A8821F]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-primary active:scale-[0.98]"
               >
-                Set target +5
+                +5 Target
               </button>
               <Link
                 href={`/workspace/settings?branch=${row.id}`}
-                className="inline-flex h-7 items-center rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#8E8E93]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-muted transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-secondary active:scale-[0.98]"
               >
-                Manage settings
+                Settings
               </Link>
             </div>
           );
@@ -203,81 +236,126 @@ export default function BranchesPage() {
       description="Multi-branch performance control surface for revenue, margin, risk, and operational efficiency."
       insight="Executive leverage improves when branch performance is ranked by margin and risk, then reviewed against explicit targets."
     >
-      <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Total Branches</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{rows.length}</p>
+      <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 mb-12 md:grid-cols-4">
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+            Total Branches
+          </p>
+          <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+            {rows.length}
+          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Active locations</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Healthy</p>
-          <p className="mt-1 font-display text-[30px] text-[#3F8F68]">{statusCounts.healthy}</p>
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+            Healthy
+          </p>
+          <p className="font-display text-4xl font-semibold text-status-success tracking-tight">
+            {statusCounts.healthy}
+          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Performing well</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">At Risk</p>
-          <p className="mt-1 font-display text-[30px] text-[#C48B2A]">{statusCounts.atRisk}</p>
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+            At Risk
+          </p>
+          <p className="font-display text-4xl font-semibold text-status-warning tracking-tight">
+            {statusCounts.atRisk}
+          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Needs attention</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Underperforming</p>
-          <p className="mt-1 font-display text-[30px] text-[#C44949]">{statusCounts.underperforming}</p>
+        
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+            Underperforming
+          </p>
+          <p className="font-display text-4xl font-semibold text-status-critical tracking-tight">
+            {statusCounts.underperforming}
+          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">Critical status</p>
+          </div>
         </article>
       </section>
 
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch List</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[1220px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#2A2A2E] align-top">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="mt-12">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Branch Performance
+          </p>
+          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+            Branch Control Table
+          </h3>
+        </div>
+        
+        <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1220px]">
+              <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-surface-4">
+                {table.getRowModel().rows.map((row) => (
+                  <tr key={row.id} className="align-top transition-all duration-200 hover:bg-surface-3/50">
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-6 py-6">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-12">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <article className="lg:col-span-2">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch Drill-in</p>
-            <div className="mt-3 space-y-2">
+          <article className="lg:col-span-2 bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
+              Branch Drill-in
+            </p>
+            <div className="space-y-3">
               {rows.slice(0, 5).map((row) => (
-                <div key={`drill-${row.id}`} className="flex items-center justify-between border-b border-[#2A2A2E] pb-2">
-                  <p className="text-[13px] text-[#F5F5F7]">{row.branch}</p>
-                  <p className="text-[12px] text-[#C7C7CC]">
+                <div key={`drill-${row.id}`} className="flex items-center justify-between pb-3 border-b border-surface-4 last:border-b-0 last:pb-0">
+                  <p className="text-sm font-semibold text-text-primary">{row.branch}</p>
+                  <p className="text-xs text-text-secondary">
                     Revenue {toCurrency(row.revenue)} · Margin {toPercent(row.marginPct)} · Risk {row.riskScore.toFixed(0)}
                   </p>
                 </div>
               ))}
               {!rows.length ? (
-                <p className="text-[12px] text-[#8E8E93]">No branches found for current organization context.</p>
+                <p className="text-sm text-text-muted">No branches found for current organization context.</p>
               ) : null}
             </div>
           </article>
 
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Branches</p>
-            <div className="mt-3 space-y-2">
+          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
+              Compare Branches
+            </p>
+            <div className="space-y-3">
               <select
                 value={compareA}
                 onChange={(event) => setCompareA(event.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               >
                 <option value="">Branch A</option>
                 {rows.map((row) => (
@@ -287,23 +365,24 @@ export default function BranchesPage() {
               <select
                 value={compareB}
                 onChange={(event) => setCompareB(event.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               >
                 <option value="">Branch B</option>
                 {rows.map((row) => (
                   <option key={row.id} value={row.id}>{row.branch}</option>
                 ))}
               </select>
-              <div className="pt-2">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Efficiency delta</p>
-                <p className={`mt-1 font-display text-[26px] ${compareDelta >= 0 ? "text-[#3F8F68]" : "text-[#C44949]"}`}>
+              <div className="pt-3 mt-3 border-t border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
+                  Efficiency Delta
+                </p>
+                <p className={`font-display text-3xl font-bold tracking-tight ${compareDelta >= 0 ? "text-status-success" : "text-status-critical"}`}>
                   {compareDelta >= 0 ? "+" : ""}{compareDelta.toFixed(1)}
                 </p>
               </div>
             </div>
           </article>
         </div>
-
       </section>
     </WorkspaceShell>
   );
