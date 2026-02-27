@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createProductionLog,
   getBranchDayToday,
   getBranchCommandView,
   initializeBranchDay,
@@ -17,6 +18,7 @@ import {
   getStaffStockoutEvents,
   getTodayPrepRecommendations,
   startSquareOAuth,
+  updateBranchDayStatus,
   updatePrepPlanItem,
   updateStaffShiftChecklist,
   type AccessScopeQuery,
@@ -32,6 +34,8 @@ import {
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
+  BranchDayStatusUpdatePayload,
+  CreateProductionLogPayload,
   CreatePrepRecommendationDecisionPayload,
   CreateStaffStockoutEventPayload,
   PrepPlanEvaluatePayload,
@@ -154,6 +158,28 @@ export function useEvaluatePrepPlan() {
   });
 }
 
+export function useUpdateBranchDayStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      payload,
+    }: {
+      branchDayId: string;
+      payload: BranchDayStatusUpdatePayload;
+    }) => updateBranchDayStatus(branchDayId, payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayToday({
+          branch_id: data.branch_id,
+          date: data.date,
+        }),
+      });
+    },
+  });
+}
+
 export function useUpdatePrepPlanItem() {
   const queryClient = useQueryClient();
 
@@ -165,6 +191,19 @@ export function useUpdatePrepPlanItem() {
       prepPlanItemId: string;
       payload: UpdatePrepPlanItemPayload;
     }) => updatePrepPlanItem(prepPlanItemId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
+      });
+    },
+  });
+}
+
+export function useCreateProductionLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateProductionLogPayload) => createProductionLog(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],

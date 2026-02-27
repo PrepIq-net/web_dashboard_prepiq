@@ -69,6 +69,19 @@ export const branchDayTodaySchema = z.object({
     weather_modifier_percentage: z.number().nullable(),
   }),
   prep_plan_items: z.array(prepPlanItemSchema),
+  review_summary: z
+    .object({
+      total_revenue: z.string(),
+      total_waste_cost: z.string(),
+      stockout_count: z.number(),
+      lost_revenue_estimate: z.string(),
+      forecast_accuracy_percentage: z.number(),
+      created_at: z.string(),
+      updated_at: z.string(),
+    })
+    .nullable()
+    .optional(),
+  review_insights: z.array(z.string()).optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -78,6 +91,11 @@ export const branchDayTodaySchema = z.object({
     .optional(),
 });
 export type BranchDayToday = z.infer<typeof branchDayTodaySchema>;
+
+export const branchDayStatusUpdatePayloadSchema = z.object({
+  status: z.enum(["MORNING", "LIVE", "CLOSED"]),
+});
+export type BranchDayStatusUpdatePayload = z.infer<typeof branchDayStatusUpdatePayloadSchema>;
 
 export const prepPlanEvaluatePayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),
@@ -97,6 +115,23 @@ export const updatePrepPlanItemPayloadSchema = z.object({
   accepted_suggestion: z.boolean().optional(),
 });
 export type UpdatePrepPlanItemPayload = z.infer<typeof updatePrepPlanItemPayloadSchema>;
+
+export const createProductionLogPayloadSchema = z.object({
+  prep_plan_item_id: z.string().uuid(),
+  quantity_produced: z.number().min(0).optional(),
+  waste_quantity: z.number().min(0).optional(),
+});
+export type CreateProductionLogPayload = z.infer<typeof createProductionLogPayloadSchema>;
+
+export const productionLogSchema = z.object({
+  id: z.string().uuid(),
+  prep_plan_item_id: z.string().uuid(),
+  quantity_produced: z.number(),
+  waste_quantity: z.number(),
+  created_by: z.union([z.string().uuid(), z.null()]),
+  created_at: z.string(),
+});
+export type ProductionLog = z.infer<typeof productionLogSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Daily Prep Recommendation

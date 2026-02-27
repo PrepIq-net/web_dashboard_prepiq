@@ -17,10 +17,14 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branch-day/initialize/`,
   branchDayToday: () =>
     `${BASE}/production-intelligence/branch-day/today/`,
+  branchDayStatus: (branchDayId: string) =>
+    `${BASE}/production-intelligence/branch-day/${branchDayId}/status/`,
   prepPlanEvaluate: () =>
     `${BASE}/production-intelligence/prep-plan/evaluate/`,
   prepPlanDetail: (prepPlanItemId: string) =>
     `${BASE}/production-intelligence/prep-plan/${prepPlanItemId}/`,
+  productionLogCreate: () =>
+    `${BASE}/production-intelligence/production-log/`,
   generateForecast: () =>
     `${BASE}/production-intelligence/recommendations/generate/`,
   recommendationDecision: (recommendationId: string) =>

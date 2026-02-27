@@ -226,7 +226,16 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const router = useRouter();
   const logoutMutation = useSessionLogoutUser();
   const { collapsed, toggle } = useSidebarState();
-  const isActive = (href: string) => pathname === href;
+  const normalizedPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+  const isStaffExecutionRole = user?.organization_role === "STAFF_OPERATOR";
+  const isActive = (href: string) => {
+    const normalizedHref = href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
+    if (normalizedPath === normalizedHref) return true;
+    if (isStaffExecutionRole && normalizedHref === "/workspace/today" && normalizedPath === "/") {
+      return true;
+    }
+    return false;
+  };
   const navSections = getNavSectionsByRole(user?.organization_role);
 
   const handleLogout = () => {

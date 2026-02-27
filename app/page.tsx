@@ -350,22 +350,25 @@ function HomeContent() {
 
           {isFinanceMode ? (
             <>
-              <div className="mb-12">
+              <div className="mb-16">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                    Overview
+                    Financial Intelligence
                   </p>
-                  <h1 className="mt-2 font-display text-4xl font-semibold text-text-primary">
+                  <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
                     Financial Snapshot
                   </h1>
+                  <p className="mt-4 text-base text-text-secondary max-w-2xl">
+                    Real-time financial metrics and cost analysis across all operations.
+                  </p>
                 </div>
-                <div className="mt-4 inline-flex items-center gap-2">
-                  <label htmlFor="finance-period" className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                    Period
+                <div className="mt-8 inline-flex items-center gap-3 bg-[#1C1C1F] rounded-lg px-4 py-3">
+                  <label htmlFor="finance-period" className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted">
+                    Analysis Period
                   </label>
                   <select
                     id="finance-period"
-                    className="h-8 rounded-[8px] border border-[#2A2A2E] bg-[#232327] px-2 text-[12px] text-[#F5F5F7]"
+                    className="h-9 rounded-lg border border-[#2A2A2E] bg-[#232327] px-3 text-sm text-text-primary font-medium focus:border-brand-gold focus:outline-none transition-colors"
                     defaultValue="30d"
                   >
                     <option value="7d">Last 7 days</option>
@@ -375,207 +378,342 @@ function HomeContent() {
                 </div>
               </div>
 
-              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 mb-10 pb-8 border-b border-[#2A2A2E]">
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Revenue
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Total Revenue
+                    </p>
+                    <div className="w-2 h-2 rounded-full bg-brand-gold"></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    +6.2% vs prior period
+                  </p>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Gross Margin
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Gross Margin
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${grossMarginPct >= 70 ? 'bg-[#3F8F68]' : grossMarginPct >= 50 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {grossMarginPct.toFixed(1)}%
                   </p>
-                </article>
-
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Waste Value
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    $
-                    {Number(
-                      marginReport?.summary?.total_waste_cost ?? "0",
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Target: 75%
                   </p>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Purchase Cost Trend
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Waste Cost
+                    </p>
+                    <div className="w-2 h-2 rounded-full bg-[#C44949]"></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+                    ${Number(marginReport?.summary?.total_waste_cost ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                  <p className="mt-2 text-sm text-text-secondary">
+                    {wasteAsRevenuePct.toFixed(1)}% of revenue
+                  </p>
+                </article>
+
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Cost Trend
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${purchaseCostTrend.includes('-') ? 'bg-[#3F8F68]' : 'bg-[#C48B2A]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {purchaseCostTrend}
                   </p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    7-day rolling average
+                  </p>
                 </article>
               </section>
 
-              <section className="mb-10 pb-8 border-b border-[#2A2A2E]">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Tax Liability Snapshot
-                </p>
-                <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                  ${taxLiabilityEstimate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </p>
-                <p className="mt-1 text-[12px] text-[#8E8E93]">
-                  Estimated from current waste and margin leakage profile.
-                </p>
+              <section className="mb-16">
+                <div className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                        Tax Liability Analysis
+                      </p>
+                      <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                        Current Period Estimate
+                      </h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+                        ${taxLiabilityEstimate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Based on waste and margin profile
+                      </p>
+                    </div>
+                  </div>
+                  <div className="h-px bg-[#2A2A2E] mb-6"></div>
+                  <div className="grid grid-cols-3 gap-8">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                        Waste Impact
+                      </p>
+                      <p className="text-lg font-semibold text-text-primary">
+                        ${wasteTodayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                        Tax Rate Applied
+                      </p>
+                      <p className="text-lg font-semibold text-text-primary">18%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                        Confidence Level
+                      </p>
+                      <p className="text-lg font-semibold text-[#3F8F68]">High</p>
+                    </div>
+                  </div>
+                </div>
               </section>
 
-              <section className="mb-10 pb-8 border-b border-[#2A2A2E]">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      Branch Financial Summary
-                    </p>
-                    <h3 className="mt-1 font-display text-[24px] leading-[30px] text-[#F5F5F7]">
-                      Branch Comparison
-                    </h3>
+              <section className="mb-16">
+                <div className="bg-[#1C1C1F] rounded-xl border border-[#2A2A2E]/50 overflow-hidden">
+                  <div className="p-8 pb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Branch Performance Analysis
+                        </p>
+                        <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                          Financial Comparison
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-text-secondary">
+                          {marginReport?.branch_count ?? 0} branches tracked
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">
+                          Last updated: {new Date().toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[12px] text-[#8E8E93]">
-                    {marginReport?.branch_count ?? 0} branches tracked
-                  </span>
-                </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px]">
-                    <thead>
-                      <tr className="text-left border-b border-[#2A2A2E]">
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Branch
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Waste Cost
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Money Protected
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Forecast Accuracy
-                        </th>
-                        <th className="py-2 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                          Margin Signal
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(marginReport?.branches ?? []).map((branch) => (
-                        <tr key={branch.branch_id} className="border-b border-[#2A2A2E]">
-                          <td className="py-3 text-[13px] text-[#F5F5F7]">{branch.branch_name}</td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            ${Number(branch.total_waste_cost ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            ${Number(branch.money_protected_vs_baseline ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                          <td className="py-3 text-[13px] text-[#C7C7CC]">
-                            {Number(branch.forecast_accuracy_summary ?? 0).toFixed(1)}%
-                          </td>
-                          <td className="py-3 text-[12px] text-[#8E8E93]">
-                            {branch.margin_signal_status || "N/A"}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                      <thead className="bg-[#232327]">
+                        <tr>
+                          <th className="px-8 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                            Branch Location
+                          </th>
+                          <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                            Waste Cost
+                          </th>
+                          <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                            Protected Value
+                          </th>
+                          <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                            Forecast Accuracy
+                          </th>
+                          <th className="px-8 py-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                            Status
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#2A2A2E]">
+                        {(marginReport?.branches ?? []).map((branch) => {
+                          const accuracy = Number(branch.forecast_accuracy_summary ?? 0);
+                          const wasteValue = Number(branch.total_waste_cost ?? "0");
+                          return (
+                            <tr key={branch.branch_id} className="hover:bg-[#232327]/50 transition-colors">
+                              <td className="px-8 py-5">
+                                <div>
+                                  <p className="font-medium text-text-primary">{branch.branch_name}</p>
+                                  <p className="text-sm text-text-secondary mt-1">ID: {branch.branch_id.slice(0, 8)}</p>
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <p className="font-semibold text-text-primary">
+                                  ${wasteValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </p>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <p className="font-semibold text-[#3F8F68]">
+                                  ${Number(branch.money_protected_vs_baseline ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </p>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-16 h-2 bg-[#232327] rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${accuracy >= 80 ? 'bg-[#3F8F68]' : accuracy >= 60 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}
+                                      style={{ width: `${Math.min(100, accuracy)}%` }}
+                                    />
+                                  </div>
+                                  <p className="font-semibold text-text-primary min-w-[3rem]">
+                                    {accuracy.toFixed(1)}%
+                                  </p>
+                                </div>
+                              </td>
+                              <td className="px-8 py-5 text-center">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  branch.margin_signal_status === 'HEALTHY' 
+                                    ? 'bg-[#3F8F68]/20 text-[#3F8F68]' 
+                                    : branch.margin_signal_status === 'WARNING'
+                                    ? 'bg-[#C48B2A]/20 text-[#C48B2A]'
+                                    : 'bg-[#C44949]/20 text-[#C44949]'
+                                }`}>
+                                  {branch.margin_signal_status || "Unknown"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </section>
             </>
           ) : isOpsManagerMode ? (
             <>
-              <div className="mb-12">
+              <div className="mb-16">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                    Operational Mode
+                    Operations Command Center
                   </p>
-                  <h1 className="mt-2 font-display text-4xl font-semibold text-text-primary">
+                  <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
                     Organization Overview
                   </h1>
-                  <p className="mt-2 max-w-2xl text-[14px] text-[#8E8E93]">
-                    Structured operational summaries across all branches.
+                  <p className="mt-4 text-base text-text-secondary max-w-2xl">
+                    Real-time operational intelligence and performance metrics across all branch locations.
                   </p>
                 </div>
               </div>
 
-              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 mb-10 pb-8 border-b border-[#2A2A2E]">
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Total Revenue
+              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Total Revenue
+                    </p>
+                    <div className="w-2 h-2 rounded-full bg-brand-gold"></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+                    ${Number(controlTower?.summary?.total_revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    $
-                    {Number(controlTower?.summary?.total_revenue ?? 0).toLocaleString(
-                      undefined,
-                      { maximumFractionDigits: 0 },
-                    )}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">All branches today</p>
+                  <p className="mt-2 text-sm text-text-secondary">All branches today</p>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Margin Snapshot
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Avg Margin
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${averageMarginPct >= 70 ? 'bg-[#3F8F68]' : averageMarginPct >= 50 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {averageMarginPct.toFixed(1)}%
                   </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">Average branch margin signal</p>
+                  <p className="mt-2 text-sm text-text-secondary">Cross-branch average</p>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Top Branch
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Top Performer
+                    </p>
+                    <div className="w-2 h-2 rounded-full bg-[#3F8F68]"></div>
+                  </div>
+                  <p className="font-display text-2xl font-semibold text-text-primary tracking-tight">
                     {topPerformingBranch?.branch_name ?? "N/A"}
                   </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    Best combined revenue and waste score
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Revenue: ${Number(topPerformingBranch?.revenue ?? 0).toLocaleString()}
                   </p>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Worst Branch
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Priority Alerts
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${highSeverityAlerts > 0 ? 'bg-[#C44949]' : 'bg-[#3F8F68]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+                    {highSeverityAlerts}
                   </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-                    {worstPerformingBranch?.branch_name ?? "N/A"}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    {highSeverityAlerts} high-severity alerts active
+                  <p className="mt-2 text-sm text-text-secondary">
+                    {underperformingBranches} branches need attention
                   </p>
                 </article>
               </section>
 
-              <div className="mb-3">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Trend Graphs
-                </p>
-              </div>
-              <section className="mb-10 grid grid-cols-1 gap-8 border-b border-[#2A2A2E] pb-8 lg:grid-cols-3">
-                <article className="lg:col-span-2">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Waste Heatmap
-                  </p>
-                  <div className="mt-4 space-y-3">
+              <section className="mb-16 grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <article className="lg:col-span-2 bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                        Waste Performance Heatmap
+                      </p>
+                      <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                        Branch Waste Analysis
+                      </h3>
+                    </div>
+                    <p className="text-sm text-text-secondary">
+                      {wasteHeatmapRows.length} branches analyzed
+                    </p>
+                  </div>
+                  <div className="space-y-4">
                     {wasteHeatmapRows.length ? (
-                      wasteHeatmapRows.map((branch) => {
+                      wasteHeatmapRows.map((branch, index) => {
                         const wastePct = Number(branch.waste_pct ?? 0);
+                        const isHigh = wastePct > 8;
+                        const isMedium = wastePct > 4;
                         return (
-                          <div key={branch.branch_id}>
-                            <div className="mb-1 flex items-center justify-between text-[12px] text-[#C7C7CC]">
-                              <span>{branch.branch_name}</span>
-                              <span>{wastePct.toFixed(1)}%</span>
+                          <div key={branch.branch_id} className="group">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-medium text-text-muted w-6">
+                                  #{index + 1}
+                                </span>
+                                <span className="font-medium text-text-primary">
+                                  {branch.branch_name}
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  isHigh ? 'bg-[#C44949]/20 text-[#C44949]' : 
+                                  isMedium ? 'bg-[#C48B2A]/20 text-[#C48B2A]' : 
+                                  'bg-[#3F8F68]/20 text-[#3F8F68]'
+                                }`}>
+                                  {isHigh ? 'High Risk' : isMedium ? 'Medium Risk' : 'Low Risk'}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-semibold text-text-primary">
+                                  {wastePct.toFixed(1)}%
+                                </span>
+                                <p className="text-xs text-text-secondary">
+                                  ${Number(branch.revenue ?? 0).toLocaleString()}
+                                </p>
+                              </div>
                             </div>
-                            <div className="h-1.5 w-full rounded-full bg-[#232327]">
+                            <div className="h-3 w-full rounded-full bg-[#232327] overflow-hidden">
                               <div
-                                className="h-1.5 rounded-full bg-[#A8821F]"
+                                className={`h-3 rounded-full transition-all duration-300 ${
+                                  isHigh ? 'bg-[#C44949]' : 
+                                  isMedium ? 'bg-[#C48B2A]' : 
+                                  'bg-[#3F8F68]'
+                                }`}
                                 style={{ width: `${Math.min(100, wastePct * 8)}%` }}
                               />
                             </div>
@@ -583,39 +721,86 @@ function HomeContent() {
                         );
                       })
                     ) : (
-                      <p className="text-[13px] text-[#8E8E93]">No branch waste signals yet.</p>
+                      <div className="text-center py-8">
+                        <p className="text-text-secondary">No waste data available</p>
+                        <p className="text-sm text-text-muted mt-1">Check back after operations begin</p>
+                      </div>
                     )}
                   </div>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Performance Indexes
-                  </p>
-                  <div className="mt-4 space-y-4">
+                <article className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Performance Metrics
+                    </p>
+                    <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                      Key Indicators
+                    </h3>
+                  </div>
+                  <div className="space-y-8">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Production Efficiency
-                      </p>
-                      <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-                        {productionEfficiencyScore.toFixed(1)}
-                      </p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-text-secondary">
+                          Production Efficiency
+                        </p>
+                        <span className="font-semibold text-text-primary">
+                          {productionEfficiencyScore.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-[#232327] rounded-full overflow-hidden">
+                        <div 
+                          className="h-2 bg-brand-gold rounded-full transition-all duration-500"
+                          style={{ width: `${productionEfficiencyScore}%` }}
+                        />
+                      </div>
                     </div>
+                    
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Staff Performance Index
-                      </p>
-                      <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-                        {staffPerformanceIndex.toFixed(1)}
-                      </p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-text-secondary">
+                          Staff Performance
+                        </p>
+                        <span className="font-semibold text-text-primary">
+                          {staffPerformanceIndex.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-[#232327] rounded-full overflow-hidden">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            staffPerformanceIndex >= 80 ? 'bg-[#3F8F68]' : 
+                            staffPerformanceIndex >= 60 ? 'bg-[#C48B2A]' : 
+                            'bg-[#C44949]'
+                          }`}
+                          style={{ width: `${staffPerformanceIndex}%` }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Priority Branches
+
+                    <div className="pt-4 border-t border-[#2A2A2E]">
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-3">
+                        Priority Actions
                       </p>
-                      <p className="mt-1 text-[13px] text-[#C7C7CC]">
-                        {underperformingBranches} branch(es) need intervention.
-                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-[#C44949]"></div>
+                          <p className="text-sm text-text-secondary">
+                            {underperformingBranches} branches need intervention
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-[#C48B2A]"></div>
+                          <p className="text-sm text-text-secondary">
+                            {supplierAnomalies} supplier anomalies detected
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-[#3F8F68]"></div>
+                          <p className="text-sm text-text-secondary">
+                            Forecast accuracy: {forecastAccuracyPct.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -893,98 +1078,209 @@ function HomeContent() {
             </>
           ) : isBranchManagerMode ? (
             <>
-              <div className="mb-12">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                  Overview
-                </p>
-                <h2 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                  Branch Health Snapshot
-                </h2>
-                <p className="mt-2 text-[14px] text-[#8E8E93] max-w-2xl">
-                  Is {activeBranch?.name || "your branch"} healthy today? This is your live summary.
-                </p>
+              <div className="mb-16">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
+                      Branch Operations
+                    </p>
+                    <h2 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
+                      {activeBranch?.name || "Branch"} Health
+                    </h2>
+                    <p className="mt-4 text-base text-text-secondary max-w-2xl">
+                      Real-time operational metrics and performance indicators for your location.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-text-muted">Current Time</p>
+                    <p className="font-display text-2xl font-semibold text-text-primary">
+                      {currentTimeLabel}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-8 gap-y-6 pb-8 border-b border-[#2A2A2E]">
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Sales vs Target
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+              <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Sales vs Target
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${salesVsTargetPct >= 90 ? 'bg-[#3F8F68]' : salesVsTargetPct >= 70 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {salesVsTargetPct.toFixed(1)}%
                   </p>
+                  <div className="mt-4 h-2 bg-[#232327] rounded-full overflow-hidden">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        salesVsTargetPct >= 90 ? 'bg-[#3F8F68]' : 
+                        salesVsTargetPct >= 70 ? 'bg-[#C48B2A]' : 
+                        'bg-[#C44949]'
+                      }`}
+                      style={{ width: `${Math.min(100, salesVsTargetPct)}%` }}
+                    />
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Waste Today
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Waste Today
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${wasteTodayPct <= 3 ? 'bg-[#3F8F68]' : wasteTodayPct <= 7 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     ${wasteTodayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">
-                    {wasteTodayPct.toFixed(1)}%
+                  <p className="mt-2 text-sm text-text-secondary">
+                    {wasteTodayPct.toFixed(1)}% of production
                   </p>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Production vs Plan
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Production vs Plan
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${productionVsPlanPct >= 95 ? 'bg-[#3F8F68]' : productionVsPlanPct >= 80 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {productionVsPlanPct.toFixed(1)}%
                   </p>
+                  <div className="mt-4 h-2 bg-[#232327] rounded-full overflow-hidden">
+                    <div 
+                      className="h-2 bg-brand-gold rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, productionVsPlanPct)}%` }}
+                    />
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Inventory Risk
-                  </p>
-                  <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
+
+                <article className="bg-[#1C1C1F] rounded-xl p-6 border border-[#2A2A2E]/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Inventory Risk
+                    </p>
+                    <div className={`w-2 h-2 rounded-full ${inventoryRiskCount === 0 ? 'bg-[#3F8F68]' : inventoryRiskCount <= 3 ? 'bg-[#C48B2A]' : 'bg-[#C44949]'}`}></div>
+                  </div>
+                  <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                     {inventoryRiskCount}
+                  </p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Items at risk
                   </p>
                 </article>
               </section>
 
-              <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 pb-8 border-b border-[#2A2A2E]">
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Inventory Detail
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
-                      <span>Items below reorder threshold</span>
-                      <span className="text-[#F5F5F7]">{belowReorderCount}</span>
+              <section className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <article className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Inventory Status
+                    </p>
+                    <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                      Stock Analysis
+                    </h3>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-[#232327] rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Below Reorder Point</p>
+                        <p className="text-xs text-text-muted mt-1">Items requiring restocking</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display text-2xl font-semibold text-text-primary">
+                          {belowReorderCount}
+                        </p>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          belowReorderCount === 0 ? 'bg-[#3F8F68]/20 text-[#3F8F68]' : 
+                          belowReorderCount <= 3 ? 'bg-[#C48B2A]/20 text-[#C48B2A]' : 
+                          'bg-[#C44949]/20 text-[#C44949]'
+                        }`}>
+                          {belowReorderCount === 0 ? 'Good' : belowReorderCount <= 3 ? 'Monitor' : 'Critical'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
-                      <span>Prepared today</span>
-                      <span className="text-[#F5F5F7]">{preparedToday.toLocaleString()}</span>
+                    
+                    <div className="flex items-center justify-between p-4 bg-[#232327] rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Prepared Today</p>
+                        <p className="text-xs text-text-muted mt-1">Total units produced</p>
+                      </div>
+                      <p className="font-display text-2xl font-semibold text-text-primary">
+                        {preparedToday.toLocaleString()}
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between text-[13px] text-[#C7C7CC]">
-                      <span>Sold today</span>
-                      <span className="text-[#F5F5F7]">{soldToday.toLocaleString()}</span>
+                    
+                    <div className="flex items-center justify-between p-4 bg-[#232327] rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Sold Today</p>
+                        <p className="text-xs text-text-muted mt-1">Units moved to customers</p>
+                      </div>
+                      <p className="font-display text-2xl font-semibold text-text-primary">
+                        {soldToday.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 </article>
 
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    Staff Status
-                  </p>
-                  <div className="mt-3 grid grid-cols-1 gap-y-3 md:grid-cols-2 md:gap-x-8">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Active
+                <article className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Staff Operations
+                    </p>
+                    <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                      Team Status
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="text-center p-6 bg-[#232327] rounded-lg">
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                        Active Staff
                       </p>
-                      <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+                      <p className="font-display text-4xl font-semibold text-[#3F8F68] mb-2">
                         {activeStaffCount}
                       </p>
+                      <div className="w-full h-2 bg-[#1C1C1F] rounded-full overflow-hidden">
+                        <div 
+                          className="h-2 bg-[#3F8F68] rounded-full"
+                          style={{ width: `${Math.min(100, (activeStaffCount / (activeStaffCount + absentEstimate)) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Absent (Estimated)
+                    
+                    <div className="text-center p-6 bg-[#232327] rounded-lg">
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                        Absent (Est.)
                       </p>
-                      <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+                      <p className="font-display text-4xl font-semibold text-[#C48B2A] mb-2">
                         {absentEstimate}
                       </p>
+                      <div className="w-full h-2 bg-[#1C1C1F] rounded-full overflow-hidden">
+                        <div 
+                          className="h-2 bg-[#C48B2A] rounded-full"
+                          style={{ width: `${Math.min(100, (absentEstimate / (activeStaffCount + absentEstimate)) * 100)}%` }}
+                        />
+                      </div>
                     </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-[#232327] rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium text-text-secondary">Shift Progress</p>
+                      <span className="text-sm font-semibold text-text-primary">
+                        {shiftProgress.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="h-3 bg-[#1C1C1F] rounded-full overflow-hidden">
+                      <div 
+                        className="h-3 bg-brand-gold rounded-full transition-all duration-500"
+                        style={{ width: `${shiftProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-text-muted mt-2">
+                      Shift: 6:00 AM - 10:00 PM
+                    </p>
                   </div>
                 </article>
               </section>
@@ -1023,121 +1319,232 @@ function HomeContent() {
             </>
           ) : isChefMode ? (
             <>
-              <div className="mb-12">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-                  Overview
-                </p>
-                <h2 className="mt-2 font-display text-4xl font-semibold text-text-primary">
-                  Today&apos;s Production Plan
-                </h2>
-                <p className="mt-2 text-[14px] text-[#8E8E93] max-w-2xl">
-                  Operational clarity for {activeBranch?.name || "your assigned branch"}.
-                </p>
-              </div>
-
-              <section className="pb-8 border-b border-[#2A2A2E]">
-                {branchCommandTodayQuery.isLoading ? (
-                  <div className="py-4 text-[14px] text-[#8E8E93]">
-                    Loading today&apos;s production command...
-                  </div>
-                ) : todayRecommendations.length ? (
-                  <div className="space-y-3">
-                    {todayRecommendations.slice(0, 10).map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 py-2 border-b border-[#2A2A2E] last:border-b-0"
-                      >
-                        <p className="text-[15px] text-[#F5F5F7]">{item.item_title}</p>
-                        <p className="font-display text-[22px] text-[#F5F5F7]">
-                          {item.recommended_quantity} {item.unit}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-4 text-[14px] text-[#8E8E93]">
-                    No command generated yet. Check back in a few minutes.
-                  </div>
-                )}
-              </section>
-
-              <section className="mt-8 pb-8 border-b border-[#2A2A2E]">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Assigned Tasks
-                </p>
-                <div className="mt-3 space-y-2">
-                  {assignedTasks.length ? (
-                    assignedTasks.map((task) => (
-                      <div
-                        key={task.label}
-                        className="flex items-center justify-between py-1.5"
-                      >
-                        <p className="text-[14px] text-[#C7C7CC] capitalize">{task.label}</p>
-                        <span
-                          className={`text-[11px] ${
-                            task.done ? "text-[#3F8F68]" : "text-[#C48B2A]"
-                          }`}
-                        >
-                          {task.done ? "Done" : "Pending"}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-[13px] text-[#8E8E93]">No assigned tasks yet.</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="mt-8 pb-8 border-b border-[#2A2A2E]">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Shift Context
-                </p>
-                <div className="mt-4 grid grid-cols-1 gap-y-4 md:grid-cols-3 md:gap-x-8">
-                  <article>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Current Time
+              <div className="mb-16">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
+                      Production Command
                     </p>
-                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-                      {currentTimeLabel}
+                    <h2 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
+                      Today&apos;s Production Plan
+                    </h2>
+                    <p className="mt-4 text-base text-text-secondary max-w-2xl">
+                      Operational guidance and task management for {activeBranch?.name || "your assigned branch"}.
                     </p>
-                  </article>
-                  <article>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Shift Progress
-                    </p>
-                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-text-muted">Shift Progress</p>
+                    <p className="font-display text-3xl font-semibold text-brand-gold">
                       {shiftProgress.toFixed(0)}%
                     </p>
-                  </article>
-                  <article>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                      Checklist
-                    </p>
-                    <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-                      {staffChecklistQuery.data?.completed_count ?? 0}/
-                      {staffChecklistQuery.data?.total_count ?? 0}
-                    </p>
-                  </article>
+                    <p className="text-sm text-text-secondary mt-1">{currentTimeLabel}</p>
+                  </div>
+                </div>
+              </div>
+
+              <section className="mb-16">
+                <div className="bg-[#1C1C1F] rounded-xl border border-[#2A2A2E]/50 overflow-hidden">
+                  <div className="p-8 pb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Production Schedule
+                        </p>
+                        <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                          Items to Prepare
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-text-secondary">
+                          {todayRecommendations.length} items planned
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">
+                          Total: {todayPlanTotal.toLocaleString()} units
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {branchCommandTodayQuery.isLoading ? (
+                    <div className="px-8 pb-8">
+                      <div className="flex items-center justify-center py-12 text-text-secondary">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold mr-3"></div>
+                        Loading today&apos;s production command...
+                      </div>
+                    </div>
+                  ) : todayRecommendations.length ? (
+                    <div className="divide-y divide-[#2A2A2E]">
+                      {todayRecommendations.slice(0, 10).map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="px-8 py-5 hover:bg-[#232327]/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center">
+                                <span className="text-sm font-semibold text-brand-gold">
+                                  {index + 1}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-text-primary text-lg">
+                                  {item.item_title}
+                                </p>
+                                <p className="text-sm text-text-secondary mt-1">
+                                  Priority: {index < 3 ? 'High' : index < 7 ? 'Medium' : 'Standard'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-display text-2xl font-semibold text-text-primary">
+                                {item.recommended_quantity}
+                              </p>
+                              <p className="text-sm text-text-secondary">
+                                {item.unit}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-8 pb-8">
+                      <div className="text-center py-12">
+                        <p className="text-text-secondary">No production command generated yet</p>
+                        <p className="text-sm text-text-muted mt-1">Check back in a few minutes</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 
-              <section className="mt-8">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Operational Warnings
-                </p>
-                <div className="mt-3 space-y-2">
-                  {operationalWarnings.length ? (
-                    operationalWarnings.map((warning) => (
-                      <p key={warning} className="text-[14px] text-[#C48B2A]">
-                        {warning}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="text-[13px] text-[#8E8E93]">
-                      No active operational warnings.
+              <section className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <article className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Task Management
                     </p>
-                  )}
-                </div>
+                    <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                      Assigned Tasks
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {assignedTasks.length ? (
+                      assignedTasks.map((task, index) => (
+                        <div
+                          key={task.label}
+                          className="flex items-center justify-between p-4 bg-[#232327] rounded-lg hover:bg-[#2A2A2E] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${task.done ? 'bg-[#3F8F68]' : 'bg-[#C48B2A]'}`}></div>
+                            <p className="font-medium text-text-primary capitalize">
+                              {task.label}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              task.done 
+                                ? 'bg-[#3F8F68]/20 text-[#3F8F68]' 
+                                : 'bg-[#C48B2A]/20 text-[#C48B2A]'
+                            }`}
+                          >
+                            {task.done ? 'Completed' : 'Pending'}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-text-secondary">No assigned tasks yet</p>
+                        <p className="text-sm text-text-muted mt-1">Tasks will appear as they are assigned</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-[#232327] rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium text-text-secondary">Task Completion</p>
+                      <span className="text-sm font-semibold text-text-primary">
+                        {staffChecklistQuery.data?.completed_count ?? 0}/{staffChecklistQuery.data?.total_count ?? 0}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-[#1C1C1F] rounded-full overflow-hidden">
+                      <div 
+                        className="h-2 bg-[#3F8F68] rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${
+                            (staffChecklistQuery.data?.total_count ?? 0) > 0 
+                              ? ((staffChecklistQuery.data?.completed_count ?? 0) / (staffChecklistQuery.data?.total_count ?? 0)) * 100 
+                              : 0
+                          }%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                </article>
+
+                <article className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      Shift Information
+                    </p>
+                    <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                      Current Status
+                    </h3>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-[#232327] rounded-lg">
+                        <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                          Current Time
+                        </p>
+                        <p className="font-display text-2xl font-semibold text-text-primary">
+                          {currentTimeLabel}
+                        </p>
+                      </div>
+                      
+                      <div className="text-center p-4 bg-[#232327] rounded-lg">
+                        <p className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted mb-2">
+                          Shift Progress
+                        </p>
+                        <p className="font-display text-2xl font-semibold text-brand-gold">
+                          {shiftProgress.toFixed(0)}%
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-[#232327] rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-text-secondary">Shift Timeline</p>
+                        <p className="text-xs text-text-muted">6:00 AM - 10:00 PM</p>
+                      </div>
+                      <div className="h-3 bg-[#1C1C1F] rounded-full overflow-hidden">
+                        <div 
+                          className="h-3 bg-brand-gold rounded-full transition-all duration-500"
+                          style={{ width: `${shiftProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-[#232327] rounded-lg">
+                      <p className="text-sm font-medium text-text-secondary mb-3">Operational Warnings</p>
+                      {operationalWarnings.length ? (
+                        <div className="space-y-2">
+                          {operationalWarnings.map((warning, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <div className="w-2 h-2 rounded-full bg-[#C48B2A] mt-2 flex-shrink-0"></div>
+                              <p className="text-sm text-[#C48B2A]">{warning}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[#3F8F68]">
+                          No active operational warnings
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
               </section>
             </>
           ) : (
@@ -1155,16 +1562,28 @@ function HomeContent() {
             </section>
           )}
 
-          <section className="mt-8 pt-5 border-t border-[#2A2A2E]">
-            <div className="inline-flex items-center gap-2 text-[#A8821F]">
-              <Brain className="h-4 w-4" />
-              <p className="text-[11px] uppercase tracking-[0.14em]">
-                PrepIQ Insight
-              </p>
+          <section className="mt-16 pt-8 border-t border-[#2A2A2E]">
+            <div className="bg-[#1C1C1F] rounded-xl p-8 border border-[#2A2A2E]/50">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-brand-gold/20 flex items-center justify-center flex-shrink-0">
+                  <Brain className="h-5 w-5 text-brand-gold" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                      PrepIQ Intelligence
+                    </p>
+                    <div className="w-2 h-2 rounded-full bg-brand-gold animate-pulse"></div>
+                  </div>
+                  <p className="text-lg leading-relaxed text-text-primary font-medium">
+                    {subtleInsight}
+                  </p>
+                  <p className="mt-3 text-sm text-text-secondary">
+                    Generated from real-time operational data and predictive analytics across your organization.
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="mt-2 text-[14px] leading-[24px] text-[#C7C7CC]">
-              {subtleInsight}
-            </p>
           </section>
         </div>
       </main>

@@ -3,10 +3,13 @@ import { apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
   branchDayInitializePayloadSchema,
+  branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
+  createProductionLogPayloadSchema,
   prepPlanEvaluatePayloadSchema,
   prepPlanEvaluateResponseSchema,
   branchCommandViewSchema,
+  productionLogSchema,
   createPrepRecommendationDecisionSchema,
   createStaffStockoutEventResponseSchema,
   createStaffStockoutEventSchema,
@@ -24,7 +27,9 @@ import {
   updateStaffShiftChecklistSchema,
   updatePrepPlanItemPayloadSchema,
   type CreatePrepRecommendationDecisionPayload,
+  type CreateProductionLogPayload,
   type BranchDayInitializePayload,
+  type BranchDayStatusUpdatePayload,
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
   type SquareOAuthStartPayload,
@@ -106,6 +111,21 @@ export async function getBranchDayToday(params?: BranchDayTodayQuery) {
   );
 }
 
+export async function updateBranchDayStatus(
+  branchDayId: string,
+  payload: BranchDayStatusUpdatePayload,
+) {
+  const body = branchDayStatusUpdatePayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayStatus(branchDayId),
+    branchDayTodaySchema,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
 export async function evaluatePrepPlan(payload: PrepPlanEvaluatePayload) {
   const body = prepPlanEvaluatePayloadSchema.parse(payload);
   return apiClientWithSchema(
@@ -140,6 +160,18 @@ export async function updatePrepPlanItem(
     }),
     {
       method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function createProductionLog(payload: CreateProductionLogPayload) {
+  const body = createProductionLogPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.productionLogCreate(),
+    productionLogSchema,
+    {
+      method: "POST",
       body,
     },
   );

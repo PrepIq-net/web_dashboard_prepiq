@@ -48,11 +48,41 @@ export function DashboardTopNav() {
     role === "BRANCH_MANAGER" || role === "GM" || role === "STAFF_OPERATOR";
   const accessibleBranches = accessScopeQuery.data?.accessible_branches ?? [];
   const branchOptions = useMemo(() => {
-    if (!isBranchExecutionRole) return branches;
-    if (!accessibleBranches.length) return branches;
+    const byId = new Map<string, (typeof branches)[number]>();
+    for (const branch of branches) {
+      byId.set(branch.id, branch);
+    }
+
+    for (const branch of accessibleBranches) {
+      if (byId.has(branch.id)) continue;
+      byId.set(branch.id, {
+        id: branch.id,
+        organization: organizationId as string,
+        organization_name: user?.organization_name ?? "",
+        name: branch.name,
+        code: "",
+        address: "",
+        phone: null,
+        email: null,
+        timezone: "UTC",
+        is_primary: branch.is_primary,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    if (!isBranchExecutionRole) {
+      return Array.from(byId.values());
+    }
+
+    if (!accessibleBranches.length) {
+      return Array.from(byId.values());
+    }
+
     const allowed = new Set(accessibleBranches.map((branch) => branch.id));
-    return branches.filter((branch) => allowed.has(branch.id));
-  }, [branches, isBranchExecutionRole, accessibleBranches]);
+    return Array.from(byId.values()).filter((branch) => allowed.has(branch.id));
+  }, [branches, accessibleBranches, isBranchExecutionRole, organizationId, user?.organization_name]);
 
   const activeBranch = useMemo(() => {
     if (!branchOptions.length) return null;
