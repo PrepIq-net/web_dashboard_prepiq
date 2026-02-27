@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Shop, Calendar } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -96,7 +98,8 @@ export default function TodayWorkspacePage() {
     if (!isLoading && !canAccess) {
       router.replace("/");
     }
-  }, [isLoading, canAccess, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, canAccess]);
 
   const todayQuery = useBranchDayToday({ branch_id: branchId, date: targetDate }, Boolean(branchId));
   const initializeMutation = useInitializeBranchDay();
@@ -249,42 +252,63 @@ export default function TodayWorkspacePage() {
       description="Morning planning mode with demand signal, recommendation acceptance, and deviation capture before live service starts."
       insight="Deviation tracking compounds forecast quality when planned vs suggested decisions are consistently captured each morning."
     >
-      <section className="border-b border-[#2A2A2E] pb-8">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <select
+      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <Select
+            label="Branch"
+            leadingIcon={<Shop className="h-4 w-4" />}
+            options={branchOptions.map((branch) => ({
+              value: branch.id,
+              label: branch.name,
+            }))}
             value={branchId}
-            onChange={(event) => setBranchId(event.target.value)}
+            onChange={setBranchId}
             disabled={noBranchContext}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            {!branchOptions.length ? (
-              <option value="">No branches available</option>
-            ) : null}
-            {branchOptions.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={targetDate}
-            onChange={(event) => setTargetDate(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+            placeholder={noBranchContext ? "No branches available" : "Select branch"}
           />
-          <p className="flex items-center text-[12px] text-[#8E8E93]">
-            {statusLabel}
-          </p>
+          
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Date
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+              <input
+                type="date"
+                value={targetDate}
+                onChange={(event) => setTargetDate(event.target.value)}
+                className="h-12 w-full rounded-button border border-border-default bg-surface-3 pl-10 pr-3 text-sm text-text-primary transition-all duration-200 hover:bg-surface-4 focus:outline-none focus:ring-1 focus:border-brand-gold focus:ring-brand-gold/20"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Status
+            </label>
+            <div className="flex items-center h-12 px-4 rounded-button bg-surface-3 border border-border-default">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${
+                  loading ? "bg-text-muted animate-pulse" :
+                  noBranchContext ? "bg-status-critical" :
+                  branchDay ? "bg-status-success" : "bg-status-warning"
+                }`} />
+                <p className="text-sm font-medium text-text-primary">
+                  {statusLabel}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {isMorning && branchDay ? (
-        <section className="mt-6 border-b border-[#2A2A2E] pb-6">
+        <section className="mb-8">
           <button
             type="button"
             onClick={startLiveService}
             disabled={updateBranchDayStatusMutation.isPending}
-            className="h-10 rounded-[8px] border border-[#2E2E33] bg-[#232327] px-4 text-[12px] font-semibold text-[#F5F5F7] transition-colors hover:bg-[#2A2A2E] disabled:opacity-60"
+            className="inline-flex h-12 items-center gap-2.5 rounded-lg border border-brand-gold/40 bg-gradient-to-br from-brand-gold/15 to-brand-gold/5 px-6 text-sm font-bold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:from-brand-gold/20 hover:to-brand-gold/10 hover:shadow-[0_0_24px_rgba(168,130,31,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {updateBranchDayStatusMutation.isPending ? "Starting service..." : "Start Service (Live Mode)"}
           </button>
@@ -292,247 +316,400 @@ export default function TodayWorkspacePage() {
       ) : null}
 
       {noBranchContext ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[12px] text-[#C7C7CC]">
-            No branch context is available for this account yet. Assign this user to at least one active branch,
-            then refresh this page.
-          </p>
+        <section className="mt-8">
+          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
+              <Shop className="h-6 w-6 text-status-warning" />
+            </div>
+            <p className="text-sm text-text-secondary max-w-md mx-auto">
+              No branch context is available for this account yet. Assign this user to at least one active branch,
+              then refresh this page.
+            </p>
+          </div>
         </section>
       ) : null}
 
       {isMorning && branchDay ? (
         <>
-          <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Demand Signal</p>
-            <div className="mt-3 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Expected Demand</p>
-                <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
+          <section className="mb-12">
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Demand Signal
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Today's Forecast
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Expected Demand
+                </p>
+                <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                   {toPercent((branchDay.demand_signal.expected_demand_index - 1) * 100)}
                 </p>
+                <div className="mt-4 pt-4 border-t border-surface-4">
+                  <p className="text-xs text-text-muted">vs baseline</p>
+                </div>
               </article>
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Confidence</p>
-                <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
+              
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Confidence
+                </p>
+                <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
                   {confidenceLabel(branchDay.demand_signal.forecast_confidence)}
                 </p>
+                <div className="mt-4 pt-4 border-t border-surface-4">
+                  <p className="text-xs text-text-muted">
+                    {(branchDay.demand_signal.forecast_confidence * 100).toFixed(0)}% score
+                  </p>
+                </div>
               </article>
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Event Modifier</p>
-                <p className="mt-1 font-display text-[30px] text-[#C48B2A]">
+              
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Event Modifier
+                </p>
+                <p className="font-display text-4xl font-semibold text-status-warning tracking-tight">
                   {toPercent(branchDay.demand_signal.event_modifier_percentage * 100)}
                 </p>
+                <div className="mt-4 pt-4 border-t border-surface-4">
+                  <p className="text-xs text-text-muted">Special events</p>
+                </div>
               </article>
             </div>
           </section>
 
-          <section className="mt-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep Recommendation Table</p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[1260px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Suggested</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Your Plan</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Variance</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Impact</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(({ item, planned, variance, impact }) => (
-                    <tr key={item.id} className="border-b border-[#232327] align-top">
-                      <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{item.product_title}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{item.suggested_quantity} {item.unit}</td>
-                      <td className="px-2 py-3">
-                        <input
-                          value={plannedQtyByItem[item.id] ?? ""}
-                          onChange={(event) => onPlannedChange(item.id, event.target.value)}
-                          placeholder={`${item.suggested_quantity}`}
-                          className="h-8 w-28 rounded-[7px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-                        />
-                      </td>
-                      <td className={`px-2 py-3 text-[12px] ${variance == null ? "text-[#8E8E93]" : variance > 0 ? "text-[#C48B2A]" : variance < 0 ? "text-[#C44949]" : "text-[#3F8F68]"}`}>
-                        {variance == null ? "-" : `${variance > 0 ? "+" : ""}${variance.toFixed(2)} ${item.unit}`}
-                      </td>
-                      <td className="px-2 py-3">
-                        {impact ? (
-                          <div className="space-y-0.5 text-[11px]">
-                            <p className="text-[#C48B2A]">⚠ May increase waste risk by {impact.waste_risk_increase.toFixed(1)}%</p>
-                            <p className="text-[#C7C7CC]">Estimated marginal exposure: ${impact.marginal_cost_risk.toFixed(2)}</p>
-                            <p className={`${impact.stockout_risk_change <= 0 ? "text-[#3F8F68]" : "text-[#C44949]"}`}>
-                              Stockout risk change: {impact.stockout_risk_change > 0 ? "+" : ""}{impact.stockout_risk_change.toFixed(1)}%
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-[#8E8E93]">Type your plan to preview impact.</p>
-                        )}
-                      </td>
-                      <td className="px-2 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
-                            className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#3F8F68]"
-                          >
-                            Accept Suggestion
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => keepMyPlan(item.id, planned)}
-                            className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#F5F5F7]"
-                          >
-                            Keep My Plan
-                          </button>
-                        </div>
-                      </td>
+          <section className="mt-12">
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Morning Planning
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Prep Recommendations
+              </h3>
+            </div>
+            
+            <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1260px]">
+                  <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Item</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Suggested</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Your Plan</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Variance</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Impact</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-surface-4">
+                    {rows.map(({ item, planned, variance, impact }) => (
+                      <tr key={item.id} className="align-top transition-all duration-200 hover:bg-surface-3/50">
+                        <td className="px-6 py-6 text-sm font-semibold text-text-primary">{item.product_title}</td>
+                        <td className="px-6 py-6 text-sm text-text-secondary">
+                          {item.suggested_quantity} {item.unit}
+                        </td>
+                        <td className="px-6 py-6">
+                          <input
+                            value={plannedQtyByItem[item.id] ?? ""}
+                            onChange={(event) => onPlannedChange(item.id, event.target.value)}
+                            placeholder={`${item.suggested_quantity}`}
+                            className="h-10 w-32 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                          />
+                        </td>
+                        <td className={`px-6 py-6 text-sm font-semibold ${variance == null ? "text-text-muted" : variance > 0 ? "text-status-warning" : variance < 0 ? "text-status-critical" : "text-status-success"}`}>
+                          {variance == null ? "-" : `${variance > 0 ? "+" : ""}${variance.toFixed(2)} ${item.unit}`}
+                        </td>
+                        <td className="px-6 py-6">
+                          {impact ? (
+                            <div className="space-y-1.5 text-xs">
+                              <p className="text-status-warning font-medium">⚠ May increase waste risk by {impact.waste_risk_increase.toFixed(1)}%</p>
+                              <p className="text-text-secondary">Estimated marginal exposure: ${impact.marginal_cost_risk.toFixed(2)}</p>
+                              <p className={`font-medium ${impact.stockout_risk_change <= 0 ? "text-status-success" : "text-status-critical"}`}>
+                                Stockout risk change: {impact.stockout_risk_change > 0 ? "+" : ""}{impact.stockout_risk_change.toFixed(1)}%
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-text-muted">Type your plan to preview impact.</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-status-success/40 bg-surface-3 px-3 text-xs font-medium text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 active:scale-[0.98]"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => keepMyPlan(item.id, planned)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 active:scale-[0.98]"
+                            >
+                              Keep Mine
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
         </>
       ) : null}
 
       {isLive && branchDay ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Live Logging</p>
+        <section className="mt-12">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Live Service
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Production Logging
+              </h3>
+            </div>
             <button
               type="button"
               onClick={closeServiceDay}
               disabled={updateBranchDayStatusMutation.isPending}
-              className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#232327] px-3 text-[12px] font-semibold text-[#F5F5F7] transition-colors hover:bg-[#2A2A2E] disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-status-critical/40 bg-surface-3 px-4 text-sm font-medium text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updateBranchDayStatusMutation.isPending ? "Closing..." : "Close Day"}
             </button>
           </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[920px]">
-              <thead className="border-b border-[#2A2A2E]">
-                <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Planned</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Produced</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Log</th>
-                </tr>
-              </thead>
-              <tbody>
-                {branchDay.prep_plan_items.map((item) => {
-                  const planned = item.planned_quantity ?? item.suggested_quantity;
-                  const produced = item.final_quantity;
-                  const remaining = Math.max(planned - produced, 0);
-                  return (
-                    <tr key={item.id} className="border-b border-[#232327] align-middle">
-                      <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{item.product_title}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">
-                        {planned.toFixed(2)} {item.unit}
-                      </td>
-                      <td className="px-2 py-3 text-[12px] text-[#F5F5F7]">
-                        {produced.toFixed(2)} {item.unit}
-                      </td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">
-                        {remaining.toFixed(2)} {item.unit}
-                      </td>
-                      <td className="px-2 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => logProduction(item.id, 1)}
-                            className="h-10 min-w-[74px] rounded-[8px] border border-[#2E2E33] px-3 text-[12px] font-semibold text-[#F5F5F7]"
-                          >
-                            +1
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => logProduction(item.id, 5)}
-                            className="h-10 min-w-[74px] rounded-[8px] border border-[#2E2E33] px-3 text-[12px] font-semibold text-[#F5F5F7]"
-                          >
-                            +5
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => logWaste(item.id)}
-                            className="h-10 min-w-[100px] rounded-[8px] border border-[#3A2A2A] px-3 text-[12px] font-semibold text-[#E38A8A]"
-                          >
-                            Log Waste
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[920px]">
+                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Item</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Planned</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Produced</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Remaining</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4">
+                  {branchDay.prep_plan_items.map((item) => {
+                    const planned = item.planned_quantity ?? item.suggested_quantity;
+                    const produced = item.final_quantity;
+                    const remaining = Math.max(planned - produced, 0);
+                    const completionPct = planned > 0 ? (produced / planned) * 100 : 0;
+                    return (
+                      <tr key={item.id} className="align-middle transition-all duration-200 hover:bg-surface-3/50">
+                        <td className="px-6 py-5 text-sm font-semibold text-text-primary">{item.product_title}</td>
+                        <td className="px-6 py-5 text-sm text-text-secondary">
+                          {planned.toFixed(2)} {item.unit}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold text-text-primary">
+                              {produced.toFixed(2)} {item.unit}
+                            </p>
+                            <div className="w-32 h-1.5 bg-surface-4 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  completionPct >= 100 ? "bg-status-success" :
+                                  completionPct >= 75 ? "bg-brand-gold" :
+                                  completionPct >= 50 ? "bg-status-warning" : "bg-status-critical"
+                                }`}
+                                style={{ width: `${Math.min(completionPct, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className={`text-sm font-semibold ${
+                            remaining === 0 ? "text-status-success" :
+                            remaining <= planned * 0.25 ? "text-status-warning" : "text-text-secondary"
+                          }`}>
+                            {remaining.toFixed(2)} {item.unit}
+                          </p>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => logProduction(item.id, 1)}
+                              className="inline-flex h-9 items-center justify-center min-w-[64px] rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold active:scale-[0.98]"
+                            >
+                              +1
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => logProduction(item.id, 5)}
+                              className="inline-flex h-9 items-center justify-center min-w-[64px] rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold active:scale-[0.98]"
+                            >
+                              +5
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => logWaste(item.id)}
+                              className="inline-flex h-9 items-center justify-center min-w-[90px] rounded-lg border border-status-critical/40 bg-surface-3 px-3 text-xs font-semibold text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98]"
+                            >
+                              Log Waste
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       ) : null}
 
       {isClosed && branchDay ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Day Review</p>
+        <section className="mt-12">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Day Complete
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Performance Review
+            </h3>
+          </div>
+          
           {branchDay.review_summary ? (
-            <div className="mt-4 space-y-7">
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Revenue</p>
-                  <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">${branchDay.review_summary.total_revenue}</p>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-5">
+                <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Revenue
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                      ${branchDay.review_summary.total_revenue}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-surface-4">
+                    <p className="text-xs text-text-muted">Total sales</p>
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Waste Cost</p>
-                  <p className="mt-1 font-display text-[28px] text-[#E38A8A]">${branchDay.review_summary.total_waste_cost}</p>
+                
+                <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Waste Cost
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
+                      ${branchDay.review_summary.total_waste_cost}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-surface-4">
+                    <p className="text-xs text-text-muted">Total waste</p>
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Stockouts</p>
-                  <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{branchDay.review_summary.stockout_count}</p>
+                
+                <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Stockouts
+                  </p>
+                  <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
+                    {branchDay.review_summary.stockout_count}
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-surface-4">
+                    <p className="text-xs text-text-muted">Items out of stock</p>
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Lost Revenue</p>
-                  <p className="mt-1 font-display text-[28px] text-[#C48B2A]">${branchDay.review_summary.lost_revenue_estimate}</p>
+                
+                <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Lost Revenue
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="font-display text-3xl font-semibold text-status-warning tracking-tight">
+                      ${branchDay.review_summary.lost_revenue_estimate}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-surface-4">
+                    <p className="text-xs text-text-muted">Opportunity cost</p>
+                  </div>
                 </article>
-                <article>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast Accuracy</p>
-                  <p className="mt-1 font-display text-[28px] text-[#3F8F68]">
+                
+                <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Forecast Accuracy
+                  </p>
+                  <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                     {branchDay.review_summary.forecast_accuracy_percentage.toFixed(1)}%
                   </p>
+                  <div className="mt-4 pt-4 border-t border-surface-4">
+                    <div className="w-full h-1.5 bg-surface-4 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-status-success rounded-full"
+                        style={{ width: `${branchDay.review_summary.forecast_accuracy_percentage}%` }}
+                      />
+                    </div>
+                  </div>
                 </article>
               </div>
 
               {branchDay.review_insights?.length ? (
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Smart Insights</p>
-                  <div className="mt-3 space-y-2.5">
+                <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
+                    AI Insights
+                  </p>
+                  <div className="space-y-3">
                     {branchDay.review_insights.slice(0, 3).map((insight, index) => (
-                      <p key={`${index}-${insight}`} className="text-[13px] leading-[1.5] text-[#C7C7CC]">
-                        {index + 1}. {insight}
-                      </p>
+                      <div key={`${index}-${insight}`} className="flex items-start gap-3 p-3 rounded-lg bg-surface-3/50 border border-surface-4">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-gold/20 text-xs font-bold text-brand-gold flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm leading-relaxed text-text-secondary flex-1">
+                          {insight}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 </div>
               ) : null}
             </div>
           ) : (
-            <p className="mt-2 text-[12px] text-[#8E8E93]">Review summary is being prepared.</p>
+            <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-gold/20 mb-4">
+                <div className="h-6 w-6 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+              </div>
+              <p className="text-sm text-text-muted">Review summary is being prepared...</p>
+            </div>
           )}
         </section>
       ) : null}
 
       {branchDay && branchDay.status !== "MORNING" && branchDay.status !== "LIVE" && branchDay.status !== "CLOSED" ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[12px] text-[#8E8E93]">
-            This screen is currently optimized for Morning Mode. Current status is <span className="text-[#F5F5F7]">{branchDay.status}</span>.
-          </p>
+        <section className="mt-8">
+          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-gold/20 mb-4">
+              <Calendar className="h-6 w-6 text-brand-gold" />
+            </div>
+            <p className="text-sm text-text-secondary">
+              This screen is currently optimized for Morning Mode. Current status is{" "}
+              <span className="font-semibold text-text-primary">{branchDay.status}</span>.
+            </p>
+          </div>
         </section>
       ) : null}
 
       {!loading && branchDay && branchDay.status === "MORNING" && branchDay.prep_plan_items.length === 0 ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[12px] text-[#8E8E93]">
-            Morning mode is initialized, but there are no active prep items for this branch yet.
-          </p>
+        <section className="mt-8">
+          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
+              <Calendar className="h-6 w-6 text-status-warning" />
+            </div>
+            <p className="text-sm text-text-secondary">
+              Morning mode is initialized, but there are no active prep items for this branch yet.
+            </p>
+          </div>
         </section>
       ) : null}
     </WorkspaceShell>
