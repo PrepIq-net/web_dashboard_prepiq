@@ -17,6 +17,36 @@ import type {
   AnalyticsParams,
 } from "./types";
 
+type PaginatedListResponse<T> = {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: T[];
+  data?: T[] | { results?: T[] };
+  success?: boolean;
+};
+
+function normalizeListResponse<T>(payload: T[] | PaginatedListResponse<T>): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (payload && Array.isArray(payload.results)) {
+    return payload.results;
+  }
+  if (payload && Array.isArray(payload.data)) {
+    return payload.data;
+  }
+  if (
+    payload &&
+    payload.data &&
+    typeof payload.data === "object" &&
+    Array.isArray((payload.data as { results?: T[] }).results)
+  ) {
+    return (payload.data as { results?: T[] }).results ?? [];
+  }
+  return [];
+}
+
 // Thread Management
 export async function getChatThreads(params?: ThreadListParams): Promise<ChatThread[]> {
   const searchParams = new URLSearchParams();
@@ -26,7 +56,8 @@ export async function getChatThreads(params?: ThreadListParams): Promise<ChatThr
   if (params?.tag_ids) searchParams.set("tag_ids", params.tag_ids);
 
   const url = `/chat/threads/${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-  return apiClient<ChatThread[]>(url);
+  const payload = await apiClient<ChatThread[] | PaginatedListResponse<ChatThread>>(url);
+  return normalizeListResponse(payload);
 }
 
 export async function getChatThread(threadId: string): Promise<ChatThread> {
@@ -42,7 +73,10 @@ export async function createChatThread(payload: CreateThreadPayload): Promise<Ch
 
 // Message Management
 export async function getChatThreadMessages(threadId: string): Promise<ChatThreadMessage[]> {
-  return apiClient<ChatThreadMessage[]>(`/chat/threads/${threadId}/messages/`);
+  const payload = await apiClient<
+    ChatThreadMessage[] | PaginatedListResponse<ChatThreadMessage>
+  >(`/chat/threads/${threadId}/messages/`);
+  return normalizeListResponse(payload);
 }
 
 export async function createChatThreadMessage(
@@ -108,7 +142,8 @@ export async function getThreadTags(params?: TagListParams): Promise<ThreadTag[]
   if (params?.business) searchParams.set("business", params.business);
 
   const url = `/chat/thread-tags/${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-  return apiClient<ThreadTag[]>(url);
+  const payload = await apiClient<ThreadTag[] | PaginatedListResponse<ThreadTag>>(url);
+  return normalizeListResponse(payload);
 }
 
 export async function createThreadTag(payload: CreateTagPayload): Promise<ThreadTag> {
@@ -120,7 +155,10 @@ export async function createThreadTag(payload: CreateTagPayload): Promise<Thread
 
 // User Block Management
 export async function getThreadUserBlocks(): Promise<ThreadUserBlock[]> {
-  return apiClient<ThreadUserBlock[]>("/chat/threads/blocks/");
+  const payload = await apiClient<
+    ThreadUserBlock[] | PaginatedListResponse<ThreadUserBlock>
+  >("/chat/threads/blocks/");
+  return normalizeListResponse(payload);
 }
 
 export async function createThreadUserBlock(payload: CreateUserBlockPayload): Promise<ThreadUserBlock> {

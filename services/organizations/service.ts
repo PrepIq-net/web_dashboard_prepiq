@@ -2,6 +2,7 @@ import { apiClientWithSchema } from "@/lib/api/client";
 import { organizationsEndpoints } from "./endpoints";
 import {
   organizationSchema,
+  organizationMemberSchema,
   organizationRegisterPayloadSchema,
   type Organization,
   type OrganizationRegisterPayload,
@@ -82,6 +83,31 @@ export async function getOrganizationDetail(id: string) {
       method: "GET",
     },
   );
+}
+
+export async function getOrganizationMembers(id: string) {
+  const response = await apiClientWithSchema(
+    organizationsEndpoints.members(id),
+    z.union([
+      z.array(organizationMemberSchema),
+      z.object({ results: z.array(organizationMemberSchema) }),
+      z.object({
+        success: z.boolean().optional(),
+        data: z.union([
+          z.array(organizationMemberSchema),
+          z.object({ results: z.array(organizationMemberSchema) }),
+        ]),
+      }),
+    ]),
+    {
+      method: "GET",
+    },
+  );
+
+  if (Array.isArray(response)) return response;
+  if ("results" in response) return response.results;
+  if (Array.isArray(response.data)) return response.data;
+  return response.data.results;
 }
 
 export async function updateOrganization(

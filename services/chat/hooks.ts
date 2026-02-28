@@ -86,10 +86,10 @@ export function useCreateChatThread() {
       // Aggressive cache invalidation to ensure new threads appear
       queryClient.invalidateQueries({ queryKey: chatQueryKeys.threads() });
       queryClient.invalidateQueries({ queryKey: chatQueryKeys.analytics() });
-      
-      // Also refetch the specific query that's being used
-      queryClient.refetchQueries({ 
-        queryKey: chatQueryKeys.threadsList({ thread_type: "INTERNAL" }) 
+
+      // Also refetch currently active list variants
+      queryClient.refetchQueries({
+        queryKey: chatQueryKeys.threads(),
       });
     },
   });

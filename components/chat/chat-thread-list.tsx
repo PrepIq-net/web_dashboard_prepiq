@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, Plus, Filter } from "iconoir-react";
 import { ChatThreadItem } from "./chat-thread-item";
 import { CreateThreadModal } from "./create-thread-modal";
+import { Select } from "@/components/ui/select";
 import type { ChatThread } from "@/services/chat/types";
 import type { UserProfile } from "@/services/users/types";
 
@@ -40,18 +41,24 @@ export function ChatThreadList({
     threadsArray = Array.isArray((threads as any).data) ? (threads as any).data : [];
   }
 
-  const filteredThreads = threadsArray.filter((thread) => {
-    const matchesSearch = 
-      thread.display_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      thread.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      thread.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredThreads = threadsArray
+    .filter((thread) => {
+      const matchesSearch =
+        thread.display_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        thread.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        thread.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = 
-      filterStatus === "all" || 
-      thread.status.toLowerCase() === filterStatus.toLowerCase();
+      const matchesStatus =
+        filterStatus === "all" ||
+        thread.status.toLowerCase() === filterStatus.toLowerCase();
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const aTimestamp = new Date(a.last_message_at || a.updated_at).getTime();
+      const bTimestamp = new Date(b.last_message_at || b.updated_at).getTime();
+      return bTimestamp - aTimestamp;
+    });
 
   const canCreateThread = user?.organization_role && [
     "STAFF_OPERATOR",
@@ -90,20 +97,21 @@ export function ChatThreadList({
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-text-muted" />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-8 rounded-lg border border-surface-4 bg-surface-3 px-2 text-xs text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-1 focus:ring-brand-gold/20"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="assigned">Assigned</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="archived">Archived</option>
-          </select>
+        <div className="flex items-end gap-2">
+          <div className="w-full">
+            <Select
+              label="Status"
+              options={[
+                { value: "all", label: "All Status" },
+                { value: "active", label: "Active" },
+                { value: "closed", label: "Closed" },
+                { value: "archived", label: "Archived" },
+              ]}
+              value={filterStatus}
+              onChange={setFilterStatus}
+              leadingIcon={<Filter className="h-4 w-4" />}
+            />
+          </div>
         </div>
       </div>
 

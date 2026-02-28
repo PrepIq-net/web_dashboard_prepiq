@@ -8,6 +8,7 @@ export const organizationKeys = {
   all: ["organizations"] as const,
   lists: () => [...organizationKeys.all, "list"] as const,
   details: (id: string) => [...organizationKeys.all, "detail", id] as const,
+  members: (id: string) => [...organizationKeys.all, "members", id] as const,
 };
 
 export function useMyOrganizations() {
@@ -21,6 +22,14 @@ export function useOrganizationDetail(id: string) {
   return useQuery({
     queryKey: organizationKeys.details(id),
     queryFn: () => organizationService.getOrganizationDetail(id),
+    enabled: !!id,
+  });
+}
+
+export function useOrganizationMembers(id: string) {
+  return useQuery({
+    queryKey: organizationKeys.members(id),
+    queryFn: () => organizationService.getOrganizationMembers(id),
     enabled: !!id,
   });
 }

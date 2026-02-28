@@ -22,6 +22,9 @@ export const organizationMemberRoleEnum = z.enum([
   "BRANCH_MANAGER",
   "STAFF_OPERATOR",
   "AUDITOR",
+  "OWNER",
+  "ADMIN",
+  "STAFF",
 ]);
 
 export type OrganizationMemberRole = z.infer<typeof organizationMemberRoleEnum>;

@@ -67,6 +67,21 @@ export function ChatThreadItem({ thread, isSelected, onClick, user }: ChatThread
     }
   };
 
+  const currentUserId = user?.id ? String(user.id) : "";
+  const otherParticipant = (thread.participants || []).find(
+    (participant) => String(participant.user?.id || "") !== currentUserId,
+  );
+  const avatarUrl =
+    otherParticipant?.user?.profile_picture ||
+    thread.assigned_to?.profile_picture ||
+    (thread.participants || []).find((participant) => participant.user?.profile_picture)?.user?.profile_picture ||
+    "";
+  const avatarName =
+    otherParticipant?.user?.first_name ||
+    thread.assigned_to?.first_name ||
+    thread.display_title ||
+    "User";
+
   return (
     <button
       onClick={onClick}
@@ -78,15 +93,24 @@ export function ChatThreadItem({ thread, isSelected, onClick, user }: ChatThread
     >
       <div className="flex items-start gap-3">
         {/* Avatar/Icon */}
-        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-          thread.thread_type === "INTERNAL" 
-            ? "bg-brand-gold/20 text-brand-gold" 
-            : "bg-surface-4 text-text-muted"
-        }`}>
-          {thread.participants.length > 2 ? (
-            <User className="h-5 w-5" />
+        <div className="flex-shrink-0 h-10 w-10 rounded-full overflow-hidden bg-surface-4">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={avatarName}
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <User className="h-5 w-5" />
+            <div
+              className={`h-full w-full flex items-center justify-center ${
+                thread.thread_type === "INTERNAL"
+                  ? "bg-brand-gold/20 text-brand-gold"
+                  : "text-text-muted"
+              }`}
+            >
+              <User className="h-5 w-5" />
+            </div>
           )}
         </div>
 

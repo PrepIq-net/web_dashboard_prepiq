@@ -1,8 +1,7 @@
-export type ThreadType = "INTERNAL" | "ORG_OPS" | "INQUIRY" | "CLAIM";
+export type ThreadType = "INTERNAL" | "ORG_OPS";
 
 export type ThreadStatus = 
-  | "ACTIVE" | "ARCHIVED" | "CLOSED" | "RESOLVED" | "COMPLETED"
-  | "OPEN" | "ASSIGNED" | "UNASSIGNED" | "IN_PROGRESS" | "PENDING";
+  | "ACTIVE" | "ARCHIVED" | "CLOSED";
 
 export type MessageType = "TEXT" | "FILE" | "SYSTEM";
 
