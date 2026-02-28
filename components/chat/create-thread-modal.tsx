@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, User, Search, Building } from "iconoir-react";
+import { Xmark, User, Search, Building } from "iconoir-react";
 import { Select } from "@/components/ui/select";
 import { useCreateChatThread } from "@/services/chat/hooks";
 import { useBranches, useOrganizationMembers } from "@/services";
@@ -55,8 +55,11 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
       .map((member) => ({
         userId: String(member.user),
         label: `${member.first_name} ${member.last_name}`.trim() || member.email,
+        firstName: member.first_name || "",
+        lastName: member.last_name || "",
         email: member.email,
         role: member.role,
+        profilePicture: member.profile_picture || null,
       }));
   }, [organizationMembers, user?.id]);
 
@@ -76,6 +79,18 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
     setSelectedParticipantIds((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
     );
+  };
+
+  const removeParticipant = (userId: string) => {
+    setSelectedParticipantIds((prev) => prev.filter((id) => id !== userId));
+  };
+
+  const selectedMembers = useMemo(() => {
+    return members.filter((member) => selectedParticipantIds.includes(member.userId));
+  }, [members, selectedParticipantIds]);
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase() || "U";
   };
 
   const canSubmit =
@@ -104,19 +119,22 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-2xl rounded-xl border border-surface-4 bg-surface-2 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-surface-4 p-6">
-          <h2 className="text-lg font-semibold text-text-primary">Start New Conversation</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="mx-auto w-full max-w-2xl rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-between border-b border-[#2A2A2E] px-6 py-5">
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">Start New Conversation</h2>
+            <p className="text-xs text-text-muted mt-0.5">Create a chat thread with your team members</p>
+          </div>
           <button
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-muted transition-all duration-200 hover:bg-surface-3 hover:text-text-primary active:scale-95"
           >
-            <X className="h-4 w-4" />
+            <Xmark className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6 max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Conversation Type"
@@ -161,9 +179,52 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
           ) : null}
 
           <div className="space-y-3">
-            <label className="text-sm font-medium text-text-secondary">
-              Select Team Members <span className="text-status-critical">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-text-secondary">
+                Select Team Members <span className="text-status-critical">*</span>
+              </label>
+              {selectedParticipantIds.length > 0 && (
+                <span className="text-xs text-text-muted">
+                  {selectedParticipantIds.length} selected
+                </span>
+              )}
+            </div>
+
+            {/* Selected Members Badges */}
+            {selectedMembers.length > 0 && (
+              <div className="flex flex-wrap gap-2 rounded-lg border border-surface-4 bg-surface-3 p-3">
+                {selectedMembers.map((member) => (
+                  <div
+                    key={member.userId}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#1C1C1F] border border-[#2A2A2E] pl-2 pr-2 py-1.5 transition-all duration-200 hover:border-[#3A3A40]"
+                  >
+                    {/* Avatar */}
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full overflow-hidden bg-surface-4 border border-surface-4">
+                      {member.profilePicture ? (
+                        <img
+                          src={member.profilePicture}
+                          alt={member.label}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-[10px] font-semibold text-text-muted">
+                          {getInitials(member.firstName, member.lastName)}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm text-text-primary">{member.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeParticipant(member.userId)}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-4 hover:text-text-primary"
+                    >
+                      <Xmark className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <input
@@ -174,37 +235,67 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
                 className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               />
             </div>
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 p-2">
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 p-2 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
               {filteredMembers.length ? (
                 filteredMembers.map((member) => {
                   const selected = selectedParticipantIds.includes(member.userId);
                   return (
                     <label
                       key={member.userId}
-                      className={`flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 transition-colors ${
-                        selected ? "bg-brand-gold/15" : "hover:bg-surface-4/60"
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${
+                        selected 
+                          ? "bg-brand-gold/15 border border-brand-gold/30" 
+                          : "hover:bg-surface-4/60 border border-transparent"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => toggleParticipant(member.userId)}
-                        className="mt-1 h-4 w-4 rounded border-surface-4 bg-surface-2 accent-brand-gold"
+                        className="sr-only"
                       />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm text-text-primary">{member.label}</span>
-                        <span className="block truncate text-xs text-text-muted">{member.email}</span>
-                      </span>
+                      {/* Avatar */}
+                      <div className="flex-shrink-0 h-9 w-9 rounded-full overflow-hidden bg-surface-4 border border-surface-4">
+                        {member.profilePicture ? (
+                          <img
+                            src={member.profilePicture}
+                            alt={member.label}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-text-muted">
+                            {getInitials(member.firstName, member.lastName)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-text-primary">
+                          {member.label}
+                        </span>
+                        <span className="block truncate text-xs text-text-muted">
+                          {member.email}
+                        </span>
+                      </div>
+                      {selected && (
+                        <div className="flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-gold/20">
+                          <svg className="h-3.5 w-3.5 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
                     </label>
                   );
                 })
               ) : (
-                <p className="px-2 py-2 text-xs text-text-muted">No staff members found for this query.</p>
+                <div className="px-3 py-8 text-center">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-4 mb-3">
+                    <Search className="h-5 w-5 text-text-muted" />
+                  </div>
+                  <p className="text-sm text-text-secondary mb-1">No members found</p>
+                  <p className="text-xs text-text-muted">Try adjusting your search criteria</p>
+                </div>
               )}
             </div>
-            <p className="text-xs text-text-muted">
-              Selected: {selectedParticipantIds.length}
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -218,18 +309,18 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2A2A2E]">
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-lg border border-surface-4 bg-transparent px-4 text-text-secondary transition-colors hover:bg-surface-3 hover:text-text-primary"
+              className="h-10 rounded-lg border border-[#2A2A2E] bg-transparent px-5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-surface-3 hover:text-text-primary hover:border-[#3A3A40] active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="h-10 rounded-lg bg-brand-gold px-6 font-medium text-surface-1 transition-all duration-200 hover:bg-brand-gold/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-10 rounded-lg bg-gradient-to-br from-[#A8821F] to-[#8F6F18] px-6 text-sm font-semibold text-[#141416] shadow-[0_2px_8px_rgba(168,130,31,0.25)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(168,130,31,0.35)] hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
               {createThreadMutation.isPending ? "Creating..." : "Create Conversation"}
             </button>

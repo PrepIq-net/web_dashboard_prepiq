@@ -136,7 +136,7 @@ export function ChatThreadItem({ thread, isSelected, onClick, user }: ChatThread
               isUnread ? "text-text-secondary" : "text-text-muted"
             }`}>
               {thread.last_message.is_me ? "You: " : `${thread.last_message.sender_name}: `}
-              {thread.last_message.message_type === "FILE" 
+              {thread.last_message.message_type === "ATTACHMENT" 
                 ? "📎 Sent a file" 
                 : thread.last_message.content
               }

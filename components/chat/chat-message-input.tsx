@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, KeyboardEvent } from "react";
-import { Send, Attachment, X } from "iconoir-react";
+import { Send, Attachment, Xmark } from "iconoir-react";
 
 interface ChatMessageInputProps {
   onSend: (content: string, attachment?: File) => void;
@@ -87,7 +87,7 @@ export function ChatMessageInput({
             onClick={removeAttachment}
             className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-surface-4 text-text-muted hover:text-text-primary transition-colors"
           >
-            <X className="h-4 w-4" />
+            <Xmark className="h-4 w-4" />
           </button>
         </div>
       )}

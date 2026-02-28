@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { 
-  X, 
+  Xmark, 
   MoreHoriz, 
   User, 
   Settings,
@@ -199,7 +199,7 @@ export function ChatThreadHeader({ thread, user, onClose }: ChatThreadHeaderProp
             onClick={onClose}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
           >
-            <X className="h-4 w-4" />
+            <Xmark className="h-5 w-5" />
           </button>
         </div>
       </div>

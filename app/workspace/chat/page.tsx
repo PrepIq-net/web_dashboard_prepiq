@@ -15,17 +15,7 @@ export default function ChatPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   
-  const role = user?.organization_role ?? "";
-  const canAccess = [
-    "STAFF_OPERATOR", 
-    "BRANCH_MANAGER", 
-    "GM", 
-    "OPS_DIRECTOR", 
-    "ORG_OWNER", 
-    "ORG_ADMIN"
-  ].includes(role);
-
-  // Fetch threads based on user role
+  // Fetch threads for all users
   const threadsQuery = useChatThreads();
 
   // Debug logging - check what's happening
@@ -48,13 +38,6 @@ export default function ChatPage() {
       console.warn('Query is pending but not fetching - this might indicate a configuration issue');
     }
   }, [threadsQuery.data, threadsQuery.isLoading, threadsQuery.error, threadsQuery.status, threadsQuery.fetchStatus, threadsQuery.isFetching]);
-
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canAccess]);
 
   if (isLoading) {
     return (
@@ -80,10 +63,6 @@ export default function ChatPage() {
     );
   }
 
-  if (!canAccess) {
-    return null;
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Communication"
@@ -93,7 +72,7 @@ export default function ChatPage() {
     >
       <div className="flex h-[calc(100vh-200px)] bg-surface-2 rounded-xl border border-surface-4 shadow-lg overflow-hidden">
         {/* Thread List Sidebar */}
-        <div className="w-80 border-r border-surface-4 flex flex-col">
+        <div className="w-80 border-r border-surface-4 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
           <ChatThreadList
             threads={Array.isArray(threadsQuery.data) ? threadsQuery.data : []}
             selectedThreadId={selectedThreadId}

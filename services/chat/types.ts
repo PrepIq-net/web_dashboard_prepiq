@@ -3,7 +3,7 @@ export type ThreadType = "INTERNAL" | "ORG_OPS";
 export type ThreadStatus = 
   | "ACTIVE" | "ARCHIVED" | "CLOSED";
 
-export type MessageType = "TEXT" | "FILE" | "SYSTEM";
+export type MessageType = "TEXT" | "ATTACHMENT" | "SYSTEM";
 
 export type ParticipantType = "BUSINESS_MEMBER" | "END_USER";
 
