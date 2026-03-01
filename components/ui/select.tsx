@@ -87,7 +87,7 @@ export function Select({
 
         {isOpen && (
           <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full rounded-card border border-border-default bg-surface-3 p-1 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="max-h-[240px] overflow-y-auto space-y-0.5 custom-scrollbar">
+            <div className="max-h-[240px] overflow-y-auto space-y-0.5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
               {options.map((option) => (
                 <button
                   key={option.value}
