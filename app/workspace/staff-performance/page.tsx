@@ -9,15 +9,21 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import {
   useBranches,
   useCurrentUserProfile,
+  useOrganizationMembers,
+  useRemoveOrganizationMember,
   useStaffAssignments,
+  useRemoveStaff,
 } from "@/services";
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
 
 type StaffPerformanceRow = {
   id: string;
+  memberId: string;
+  userId: string;
   staffName: string;
   role: string;
   branchId: string | null;
@@ -29,6 +35,15 @@ type StaffPerformanceRow = {
   trendDelta: number;
   coachingPriority: "HIGH" | "MEDIUM" | "LOW";
 };
+
+const STAFF_REMOVE_ROLES = new Set(["STAFF_OPERATOR", "STAFF", "BRANCH_MANAGER", "GM"]);
+
+function normalizeRole(role: string) {
+  if (role === "STAFF") return "STAFF_OPERATOR";
+  if (role === "OWNER") return "ORG_OWNER";
+  if (role === "ADMIN") return "ORG_ADMIN";
+  return role;
+}
 
 function scoreTone(value: number) {
   if (value < 55) return "text-[#C44949]";
@@ -55,10 +70,14 @@ export default function StaffPerformancePage() {
   const role = user?.organization_role ?? "";
 
   const canAccess = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
+  const canManageStaff = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
+  const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
   const staffQuery = useStaffAssignments(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
+  const removeStaffMutation = useRemoveStaff(user?.organization_id ?? "");
+  const removeOrgMemberMutation = useRemoveOrganizationMember(user?.organization_id ?? "");
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
@@ -72,6 +91,7 @@ export default function StaffPerformancePage() {
   }, [isLoading, canAccess, router]);
 
   const branches = branchesQuery.data ?? [];
+  const organizationMembers = orgMembersQuery.data ?? [];
   const staffAssignments = staffQuery.data ?? [];
   const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
 
@@ -97,13 +117,23 @@ export default function StaffPerformancePage() {
 
   const timeframeMultiplier = timeframe === "7d" ? 0.6 : timeframe === "90d" ? 1.3 : 1;
 
+  const assignmentsByUserId = useMemo(() => {
+    return new Map(staffAssignments.map((assignment) => [String(assignment.user), assignment]));
+  }, [staffAssignments]);
+
   const rows = useMemo<StaffPerformanceRow[]>(() => {
-    return staffAssignments
-      .filter((staff) => staff.is_active)
-      .map((staff) => {
-        const stableKey = `${staff.user_details.email}-${staff.id}`;
+    return organizationMembers
+      .filter((member) => {
+        if (!member.is_active) return false;
+        const canonicalRole = normalizeRole(member.role);
+        return !["ORG_OWNER", "ORG_ADMIN", "AUDITOR"].includes(canonicalRole);
+      })
+      .map((member) => {
+        const assignment = assignmentsByUserId.get(member.user);
+        const stableKey = `${member.email}-${member.id}`;
         const entropy = hashNumber(stableKey);
-        const branchId = staff.branch ?? staff.branch_details?.id ?? null;
+
+        const branchId = member.branch_id ?? assignment?.branch ?? assignment?.branch_details?.id ?? null;
         const branchData = branchId
           ? branchMap.get(branchId)
           : { name: "Unassigned", wastePct: 0, surplusPct: 0, complianceBadge: "GREEN" };
@@ -111,7 +141,12 @@ export default function StaffPerformancePage() {
         const baseEfficiency = 64 + (entropy % 22);
         const wastePenalty = (branchData?.wastePct ?? 0) * 2.2;
         const surplusPenalty = (branchData?.surplusPct ?? 0) * 1.2;
-        const badgePenalty = (branchData?.complianceBadge ?? "GREEN") === "RED" ? 8 : (branchData?.complianceBadge ?? "GREEN") === "YELLOW" ? 4 : 0;
+        const badgePenalty =
+          (branchData?.complianceBadge ?? "GREEN") === "RED"
+            ? 8
+            : (branchData?.complianceBadge ?? "GREEN") === "YELLOW"
+              ? 4
+              : 0;
 
         const productionEfficiency = Math.max(
           38,
@@ -142,12 +177,19 @@ export default function StaffPerformancePage() {
               ? "MEDIUM"
               : "LOW";
 
+        const firstName = member.first_name?.trim() || assignment?.user_details.first_name || "";
+        const lastName = member.last_name?.trim() || assignment?.user_details.last_name || "";
+        const fullName = `${firstName} ${lastName}`.trim() || member.email;
+        const canonicalRole = normalizeRole(member.role || assignment?.role || "STAFF_OPERATOR");
+
         return {
-          id: staff.id,
-          staffName: `${staff.user_details.first_name} ${staff.user_details.last_name}`.trim(),
-          role: staff.role,
+          id: member.id,
+          memberId: member.id,
+          userId: member.user,
+          staffName: fullName,
+          role: canonicalRole,
           branchId,
-          branchName: branchData?.name ?? staff.branch_details?.name ?? "Unassigned",
+          branchName: branchData?.name ?? assignment?.branch_details?.name ?? member.branch_name ?? "Unassigned",
           productionEfficiency,
           errorRate,
           wasteContribution,
@@ -157,7 +199,7 @@ export default function StaffPerformancePage() {
         };
       })
       .filter((row) => (branchFilter === "ALL" ? true : row.branchId === branchFilter));
-  }, [staffAssignments, branchMap, timeframeMultiplier, branchFilter]);
+  }, [organizationMembers, assignmentsByUserId, branchMap, timeframeMultiplier, branchFilter]);
 
   const compareMap = new Map(rows.map((row) => [row.id, row]));
   const compareDelta =
@@ -183,6 +225,19 @@ export default function StaffPerformancePage() {
   const avgReliability = rows.length
     ? rows.reduce((sum, row) => sum + row.shiftReliability, 0) / rows.length
     : 0;
+
+  const handleRemoveMember = (row: StaffPerformanceRow) => {
+    if (!canManageStaff) return;
+    const removeStaffRole = STAFF_REMOVE_ROLES.has(normalizeRole(row.role));
+    const confirmation = window.confirm(`Remove ${row.staffName} from the organization?`);
+    if (!confirmation) return;
+
+    if (removeStaffRole) {
+      removeStaffMutation.mutate({ memberId: row.memberId });
+      return;
+    }
+    removeOrgMemberMutation.mutate(row.userId);
+  };
 
   const columnHelper = createColumnHelper<StaffPerformanceRow>();
   const columns = useMemo(
@@ -285,27 +340,25 @@ export default function StaffPerformancePage() {
 
       <section className="mt-8 border-b border-[#2A2A2E] pb-8">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <select
+          <Select
+            label="Timeframe"
             value={timeframe}
-            onChange={(event) => setTimeframe(event.target.value)}
-            className="h-10 rounded-[8px] border border-[#2E2E33] bg-[#19191C] px-3 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-          </select>
-          <select
+            onChange={setTimeframe}
+            options={[
+              { value: "7d", label: "Last 7 days" },
+              { value: "30d", label: "Last 30 days" },
+              { value: "90d", label: "Last 90 days" },
+            ]}
+          />
+          <Select
+            label="Branch"
             value={branchFilter}
-            onChange={(event) => setBranchFilter(event.target.value)}
-            className="h-10 rounded-[8px] border border-[#2E2E33] bg-[#19191C] px-3 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="ALL">All branches</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
+            onChange={setBranchFilter}
+            options={[
+              { value: "ALL", label: "All branches" },
+              ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+            ]}
+          />
           <p className="flex items-center text-[12px] text-[#8E8E93]">
             Filter by time and branch to isolate coaching patterns.
           </p>
@@ -315,6 +368,14 @@ export default function StaffPerformancePage() {
       <section className="mt-8 border-b border-[#2A2A2E] pb-8">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Performance Table</p>
         <div className="mt-3 overflow-x-auto">
+          {orgMembersQuery.isLoading || staffQuery.isLoading ? (
+            <p className="py-6 text-[13px] text-[#8E8E93]">Loading staff intelligence...</p>
+          ) : null}
+          {!orgMembersQuery.isLoading && !staffQuery.isLoading && rows.length === 0 ? (
+            <p className="py-6 text-[13px] text-[#8E8E93]">
+              No active staff records found for the selected branch filter.
+            </p>
+          ) : null}
           <table className="w-full min-w-[1320px]">
             <thead className="border-b border-[#2A2A2E]">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -347,30 +408,24 @@ export default function StaffPerformancePage() {
           <article>
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Staff</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <select
+              <Select
+                label="Compare A"
                 value={compareA}
-                onChange={(event) => setCompareA(event.target.value)}
-                className="h-10 rounded-[8px] border border-[#2E2E33] bg-[#19191C] px-3 text-[12px] text-[#F5F5F7]"
-              >
-                <option value="">Select staff A</option>
-                {rows.map((row) => (
-                  <option key={`a-${row.id}`} value={row.id}>
-                    {row.staffName}
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={setCompareA}
+                options={[
+                  { value: "", label: "Select staff A" },
+                  ...rows.map((row) => ({ value: row.id, label: row.staffName })),
+                ]}
+              />
+              <Select
+                label="Compare B"
                 value={compareB}
-                onChange={(event) => setCompareB(event.target.value)}
-                className="h-10 rounded-[8px] border border-[#2E2E33] bg-[#19191C] px-3 text-[12px] text-[#F5F5F7]"
-              >
-                <option value="">Select staff B</option>
-                {rows.map((row) => (
-                  <option key={`b-${row.id}`} value={row.id}>
-                    {row.staffName}
-                  </option>
-                ))}
-              </select>
+                onChange={setCompareB}
+                options={[
+                  { value: "", label: "Select staff B" },
+                  ...rows.map((row) => ({ value: row.id, label: row.staffName })),
+                ]}
+              />
             </div>
             <p className={`mt-3 text-[13px] ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
               Efficiency delta: {compareDelta > 0 ? "+" : ""}
@@ -398,6 +453,36 @@ export default function StaffPerformancePage() {
               )}
             </div>
           </article>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Staff Management</p>
+        <div className="mt-3 divide-y divide-[#232327] border-y border-[#2A2A2E]">
+          {rows.length ? (
+            rows.slice(0, 16).map((row) => (
+              <div key={`member-${row.memberId}`} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
+                  <p className="text-[12px] text-[#8E8E93]">
+                    {row.role.replace(/_/g, " ")} · {row.branchName}
+                  </p>
+                </div>
+                {canManageStaff ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMember(row)}
+                    disabled={removeStaffMutation.isPending || removeOrgMemberMutation.isPending}
+                    className="inline-flex h-8 items-center rounded-full border border-[#C44949]/45 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#C44949] transition-colors hover:bg-[#C44949]/10 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <p className="py-4 text-[12px] text-[#8E8E93]">No active members to manage.</p>
+          )}
         </div>
       </section>
     </WorkspaceShell>

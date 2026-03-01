@@ -173,11 +173,26 @@ export async function acceptInvite(payload: AcceptInvitePayload) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function listStaffAssignments(orgId: string) {
-  return apiClientWithSchema(
+  const response = await apiClientWithSchema(
     branchEndpoints.staffAssignments(orgId),
-    z.array(staffAssignmentSchema),
+    z.union([
+      z.array(staffAssignmentSchema),
+      z.object({ results: z.array(staffAssignmentSchema) }),
+      z.object({
+        success: z.boolean().optional(),
+        data: z.union([
+          z.array(staffAssignmentSchema),
+          z.object({ results: z.array(staffAssignmentSchema) }),
+        ]),
+      }),
+    ]),
     { method: "GET" },
   );
+
+  if (Array.isArray(response)) return response;
+  if ("results" in response) return response.results;
+  if (Array.isArray(response.data)) return response.data;
+  return response.data.results;
 }
 
 export async function removeStaff(
