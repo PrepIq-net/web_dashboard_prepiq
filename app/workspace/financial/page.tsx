@@ -53,6 +53,10 @@ function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+const branchColumnHelper = createColumnHelper<FinancialBranchRow>();
+const categoryColumnHelper = createColumnHelper<CategoryMarginRow>();
+const coreRowModel = getCoreRowModel();
+
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -248,7 +252,6 @@ export default function FinancialPage() {
     [costStructureRows],
   );
 
-  const branchColumnHelper = createColumnHelper<FinancialBranchRow>();
   const branchColumns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
@@ -272,15 +275,14 @@ export default function FinancialPage() {
         cell: (info) => <span className="text-sm text-text-muted">{toPercent(info.getValue())}</span>,
       }),
     ],
-    [branchColumnHelper],
+    [],
   );
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
-  const categoryColumnHelper = createColumnHelper<CategoryMarginRow>();
   const categoryColumns = useMemo(
     () => [
       categoryColumnHelper.accessor("category", {
@@ -305,12 +307,12 @@ export default function FinancialPage() {
         ),
       }),
     ],
-    [categoryColumnHelper],
+    [],
   );
   const categoryTable = useReactTable({
     data: categoryRows,
     columns: categoryColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (

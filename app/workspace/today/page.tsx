@@ -161,12 +161,23 @@ export default function TodayWorkspacePage() {
   const createProductionLogMutation = useCreateProductionLog();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
 
+  const initializationAttempted = useRef<string | null>(null);
+
   useEffect(() => {
     const err = todayQuery.error as { status?: number } | null;
-    if (err?.status === 404 && branchId && !initializeMutation.isPending) {
+    const currentKey = `${branchId}-${targetDate}`;
+
+    if (
+      err?.status === 404 &&
+      branchId &&
+      !initializeMutation.isPending &&
+      !initializeMutation.isError &&
+      initializationAttempted.current !== currentKey
+    ) {
+      initializationAttempted.current = currentKey;
       initializeMutation.mutate({ branch_id: branchId, date: targetDate });
     }
-  }, [todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation]);
+  }, [todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation.isError]);
 
   const branchDay = initializeMutation.data ?? todayQuery.data;
 

@@ -44,6 +44,9 @@ function velocityLabel(value: number) {
   return "LOW";
 }
 
+const columnHelper = createColumnHelper<InventoryRow>();
+const coreRowModel = getCoreRowModel();
+
 export default function InventoryPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -149,7 +152,6 @@ export default function InventoryPage() {
     ? inventoryRows.reduce((sum, row) => sum + row.usageVelocity, 0) / inventoryRows.length
     : 0;
 
-  const columnHelper = createColumnHelper<InventoryRow>();
   const columns = useMemo(
     () => [
       columnHelper.accessor("item", {
@@ -204,13 +206,13 @@ export default function InventoryPage() {
         ),
       }),
     ],
-    [columnHelper],
+    [],
   );
 
   const table = useReactTable({
     data: inventoryRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   const branchGrid = controlTowerQuery.data?.branch_grid ?? [];

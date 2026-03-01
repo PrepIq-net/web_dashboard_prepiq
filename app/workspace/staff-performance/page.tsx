@@ -64,6 +64,9 @@ function hashNumber(input: string) {
   return Math.abs(hash);
 }
 
+const columnHelper = createColumnHelper<StaffPerformanceRow>();
+const coreRowModel = getCoreRowModel();
+
 export default function StaffPerformancePage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -239,7 +242,6 @@ export default function StaffPerformancePage() {
     removeOrgMemberMutation.mutate(row.userId);
   };
 
-  const columnHelper = createColumnHelper<StaffPerformanceRow>();
   const columns = useMemo(
     () => [
       columnHelper.accessor("staffName", {
@@ -301,13 +303,13 @@ export default function StaffPerformancePage() {
         },
       }),
     ],
-    [columnHelper],
+    [],
   );
 
   const table = useReactTable({
     data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (

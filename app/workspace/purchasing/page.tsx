@@ -58,6 +58,10 @@ function toPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
 
+const supplierColumnHelper = createColumnHelper<SupplierRow>();
+const varianceColumnHelper = createColumnHelper<VarianceRow>();
+const coreRowModel = getCoreRowModel();
+
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -214,7 +218,6 @@ export default function PurchasingPage() {
       ? Math.abs((supplierMap.get(supplierA)?.totalSpend ?? 0) - (supplierMap.get(supplierB)?.totalSpend ?? 0))
       : 0;
 
-  const supplierColumnHelper = createColumnHelper<SupplierRow>();
   const supplierColumns = useMemo(
     () => [
       supplierColumnHelper.accessor("supplier", {
@@ -248,15 +251,14 @@ export default function PurchasingPage() {
         },
       }),
     ],
-    [supplierColumnHelper],
+    [],
   );
   const supplierTable = useReactTable({
     data: supplierRows,
     columns: supplierColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
-  const varianceColumnHelper = createColumnHelper<VarianceRow>();
   const varianceColumns = useMemo(
     () => [
       varianceColumnHelper.accessor("item", {
@@ -324,12 +326,12 @@ export default function PurchasingPage() {
                 },
       }),
     ],
-    [varianceColumnHelper, flaggedIds, isReadOnlyBranchManager],
+    [flaggedIds, isReadOnlyBranchManager],
   );
   const varianceTable = useReactTable({
     data: varianceRows,
     columns: varianceColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   const exportAll = () => {

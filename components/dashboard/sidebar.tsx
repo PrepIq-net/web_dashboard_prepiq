@@ -245,14 +245,9 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   
   const navSections = getNavSectionsByRole(user?.organization_role);
 
-  // Simple navigation handler - let Next.js handle it naturally
+  // Simple navigation handler
   const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // Only prevent if already on the page
-    if (isActive(href)) {
-      e.preventDefault();
-      return;
-    }
-    // Let Next.js Link handle navigation - no manual intervention
+    // No manual intervention needed, let Next.js Link handle it
   };
 
   const handleLogout = () => {

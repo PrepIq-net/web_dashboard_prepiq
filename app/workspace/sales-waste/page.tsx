@@ -49,6 +49,9 @@ function hashNumber(input: string) {
   return Math.abs(hash);
 }
 
+const columnHelper = createColumnHelper<SalesWasteRow>();
+const coreRowModel = getCoreRowModel();
+
 function buildTrendSeries(base: number, periods: number, direction = 1) {
   return Array.from({ length: periods }, (_, index) => {
     const wave = Math.sin((index + 1) * 0.8) * 0.06;
@@ -208,7 +211,6 @@ export default function SalesWastePage() {
   const maxVarianceTrend = Math.max(...varianceTrend, 1);
   const maxItemWaste = Math.max(...tableRows.map((row) => row.wasteCost), 1);
 
-  const columnHelper = createColumnHelper<SalesWasteRow>();
   const columns = useMemo(
     () => [
       columnHelper.accessor("item", {
@@ -283,13 +285,13 @@ export default function SalesWastePage() {
         },
       }),
     ],
-    [columnHelper, targetDate, selectedBranchId, readOnly, flaggedRows, wasteNotes],
+    [targetDate, selectedBranchId, readOnly, flaggedRows, wasteNotes],
   );
 
   const table = useReactTable({
     data: tableRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (

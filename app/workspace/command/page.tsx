@@ -57,6 +57,9 @@ function getSeverity(impact: number, highSeverityCount: number): SeverityTone {
   return "GREEN";
 }
 
+const columnHelper = createColumnHelper<PriorityRow>();
+const coreRowModel = getCoreRowModel();
+
 export default function CommandPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -556,7 +559,6 @@ export default function CommandPage() {
   }));
   const redCount = priorityQueue.filter((item) => item.severity === "RED").length;
   const amberCount = priorityQueue.filter((item) => item.severity === "AMBER").length;
-  const columnHelper = createColumnHelper<PriorityRow>();
   const columns = useMemo(
     () => [
       columnHelper.accessor("rank", {
@@ -657,12 +659,12 @@ export default function CommandPage() {
         },
       }),
     ],
-    [columnHelper, isOwnerRole],
+    [isOwnerRole],
   );
   const table = useReactTable({
     data: priorityRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (

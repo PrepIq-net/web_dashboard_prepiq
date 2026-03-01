@@ -35,6 +35,9 @@ function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+const branchColumnHelper = createColumnHelper<BranchControlRow>();
+const coreRowModel = getCoreRowModel();
+
 export default function BranchesPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -108,7 +111,6 @@ export default function BranchesPage() {
         (compareMap.get(compareB)?.efficiencyScore ?? 0)
       : 0;
 
-  const branchColumnHelper = createColumnHelper<BranchControlRow>();
   const columns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
@@ -220,13 +222,13 @@ export default function BranchesPage() {
         },
       }),
     ],
-    [branchColumnHelper, router, targetAdjustments],
+    [router, targetAdjustments],
   );
 
   const table = useReactTable({
     data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (

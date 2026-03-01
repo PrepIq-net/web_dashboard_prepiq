@@ -62,6 +62,9 @@ function impactFromSeverity(severity?: string | null) {
   return 250;
 }
 
+const branchColumnHelper = createColumnHelper<BranchRiskRow>();
+const coreRowModel = getCoreRowModel();
+
 export default function RiskPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -220,7 +223,6 @@ export default function RiskPage() {
     ];
   }, [compositeRisk]);
 
-  const branchColumnHelper = createColumnHelper<BranchRiskRow>();
   const branchColumns = useMemo(() => {
     if (financialOnly) {
       return [
@@ -277,12 +279,12 @@ export default function RiskPage() {
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
     ];
-  }, [branchColumnHelper, financialOnly]);
+  }, [financialOnly]);
 
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: coreRowModel,
   });
 
   return (
