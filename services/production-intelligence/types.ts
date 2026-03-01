@@ -47,6 +47,27 @@ export const prepPlanItemSchema = z.object({
   unit: z.string(),
   suggestion_reason_json: z.record(z.string(), z.unknown()),
   accepted_suggestion: z.boolean(),
+  forecast_context: z.object({
+    predicted_orders: z.number(),
+    predicted_quantity_needed: z.number(),
+    confidence_score: z.number(),
+    lower_bound: z.number(),
+    upper_bound: z.number(),
+    risk_of_stockout: z.number(),
+    risk_of_waste: z.number(),
+    projected_margin: z.number(),
+    reasoning: z.array(z.string()),
+  }),
+  live_monitor: z
+    .object({
+      sold_today: z.number(),
+      trend_vs_forecast_pct: z.number(),
+      sell_through_probability: z.number(),
+      suggested_additional_qty: z.number(),
+      signal: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -67,7 +88,18 @@ export const branchDayTodaySchema = z.object({
     forecast_confidence: z.number(),
     event_modifier_percentage: z.number(),
     weather_modifier_percentage: z.number().nullable(),
+    high_risk_items: z.number().optional(),
+    tracked_items: z.number().optional(),
   }),
+  morning_overview: z
+    .object({
+      tracked_items: z.number(),
+      high_risk_items: z.number(),
+      total_suggested_qty: z.number(),
+      estimated_total_prep_cost: z.number(),
+      projected_margin_total: z.number(),
+    })
+    .optional(),
   prep_plan_items: z.array(prepPlanItemSchema),
   review_summary: z
     .object({
@@ -82,6 +114,50 @@ export const branchDayTodaySchema = z.object({
     .nullable()
     .optional(),
   review_insights: z.array(z.string()).optional(),
+  close_review: z
+    .object({
+      forecast_accuracy_report: z.object({
+        ai_forecast_accuracy_percentage: z.number(),
+        chef_plan_accuracy_percentage: z.number(),
+        items_within_forecast_band: z.number(),
+        items_over_forecast: z.number(),
+        items_under_forecast: z.number(),
+      }),
+      chef_adjustment_intelligence: z.object({
+        adjustments_made: z.number(),
+        adjustments_supported_by_demand: z.number(),
+        support_rate_percentage: z.number(),
+        pattern_hint: z.string(),
+        weekly_behavior_model: z
+          .object({
+            weekday: z.string(),
+            bias_quantity: z.number(),
+            unit: z.string(),
+            direction: z.enum(["up", "down"]),
+            support_rate_percentage: z.number(),
+            sample_size: z.number(),
+            hint: z.string(),
+          })
+          .nullable()
+          .optional(),
+      }),
+      margin_protection_insight: z.object({
+        headline: z.string(),
+        waste_cost_saved_estimate: z.number(),
+        loss_exposure_estimate: z.number(),
+      }),
+      learning_examples: z.array(
+        z.object({
+          item_title: z.string(),
+          suggested_quantity: z.number(),
+          planned_quantity: z.number(),
+          actual_sold_quantity: z.number(),
+          unit: z.string(),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -104,9 +180,14 @@ export const prepPlanEvaluatePayloadSchema = z.object({
 export type PrepPlanEvaluatePayload = z.infer<typeof prepPlanEvaluatePayloadSchema>;
 
 export const prepPlanEvaluateResponseSchema = z.object({
+  delta_quantity: z.number(),
   waste_risk_increase: z.number(),
   marginal_cost_risk: z.number(),
   stockout_risk_change: z.number(),
+  sell_through_probability: z.number(),
+  estimated_extra_margin_if_sold: z.number(),
+  potential_unsold_loss: z.number(),
+  margin_impact_estimate: z.number(),
 });
 export type PrepPlanEvaluateResponse = z.infer<typeof prepPlanEvaluateResponseSchema>;
 

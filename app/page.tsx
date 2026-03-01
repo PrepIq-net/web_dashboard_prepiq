@@ -133,6 +133,17 @@ function HomeContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.has_organization, isLoading]);
 
+  const shouldRedirectToToday =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    user?.organization_role === "STAFF_OPERATOR";
+
+  useEffect(() => {
+    if (shouldRedirectToToday) {
+      router.replace("/workspace/today");
+    }
+  }, [shouldRedirectToToday, router]);
+
   if (isLoading || (user && !user.has_organization)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-surface-1">
@@ -140,6 +151,19 @@ function HomeContent() {
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
             Getting things ready…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (shouldRedirectToToday) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted animate-pulse">
+            Routing to today&apos;s production command…
           </p>
         </div>
       </main>
