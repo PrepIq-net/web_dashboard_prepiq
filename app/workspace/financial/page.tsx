@@ -8,8 +8,9 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Download } from "iconoir-react";
+import { Download, Calendar, Filter, ArrowUp } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
@@ -87,7 +88,8 @@ export default function FinancialPage() {
     if (!isLoading && !canAccess) {
       router.replace("/");
     }
-  }, [isLoading, canAccess, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, canAccess]);
 
   const branches = branchesQuery.data ?? [];
   const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
@@ -251,23 +253,23 @@ export default function FinancialPage() {
     () => [
       branchColumnHelper.accessor("branch", {
         header: "Branch",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
+        cell: (info) => <span className="text-sm font-semibold text-text-primary">{info.getValue()}</span>,
       }),
       branchColumnHelper.accessor("revenue", {
         header: "Revenue",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm text-text-secondary">{toCurrency(info.getValue())}</span>,
       }),
       branchColumnHelper.accessor("grossMarginPct", {
         header: "Gross Margin",
-        cell: (info) => <span className="text-[12px] text-[#3F8F68]">{toPercent(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm font-semibold text-status-success">{toPercent(info.getValue())}</span>,
       }),
       branchColumnHelper.accessor("wasteValue", {
         header: "Waste Value",
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{toCurrency(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm font-semibold text-status-warning">{toCurrency(info.getValue())}</span>,
       }),
       branchColumnHelper.accessor("wasteOfRevenuePct", {
         header: "Waste % Revenue",
-        cell: (info) => <span className="text-[12px] text-[#8E8E93]">{toPercent(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm text-text-muted">{toPercent(info.getValue())}</span>,
       }),
     ],
     [branchColumnHelper],
@@ -283,19 +285,24 @@ export default function FinancialPage() {
     () => [
       categoryColumnHelper.accessor("category", {
         header: "Category",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
+        cell: (info) => <span className="text-sm font-semibold text-text-primary">{info.getValue()}</span>,
       }),
       categoryColumnHelper.accessor("revenue", {
         header: "Revenue",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm text-text-secondary">{toCurrency(info.getValue())}</span>,
       }),
       categoryColumnHelper.accessor("marginPct", {
         header: "Margin",
-        cell: (info) => <span className="text-[12px] text-[#3F8F68]">{toPercent(info.getValue())}</span>,
+        cell: (info) => <span className="text-sm font-semibold text-status-success">{toPercent(info.getValue())}</span>,
       }),
       categoryColumnHelper.accessor("trend", {
         header: "Trend",
-        cell: (info) => <span className="text-[11px] text-[#8E8E93]">{info.getValue()}</span>,
+        cell: (info) => (
+          <div className="flex items-center gap-2">
+            <ArrowUp className="h-3 w-3 text-status-success" />
+            <span className="text-xs text-text-muted">{info.getValue()}</span>
+          </div>
+        ),
       }),
     ],
     [categoryColumnHelper],
@@ -313,119 +320,184 @@ export default function FinancialPage() {
       description="Analytical breakdown of revenue, margin, waste, and cost structure across branches and categories."
       insight="Deep margin analysis improves decision quality when branch and category variance are reviewed together."
     >
-      <section className="border-b border-[#2A2A2E] pb-8">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <select
+      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <Select
+            label="Timeframe"
+            leadingIcon={<Calendar className="h-4 w-4" />}
+            options={[
+              { value: "7d", label: "Last 7 days" },
+              { value: "30d", label: "Last 30 days" },
+              { value: "90d", label: "Last 90 days" },
+            ]}
             value={timeframe}
-            onChange={(event) => setTimeframe(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-          </select>
-          <select
+            onChange={setTimeframe}
+          />
+          
+          <Select
+            label="Branch Filter"
+            leadingIcon={<Filter className="h-4 w-4" />}
+            options={[
+              { value: "ALL", label: "All branches" },
+              ...branches.map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              })),
+            ]}
             value={branchFilter}
-            onChange={(event) => setBranchFilter(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="ALL">All branches</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
-          <select
+            onChange={setBranchFilter}
+          />
+          
+          <Select
+            label="Category Filter"
+            leadingIcon={<Filter className="h-4 w-4" />}
+            options={[
+              { value: "ALL", label: "All categories" },
+              { value: "Bakery", label: "Bakery" },
+              { value: "Beverages", label: "Beverages" },
+              { value: "Savory", label: "Savory" },
+              { value: "Retail", label: "Retail" },
+            ]}
             value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="ALL">All categories</option>
-            <option value="Bakery">Bakery</option>
-            <option value="Beverages">Beverages</option>
-            <option value="Savory">Savory</option>
-            <option value="Retail">Retail</option>
-          </select>
-          <button
-            type="button"
-            onClick={exportReport}
-            className="inline-flex h-9 items-center justify-center gap-1 rounded-[8px] border border-[#2E2E33] text-[12px] text-[#F5F5F7]"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Quick export
-          </button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[
-            { id: "OVERVIEW", label: "Overview" },
-            { id: "MARGIN", label: "Margin" },
-            { id: "WASTE", label: "Waste" },
-            { id: "SALES", label: "Sales" },
-            { id: "TAX", label: "Tax" },
-            { id: "EXPORTS", label: "Exports" },
-          ].map((tab) => (
+            onChange={setCategoryFilter}
+          />
+          
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Quick Export
+            </label>
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as FinancialTab)}
-              className={`h-8 rounded-[7px] px-3 text-[12px] transition-colors ${
-                activeTab === tab.id
-                  ? "bg-[#232327] text-[#F5F5F7]"
-                  : "text-[#8E8E93] hover:bg-[#1F1F23] hover:text-[#F5F5F7]"
-              }`}
+              onClick={exportReport}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-button border border-border-default bg-surface-3 text-sm font-medium text-text-primary transition-all duration-200 hover:bg-surface-4 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98]"
             >
-              {tab.label}
+              <Download className="h-4 w-4" />
+              Export Data
             </button>
-          ))}
+          </div>
+        </div>
+        
+        <div className="mt-6 pt-6 border-t border-surface-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "OVERVIEW", label: "Overview" },
+              { id: "MARGIN", label: "Margin Analysis" },
+              { id: "WASTE", label: "Waste Analysis" },
+              { id: "SALES", label: "Sales Breakdown" },
+              { id: "TAX", label: "Tax Liability" },
+              { id: "EXPORTS", label: "Export Center" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as FinancialTab)}
+                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       {activeTab === "OVERVIEW" ? (
         <section className="mt-8">
-          <div className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Total Revenue</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{toCurrency(totalRevenue)}</p>
+          <div className="grid grid-cols-1 gap-6 mb-12 md:grid-cols-4">
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Total Revenue
+              </p>
+              <p className="font-display text-4xl font-semibold text-status-success tracking-tight">
+                {toCurrency(totalRevenue)}
+              </p>
+              <div className="mt-4 pt-4 border-t border-surface-4">
+                <p className="text-xs text-text-muted">{timeframe} period</p>
+              </div>
             </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Average Margin</p>
-              <p className="mt-1 font-display text-[30px] text-[#3F8F68]">{toPercent(avgMargin)}</p>
+            
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Average Margin
+              </p>
+              <p className="font-display text-4xl font-semibold text-brand-gold tracking-tight">
+                {toPercent(avgMargin)}
+              </p>
+              <div className="mt-4 pt-4 border-t border-surface-4">
+                <div className="w-full h-1.5 bg-surface-4 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-brand-gold rounded-full"
+                    style={{ width: `${Math.min(avgMargin, 100)}%` }}
+                  />
+                </div>
+              </div>
             </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Total Waste Value</p>
-              <p className="mt-1 font-display text-[30px] text-[#C48B2A]">{toCurrency(totalWaste)}</p>
+            
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Total Waste Value
+              </p>
+              <p className="font-display text-4xl font-semibold text-status-critical tracking-tight">
+                {toCurrency(totalWaste)}
+              </p>
+              <div className="mt-4 pt-4 border-t border-surface-4">
+                <p className="text-xs text-text-muted">Cost impact</p>
+              </div>
             </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Net Margin Estimate</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{toPercent(netMarginEstimate)}</p>
+            
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Net Margin Estimate
+              </p>
+              <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
+                {toPercent(netMarginEstimate)}
+              </p>
+              <div className="mt-4 pt-4 border-t border-surface-4">
+                <p className="text-xs text-text-muted">After all costs</p>
+              </div>
             </article>
           </div>
-          <div className="mt-8 border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Revenue Snapshot</p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[860px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  {branchTable.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {branchTable.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#2A2A2E]">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-2 py-3">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          
+          <div className="mt-8">
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Financial Performance
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Revenue Snapshot
+              </h3>
+            </div>
+            
+            <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px]">
+                  <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                    {branchTable.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody className="divide-y divide-surface-4">
+                    {branchTable.getRowModel().rows.map((row) => (
+                      <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-6 py-4">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -433,91 +505,145 @@ export default function FinancialPage() {
 
       {activeTab === "MARGIN" ? (
         <section className="mt-8">
-          <div className="border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Margin Breakdown</p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[760px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  {categoryTable.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {categoryTable.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#2A2A2E]">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-2 py-3">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="mb-8">
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Margin Analysis
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Category Breakdown
+              </h3>
             </div>
-          </div>
-          <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-            <article className="lg:col-span-2">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Cost Structure</p>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[860px]">
-                  <thead className="border-b border-[#2A2A2E]">
-                    <tr>
-                      <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch</th>
-                      <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Purchasing %</th>
-                      <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Labor %</th>
-                      <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste %</th>
-                      <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Net margin est.</th>
-                    </tr>
+            
+            <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                    {categoryTable.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
                   </thead>
-                  <tbody>
-                    {costStructureRows.map((row) => (
-                      <tr key={row.id} className="border-b border-[#2A2A2E]">
-                        <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.branch}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{toPercent(row.purchasingPct)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{toPercent(row.laborPct)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C48B2A]">{toPercent(row.wastePct)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#3F8F68]">{toPercent(row.netMarginEstimatePct)}</td>
+                  <tbody className="divide-y divide-surface-4">
+                    {categoryTable.getRowModel().rows.map((row) => (
+                      <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-6 py-4">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+          
+          <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <article className="lg:col-span-2">
+              <div className="mb-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Cost Structure
+                </p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                  Branch Cost Analysis
+                </h3>
+              </div>
+              
+              <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[860px]">
+                    <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Branch</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Purchasing %</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Labor %</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste %</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Net Margin Est.</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-4">
+                      {costStructureRows.map((row) => (
+                        <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
+                          <td className="px-6 py-4 text-sm font-semibold text-text-primary">{row.branch}</td>
+                          <td className="px-6 py-4 text-sm text-text-secondary">{toPercent(row.purchasingPct)}</td>
+                          <td className="px-6 py-4 text-sm text-text-secondary">{toPercent(row.laborPct)}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-status-warning">{toPercent(row.wastePct)}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-status-success">{toPercent(row.netMarginEstimatePct)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </article>
+            
             <article>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Branches</p>
-              <div className="mt-3 space-y-2">
-                <select
+              <div className="mb-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Branch Comparison
+                </p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                  Margin Delta
+                </h3>
+              </div>
+              
+              <div className="bg-surface-2 rounded-xl p-6 border border-surface-4 space-y-4">
+                <Select
+                  label="Branch A"
+                  options={[
+                    { value: "", label: "Select Branch A" },
+                    ...branchRows.map((row) => ({
+                      value: row.id,
+                      label: row.branch,
+                    })),
+                  ]}
                   value={compareA}
-                  onChange={(event) => setCompareA(event.target.value)}
-                  className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-                >
-                  <option value="">Branch A</option>
-                  {branchRows.map((row) => (
-                    <option key={row.id} value={row.id}>{row.branch}</option>
-                  ))}
-                </select>
-                <select
+                  onChange={setCompareA}
+                />
+                
+                <Select
+                  label="Branch B"
+                  options={[
+                    { value: "", label: "Select Branch B" },
+                    ...branchRows.map((row) => ({
+                      value: row.id,
+                      label: row.branch,
+                    })),
+                  ]}
                   value={compareB}
-                  onChange={(event) => setCompareB(event.target.value)}
-                  className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-                >
-                  <option value="">Branch B</option>
-                  {branchRows.map((row) => (
-                    <option key={row.id} value={row.id}>{row.branch}</option>
-                  ))}
-                </select>
-                <div className="pt-2">
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Gross margin delta</p>
-                  <p className={`mt-1 font-display text-[26px] ${compareDelta >= 0 ? "text-[#3F8F68]" : "text-[#C44949]"}`}>
-                    {compareDelta >= 0 ? "+" : ""}{compareDelta.toFixed(1)}%
+                  onChange={setCompareB}
+                />
+                
+                <div className="pt-4 border-t border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    Gross Margin Delta
                   </p>
+                  <div className="flex items-baseline gap-2">
+                    <p className={`font-display text-3xl font-semibold tracking-tight ${
+                      compareDelta >= 0 ? "text-status-success" : "text-status-critical"
+                    }`}>
+                      {compareDelta >= 0 ? "+" : ""}{compareDelta.toFixed(1)}%
+                    </p>
+                    {compareDelta !== 0 && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        compareDelta >= 0 
+                          ? "bg-status-success/20 text-status-success" 
+                          : "bg-status-critical/20 text-status-critical"
+                      }`}>
+                        {compareDelta >= 0 ? "Better" : "Worse"}
+                      </span>
+                    )}
+                  </div>
+                  {compareDelta === 0 && compareA && compareB && (
+                    <p className="text-xs text-text-muted mt-2">Select different branches to compare</p>
+                  )}
                 </div>
               </div>
             </article>
@@ -526,134 +652,257 @@ export default function FinancialPage() {
       ) : null}
 
       {activeTab === "WASTE" ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste Analysis</p>
-          <div className="mt-3 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Waste value by item</p>
-              <div className="mt-2 space-y-1.5">
+        <section className="mt-8">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Waste Analysis
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Cost Impact Breakdown
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
+                Waste Value by Category
+              </p>
+              <div className="space-y-3">
                 {categoryRows.map((row) => (
-                  <div key={`${row.id}-waste`} className="flex items-center justify-between text-[12px]">
-                    <span className="text-[#C7C7CC]">{row.category}</span>
-                    <span className="text-[#C48B2A]">{toCurrency(row.revenue * 0.06)}</span>
+                  <div key={`${row.id}-waste`} className="flex items-center justify-between p-3 rounded-lg bg-surface-3/50 border border-surface-4">
+                    <span className="text-sm font-medium text-text-secondary">{row.category}</span>
+                    <span className="text-sm font-semibold text-status-warning">{toCurrency(row.revenue * 0.06)}</span>
                   </div>
                 ))}
               </div>
             </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Waste % of revenue</p>
-              <p className="mt-2 font-display text-[28px] text-[#F5F5F7]">
+            
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Waste % of Revenue
+              </p>
+              <p className="font-display text-4xl font-semibold text-status-critical tracking-tight">
                 {toPercent(branchRows.length ? branchRows.reduce((sum, row) => sum + row.wasteOfRevenuePct, 0) / branchRows.length : 0)}
               </p>
+              <div className="mt-4 pt-4 border-t border-surface-4">
+                <div className="w-full h-2 bg-surface-4 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-status-critical rounded-full"
+                    style={{ 
+                      width: `${Math.min(
+                        branchRows.length ? (branchRows.reduce((sum, row) => sum + row.wasteOfRevenuePct, 0) / branchRows.length) * 2 : 0, 
+                        100
+                      )}%` 
+                    }}
+                  />
+                </div>
+              </div>
             </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Historical comparison</p>
-              <p className="mt-2 text-[12px] text-[#8E8E93]">
-                Compared with prior period, waste intensity is {timeframe === "7d" ? "stable" : "down 1.2%"}.
+            
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Historical Comparison
               </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${timeframe === "7d" ? "bg-status-success" : "bg-status-warning"}`} />
+                  <span className="text-sm text-text-secondary">
+                    vs Prior Period: {timeframe === "7d" ? "Stable" : "Down 1.2%"}
+                  </span>
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  {timeframe === "7d" 
+                    ? "Waste levels remain consistent with recent patterns."
+                    : "Improvement trend indicates better inventory management."
+                  }
+                </p>
+              </div>
             </article>
           </div>
         </section>
       ) : null}
 
       {activeTab === "SALES" ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Sales Breakdown</p>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[860px]">
-              <thead className="border-b border-[#2A2A2E]">
-                {branchTable.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {branchTable.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b border-[#2A2A2E]">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-2 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <section className="mt-8">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Sales Performance
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Revenue Breakdown
+            </h3>
+          </div>
+          
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px]">
+                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                  {branchTable.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="divide-y divide-surface-4">
+                  {branchTable.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-6 py-4">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       ) : null}
 
       {activeTab === "TAX" ? (
-        <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Tax Liability Snapshot</p>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[860px]">
-              <thead className="border-b border-[#2A2A2E]">
-                <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Taxable Base</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Estimated Liability</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Risk</th>
-                </tr>
-              </thead>
-              <tbody>
-                {taxRows.map((row) => (
-                  <tr key={`tax-${row.id}`} className="border-b border-[#2A2A2E]">
-                    <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.branch}</td>
-                    <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{toCurrency(row.taxableBase)}</td>
-                    <td className="px-2 py-3 text-[12px] text-[#F5F5F7]">{toCurrency(row.estimatedTax)}</td>
-                    <td className={`px-2 py-3 text-[11px] uppercase tracking-[0.08em] ${row.risk === "HIGH" ? "text-[#C44949]" : row.risk === "MEDIUM" ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
-                      {row.risk}
-                    </td>
+        <section className="mt-8">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Tax Planning
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Liability Snapshot
+            </h3>
+          </div>
+          
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px]">
+                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Branch</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Taxable Base</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Estimated Liability</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Risk Level</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-surface-4">
+                  {taxRows.map((row) => (
+                    <tr key={`tax-${row.id}`} className="transition-all duration-200 hover:bg-surface-3/50">
+                      <td className="px-6 py-4 text-sm font-semibold text-text-primary">{row.branch}</td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">{toCurrency(row.taxableBase)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-text-primary">{toCurrency(row.estimatedTax)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-[0.08em] ${
+                          row.risk === "HIGH" 
+                            ? "bg-status-critical/20 text-status-critical border border-status-critical/40" 
+                            : row.risk === "MEDIUM" 
+                              ? "bg-status-warning/20 text-status-warning border border-status-warning/40" 
+                              : "bg-status-success/20 text-status-success border border-status-success/40"
+                        }`}>
+                          {row.risk}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       ) : null}
 
       {activeTab === "EXPORTS" ? (
         <section className="mt-8">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Exports</p>
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <button
-              type="button"
-              onClick={exportReport}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#2E2E33] text-[12px] text-[#F5F5F7]"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Revenue export
-            </button>
-            <button
-              type="button"
-              onClick={exportMarginReport}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#2E2E33] text-[12px] text-[#F5F5F7]"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Margin export
-            </button>
-            <button
-              type="button"
-              onClick={exportWasteReport}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#2E2E33] text-[12px] text-[#F5F5F7]"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Waste export
-            </button>
-            <button
-              type="button"
-              onClick={exportTaxReport}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#2E2E33] text-[12px] text-[#F5F5F7]"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Tax export
-            </button>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Data Export
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Download Reports
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-status-success/20">
+                  <Download className="h-5 w-5 text-status-success" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">Revenue Export</h4>
+                  <p className="text-xs text-text-muted">Complete revenue breakdown</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={exportReport}
+                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-status-success/40 bg-surface-3 text-sm font-medium text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 active:scale-[0.98]"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+            </div>
+            
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-gold/20">
+                  <Download className="h-5 w-5 text-brand-gold" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">Margin Export</h4>
+                  <p className="text-xs text-text-muted">Category margin analysis</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={exportMarginReport}
+                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-brand-gold/40 bg-surface-3 text-sm font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 active:scale-[0.98]"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+            </div>
+            
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-status-warning/20">
+                  <Download className="h-5 w-5 text-status-warning" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">Waste Export</h4>
+                  <p className="text-xs text-text-muted">Waste cost analysis</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={exportWasteReport}
+                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-status-warning/40 bg-surface-3 text-sm font-medium text-status-warning transition-all duration-200 hover:border-status-warning hover:bg-status-warning/10 active:scale-[0.98]"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+            </div>
+            
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-status-critical/20">
+                  <Download className="h-5 w-5 text-status-critical" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">Tax Export</h4>
+                  <p className="text-xs text-text-muted">Tax liability snapshot</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={exportTaxReport}
+                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-status-critical/40 bg-surface-3 text-sm font-medium text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98]"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+            </div>
           </div>
         </section>
       ) : null}

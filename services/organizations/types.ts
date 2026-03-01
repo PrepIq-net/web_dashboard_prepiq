@@ -22,6 +22,9 @@ export const organizationMemberRoleEnum = z.enum([
   "BRANCH_MANAGER",
   "STAFF_OPERATOR",
   "AUDITOR",
+  "OWNER",
+  "ADMIN",
+  "STAFF",
 ]);
 
 export type OrganizationMemberRole = z.infer<typeof organizationMemberRoleEnum>;
@@ -41,6 +44,14 @@ export const organizationMemberSchema = z.object({
 });
 
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
+
+export const addOrganizationMemberPayloadSchema = z.object({
+  user_email: z.string().email("A valid user email is required"),
+  role: organizationMemberRoleEnum,
+});
+export type AddOrganizationMemberPayload = z.infer<
+  typeof addOrganizationMemberPayloadSchema
+>;
 
 export const organizationSchema = z.object({
   id: z.string().uuid(),

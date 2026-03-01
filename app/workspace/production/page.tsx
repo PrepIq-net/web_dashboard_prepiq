@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -18,9 +18,29 @@ type LocalLog = {
   type: "BATCH" | "WASTE" | "ISSUE";
   itemTitle: string;
   quantity: number;
+  unit: string;
   notes: string;
   timestamp: string;
 };
+
+function isDiscreteUnit(unit: string) {
+  return ["PCS", "PLATES", "BOXES", "TRAYS", "SERVINGS"].includes((unit || "").toUpperCase());
+}
+
+function formatQuantity(value: number, unit: string) {
+  if (isDiscreteUnit(unit)) {
+    return `${Math.round(value)} ${unit}`;
+  }
+  return `${value.toFixed(2)} ${unit}`;
+}
+
+function formatSignedQuantity(value: number, unit: string) {
+  const sign = value > 0 ? "+" : "";
+  if (isDiscreteUnit(unit)) {
+    return `${sign}${Math.round(value)} ${unit}`;
+  }
+  return `${sign}${value.toFixed(2)} ${unit}`;
+}
 
 export default function ProductionPage() {
   const { data: user } = useCurrentUserProfile();
@@ -39,16 +59,45 @@ export default function ProductionPage() {
   );
 
   const branchOptions = useMemo(() => {
-    if (isStaffOperator || isBranchManager) {
-      if (!accessibleBranchIds.size) return branches;
-      return branches.filter((branch) => accessibleBranchIds.has(branch.id));
+    const byId = new Map<string, { id: string; name: string; is_primary: boolean }>();
+    for (const branch of branches) {
+      byId.set(branch.id, {
+        id: branch.id,
+        name: branch.name,
+        is_primary: Boolean(branch.is_primary),
+      });
     }
-    return branches;
-  }, [branches, isStaffOperator, isBranchManager, accessibleBranchIds]);
+    for (const branch of accessScope?.accessible_branches ?? []) {
+      if (byId.has(branch.id)) continue;
+      byId.set(branch.id, {
+        id: branch.id,
+        name: branch.name,
+        is_primary: Boolean(branch.is_primary),
+      });
+    }
+    let merged = Array.from(byId.values());
+    if ((isStaffOperator || isBranchManager) && accessibleBranchIds.size) {
+      merged = merged.filter((branch) => accessibleBranchIds.has(branch.id));
+    }
+    return merged;
+  }, [branches, accessScope?.accessible_branches, isStaffOperator, isBranchManager, accessibleBranchIds]);
 
-  const activeBranch =
-    branchOptions.find((branch) => branch.is_primary) ?? branchOptions[0] ?? null;
-  const activeBranchId = activeBranch?.id ?? "";
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const defaultBranchId =
+    accessScope?.default_branch_id ??
+    branchOptions.find((branch) => branch.is_primary)?.id ??
+    branchOptions[0]?.id ??
+    "";
+
+  useEffect(() => {
+    if (!defaultBranchId) return;
+    if (!selectedBranchId || !branchOptions.some((branch) => branch.id === selectedBranchId)) {
+      setSelectedBranchId(defaultBranchId);
+    }
+  }, [defaultBranchId, selectedBranchId, branchOptions]);
+
+  const activeBranchId = selectedBranchId || defaultBranchId;
+  const activeBranch = branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
   const todayDate = new Date().toISOString().slice(0, 10);
 
   const branchCommandQuery = useBranchCommandView(
@@ -97,7 +146,7 @@ export default function ProductionPage() {
 
   const selectedItem = recommendations.find((item) => item.item_id === selectedItemId);
 
-  const submitLocalLog = (type: LocalLog["type"], itemTitle: string) => {
+  const submitLocalLog = (type: LocalLog["type"], itemTitle: string, unit: string) => {
     const quantity = Number(batchQuantity || 0);
     if (!itemTitle || quantity <= 0) return;
 
@@ -108,6 +157,7 @@ export default function ProductionPage() {
         type,
         itemTitle,
         quantity,
+        unit,
         notes: `${notePrefix}${batchNotes}`.trim(),
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -157,6 +207,31 @@ export default function ProductionPage() {
       description="Overview shows current production state. Command actions are for intervention and correction."
       insight="Data quality compounds when production logging discipline is consistent across shifts."
     >
+      <section className="mb-8 border-b border-[#2A2A2E] pb-6">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+            Branch Context
+          </label>
+          <select
+            value={activeBranchId}
+            onChange={(event) => setSelectedBranchId(event.target.value)}
+            className="h-10 min-w-[240px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
+          >
+            {!branchOptions.length ? <option value="">No branches available</option> : null}
+            {branchOptions.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
+          {activeBranch ? (
+            <p className="text-[12px] text-[#8E8E93]">
+              Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       {isStaffOperator ? (
         <>
           <section className="border-b border-[#2A2A2E] pb-8">
@@ -180,12 +255,11 @@ export default function ProductionPage() {
                   {productionRows.map((row) => (
                     <tr key={row.id} className="border-b border-[#2A2A2E] align-top">
                       <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.item_title}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.target} {row.unit}</td>
+                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.target, row.unit)}</td>
                       <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.deadline}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.currentProduced} {row.unit}</td>
+                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.currentProduced, row.unit)}</td>
                       <td className={`px-2 py-3 text-[12px] ${row.variance > 0 ? "text-[#C48B2A]" : row.variance < 0 ? "text-[#C44949]" : "text-[#3F8F68]"}`}>
-                        {row.variance > 0 ? "+" : ""}
-                        {row.variance}
+                        {formatSignedQuantity(row.variance, row.unit)}
                       </td>
                       <td className="px-2 py-3 text-[11px] text-[#8E8E93]">
                         {row.alerts.length ? row.alerts.join(" · ") : "None"}
@@ -278,21 +352,21 @@ export default function ProductionPage() {
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => submitLocalLog("BATCH", selectedItem?.item_title ?? "")}
+                onClick={() => submitLocalLog("BATCH", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
                 className="h-8 rounded-[8px] bg-[#A8821F] px-3 text-[12px] font-medium text-[#141416]"
               >
                 Log batch
               </button>
               <button
                 type="button"
-                onClick={() => submitLocalLog("WASTE", selectedItem?.item_title ?? "")}
+                onClick={() => submitLocalLog("WASTE", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
                 className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#C48B2A]"
               >
                 Report waste
               </button>
               <button
                 type="button"
-                onClick={() => submitLocalLog("ISSUE", selectedItem?.item_title ?? "")}
+                onClick={() => submitLocalLog("ISSUE", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
                 className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#C44949]"
               >
                 Flag issue
@@ -303,7 +377,7 @@ export default function ProductionPage() {
               {localLogs.slice(0, 6).map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between border-b border-[#2A2A2E] pb-1.5 text-[12px]">
                   <p className="text-[#C7C7CC]">
-                    {entry.type} · {entry.itemTitle} · {entry.quantity}
+                    {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
                   </p>
                   <p className="text-[#8E8E93]">{entry.timestamp}</p>
                 </div>
@@ -387,9 +461,9 @@ export default function ProductionPage() {
                     return (
                       <tr key={row.id} className="border-b border-[#2A2A2E]">
                         <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.item_title}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.target}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.currentProduced}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.variance}</td>
+                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.target, row.unit)}</td>
+                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.currentProduced, row.unit)}</td>
+                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatSignedQuantity(row.variance, row.unit)}</td>
                         <td className="px-2 py-3 text-[12px] text-[#C48B2A]">${wasteByItem.toFixed(0)}</td>
                         <td className="px-2 py-3 text-[12px] text-[#3F8F68]">{forecastAlignment.toFixed(1)}%</td>
                       </tr>

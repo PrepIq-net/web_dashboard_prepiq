@@ -1,9 +1,11 @@
 import { apiClientWithSchema } from "@/lib/api/client";
 import { organizationsEndpoints } from "./endpoints";
 import {
+  addOrganizationMemberPayloadSchema,
   organizationSchema,
+  organizationMemberSchema,
   organizationRegisterPayloadSchema,
-  type Organization,
+  type AddOrganizationMemberPayload,
   type OrganizationRegisterPayload,
 } from "./types";
 import { z } from "zod";
@@ -84,6 +86,31 @@ export async function getOrganizationDetail(id: string) {
   );
 }
 
+export async function getOrganizationMembers(id: string) {
+  const response = await apiClientWithSchema(
+    organizationsEndpoints.members(id),
+    z.union([
+      z.array(organizationMemberSchema),
+      z.object({ results: z.array(organizationMemberSchema) }),
+      z.object({
+        success: z.boolean().optional(),
+        data: z.union([
+          z.array(organizationMemberSchema),
+          z.object({ results: z.array(organizationMemberSchema) }),
+        ]),
+      }),
+    ]),
+    {
+      method: "GET",
+    },
+  );
+
+  if (Array.isArray(response)) return response;
+  if ("results" in response) return response.results;
+  if (Array.isArray(response.data)) return response.data;
+  return response.data.results;
+}
+
 export async function updateOrganization(
   id: string,
   payload: Partial<OrganizationRegisterPayload>,
@@ -94,6 +121,33 @@ export async function updateOrganization(
     {
       method: "PATCH",
       body: payload,
+    },
+  );
+}
+
+export async function addOrganizationMember(
+  id: string,
+  payload: AddOrganizationMemberPayload,
+) {
+  const validatedPayload = addOrganizationMemberPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    organizationsEndpoints.addMember(id),
+    organizationMemberSchema,
+    {
+      method: "POST",
+      body: validatedPayload,
+    },
+  );
+}
+
+export async function removeOrganizationMember(id: string, userId: string) {
+  return apiClientWithSchema(
+    organizationsEndpoints.removeMember(id, userId),
+    z.object({
+      message: z.string(),
+    }),
+    {
+      method: "DELETE",
     },
   );
 }

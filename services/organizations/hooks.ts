@@ -1,13 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as organizationService from "./service";
 import { toast } from "react-hot-toast";
-import type { OrganizationRegisterPayload } from "./types";
+import type {
+  AddOrganizationMemberPayload,
+  OrganizationRegisterPayload,
+} from "./types";
 import { usersQueryKeys } from "../users/hooks";
+import { branchKeys } from "../branches/hooks";
 
 export const organizationKeys = {
   all: ["organizations"] as const,
   lists: () => [...organizationKeys.all, "list"] as const,
   details: (id: string) => [...organizationKeys.all, "detail", id] as const,
+  members: (id: string) => [...organizationKeys.all, "members", id] as const,
 };
 
 export function useMyOrganizations() {
@@ -21,6 +26,14 @@ export function useOrganizationDetail(id: string) {
   return useQuery({
     queryKey: organizationKeys.details(id),
     queryFn: () => organizationService.getOrganizationDetail(id),
+    enabled: !!id,
+  });
+}
+
+export function useOrganizationMembers(id: string) {
+  return useQuery({
+    queryKey: organizationKeys.members(id),
+    queryFn: () => organizationService.getOrganizationMembers(id),
     enabled: !!id,
   });
 }
@@ -51,6 +64,38 @@ export function useUpdateOrganization(id: string) {
       queryClient.invalidateQueries({ queryKey: organizationKeys.details(id) });
       queryClient.invalidateQueries({ queryKey: organizationKeys.lists() });
       toast.success("Organization updated successfully!");
+    },
+  });
+}
+
+export function useAddOrganizationMember(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AddOrganizationMemberPayload) =>
+      organizationService.addOrganizationMember(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
+      queryClient.invalidateQueries({ queryKey: branchKeys.staff(id) });
+      toast.success("Member added successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add member.");
+    },
+  });
+}
+
+export function useRemoveOrganizationMember(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      organizationService.removeOrganizationMember(id, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
+      queryClient.invalidateQueries({ queryKey: branchKeys.staff(id) });
+      toast.success("Member removed successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove member.");
     },
   });
 }

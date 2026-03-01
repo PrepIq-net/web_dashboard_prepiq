@@ -4,9 +4,17 @@ import { z } from "zod";
 // OperatingHours
 // ─────────────────────────────────────────────────────────────────────────────
 export const operatingHoursSchema = z.object({
-  day_of_week: z.number().int().min(0).max(6),
-  opens_at: z.string(),
-  closes_at: z.string(),
+  day_of_week: z.enum([
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+  ]),
+  opens_at: z.string().nullable().optional(),
+  closes_at: z.string().nullable().optional(),
   is_closed: z.boolean(),
 });
 export type OperatingHours = z.infer<typeof operatingHoursSchema>;
@@ -55,6 +63,7 @@ export const createBranchPayloadSchema = z.object({
   /** GPS coordinates — sent to backend as separate fields */
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  operating_hours: z.array(operatingHoursSchema).optional(),
 });
 export type CreateBranchPayload = z.infer<typeof createBranchPayloadSchema>;
 export type UpdateBranchPayload = Partial<CreateBranchPayload>;
