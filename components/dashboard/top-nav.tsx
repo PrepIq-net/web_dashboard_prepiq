@@ -2,14 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import {
-  Bell,
-  LogOut,
-  NavArrowDown,
-  Search,
-  User,
-} from "iconoir-react";
+import { useCallback, useEffect, useRef, useState, memo } from "react";
+import { Bell, LogOut, NavArrowDown, Search, User } from "iconoir-react";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
@@ -17,7 +11,7 @@ import {
   useSessionLogoutUser,
 } from "@/services";
 
-export function DashboardTopNav() {
+const TopNavComponent = memo(function DashboardTopNav() {
   const { data: user } = useCurrentUserProfile();
   const notificationsQuery = useNotifications();
   const markAsReadMutation = useMarkNotificationsAsRead();
@@ -34,21 +28,24 @@ export function DashboardTopNav() {
     (notification) => notification.status === "UNREAD",
   );
 
-  useEffect(() => {
-    const onOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
+  const handleOutsideClick = useCallback((event: MouseEvent) => {
+    const target = event.target as Node;
 
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false);
-      }
-      if (avatarRef.current && !avatarRef.current.contains(target)) {
-        setAvatarMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("mousedown", onOutsideClick);
-    return () => window.removeEventListener("mousedown", onOutsideClick);
+    if (
+      notificationsRef.current &&
+      !notificationsRef.current.contains(target)
+    ) {
+      setNotificationsOpen(false);
+    }
+    if (avatarRef.current && !avatarRef.current.contains(target)) {
+      setAvatarMenuOpen(false);
+    }
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousedown", handleOutsideClick);
+    return () => window.removeEventListener("mousedown", handleOutsideClick);
+  }, [handleOutsideClick]);
 
   const handleMarkAllRead = () => {
     markAsReadMutation.mutate({});
@@ -153,7 +150,8 @@ export function DashboardTopNav() {
                         No new notifications.
                       </p>
                       <p className="text-[11px] text-[#8E8E93]">
-                        You will see forecast, supplier, and compliance alerts here.
+                        You will see forecast, supplier, and compliance alerts
+                        here.
                       </p>
                     </div>
                   )}
@@ -192,7 +190,9 @@ export function DashboardTopNav() {
                   <p className="text-[13px] font-medium text-[#F5F5F7]">
                     {user?.first_name} {user?.last_name}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-[#8E8E93]">{user?.email}</p>
+                  <p className="mt-0.5 text-[11px] text-[#8E8E93]">
+                    {user?.email}
+                  </p>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[#A8821F]">
                     {user?.organization_role || "Member"}
                   </p>
@@ -223,4 +223,6 @@ export function DashboardTopNav() {
       </div>
     </div>
   );
-}
+});
+
+export { TopNavComponent as DashboardTopNav };

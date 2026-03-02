@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
 import { Xmark } from "iconoir-react";
 
 type ModalShellProps = {
@@ -22,14 +22,18 @@ export function ModalShell({
   footer,
   maxWidthClassName = "max-w-lg",
 }: ModalShellProps) {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
@@ -47,8 +51,12 @@ export function ModalShell({
       >
         <header className="flex items-start justify-between border-b border-surface-4 px-5 py-4">
           <div>
-            <h2 className="font-display text-xl font-semibold text-text-primary">{title}</h2>
-            {description ? <p className="mt-1 text-sm text-text-secondary">{description}</p> : null}
+            <h2 className="font-display text-xl font-semibold text-text-primary">
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-1 text-sm text-text-secondary">{description}</p>
+            ) : null}
           </div>
           <button
             type="button"

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, memo } from "react";
 import {
   Home,
   Settings,
@@ -29,7 +29,13 @@ interface NavItem {
 
 interface NavSection {
   title: string;
-  tone?: "operations" | "financial" | "governance" | "workspace" | "branch" | "production";
+  tone?:
+    | "operations"
+    | "financial"
+    | "governance"
+    | "workspace"
+    | "branch"
+    | "production";
   items: NavItem[];
 }
 
@@ -41,11 +47,31 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         tone: "financial",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
-          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
-          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
-          { label: "Purchasing", href: "/workspace/purchasing", icon: <Brain className="h-4 w-4" /> },
-          { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
-          { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
+          {
+            label: "Command",
+            href: "/workspace/command",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Financial",
+            href: "/workspace/financial",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Purchasing",
+            href: "/workspace/purchasing",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Risk",
+            href: "/workspace/risk",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
         ],
       },
     ];
@@ -57,11 +83,31 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Production",
         tone: "production",
         items: [
-          { label: "Today", href: "/workspace/today", icon: <Home className="h-4 w-4" /> },
-          { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-          { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-          { label: "History", href: "/workspace/history", icon: <Clock className="h-4 w-4" /> },
-          { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
+          {
+            label: "Today",
+            href: "/workspace/today",
+            icon: <Home className="h-4 w-4" />,
+          },
+          {
+            label: "Production",
+            href: "/workspace/production",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Inventory",
+            href: "/workspace/inventory",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "History",
+            href: "/workspace/history",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
         ],
       },
     ];
@@ -73,13 +119,41 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         title: "Branch",
         tone: "branch",
         items: [
-          { label: "Today", href: "/workspace/today", icon: <Home className="h-4 w-4" /> },
-          { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-          { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
-          { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
-          { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-          { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
-          { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
+          {
+            label: "Today",
+            href: "/workspace/today",
+            icon: <Home className="h-4 w-4" />,
+          },
+          {
+            label: "Production",
+            href: "/workspace/production",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Purchasing",
+            href: "/workspace/purchasing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Sales & Waste",
+            href: "/workspace/sales-waste",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Inventory",
+            href: "/workspace/inventory",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "Staff",
+            href: "/workspace/staff-performance",
+            icon: <User className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
         ],
       },
     ];
@@ -92,16 +166,56 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         tone: "operations",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
-          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
-          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
-          { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
-          { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
-          { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-          { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-          { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
-          { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
-          { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
-          { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
+          {
+            label: "Command",
+            href: "/workspace/command",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Financial",
+            href: "/workspace/financial",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Branches",
+            href: "/workspace/branches",
+            icon: <Shop className="h-4 w-4" />,
+          },
+          {
+            label: "Purchasing",
+            href: "/workspace/purchasing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Production",
+            href: "/workspace/production",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Inventory",
+            href: "/workspace/inventory",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "Staff",
+            href: "/workspace/staff-performance",
+            icon: <User className="h-4 w-4" />,
+          },
+          {
+            label: "Sales & Waste",
+            href: "/workspace/sales-waste",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Risk",
+            href: "/workspace/risk",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
         ],
       },
     ];
@@ -114,30 +228,78 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         tone: "operations",
         items: [
           { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
-          { label: "Command", href: "/workspace/command", icon: <Brain className="h-4 w-4" /> },
-          { label: "Branches", href: "/workspace/branches", icon: <Shop className="h-4 w-4" /> },
-          { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-          { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-          { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
+          {
+            label: "Command",
+            href: "/workspace/command",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Branches",
+            href: "/workspace/branches",
+            icon: <Shop className="h-4 w-4" />,
+          },
+          {
+            label: "Production",
+            href: "/workspace/production",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Inventory",
+            href: "/workspace/inventory",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "Sales & Waste",
+            href: "/workspace/sales-waste",
+            icon: <Folder className="h-4 w-4" />,
+          },
         ],
       },
       {
         title: "Financial",
         tone: "financial",
         items: [
-          { label: "Financial", href: "/workspace/financial", icon: <Folder className="h-4 w-4" /> },
-          { label: "Purchasing", href: "/workspace/purchasing", icon: <Folder className="h-4 w-4" /> },
-          { label: "Staff", href: "/workspace/staff-performance", icon: <User className="h-4 w-4" /> },
+          {
+            label: "Financial",
+            href: "/workspace/financial",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Purchasing",
+            href: "/workspace/purchasing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Staff",
+            href: "/workspace/staff-performance",
+            icon: <User className="h-4 w-4" />,
+          },
         ],
       },
       {
         title: "Governance",
         tone: "governance",
         items: [
-          { label: "Risk", href: "/workspace/risk", icon: <Settings className="h-4 w-4" /> },
-          { label: "Billing", href: "/workspace/billing", icon: <Folder className="h-4 w-4" /> },
-          { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
-          { label: "Settings", href: "/workspace/settings", icon: <Settings className="h-4 w-4" /> },
+          {
+            label: "Risk",
+            href: "/workspace/risk",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Billing",
+            href: "/workspace/billing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
+          {
+            label: "Settings",
+            href: "/workspace/settings",
+            icon: <Settings className="h-4 w-4" />,
+          },
         ],
       },
     ];
@@ -149,12 +311,36 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
       tone: "workspace",
       items: [
         { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
-        { label: "Today", href: "/workspace/today", icon: <Clock className="h-4 w-4" /> },
-        { label: "Production", href: "/workspace/production", icon: <Brain className="h-4 w-4" /> },
-        { label: "Sales & Waste", href: "/workspace/sales-waste", icon: <Folder className="h-4 w-4" /> },
-        { label: "Inventory", href: "/workspace/inventory", icon: <Clock className="h-4 w-4" /> },
-        { label: "Staff", href: "/workspace/staff", icon: <User className="h-4 w-4" /> },
-        { label: "Chat", href: "/workspace/chat", icon: <ChatBubble className="h-4 w-4" /> },
+        {
+          label: "Today",
+          href: "/workspace/today",
+          icon: <Clock className="h-4 w-4" />,
+        },
+        {
+          label: "Production",
+          href: "/workspace/production",
+          icon: <Brain className="h-4 w-4" />,
+        },
+        {
+          label: "Sales & Waste",
+          href: "/workspace/sales-waste",
+          icon: <Folder className="h-4 w-4" />,
+        },
+        {
+          label: "Inventory",
+          href: "/workspace/inventory",
+          icon: <Clock className="h-4 w-4" />,
+        },
+        {
+          label: "Staff",
+          href: "/workspace/staff",
+          icon: <User className="h-4 w-4" />,
+        },
+        {
+          label: "Chat",
+          href: "/workspace/chat",
+          icon: <ChatBubble className="h-4 w-4" />,
+        },
       ],
     },
   ];
@@ -222,31 +408,49 @@ function SidebarLink({
       >
         {item.icon}
       </span>
-      {!collapsed && <span className="truncate tracking-[-0.01em]">{item.label}</span>}
+      {!collapsed && (
+        <span className="truncate tracking-[-0.01em]">{item.label}</span>
+      )}
     </Link>
   );
 }
 
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+const MemoizedSidebarLink = memo(SidebarLink);
+
+export const DashboardSidebar = memo(function DashboardSidebarInner({
+  user,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const logoutMutation = useSessionLogoutUser();
   const { collapsed, toggle } = useSidebarState();
-  
-  const normalizedPath = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+
+  const normalizedPath =
+    pathname.endsWith("/") && pathname !== "/"
+      ? pathname.slice(0, -1)
+      : pathname;
   const isStaffExecutionRole = user?.organization_role === "STAFF_OPERATOR";
-  
+
   const isActive = (href: string) => {
-    const normalizedHref = href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
+    const normalizedHref =
+      href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
     if (normalizedPath === normalizedHref) return true;
-    if (isStaffExecutionRole && normalizedHref === "/workspace/today" && normalizedPath === "/") return true;
+    if (
+      isStaffExecutionRole &&
+      normalizedHref === "/workspace/today" &&
+      normalizedPath === "/"
+    )
+      return true;
     return false;
   };
-  
+
   const navSections = getNavSectionsByRole(user?.organization_role);
 
   // Simple navigation handler - let Next.js handle it naturally
-  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleNavigation = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
     // Only prevent if already on the page
     if (isActive(href)) {
       e.preventDefault();
@@ -258,8 +462,12 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const handleLogout = () => {
     startTransition(() => {
       logoutMutation.mutate(undefined, {
-        onSuccess: () => { window.location.href = "/login"; },
-        onError: () => { window.location.href = "/login"; },
+        onSuccess: () => {
+          window.location.href = "/login";
+        },
+        onError: () => {
+          window.location.href = "/login";
+        },
       });
     });
   };
@@ -303,7 +511,9 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
               collapsed ? "shadow-[0_0_0_4px_rgba(20,20,22,0.95)]" : ""
             }`}
           >
-            <NavArrowLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
+            <NavArrowLeft
+              className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
         {!collapsed && (
@@ -324,7 +534,11 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         {navSections.map((section, index) => (
           <div
             key={section.title}
-            className={index === 0 ? "" : `mt-8 pt-4 ${collapsed ? "" : "border-t border-[#1C1C1F]"}`}
+            className={
+              index === 0
+                ? ""
+                : `mt-8 pt-4 ${collapsed ? "" : "border-t border-[#1C1C1F]"}`
+            }
           >
             {!collapsed && (
               <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
@@ -333,7 +547,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
             )}
             <nav className="space-y-1">
               {section.items.map((item) => (
-                <SidebarLink
+                <MemoizedSidebarLink
                   key={item.href}
                   item={item}
                   active={isActive(item.href)}
@@ -379,4 +593,4 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       </div>
     </aside>
   );
-}
+});
