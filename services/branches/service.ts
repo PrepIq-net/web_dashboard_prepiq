@@ -21,14 +21,31 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function listBranches(orgId: string) {
-  return apiClientWithSchema(
-    branchEndpoints.list(orgId),
-    z.union([
-      z.array(branchSchema),
-      z.object({ results: z.array(branchSchema) }),
-    ]).transform((payload) => ("results" in payload ? payload.results : payload)),
-    { method: "GET" },
-  );
+  const response = await apiClient<unknown>(branchEndpoints.list(orgId), {
+    method: "GET",
+  });
+
+  const directArray = z.array(branchSchema).safeParse(response);
+  if (directArray.success) return directArray.data;
+
+  const paginated = z.object({ results: z.array(branchSchema) }).safeParse(response);
+  if (paginated.success) return paginated.data.results;
+
+  const wrappedArray = z
+    .object({
+      data: z.array(branchSchema),
+    })
+    .safeParse(response);
+  if (wrappedArray.success) return wrappedArray.data.data;
+
+  const wrappedPaginated = z
+    .object({
+      data: z.object({ results: z.array(branchSchema) }),
+    })
+    .safeParse(response);
+  if (wrappedPaginated.success) return wrappedPaginated.data.data.results;
+
+  throw new Error("Unexpected branch list response format.");
 }
 
 export async function getBranch(orgId: string, branchId: string) {

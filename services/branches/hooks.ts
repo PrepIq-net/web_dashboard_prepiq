@@ -62,7 +62,13 @@ export function useCreateBranch(orgId: string) {
       toast.success(`Branch "${branch.name}" created.`);
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create branch.");
+      const message = error?.message || "Failed to create branch.";
+      const isBranchLimitError =
+        String(message).toLowerCase().includes("maximum of") &&
+        String(message).toLowerCase().includes("branch");
+      if (!isBranchLimitError) {
+        toast.error(message);
+      }
     },
   });
 }

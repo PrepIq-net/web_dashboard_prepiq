@@ -10,7 +10,8 @@ export default function WorkspaceOverviewPage() {
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const shouldHold = userLoading || (Boolean(user?.has_organization) && branchesQuery.isLoading);
+  const shouldHold =
+    userLoading || (Boolean(user?.has_organization) && branchesQuery.isLoading);
   const hasBranches = (branchesQuery.data?.length ?? 0) > 0;
   const shouldShowBranchRequiredState =
     !userLoading &&

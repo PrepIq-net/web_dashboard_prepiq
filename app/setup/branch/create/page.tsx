@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
 import { Building, ArrowRight } from "iconoir-react";
+import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC — Coordinated Universal Time" },
@@ -75,6 +77,7 @@ export default function CreateBranchPage() {
   const [email, setEmail] = useState("");
   const [schedule, setSchedule] = useState<DaySchedule[]>(INITIAL_SCHEDULE);
   const [submitError, setSubmitError] = useState("");
+  const [showUpgradeCta, setShowUpgradeCta] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [touchedDays, setTouchedDays] = useState<Record<OperatingDay, boolean>>({
@@ -169,6 +172,7 @@ export default function CreateBranchPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError("");
+    setShowUpgradeCta(false);
     setSubmitted(true);
 
     if (!isValid) {
@@ -198,24 +202,55 @@ export default function CreateBranchPage() {
     }
 
     try {
-      await createBranch.mutateAsync({
+      const payload = {
         name: name.trim(),
         address: address.trim(),
         timezone,
-        code: code.trim() || undefined,
-        phone: phone.trim() || undefined,
-        email: email.trim() || undefined,
         operating_hours: schedule.map((d) => ({
           day_of_week: d.day,
           is_closed: !d.isOpen,
           opens_at: d.isOpen ? d.opensAt : null,
           closes_at: d.isOpen ? d.closesAt : null,
         })),
-      });
+        ...(code.trim() ? { code: code.trim() } : {}),
+        ...(phone.trim() ? { phone: phone.trim() } : {}),
+        ...(email.trim() ? { email: email.trim() } : {}),
+      };
+
+      await createBranch.mutateAsync(payload);
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to create branch.",
-      );
+      const message =
+        err instanceof Error ? err.message : "Failed to create branch.";
+      const isBranchLimitError =
+        message.toLowerCase().includes("maximum of") &&
+        message.toLowerCase().includes("branch");
+
+      setSubmitError(message);
+      if (isBranchLimitError) {
+        setShowUpgradeCta(true);
+        toast(
+          (t) => (
+            <div className="text-sm">
+              <p className="font-medium text-[#F5F5F7] mb-1">
+                Branch limit reached on current plan.
+              </p>
+              <button
+                type="button"
+                className="text-[#A8821F] underline hover:text-[#B8962E]"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  router.push("/setup/pricing");
+                }}
+              >
+                Upgrade plan
+              </button>
+            </div>
+          ),
+          {
+            duration: 10000,
+          },
+        );
+      }
     }
   }
 
@@ -304,15 +339,10 @@ export default function CreateBranchPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                Phone <span className="text-[#5A5A60]">(optional)</span>
-              </label>
-              <input
-                type="tel"
+              <PhoneInput
+                label="Phone (optional)"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +254 700 000 000"
-                className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
+                onChange={setPhone}
               />
             </div>
 
@@ -460,6 +490,15 @@ export default function CreateBranchPage() {
           {submitError && (
             <div className="p-3 rounded-[8px] bg-[#C44949]/10 border border-[#C44949]/20">
               <p className="text-xs text-[#C44949]">{submitError}</p>
+              {showUpgradeCta ? (
+                <button
+                  type="button"
+                  onClick={() => router.push("/setup/pricing")}
+                  className="mt-2 text-xs text-[#A8821F] underline hover:text-[#B8962E]"
+                >
+                  Upgrade your plan
+                </button>
+              ) : null}
             </div>
           )}
 

@@ -52,6 +52,7 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
+  console.log("User data in HomeContent:", user);
 
   const organizationRole = user?.organization_role ?? "";
   const isBranchManagerMode =
@@ -108,7 +109,7 @@ function HomeContent() {
   }, []);
 
   const activeBranchId = activeBranch?.id ?? "";
-  
+
   // Only fetch branch-specific data when in branch execution mode
   const branchCommandTodayQuery = useBranchCommandView(
     { branch_id: activeBranchId, target_date: todayDate },
@@ -118,7 +119,9 @@ function HomeContent() {
     { branch_id: activeBranchId, target_date: yesterdayDate },
     isBranchExecutionMode && Boolean(activeBranchId),
   );
-  const staffAssignmentsQuery = useStaffAssignments(user?.organization_id ?? "");
+  const staffAssignmentsQuery = useStaffAssignments(
+    user?.organization_id ?? "",
+  );
   const staffChecklistQuery = useStaffShiftChecklist({
     branch_id: activeBranchId,
     target_date: todayDate,
@@ -159,9 +162,7 @@ function HomeContent() {
     !salesValidationQuery.isError &&
     salesValidationQuery.data?.sales_source_connected === false;
   const shouldHoldForBranchGate =
-    !isLoading &&
-    Boolean(user?.has_organization) &&
-    branchesQuery.isLoading;
+    !isLoading && Boolean(user?.has_organization) && branchesQuery.isLoading;
 
   useEffect(() => {
     if (shouldRedirectToToday) {
@@ -237,9 +238,12 @@ function HomeContent() {
   ).length;
   const forecastAccuracyPct =
     Number(controlTower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
-  const highSeverityAlerts = topAlerts.filter((a) => a.severity === "HIGH").length;
+  const highSeverityAlerts = topAlerts.filter(
+    (a) => a.severity === "HIGH",
+  ).length;
   const supplierAnomalies = topAlerts.filter((a) => {
-    const c = `${a.type ?? ""} ${a.title ?? ""} ${a.context ?? ""}`.toLowerCase();
+    const c =
+      `${a.type ?? ""} ${a.title ?? ""} ${a.context ?? ""}`.toLowerCase();
     return c.includes("supplier") || c.includes("purchase");
   }).length;
   const marginLeakagePct = Number(controlTower?.summary?.waste_risk_pct ?? 0);
@@ -293,7 +297,9 @@ function HomeContent() {
 
   const operationalWarnings = [
     ...(salesValidationQuery.data?.missing_sales_detected
-      ? [`Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`]
+      ? [
+          `Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`,
+        ]
       : []),
     ...(Number(
       branchCommandTodayQuery.data?.panels.real_time.remaining_total ?? 0,
@@ -320,9 +326,7 @@ function HomeContent() {
     branchCommandTodayQuery.data?.margin_protection?.at_risk_ugx ?? 0,
   );
   const wasteTodayPct =
-    preparedToday > 0
-      ? ((preparedToday - soldToday) / preparedToday) * 100
-      : 0;
+    preparedToday > 0 ? ((preparedToday - soldToday) / preparedToday) * 100 : 0;
   const inventoryRiskCount = Number(
     branchCommandTodayQuery.data?.panels.real_time.at_risk_count ?? 0,
   );
@@ -364,7 +368,8 @@ function HomeContent() {
 
   const wasteAsRevenuePct =
     revenueToday > 0
-      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") / revenueToday) *
+      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") /
+          revenueToday) *
         100
       : 0;
 

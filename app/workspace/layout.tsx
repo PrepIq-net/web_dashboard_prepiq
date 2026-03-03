@@ -34,11 +34,9 @@ export default function WorkspaceLayout({
     branchesQuery.data?.find((branch) => branch.is_primary)?.id ??
     branchesQuery.data?.[0]?.id ??
     "";
-  const salesValidationQuery = useSalesDataValidation(
-    {
-      branch_id: activeBranchId,
-    },
-  );
+  const salesValidationQuery = useSalesDataValidation({
+    branch_id: activeBranchId,
+  });
   const shouldShowSalesSourceRequiredState =
     Boolean(user?.has_organization) &&
     !shouldShowBranchRequiredState &&
