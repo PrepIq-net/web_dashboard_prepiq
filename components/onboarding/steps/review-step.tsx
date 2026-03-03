@@ -14,7 +14,7 @@ export function ReviewStep() {
   async function handleComplete() {
     try {
       await registerMutation.mutateAsync(formData);
-      router.push("/setup/branch");
+      router.push("/setup/branch/create");
     } catch (error) {
       // toast is handled in hook
     }

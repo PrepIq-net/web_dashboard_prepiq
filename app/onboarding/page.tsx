@@ -1,6 +1,7 @@
 "use client";
 
 import { useCurrentUserProfile } from "@/services";
+import { useBranches } from "@/services/branches/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
@@ -8,13 +9,22 @@ import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 
 export default function OnboardingPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
+  const branchesQuery = useBranches(user?.organization_id ?? "");
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user?.has_organization) {
+    if (isLoading || !user?.has_organization) return;
+
+    if (branchesQuery.isLoading) return;
+
+    const hasBranches = (branchesQuery.data?.length ?? 0) > 0;
+    if (hasBranches) {
       router.replace("/");
+      return;
     }
-  }, [user, isLoading, router]);
+
+    router.replace("/setup/branch/create");
+  }, [user, isLoading, branchesQuery.isLoading, branchesQuery.data, router]);
 
   if (isLoading || (user && user?.has_organization)) {
     return (

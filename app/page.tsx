@@ -149,8 +149,7 @@ function HomeContent() {
     !isLoading &&
     Boolean(user?.has_organization) &&
     !branchesQuery.isLoading &&
-    !branchesQuery.isError &&
-    (branchesQuery.data?.length ?? 0) === 0;
+    ((branchesQuery.data?.length ?? 0) === 0 || branchesQuery.isError);
   const shouldShowSalesSourceRequiredState =
     !isLoading &&
     Boolean(user?.has_organization) &&
@@ -159,6 +158,10 @@ function HomeContent() {
     !salesValidationQuery.isLoading &&
     !salesValidationQuery.isError &&
     salesValidationQuery.data?.sales_source_connected === false;
+  const shouldHoldForBranchGate =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    branchesQuery.isLoading;
 
   useEffect(() => {
     if (shouldRedirectToToday) {
@@ -168,7 +171,7 @@ function HomeContent() {
 
   useEffect(() => {
     if (shouldRedirectToBranchSetup) {
-      router.replace("/setup/branch");
+      router.replace("/setup/branch/create");
     }
   }, [shouldRedirectToBranchSetup, router]);
 
@@ -179,6 +182,19 @@ function HomeContent() {
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
             Getting things ready…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (shouldHoldForBranchGate) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted animate-pulse">
+            Checking branch setup…
           </p>
         </div>
       </main>
