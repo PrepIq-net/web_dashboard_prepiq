@@ -52,7 +52,6 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
-  console.log("User data in HomeContent:", user);
 
   const organizationRole = user?.organization_role ?? "";
   const isBranchManagerMode =
@@ -82,12 +81,23 @@ function HomeContent() {
   }, [branches, isBranchExecutionMode, accessibleBranches]);
 
   // Only fetch org-level data when needed
+  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const yesterdayDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
   const controlTowerQuery = useExecutiveControlTower(
-    undefined,
+    { target_date: todayDate },
+    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
+  );
+  const controlTowerPreviousQuery = useExecutiveControlTower(
+    { target_date: yesterdayDate },
     isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
   const marginReportQuery = useOwnerMarginProtectionReport(
-    undefined,
+    { target_date: todayDate },
     isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
 
@@ -100,13 +110,6 @@ function HomeContent() {
     const primary = branchOptions.find((b) => b.is_primary);
     return primary ?? branchOptions[0];
   }, [branchOptions, selectedBranchFromUrl]);
-
-  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const yesterdayDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  }, []);
 
   const activeBranchId = activeBranch?.id ?? "";
 
@@ -384,10 +387,18 @@ function HomeContent() {
       underperformingBranches * 6 -
       supplierAnomalies * 4,
   );
+  const currentRevenue = Number(controlTower?.summary?.total_revenue ?? 0);
+  const previousRevenue = Number(
+    controlTowerPreviousQuery.data?.summary?.total_revenue ?? 0,
+  );
+  const revenueTrendPct =
+    previousRevenue > 0
+      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+      : null;
   const revenueTrendLabel =
-    forecastAccuracyPct >= 80
-      ? "+6.2% (vs prior period)"
-      : "+2.1% (vs prior period)";
+    revenueTrendPct === null
+      ? "No prior-period baseline yet"
+      : `${revenueTrendPct >= 0 ? "+" : ""}${revenueTrendPct.toFixed(1)}% (vs yesterday)`;
   const ebitdaProxy = Math.max(
     0,
     revenueToday -
