@@ -87,7 +87,7 @@ export default function SalesSetupPage() {
             description="Export from your current system and upload. We'll map the columns for you."
             detail={
               <p className="text-[11px] text-[#5A5A60] mt-2 font-mono">
-                Supported: .csv · .xlsx · .xls
+                Supported: .csv
               </p>
             }
           />

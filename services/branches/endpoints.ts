@@ -14,6 +14,7 @@ export const branchEndpoints = {
     `${ORG(orgId)}/departments/${deptId}/`,
 
   // ── Staff invites ─────────────────────────────────────────────────────────
+  staffInviteContext: (orgId: string) => `${ORG(orgId)}/staff/invite-context/`,
   invites: (orgId: string) => `${ORG(orgId)}/invites/`,
   revokeInvite: (orgId: string, inviteId: string) =>
     `${ORG(orgId)}/invites/${inviteId}/revoke/`,

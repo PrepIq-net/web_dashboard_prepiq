@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CloudUpload, Check, Xmark, Page } from "iconoir-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Select } from "@/components/ui/select";
+import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
+import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
 
 type UploadState = "idle" | "dragging" | "selected" | "uploading";
 
@@ -18,8 +22,26 @@ export default function CSVUploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [file, setFile] = useState<File | null>(null);
+  const [branchId, setBranchId] = useState("");
+  const [error, setError] = useState("");
+  const setSession = useCSVUploadSessionStore((state) => state.setSession);
+  const { data: scope, isLoading: scopeLoading, error: scopeError } =
+    useProductionIntelligenceAccessScope();
+
+  const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
+  const selectedBranchId =
+    branchId || scope?.default_branch_id || branches[0]?.id || "";
 
   function handleFile(f: File) {
+    if (!String(f.name).toLowerCase().endsWith(".csv")) {
+      setError("Only .csv files are supported.");
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError("CSV file too large. Max size is 5MB.");
+      return;
+    }
+    setError("");
     setFile(f);
     setUploadState("selected");
   }
@@ -48,13 +70,43 @@ export default function CSVUploadPage() {
   function clearFile() {
     setFile(null);
     setUploadState("idle");
+    setError("");
     if (inputRef.current) inputRef.current.value = "";
   }
 
   function handleContinue() {
-    if (!file) return;
-    // TODO: upload + column mapping — navigate to mapping step
+    if (!file || !selectedBranchId) return;
+    setSession({ file, branchId: selectedBranchId });
     router.push("/setup/sales/csv/map");
+  }
+
+  async function handleTemplateDownload() {
+    try {
+      setUploadState("uploading");
+      const response = await fetch(
+        "/api/proxy/api/production-intelligence/sales/import-csv/template/",
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Failed to download template.");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "manna_pos_sales_import_template.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError("Could not download template right now. Try again.");
+    } finally {
+      setUploadState(file ? "selected" : "idle");
+    }
   }
 
   const isDragging = uploadState === "dragging";
@@ -83,6 +135,30 @@ export default function CSVUploadPage() {
           Export from your current system and drop it here. We&apos;ll walk you
           through mapping the columns.
         </p>
+
+        <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-6">
+          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
+            Branch
+          </label>
+          {scopeLoading ? (
+            <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
+              <Spinner size="sm" color="#8E8E93" />
+              Loading accessible branches...
+            </div>
+          ) : (
+            <Select
+              label=""
+              options={branches.map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              }))}
+              value={selectedBranchId}
+              onChange={setBranchId}
+              placeholder="Select branch"
+              className="space-y-0"
+            />
+          )}
+        </div>
 
         {/* Drop zone */}
         <div
@@ -148,25 +224,28 @@ export default function CSVUploadPage() {
                   : "Drop your file or click to browse"}
               </p>
               <p className="text-[12px] text-[#5A5A60]">
-                .csv only · max 50 MB
+                .csv only · max 5 MB
               </p>
             </div>
           )}
         </div>
 
+        {(error || scopeError) && (
+          <div className="rounded-[10px] border border-[#C44949]/50 bg-[#C44949]/10 p-3 mb-6">
+            <p className="text-[13px] text-[#E7B4B4]">
+              {error ||
+                (scopeError instanceof Error
+                  ? scopeError.message
+                  : "Unable to load branch access scope.")}
+            </p>
+          </div>
+        )}
+
         {/* Template Download */}
         <div className="flex justify-end mb-6">
           <button
             onClick={() => {
-              const csvContent =
-                "data:text/csv;charset=utf-8,Date,Item Name,Quantity,Revenue\n2026-02-24,Croissant,10,45.00";
-              const encodedUri = encodeURI(csvContent);
-              const link = document.createElement("a");
-              link.setAttribute("href", encodedUri);
-              link.setAttribute("download", "prepiq_sales_template.csv");
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              void handleTemplateDownload();
             }}
             className="text-[12px] font-medium text-[#A8821F] hover:text-[#B8962E] transition-colors"
           >
@@ -203,7 +282,7 @@ export default function CSVUploadPage() {
         {/* CTA */}
         <button
           onClick={handleContinue}
-          disabled={!file}
+          disabled={!file || !selectedBranchId || branches.length === 0 || scopeLoading}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
           Map columns

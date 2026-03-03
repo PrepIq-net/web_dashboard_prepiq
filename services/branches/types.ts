@@ -101,6 +101,11 @@ export type CreateDepartmentPayload = z.infer<
 // Staff roles — mirrors organizations/constants.py
 // ─────────────────────────────────────────────────────────────────────────────
 export const staffRoleEnum = z.enum([
+  "ORG_OWNER",
+  "OPS_DIRECTOR",
+  "ORG_ADMIN",
+  "GM",
+  "STAFF_OPERATOR",
   "OWNER",
   "ADMIN",
   "BRANCH_MANAGER",
@@ -110,6 +115,11 @@ export const staffRoleEnum = z.enum([
 export type StaffRole = z.infer<typeof staffRoleEnum>;
 
 export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  ORG_OWNER: "Organization Owner",
+  OPS_DIRECTOR: "Operations Director",
+  ORG_ADMIN: "Organization Admin",
+  GM: "General Manager",
+  STAFF_OPERATOR: "Staff Operator",
   OWNER: "Owner",
   ADMIN: "Admin",
   BRANCH_MANAGER: "Branch Manager",
@@ -214,3 +224,48 @@ export const inviteValidationSchema = z.object({
   error: z.string().optional(),
 });
 export type InviteValidation = z.infer<typeof inviteValidationSchema>;
+
+export const staffInviteContextRoleSchema = z.object({
+  role: staffRoleEnum,
+  label: z.string(),
+  requires_branch: z.boolean(),
+  capabilities: z.array(z.string()),
+  permission_hints: z.array(z.string()),
+  plan_required_capability: z.string().nullable().optional(),
+});
+export type StaffInviteContextRole = z.infer<typeof staffInviteContextRoleSchema>;
+
+export const staffInviteContextBranchSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  is_primary: z.boolean(),
+});
+export type StaffInviteContextBranch = z.infer<typeof staffInviteContextBranchSchema>;
+
+export const staffInviteContextSchema = z.object({
+  inviter: z.object({
+    user_id: z.string().uuid(),
+    role: z.string(),
+    has_global_staff_mgmt: z.boolean(),
+    has_branch_staff_mgmt: z.boolean(),
+    managed_branch_id: z.string().uuid().nullable().optional(),
+  }),
+  allowed_branches: z.array(staffInviteContextBranchSchema),
+  roles: z.array(staffInviteContextRoleSchema),
+  limits: z.object({
+    plan_name: z.string().nullable().optional(),
+    max_total_staff: z.number().nullable().optional(),
+    max_staff_per_branch: z.number().nullable().optional(),
+    current_staff_total: z.number(),
+    pending_invites_total: z.number(),
+    per_branch: z.array(
+      z.object({
+        branch_id: z.string().uuid(),
+        branch_name: z.string(),
+        current_staff: z.number(),
+        pending_invites: z.number(),
+      }),
+    ),
+  }),
+});
+export type StaffInviteContext = z.infer<typeof staffInviteContextSchema>;

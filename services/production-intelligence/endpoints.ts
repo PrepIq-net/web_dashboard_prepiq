@@ -89,6 +89,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/sales/inbound-email/`,
   salesDataValidation: () =>
     `${BASE}/production-intelligence/sales/data-validation/`,
+  setupForecastWOW: () =>
+    `${BASE}/production-intelligence/setup/forecast-wow/`,
   salesManualQuickEntry: () =>
     `${BASE}/production-intelligence/sales/manual-quick-entry/`,
 

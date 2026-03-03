@@ -18,6 +18,8 @@ import { Suspense, useEffect, useMemo } from "react";
 import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
 import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
+import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
+import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
 import { InsightFooter } from "@/components/dashboard/home/insight-footer";
 import { FinanceView } from "@/components/dashboard/home/finance-view";
 import { OpsView } from "@/components/dashboard/home/ops-view";
@@ -137,12 +139,38 @@ function HomeContent() {
     !isLoading &&
     Boolean(user?.has_organization) &&
     user?.organization_role === "STAFF_OPERATOR";
+  const shouldRedirectToBranchSetup =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !branchesQuery.isLoading &&
+    !branchesQuery.isError &&
+    (branchesQuery.data?.length ?? 0) === 0;
+  const shouldShowBranchRequiredState =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !branchesQuery.isLoading &&
+    !branchesQuery.isError &&
+    (branchesQuery.data?.length ?? 0) === 0;
+  const shouldShowSalesSourceRequiredState =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !shouldRedirectToBranchSetup &&
+    Boolean(activeBranchId) &&
+    !salesValidationQuery.isLoading &&
+    !salesValidationQuery.isError &&
+    salesValidationQuery.data?.sales_source_connected === false;
 
   useEffect(() => {
     if (shouldRedirectToToday) {
       router.replace("/workspace/today");
     }
   }, [shouldRedirectToToday, router]);
+
+  useEffect(() => {
+    if (shouldRedirectToBranchSetup) {
+      router.replace("/setup/branch");
+    }
+  }, [shouldRedirectToBranchSetup, router]);
 
   if (isLoading || (user && !user.has_organization)) {
     return (
@@ -164,6 +192,19 @@ function HomeContent() {
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
             Routing to today&apos;s production command…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (shouldRedirectToBranchSetup) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted animate-pulse">
+            Routing to branch setup…
           </p>
         </div>
       </main>
@@ -387,7 +428,11 @@ function HomeContent() {
           <DashboardTopNavWrapper />
 
           <div className="mt-10 animate-fade-in">
-            {isFinanceMode ? (
+            {shouldShowBranchRequiredState ? (
+              <BranchRequiredState />
+            ) : shouldShowSalesSourceRequiredState ? (
+              <SalesSourceRequiredState />
+            ) : isFinanceMode ? (
               <FinanceView
                 revenueToday={revenueToday}
                 grossMarginPct={grossMarginPct}
