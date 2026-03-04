@@ -6,7 +6,6 @@ import {
   ArrowRight,
   CoinsSwap,
   ShieldCheck,
-  Spark,
   CheckCircle,
 } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
@@ -15,8 +14,6 @@ import {
   useCurrentSubscription,
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
-import { useCurrentUserProfile } from "@/services/users/hooks";
-import { useBranches } from "@/services/branches/hooks";
 import type { SubscriptionPlan } from "@/services/payment/types";
 
 function toNumber(value: unknown): number {
@@ -67,18 +64,8 @@ function planSubtitle(planType?: string) {
   return "Operational plan";
 }
 
-function recommendedPlanTypeForContext(role: string, branchCount: number) {
-  if (branchCount >= 3) return "COMMAND";
-  if (["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM"].includes(role)) {
-    return "INTELLIGENCE";
-  }
-  return "CORE";
-}
-
 export default function PricingStepPage() {
   const router = useRouter();
-  const { data: user } = useCurrentUserProfile();
-  const branchesQuery = useBranches(user?.organization_id ?? "");
   const plansQuery = useSubscriptionPlanPricing();
   const currentSubscriptionQuery = useCurrentSubscription();
 
@@ -88,13 +75,13 @@ export default function PricingStepPage() {
     ? "CORE"
     : currentSubscriptionQuery.data?.plan?.plan_type;
 
-  const plans = useMemo(() => sortPlanOrder(plansQuery.data ?? []), [plansQuery.data]);
-  const currentPlan = plans.find((plan) => plan.plan_type === currentPlanType);
-  const branchCount = branchesQuery.data?.length ?? 0;
-  const recommendedPlanType = recommendedPlanTypeForContext(
-    user?.organization_role ?? "",
-    branchCount,
+  const plans = useMemo(
+    () => sortPlanOrder(plansQuery.data?.plans ?? []),
+    [plansQuery.data?.plans],
   );
+  const currentPlan = plans.find((plan) => plan.plan_type === currentPlanType);
+  const recommendedPlanType = plansQuery.data?.recommendation?.recommended_plan_type;
+  const recommendationReason = plansQuery.data?.recommendation?.reason;
 
   function handleContinueCurrent() {
     router.push("/");
@@ -156,6 +143,14 @@ export default function PricingStepPage() {
               </p>
             </div>
           </div>
+          {recommendationReason ? (
+            <div className="mt-5 pt-5 border-t border-[#2A2A2E]">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-1">
+                Recommendation Logic
+              </p>
+              <p className="text-[13px] text-[#C7C7CC]">{recommendationReason}</p>
+            </div>
+          ) : null}
         </section>
 
         {plansQuery.isLoading ? (
@@ -221,9 +216,7 @@ export default function PricingStepPage() {
                         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full bg-[#A8821F]/15 text-[#A8821F] whitespace-nowrap">
                           Current
                         </span>
-                      ) : (
-                        <Spark className="h-4 w-4 text-[#8E8E93]" />
-                      )}
+                      ) : null}
                     </div>
                   </div>
 

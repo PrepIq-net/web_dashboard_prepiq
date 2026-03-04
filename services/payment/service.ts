@@ -20,6 +20,7 @@ import {
   subscriptionDetailSchema,
   subscriptionListSchema,
   subscriptionPlanSchema,
+  subscriptionPlanPricingResponseSchema,
   subscriptionQuoteRequestSchema,
   type AttachSubscriptionAddOnPayload,
   type CancelSubscriptionPayload,
@@ -78,10 +79,11 @@ function unwrapListResponse<T>(
 }
 
 const plansPricingResponseSchema = z.union([
-  z.object({ plans: z.array(subscriptionPlanSchema) }),
+  subscriptionPlanPricingResponseSchema,
   z.object({
     data: z.object({
       plans: z.array(subscriptionPlanSchema),
+      recommendation: subscriptionPlanPricingResponseSchema.shape.recommendation,
     }),
   }),
 ]);
@@ -103,8 +105,8 @@ export async function getSubscriptionPlanPricing() {
     { method: "GET" },
   );
 
-  if ("plans" in response) return response.plans;
-  return response.data.plans;
+  if ("plans" in response) return response;
+  return response.data;
 }
 
 export async function listSubscriptions() {
