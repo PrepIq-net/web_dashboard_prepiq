@@ -27,6 +27,9 @@ type BranchControlRow = {
   status: "HEALTHY" | "AT_RISK" | "UNDERPERFORMING";
 };
 
+const EMPTY_LIST: never[] = [];
+const branchColumnHelper = createColumnHelper<BranchControlRow>();
+
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -43,8 +46,11 @@ export default function BranchesPage() {
   const canAccess = ["OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, canAccess);
+  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    canAccess && Boolean(user?.organization_id),
+  );
 
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
@@ -57,9 +63,9 @@ export default function BranchesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canAccess]);
 
-  const branches = branchesQuery.data ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
   const rows = useMemo<BranchControlRow[]>(() => {
     return branchGrid.map((branch) => {
@@ -101,14 +107,13 @@ export default function BranchesPage() {
     underperforming: rows.filter((row) => row.status === "UNDERPERFORMING").length,
   };
 
-  const compareMap = new Map(rows.map((row) => [row.id, row]));
+  const compareMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
   const compareDelta =
     compareA && compareB && compareA !== compareB
       ? (compareMap.get(compareA)?.efficiencyScore ?? 0) -
         (compareMap.get(compareB)?.efficiencyScore ?? 0)
       : 0;
 
-  const branchColumnHelper = createColumnHelper<BranchControlRow>();
   const columns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
@@ -220,7 +225,7 @@ export default function BranchesPage() {
         },
       }),
     ],
-    [branchColumnHelper, router, targetAdjustments],
+    [router, targetAdjustments],
   );
 
   const table = useReactTable({

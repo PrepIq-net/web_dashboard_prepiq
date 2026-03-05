@@ -333,7 +333,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
         },
         {
           label: "Staff",
-          href: "/workspace/staff",
+          href: "/workspace/staff-performance",
           icon: <User className="h-4 w-4" />,
         },
         {

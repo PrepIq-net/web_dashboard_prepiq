@@ -23,6 +23,8 @@ type LocalLog = {
   timestamp: string;
 };
 
+const EMPTY_LIST: never[] = [];
+
 function isDiscreteUnit(unit: string) {
   return ["PCS", "PLATES", "BOXES", "TRAYS", "SERVINGS"].includes((unit || "").toUpperCase());
 }
@@ -53,12 +55,10 @@ export default function ProductionPage() {
   const isOpsDirector = role === "OPS_DIRECTOR";
   const isOwner = role === "ORG_OWNER" || role === "ORG_ADMIN";
 
-  const branches = branchesQuery.data ?? [];
-  const accessibleBranchIds = new Set(
-    (accessScope?.accessible_branches ?? []).map((branch) => branch.id),
-  );
-
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const branchOptions = useMemo(() => {
+    const accessibleBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
     const byId = new Map<string, { id: string; name: string; is_primary: boolean }>();
     for (const branch of branches) {
       byId.set(branch.id, {
@@ -67,7 +67,7 @@ export default function ProductionPage() {
         is_primary: Boolean(branch.is_primary),
       });
     }
-    for (const branch of accessScope?.accessible_branches ?? []) {
+    for (const branch of accessibleBranches) {
       if (byId.has(branch.id)) continue;
       byId.set(branch.id, {
         id: branch.id,
@@ -80,7 +80,7 @@ export default function ProductionPage() {
       merged = merged.filter((branch) => accessibleBranchIds.has(branch.id));
     }
     return merged;
-  }, [branches, accessScope?.accessible_branches, isStaffOperator, isBranchManager, accessibleBranchIds]);
+  }, [branches, accessibleBranches, isStaffOperator, isBranchManager]);
 
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const defaultBranchId =
@@ -108,11 +108,17 @@ export default function ProductionPage() {
     branch_id: activeBranchId,
     target_date: todayDate,
   });
-  const controlTowerQuery = useExecutiveControlTower(undefined, isOpsDirector || isOwner);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, isOpsDirector || isOwner);
+  const controlTowerQuery = useExecutiveControlTower(
+    undefined,
+    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
+  );
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
+  );
 
   const recommendations =
-    branchCommandQuery.data?.panels.forecast.recommendations ?? [];
+    branchCommandQuery.data?.panels.forecast.recommendations ?? EMPTY_LIST;
   const preparedTotal = Number(
     branchCommandQuery.data?.panels.real_time.prepared_total ?? 0,
   );
@@ -197,8 +203,8 @@ export default function ProductionPage() {
     };
   });
 
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
   return (
     <WorkspaceShell

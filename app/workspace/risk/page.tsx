@@ -42,6 +42,9 @@ type BranchRiskRow = {
   supplier: number;
 };
 
+const EMPTY_LIST: never[] = [];
+const branchRiskColumnHelper = createColumnHelper<BranchRiskRow>();
+
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
 }
@@ -70,8 +73,11 @@ export default function RiskPage() {
   const canAccess = ["OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN", "AUDITOR", "ACCOUNTANT"].includes(role);
   const financialOnly = role === "AUDITOR" || role === "ACCOUNTANT";
 
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, canAccess);
+  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    canAccess && Boolean(user?.organization_id),
+  );
 
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
@@ -81,9 +87,9 @@ export default function RiskPage() {
     }
   }, [isLoading, canAccess, router]);
 
-  const alerts = controlTowerQuery.data?.alerts ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
   const totalWasteCost = Number(marginReportQuery.data?.summary?.total_waste_cost ?? "0");
 
   const textSignals = useMemo(() => {
@@ -220,27 +226,26 @@ export default function RiskPage() {
     ];
   }, [compositeRisk]);
 
-  const branchColumnHelper = createColumnHelper<BranchRiskRow>();
   const branchColumns = useMemo(() => {
     if (financialOnly) {
       return [
-        branchColumnHelper.accessor("branch", {
+        branchRiskColumnHelper.accessor("branch", {
           header: "Branch",
           cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
         }),
-        branchColumnHelper.accessor("composite", {
+        branchRiskColumnHelper.accessor("composite", {
           header: "Composite",
           cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
         }),
-        branchColumnHelper.accessor("margin", {
+        branchRiskColumnHelper.accessor("margin", {
           header: "Margin",
           cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
         }),
-        branchColumnHelper.accessor("tax", {
+        branchRiskColumnHelper.accessor("tax", {
           header: "Tax",
           cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
         }),
-        branchColumnHelper.accessor("supplier", {
+        branchRiskColumnHelper.accessor("supplier", {
           header: "Supplier",
           cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
         }),
@@ -248,36 +253,36 @@ export default function RiskPage() {
     }
 
     return [
-      branchColumnHelper.accessor("branch", {
+      branchRiskColumnHelper.accessor("branch", {
         header: "Branch",
         cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
-      branchColumnHelper.accessor("composite", {
+      branchRiskColumnHelper.accessor("composite", {
         header: "Composite",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
-      branchColumnHelper.accessor("margin", {
+      branchRiskColumnHelper.accessor("margin", {
         header: "Margin",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
-      branchColumnHelper.accessor("compliance", {
+      branchRiskColumnHelper.accessor("compliance", {
         header: "Compliance",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
-      branchColumnHelper.accessor("inventory", {
+      branchRiskColumnHelper.accessor("inventory", {
         header: "Inventory",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
-      branchColumnHelper.accessor("tax", {
+      branchRiskColumnHelper.accessor("tax", {
         header: "Tax",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
-      branchColumnHelper.accessor("supplier", {
+      branchRiskColumnHelper.accessor("supplier", {
         header: "Supplier",
         cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
       }),
     ];
-  }, [branchColumnHelper, financialOnly]);
+  }, [financialOnly]);
 
   const branchTable = useReactTable({
     data: branchRows,

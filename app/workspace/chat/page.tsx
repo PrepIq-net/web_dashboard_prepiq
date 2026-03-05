@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import React from "react";
 import { ChatThreadList } from "@/components/chat/chat-thread-list";
 import { ChatMessageArea } from "@/components/chat/chat-message-area";
 import { ChatEmptyState } from "@/components/chat/chat-empty-state";
@@ -11,33 +8,9 @@ import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile, useChatThreads } from "@/services";
 
 export default function ChatPage() {
-  const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-  
-  // Fetch threads for all users
   const threadsQuery = useChatThreads();
-
-  // Debug logging - check what's happening
-  React.useEffect(() => {
-    console.log('Chat page threadsQuery state:', {
-      data: threadsQuery.data,
-      isLoading: threadsQuery.isLoading,
-      error: threadsQuery.error,
-      isError: threadsQuery.isError,
-      status: threadsQuery.status,
-      fetchStatus: threadsQuery.fetchStatus
-    });
-    
-    if (threadsQuery.error) {
-      console.error('Thread query error details:', threadsQuery.error);
-    }
-    
-    // Test direct API call
-    if (threadsQuery.status === 'pending' && !threadsQuery.isFetching) {
-      console.warn('Query is pending but not fetching - this might indicate a configuration issue');
-    }
-  }, [threadsQuery.data, threadsQuery.isLoading, threadsQuery.error, threadsQuery.status, threadsQuery.fetchStatus, threadsQuery.isFetching]);
 
   if (isLoading) {
     return (

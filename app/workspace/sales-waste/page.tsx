@@ -32,6 +32,9 @@ type SalesWasteRow = {
   marginImpact: number;
 };
 
+const EMPTY_LIST: never[] = [];
+const salesWasteColumnHelper = createColumnHelper<SalesWasteRow>();
+
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -70,9 +73,10 @@ export default function SalesWastePage() {
   const readOnly = isOwner;
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
-  const branches = branchesQuery.data ?? [];
+  const branches = branchesQuery.data ?? EMPTY_LIST;
 
-  const scopedBranchIds = new Set((accessScope?.accessible_branches ?? []).map((branch) => branch.id));
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
+  const scopedBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
   const branchOptions =
     isBranchManager && scopedBranchIds.size
       ? branches.filter((branch) => scopedBranchIds.has(branch.id))
@@ -117,7 +121,9 @@ export default function SalesWastePage() {
       branch_id: isBranchManager ? selectedBranchId : undefined,
       target_date: targetDate,
     },
-    (isOpsDirector || isOwner) && (!isBranchManager || Boolean(selectedBranchId)),
+    (isOpsDirector || isOwner) &&
+      Boolean(user?.organization_id) &&
+      (!isBranchManager || Boolean(selectedBranchId)),
   );
 
   const marginReportQuery = useOwnerMarginProtectionReport(
@@ -125,10 +131,10 @@ export default function SalesWastePage() {
       branch_id: isBranchManager ? selectedBranchId : undefined,
       target_date: targetDate,
     },
-    isOpsDirector || isOwner,
+    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
   );
 
-  const recommendations = branchCommandQuery.data?.panels.forecast.recommendations ?? [];
+  const recommendations = branchCommandQuery.data?.panels.forecast.recommendations ?? EMPTY_LIST;
   const preparedTotal = Number(branchCommandQuery.data?.panels.real_time.prepared_total ?? 0);
   const soldTotal = Number(branchCommandQuery.data?.panels.real_time.sold_total ?? 0);
 
@@ -176,7 +182,7 @@ export default function SalesWastePage() {
   const underproductionCost = tableRows
     .reduce((sum, row) => sum + Math.max(0, row.sold - row.produced) * (row.marginImpact / Math.max(1, row.sold)), 0);
 
-  const branchGrid = executiveQuery.data?.branch_grid ?? [];
+  const branchGrid = executiveQuery.data?.branch_grid ?? EMPTY_LIST;
   const totalRevenueFromGrid = executiveQuery.data?.summary?.total_revenue ?? 0;
   const selectedBranchRevenue = branchGrid.find((branch) => branch.branch_id === selectedBranchId)?.revenue;
 
@@ -208,38 +214,37 @@ export default function SalesWastePage() {
   const maxVarianceTrend = Math.max(...varianceTrend, 1);
   const maxItemWaste = Math.max(...tableRows.map((row) => row.wasteCost), 1);
 
-  const columnHelper = createColumnHelper<SalesWasteRow>();
   const columns = useMemo(
     () => [
-      columnHelper.accessor("item", {
+      salesWasteColumnHelper.accessor("item", {
         header: "Item",
         cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("forecasted", {
+      salesWasteColumnHelper.accessor("forecasted", {
         header: "Forecasted",
         cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("produced", {
+      salesWasteColumnHelper.accessor("produced", {
         header: "Produced",
         cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("sold", {
+      salesWasteColumnHelper.accessor("sold", {
         header: "Sold",
         cell: (info) => <span className="text-[12px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("waste", {
+      salesWasteColumnHelper.accessor("waste", {
         header: "Waste",
         cell: (info) => <span className="text-[12px] text-[#C48B2A]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("wasteCost", {
+      salesWasteColumnHelper.accessor("wasteCost", {
         header: "Waste Cost",
         cell: (info) => <span className="text-[12px] text-[#C48B2A]">{toCurrency(info.getValue())}</span>,
       }),
-      columnHelper.accessor("marginImpact", {
+      salesWasteColumnHelper.accessor("marginImpact", {
         header: "Margin Impact",
         cell: (info) => <span className="text-[12px] text-[#C44949]">{toCurrency(info.getValue())}</span>,
       }),
-      columnHelper.display({
+      salesWasteColumnHelper.display({
         id: "actions",
         header: "Actions",
         cell: (info) => {
@@ -283,7 +288,7 @@ export default function SalesWastePage() {
         },
       }),
     ],
-    [columnHelper, targetDate, selectedBranchId, readOnly, flaggedRows, wasteNotes],
+    [targetDate, selectedBranchId, readOnly, flaggedRows, wasteNotes],
   );
 
   const table = useReactTable({

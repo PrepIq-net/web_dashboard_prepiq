@@ -29,6 +29,9 @@ type InventoryRow = {
   deadStock: boolean;
 };
 
+const EMPTY_LIST: never[] = [];
+const inventoryColumnHelper = createColumnHelper<InventoryRow>();
+
 function hashNumber(input: string) {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
@@ -54,8 +57,9 @@ export default function InventoryPage() {
   const canAccess = ["STAFF_OPERATOR", "BRANCH_MANAGER", "GM", "OPS_DIRECTOR"].includes(role);
   const isOpsDirector = role === "OPS_DIRECTOR";
 
-  const branches = branchesQuery.data ?? [];
-  const scopedBranchIds = new Set((accessScope?.accessible_branches ?? []).map((branch) => branch.id));
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
+  const scopedBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
   const scopedBranches =
     role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM"
       ? branches.filter((branch) => (scopedBranchIds.size ? scopedBranchIds.has(branch.id) : true))
@@ -96,11 +100,15 @@ export default function InventoryPage() {
     branch_id: branchId,
     target_date: targetDate,
   });
-  const controlTowerQuery = useExecutiveControlTower(undefined, isOpsDirector);
+  const controlTowerQuery = useExecutiveControlTower(
+    undefined,
+    isOpsDirector && Boolean(user?.organization_id),
+  );
 
-  const recommendations = branchCommandQuery.data?.panels.forecast.recommendations ?? [];
+  const recommendations = branchCommandQuery.data?.panels.forecast.recommendations ?? EMPTY_LIST;
+  const stockoutEvents = stockoutsQuery.data?.results ?? EMPTY_LIST;
   const stockoutByItem = new Map<string, number>();
-  for (const event of stockoutsQuery.data?.results ?? []) {
+  for (const event of stockoutEvents) {
     stockoutByItem.set(event.item_title, (stockoutByItem.get(event.item_title) ?? 0) + 1);
   }
 
@@ -130,7 +138,7 @@ export default function InventoryPage() {
 
     if (rows.length > 0) return rows;
 
-    return (salesValidationQuery.data?.missing_items ?? []).map((item, index) => ({
+    return (salesValidationQuery.data?.missing_items ?? EMPTY_LIST).map((item, index) => ({
       id: item.item_id,
       item: item.item_title,
       stockLevel: Math.max(2, 10 - index * 2),
@@ -149,14 +157,13 @@ export default function InventoryPage() {
     ? inventoryRows.reduce((sum, row) => sum + row.usageVelocity, 0) / inventoryRows.length
     : 0;
 
-  const columnHelper = createColumnHelper<InventoryRow>();
   const columns = useMemo(
     () => [
-      columnHelper.accessor("item", {
+      inventoryColumnHelper.accessor("item", {
         header: "Item",
         cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("stockLevel", {
+      inventoryColumnHelper.accessor("stockLevel", {
         header: "Stock Level",
         cell: (info) => {
           const row = info.row.original;
@@ -168,11 +175,11 @@ export default function InventoryPage() {
           );
         },
       }),
-      columnHelper.accessor("reorderThreshold", {
+      inventoryColumnHelper.accessor("reorderThreshold", {
         header: "Reorder Threshold",
         cell: (info) => <span className="text-[12px] text-[#C48B2A]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("daysToExpiry", {
+      inventoryColumnHelper.accessor("daysToExpiry", {
         header: "Expiry",
         cell: (info) => {
           const value = info.getValue();
@@ -183,7 +190,7 @@ export default function InventoryPage() {
           );
         },
       }),
-      columnHelper.accessor("usageVelocity", {
+      inventoryColumnHelper.accessor("usageVelocity", {
         header: "Usage Velocity",
         cell: (info) => {
           const value = info.getValue();
@@ -195,7 +202,7 @@ export default function InventoryPage() {
           );
         },
       }),
-      columnHelper.accessor("deadStock", {
+      inventoryColumnHelper.accessor("deadStock", {
         header: "Dead Stock",
         cell: (info) => (
           <span className={`text-[11px] uppercase tracking-[0.08em] ${info.getValue() ? "text-[#C44949]" : "text-[#3F8F68]"}`}>
@@ -204,7 +211,7 @@ export default function InventoryPage() {
         ),
       }),
     ],
-    [columnHelper],
+    [],
   );
 
   const table = useReactTable({
@@ -213,7 +220,7 @@ export default function InventoryPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
 
   return (
     <WorkspaceShell
@@ -322,7 +329,7 @@ export default function InventoryPage() {
               <p className="text-[12px] text-[#8E8E93]">
                 Stockout events today: <span className="text-[#F5F5F7]">{stockoutsQuery.data?.count ?? 0}</span>
               </p>
-              {(stockoutsQuery.data?.results ?? []).slice(0, 4).map((event) => (
+              {stockoutEvents.slice(0, 4).map((event) => (
                 <div key={event.id} className="border-b border-[#232327] pb-2.5">
                   <p className="text-[13px] text-[#F5F5F7]">{event.item_title}</p>
                   <p className="text-[12px] text-[#8E8E93]">Unmet demand {event.estimated_unmet_demand}</p>
