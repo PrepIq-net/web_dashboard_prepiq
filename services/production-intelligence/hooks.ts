@@ -13,9 +13,12 @@ import {
   createStaffStockoutEvent,
   getOwnerDailyPerformance,
   getProductionIntelligenceAccessScope,
+  getSetupForecastWOW,
   getSalesDataValidation,
+  importPOSCSV,
   getStaffShiftChecklist,
   getStaffStockoutEvents,
+  previewPOSCSVImport,
   getTodayPrepRecommendations,
   startSquareOAuth,
   updateBranchDayStatus,
@@ -28,6 +31,9 @@ import {
   type OwnerMarginProtectionReportQuery,
   type OwnerDailyPerformanceQuery,
   type SalesDataValidationQuery,
+  type SetupForecastWOWQuery,
+  type POSCSVImportPayload,
+  type POSCSVPreviewPayload,
   type StaffShiftChecklistQuery,
   type StaffStockoutEventsQuery,
   type TodayPrepRecommendationsQuery,
@@ -97,6 +103,14 @@ export const productionIntelligenceQueryKeys = {
       "sales-data-validation",
       params.branch_id,
       params.target_date ?? "",
+    ] as const,
+  setupForecastWOW: (params?: SetupForecastWOWQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "setup-forecast-wow",
+      params?.branch_id ?? "",
+      params?.target_date ?? "",
+      params?.horizon_weeks ?? 3,
     ] as const,
   staffShiftChecklist: (params: StaffShiftChecklistQuery) =>
     [
@@ -280,6 +294,14 @@ export function useSalesDataValidation(params: SalesDataValidationQuery) {
   });
 }
 
+export function useSetupForecastWOW(params?: SetupForecastWOWQuery, enabled = true) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.setupForecastWOW(params),
+    queryFn: () => getSetupForecastWOW(params),
+    enabled,
+  });
+}
+
 export function useStaffShiftChecklist(params: StaffShiftChecklistQuery) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.staffShiftChecklist(params),
@@ -337,5 +359,26 @@ export function useCreateStaffStockoutEvent() {
 export function useStartSquareOAuth() {
   return useMutation({
     mutationFn: (payload: SquareOAuthStartPayload) => startSquareOAuth(payload),
+  });
+}
+
+export function usePreviewPOSCSVImport() {
+  return useMutation({
+    mutationFn: (payload: POSCSVPreviewPayload) => previewPOSCSVImport(payload),
+  });
+}
+
+export function useImportPOSCSV() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: POSCSVImportPayload) => importPOSCSV(payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.salesDataValidation({
+          branch_id: variables.branch_id,
+        }),
+      });
+    },
   });
 }

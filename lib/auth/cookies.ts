@@ -44,6 +44,18 @@ export function getExpiredCookieOptions(): CookieOptions {
   };
 }
 
+type CookieWritableResponse = {
+  cookies: {
+    set: (name: string, value: string, options: CookieOptions) => void;
+  };
+};
+
+export function clearAuthCookies(response: CookieWritableResponse): void {
+  const expired = getExpiredCookieOptions();
+  response.cookies.set(AUTH_COOKIES.accessToken, "", expired);
+  response.cookies.set(AUTH_COOKIES.refreshToken, "", expired);
+}
+
 export function resolveBackendBaseUrl(): string {
   const baseUrl =
     process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;

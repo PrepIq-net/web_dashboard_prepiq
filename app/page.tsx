@@ -18,6 +18,8 @@ import { Suspense, useEffect, useMemo } from "react";
 import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
 import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
+import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
+import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
 import { InsightFooter } from "@/components/dashboard/home/insight-footer";
 import { FinanceView } from "@/components/dashboard/home/finance-view";
 import { OpsView } from "@/components/dashboard/home/ops-view";
@@ -79,12 +81,23 @@ function HomeContent() {
   }, [branches, isBranchExecutionMode, accessibleBranches]);
 
   // Only fetch org-level data when needed
+  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const yesterdayDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
   const controlTowerQuery = useExecutiveControlTower(
-    undefined,
+    { target_date: todayDate },
+    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
+  );
+  const controlTowerPreviousQuery = useExecutiveControlTower(
+    { target_date: yesterdayDate },
     isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
   const marginReportQuery = useOwnerMarginProtectionReport(
-    undefined,
+    { target_date: todayDate },
     isOrganizationIntelligenceMode && Boolean(user?.organization_id),
   );
 
@@ -98,15 +111,8 @@ function HomeContent() {
     return primary ?? branchOptions[0];
   }, [branchOptions, selectedBranchFromUrl]);
 
-  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const yesterdayDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
   const activeBranchId = activeBranch?.id ?? "";
-  
+
   // Only fetch branch-specific data when in branch execution mode
   const branchCommandTodayQuery = useBranchCommandView(
     { branch_id: activeBranchId, target_date: todayDate },
@@ -116,7 +122,9 @@ function HomeContent() {
     { branch_id: activeBranchId, target_date: yesterdayDate },
     isBranchExecutionMode && Boolean(activeBranchId),
   );
-  const staffAssignmentsQuery = useStaffAssignments(user?.organization_id ?? "");
+  const staffAssignmentsQuery = useStaffAssignments(
+    user?.organization_id ?? "",
+  );
   const staffChecklistQuery = useStaffShiftChecklist({
     branch_id: activeBranchId,
     target_date: todayDate,
@@ -137,12 +145,39 @@ function HomeContent() {
     !isLoading &&
     Boolean(user?.has_organization) &&
     user?.organization_role === "STAFF_OPERATOR";
+  const shouldRedirectToBranchSetup =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !branchesQuery.isLoading &&
+    !branchesQuery.isError &&
+    (branchesQuery.data?.length ?? 0) === 0;
+  const shouldShowBranchRequiredState =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !branchesQuery.isLoading &&
+    ((branchesQuery.data?.length ?? 0) === 0 || branchesQuery.isError);
+  const shouldShowSalesSourceRequiredState =
+    !isLoading &&
+    Boolean(user?.has_organization) &&
+    !shouldRedirectToBranchSetup &&
+    Boolean(activeBranchId) &&
+    !salesValidationQuery.isLoading &&
+    !salesValidationQuery.isError &&
+    salesValidationQuery.data?.sales_source_connected === false;
+  const shouldHoldForBranchGate =
+    !isLoading && Boolean(user?.has_organization) && branchesQuery.isLoading;
 
   useEffect(() => {
     if (shouldRedirectToToday) {
       router.replace("/workspace/today");
     }
   }, [shouldRedirectToToday, router]);
+
+  useEffect(() => {
+    if (shouldRedirectToBranchSetup) {
+      router.replace("/setup/branch/create");
+    }
+  }, [shouldRedirectToBranchSetup, router]);
 
   if (isLoading || (user && !user.has_organization)) {
     return (
@@ -151,6 +186,19 @@ function HomeContent() {
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
             Getting things ready…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (shouldHoldForBranchGate) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted animate-pulse">
+            Checking branch setup…
           </p>
         </div>
       </main>
@@ -170,6 +218,19 @@ function HomeContent() {
     );
   }
 
+  if (shouldRedirectToBranchSetup) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-surface-1">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+          <p className="text-sm font-medium text-text-muted animate-pulse">
+            Routing to branch setup…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   // ── Derived values ────────────────────────────────────────────────────────
   const controlTower = controlTowerQuery.data;
   const marginReport = marginReportQuery.data;
@@ -180,9 +241,12 @@ function HomeContent() {
   ).length;
   const forecastAccuracyPct =
     Number(controlTower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
-  const highSeverityAlerts = topAlerts.filter((a) => a.severity === "HIGH").length;
+  const highSeverityAlerts = topAlerts.filter(
+    (a) => a.severity === "HIGH",
+  ).length;
   const supplierAnomalies = topAlerts.filter((a) => {
-    const c = `${a.type ?? ""} ${a.title ?? ""} ${a.context ?? ""}`.toLowerCase();
+    const c =
+      `${a.type ?? ""} ${a.title ?? ""} ${a.context ?? ""}`.toLowerCase();
     return c.includes("supplier") || c.includes("purchase");
   }).length;
   const marginLeakagePct = Number(controlTower?.summary?.waste_risk_pct ?? 0);
@@ -236,7 +300,9 @@ function HomeContent() {
 
   const operationalWarnings = [
     ...(salesValidationQuery.data?.missing_sales_detected
-      ? [`Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`]
+      ? [
+          `Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`,
+        ]
       : []),
     ...(Number(
       branchCommandTodayQuery.data?.panels.real_time.remaining_total ?? 0,
@@ -263,9 +329,7 @@ function HomeContent() {
     branchCommandTodayQuery.data?.margin_protection?.at_risk_ugx ?? 0,
   );
   const wasteTodayPct =
-    preparedToday > 0
-      ? ((preparedToday - soldToday) / preparedToday) * 100
-      : 0;
+    preparedToday > 0 ? ((preparedToday - soldToday) / preparedToday) * 100 : 0;
   const inventoryRiskCount = Number(
     branchCommandTodayQuery.data?.panels.real_time.at_risk_count ?? 0,
   );
@@ -307,7 +371,8 @@ function HomeContent() {
 
   const wasteAsRevenuePct =
     revenueToday > 0
-      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") / revenueToday) *
+      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") /
+          revenueToday) *
         100
       : 0;
 
@@ -322,10 +387,18 @@ function HomeContent() {
       underperformingBranches * 6 -
       supplierAnomalies * 4,
   );
+  const currentRevenue = Number(controlTower?.summary?.total_revenue ?? 0);
+  const previousRevenue = Number(
+    controlTowerPreviousQuery.data?.summary?.total_revenue ?? 0,
+  );
+  const revenueTrendPct =
+    previousRevenue > 0
+      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+      : null;
   const revenueTrendLabel =
-    forecastAccuracyPct >= 80
-      ? "+6.2% (vs prior period)"
-      : "+2.1% (vs prior period)";
+    revenueTrendPct === null
+      ? "No prior-period baseline yet"
+      : `${revenueTrendPct >= 0 ? "+" : ""}${revenueTrendPct.toFixed(1)}% (vs yesterday)`;
   const ebitdaProxy = Math.max(
     0,
     revenueToday -
@@ -387,7 +460,11 @@ function HomeContent() {
           <DashboardTopNavWrapper />
 
           <div className="mt-10 animate-fade-in">
-            {isFinanceMode ? (
+            {shouldShowBranchRequiredState ? (
+              <BranchRequiredState />
+            ) : shouldShowSalesSourceRequiredState ? (
+              <SalesSourceRequiredState />
+            ) : isFinanceMode ? (
               <FinanceView
                 revenueToday={revenueToday}
                 grossMarginPct={grossMarginPct}

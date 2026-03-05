@@ -45,6 +45,10 @@ type CostStructureRow = {
 
 type FinancialTab = "OVERVIEW" | "MARGIN" | "WASTE" | "SALES" | "TAX" | "EXPORTS";
 
+const EMPTY_LIST: never[] = [];
+const financialBranchColumnHelper = createColumnHelper<FinancialBranchRow>();
+const financialCategoryColumnHelper = createColumnHelper<CategoryMarginRow>();
+
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -74,8 +78,11 @@ export default function FinancialPage() {
   const canAccess = ["AUDITOR", "ACCOUNTANT", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, canAccess);
+  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    canAccess && Boolean(user?.organization_id),
+  );
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
@@ -91,9 +98,9 @@ export default function FinancialPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canAccess]);
 
-  const branches = branchesQuery.data ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
   const timeframeMultiplier = timeframe === "7d" ? 0.35 : timeframe === "90d" ? 2.7 : 1;
 
@@ -169,7 +176,7 @@ export default function FinancialPage() {
     });
   }, [branchRows]);
 
-  const compareMap = new Map(branchRows.map((row) => [row.id, row]));
+  const compareMap = useMemo(() => new Map(branchRows.map((row) => [row.id, row])), [branchRows]);
   const compareDelta =
     compareA && compareB && compareA !== compareB
       ? (compareMap.get(compareA)?.grossMarginPct ?? 0) - (compareMap.get(compareB)?.grossMarginPct ?? 0)
@@ -248,31 +255,30 @@ export default function FinancialPage() {
     [costStructureRows],
   );
 
-  const branchColumnHelper = createColumnHelper<FinancialBranchRow>();
   const branchColumns = useMemo(
     () => [
-      branchColumnHelper.accessor("branch", {
+      financialBranchColumnHelper.accessor("branch", {
         header: "Branch",
         cell: (info) => <span className="text-sm font-semibold text-text-primary">{info.getValue()}</span>,
       }),
-      branchColumnHelper.accessor("revenue", {
+      financialBranchColumnHelper.accessor("revenue", {
         header: "Revenue",
         cell: (info) => <span className="text-sm text-text-secondary">{toCurrency(info.getValue())}</span>,
       }),
-      branchColumnHelper.accessor("grossMarginPct", {
+      financialBranchColumnHelper.accessor("grossMarginPct", {
         header: "Gross Margin",
         cell: (info) => <span className="text-sm font-semibold text-status-success">{toPercent(info.getValue())}</span>,
       }),
-      branchColumnHelper.accessor("wasteValue", {
+      financialBranchColumnHelper.accessor("wasteValue", {
         header: "Waste Value",
         cell: (info) => <span className="text-sm font-semibold text-status-warning">{toCurrency(info.getValue())}</span>,
       }),
-      branchColumnHelper.accessor("wasteOfRevenuePct", {
+      financialBranchColumnHelper.accessor("wasteOfRevenuePct", {
         header: "Waste % Revenue",
         cell: (info) => <span className="text-sm text-text-muted">{toPercent(info.getValue())}</span>,
       }),
     ],
-    [branchColumnHelper],
+    [],
   );
   const branchTable = useReactTable({
     data: branchRows,
@@ -280,22 +286,21 @@ export default function FinancialPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const categoryColumnHelper = createColumnHelper<CategoryMarginRow>();
   const categoryColumns = useMemo(
     () => [
-      categoryColumnHelper.accessor("category", {
+      financialCategoryColumnHelper.accessor("category", {
         header: "Category",
         cell: (info) => <span className="text-sm font-semibold text-text-primary">{info.getValue()}</span>,
       }),
-      categoryColumnHelper.accessor("revenue", {
+      financialCategoryColumnHelper.accessor("revenue", {
         header: "Revenue",
         cell: (info) => <span className="text-sm text-text-secondary">{toCurrency(info.getValue())}</span>,
       }),
-      categoryColumnHelper.accessor("marginPct", {
+      financialCategoryColumnHelper.accessor("marginPct", {
         header: "Margin",
         cell: (info) => <span className="text-sm font-semibold text-status-success">{toPercent(info.getValue())}</span>,
       }),
-      categoryColumnHelper.accessor("trend", {
+      financialCategoryColumnHelper.accessor("trend", {
         header: "Trend",
         cell: (info) => (
           <div className="flex items-center gap-2">
@@ -305,7 +310,7 @@ export default function FinancialPage() {
         ),
       }),
     ],
-    [categoryColumnHelper],
+    [],
   );
   const categoryTable = useReactTable({
     data: categoryRows,

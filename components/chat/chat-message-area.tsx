@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { 
   Xmark, 
   Send, 
@@ -34,6 +34,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const previousMessageCountRef = useRef(0);
+  const readRequestSentForThreadRef = useRef<string | null>(null);
   
   const threadQuery = useChatThread(threadId);
   const messagesQuery = useChatThreadMessages(threadId);
@@ -42,30 +43,50 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
   const thread = threadQuery.data;
   const messages = messagesQuery.data ?? [];
+  const orderedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
+    });
+  }, [messages]);
+
+  useEffect(() => {
+    readRequestSentForThreadRef.current = null;
+  }, [threadId]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
-    if (messages.length > 0 && !hasScrolledToBottom && messagesEndRef.current) {
+    if (orderedMessages.length > 0 && !hasScrolledToBottom && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
       setHasScrolledToBottom(true);
-      previousMessageCountRef.current = messages.length;
+      previousMessageCountRef.current = orderedMessages.length;
     }
-  }, [messages.length, hasScrolledToBottom]);
+  }, [orderedMessages.length, hasScrolledToBottom]);
 
   // Auto-scroll to bottom when new messages arrive (only if already at bottom)
   useEffect(() => {
-    if (messages.length > previousMessageCountRef.current && isAtBottom && messagesEndRef.current) {
+    if (orderedMessages.length > previousMessageCountRef.current && isAtBottom && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-    previousMessageCountRef.current = messages.length;
-  }, [messages.length, isAtBottom]);
+    previousMessageCountRef.current = orderedMessages.length;
+  }, [orderedMessages.length, isAtBottom]);
 
   // Mark thread as read when opened
   useEffect(() => {
-    if (thread && thread.unread_count > 0) {
-      markReadMutation.mutate(threadId);
-    }
-  }, [threadId, thread?.unread_count, markReadMutation]);
+    if (!thread || thread.unread_count <= 0) return;
+    if (markReadMutation.isPending) return;
+    if (readRequestSentForThreadRef.current === threadId) return;
+
+    readRequestSentForThreadRef.current = threadId;
+    markReadMutation.mutate(threadId, {
+      onError: () => {
+        // Allow one retry if the request failed.
+        readRequestSentForThreadRef.current = null;
+      },
+    });
+  }, [threadId, thread?.unread_count, markReadMutation.isPending]);
 
   const handleSendMessage = async (content: string, attachment?: File) => {
     if (!content.trim() && !attachment) return;
@@ -149,7 +170,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : orderedMessages.length === 0 ? (
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-3 mb-4">
@@ -168,8 +189,8 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
               </div>
             )}
 
-            {messages.map((message, index) => {
-              const prevMessage = index > 0 ? messages[index - 1] : null;
+            {orderedMessages.map((message, index) => {
+              const prevMessage = index > 0 ? orderedMessages[index - 1] : null;
               const showDateSeparator = prevMessage && 
                 format(new Date(message.created_at), 'yyyy-MM-dd') !== 
                 format(new Date(prevMessage.created_at), 'yyyy-MM-dd');
@@ -205,7 +226,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       </div>
 
       {/* Scroll to bottom button */}
-      {!isAtBottom && messages.length > 0 && (
+      {!isAtBottom && orderedMessages.length > 0 && (
         <div className="absolute bottom-24 right-8">
           <button
             onClick={scrollToBottom}

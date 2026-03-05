@@ -17,6 +17,7 @@ import {
   executiveControlTowerSnapshotSchema,
   ownerMarginProtectionReportSchema,
   ownerDailyPerformanceSchema,
+  setupForecastWOWSchema,
   productionIntelligenceAccessScopeSchema,
   prepRecommendationDecisionSchema,
   salesDataValidationSchema,
@@ -24,6 +25,8 @@ import {
   staffStockoutEventsResponseSchema,
   squareOAuthStartPayloadSchema,
   squareOAuthStartResponseSchema,
+  posCSVPreviewResponseSchema,
+  posCSVImportResponseSchema,
   updateStaffShiftChecklistSchema,
   updatePrepPlanItemPayloadSchema,
   type CreatePrepRecommendationDecisionPayload,
@@ -33,6 +36,8 @@ import {
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
   type SquareOAuthStartPayload,
+  type POSCSVPreviewResponse,
+  type POSCSVImportResponse,
   type UpdatePrepPlanItemPayload,
   type UpdateStaffShiftChecklistPayload,
 } from "@/services/production-intelligence/types";
@@ -264,6 +269,20 @@ export async function getSalesDataValidation(params: SalesDataValidationQuery) {
   );
 }
 
+export type SetupForecastWOWQuery = {
+  branch_id?: string;
+  target_date?: string;
+  horizon_weeks?: number;
+};
+
+export async function getSetupForecastWOW(params?: SetupForecastWOWQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.setupForecastWOW(), params),
+    setupForecastWOWSchema,
+    { method: "GET" },
+  );
+}
+
 export type StaffShiftChecklistQuery = {
   branch_id: string;
   target_date?: string;
@@ -329,6 +348,51 @@ export async function startSquareOAuth(payload: SquareOAuthStartPayload) {
     {
       method: "POST",
       body,
+    },
+  );
+}
+
+export type POSCSVImportPayload = {
+  branch_id: string;
+  file: File;
+  auto_create_items?: boolean;
+};
+
+export type POSCSVPreviewPayload = POSCSVImportPayload & {
+  preview_limit?: number;
+};
+
+function buildPOSCSVFormData(payload: POSCSVImportPayload | POSCSVPreviewPayload, dryRun: boolean): FormData {
+  const form = new FormData();
+  form.append("branch_id", payload.branch_id);
+  form.append("file", payload.file);
+  form.append("auto_create_items", payload.auto_create_items ? "true" : "false");
+  if (dryRun) {
+    form.append("dry_run", "true");
+    const previewPayload = payload as POSCSVPreviewPayload;
+    form.append("preview_limit", String(previewPayload.preview_limit ?? 50));
+  }
+  return form;
+}
+
+export async function previewPOSCSVImport(payload: POSCSVPreviewPayload): Promise<POSCSVPreviewResponse> {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.posCSVImport(),
+    posCSVPreviewResponseSchema,
+    {
+      method: "POST",
+      body: buildPOSCSVFormData(payload, true),
+    },
+  );
+}
+
+export async function importPOSCSV(payload: POSCSVImportPayload): Promise<POSCSVImportResponse> {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.posCSVImport(),
+    posCSVImportResponseSchema,
+    {
+      method: "POST",
+      body: buildPOSCSVFormData(payload, false),
     },
   );
 }

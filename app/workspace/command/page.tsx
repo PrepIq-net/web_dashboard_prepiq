@@ -39,6 +39,9 @@ type CommandSection = {
   cards: CommandCard[];
 };
 
+const EMPTY_LIST: never[] = [];
+const priorityColumnHelper = createColumnHelper<PriorityRow>();
+
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -77,8 +80,14 @@ export default function CommandPage() {
   ];
   const canUseCommand = allowedCommandRoles.includes(role);
 
-  const controlTowerQuery = useExecutiveControlTower(undefined, canUseCommand);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, canUseCommand);
+  const controlTowerQuery = useExecutiveControlTower(
+    undefined,
+    canUseCommand && Boolean(user?.organization_id),
+  );
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    canUseCommand && Boolean(user?.organization_id),
+  );
 
   useEffect(() => {
     if (!isLoading && (isStaffOperator || isBranchManagerRole)) {
@@ -87,9 +96,9 @@ export default function CommandPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isStaffOperator, isBranchManagerRole]);
 
-  const alerts = controlTowerQuery.data?.alerts ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
   const wasteByBranch = useMemo(() => {
     return marginBranches
@@ -556,10 +565,9 @@ export default function CommandPage() {
   }));
   const redCount = priorityQueue.filter((item) => item.severity === "RED").length;
   const amberCount = priorityQueue.filter((item) => item.severity === "AMBER").length;
-  const columnHelper = createColumnHelper<PriorityRow>();
   const columns = useMemo(
     () => [
-      columnHelper.accessor("rank", {
+      priorityColumnHelper.accessor("rank", {
         header: "Priority",
         cell: (info) => (
           <span className="inline-flex min-w-[44px] items-center justify-center rounded-lg border border-surface-4 bg-gradient-to-br from-surface-3 to-surface-2 px-3 py-1.5 text-xs font-bold tracking-[0.08em] text-text-primary shadow-sm">
@@ -567,7 +575,7 @@ export default function CommandPage() {
           </span>
         ),
       }),
-      columnHelper.display({
+      priorityColumnHelper.display({
         id: "signal",
         header: "Signal",
         cell: (info) => {
@@ -609,7 +617,7 @@ export default function CommandPage() {
           );
         },
       }),
-      columnHelper.accessor("financialImpact", {
+      priorityColumnHelper.accessor("financialImpact", {
         header: isOwnerRole ? "Monthly Impact" : "Impact",
         cell: (info) => (
           <div className="inline-flex items-baseline gap-1">
@@ -620,7 +628,7 @@ export default function CommandPage() {
           </div>
         ),
       }),
-      columnHelper.display({
+      priorityColumnHelper.display({
         id: "action",
         header: "Action Recommendation",
         cell: (info) => {
@@ -640,7 +648,7 @@ export default function CommandPage() {
           );
         },
       }),
-      columnHelper.display({
+      priorityColumnHelper.display({
         id: "cta",
         header: "",
         cell: (info) => {
@@ -657,7 +665,7 @@ export default function CommandPage() {
         },
       }),
     ],
-    [columnHelper, isOwnerRole],
+    [isOwnerRole],
   );
   const table = useReactTable({
     data: priorityRows,

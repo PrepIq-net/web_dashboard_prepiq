@@ -593,6 +593,7 @@ export const salesDataValidationSchema = z.object({
   branch_id: z.string().uuid(),
   target_date: z.string(),
   has_sales_data: z.boolean(),
+  sales_source_connected: z.boolean().optional(),
   missing_sales_detected: z.boolean(),
   missing_items_count: z.number(),
   missing_items: z.array(
@@ -605,9 +606,61 @@ export const salesDataValidationSchema = z.object({
   fallback_priority: z.array(z.string()),
   report_forward_address: z.string(),
   can_continue_without_sales: z.boolean(),
+  recommended_setup_route: z.string().optional(),
   margin_protection: z.record(z.string(), z.unknown()),
 });
 export type SalesDataValidation = z.infer<typeof salesDataValidationSchema>;
+
+export const setupForecastWOWSchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  target_date: z.string(),
+  has_sales_data: z.boolean(),
+  lookback_days: z.number(),
+  sales_rows: z.number(),
+  distinct_items: z.number(),
+  first_real_insight: z.object({
+    yesterday: z.string(),
+    forecast_quantity: z.number(),
+    prepared_quantity: z.number(),
+    sold_quantity: z.number(),
+    waste_cost: z.string(),
+  }),
+  performance: z.object({
+    total_quantity_28d: z.number(),
+    total_revenue_28d: z.string(),
+    days_with_sales: z.number(),
+    trend_percentage: z.number(),
+    top_items: z.array(
+      z.object({
+        item_id: z.string().uuid(),
+        item_title: z.string(),
+        unit: z.string(),
+        trend_percentage: z.number(),
+        projected_quantity_next_weeks: z.array(z.number()),
+        last_28d_revenue: z.string(),
+      }),
+    ),
+  }),
+  next_3_weeks_forecast: z.array(
+    z.object({
+      week_index: z.number(),
+      start_date: z.string(),
+      end_date: z.string(),
+      projected_quantity: z.number(),
+      projected_revenue: z.string(),
+      confidence_score: z.number(),
+    }),
+  ),
+  money_leakage: z.object({
+    waste_cost_30d: z.string(),
+    refund_leakage_30d: z.string(),
+    potential_savings_21d: z.string(),
+    projected_revenue_21d: z.string(),
+  }),
+  playbook: z.array(z.string()),
+});
+export type SetupForecastWOW = z.infer<typeof setupForecastWOWSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Access Scope
@@ -695,3 +748,82 @@ export const squareOAuthStartResponseSchema = z.object({
 export type SquareOAuthStartResponse = z.infer<
   typeof squareOAuthStartResponseSchema
 >;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CSV Import
+// ─────────────────────────────────────────────────────────────────────────────
+export const posCSVPreviewRowSchema = z
+  .object({
+    line_number: z.number(),
+    action: z.string(),
+    sale_date: z.string(),
+    item_id: z.string().nullable().optional(),
+    item_title: z.string().optional(),
+    quantity: z.number().optional(),
+    quantity_sold: z.number().optional(),
+    unit: z.string().optional(),
+    external_sale_ref: z.string().optional(),
+  })
+  .passthrough();
+export type POSCSVPreviewRow = z.infer<typeof posCSVPreviewRowSchema>;
+
+export const posCSVDetectedItemSchema = z
+  .object({
+    item_id: z.string(),
+    item_title: z.string(),
+    unit: z.string(),
+    action: z.string(),
+    line_count: z.number(),
+    line_numbers: z.array(z.number()),
+    total_quantity: z.number(),
+    total_revenue: z.string(),
+    suggested_selling_price: z.string().nullable().optional(),
+    suggested_cost_per_unit: z.string().nullable().optional(),
+    category: z.string().optional(),
+  })
+  .passthrough();
+export type POSCSVDetectedItem = z.infer<typeof posCSVDetectedItemSchema>;
+
+export const posCSVPreviewResponseSchema = z
+  .object({
+    dry_run: z.literal(true),
+    branch_id: z.string().uuid(),
+    source: z.string(),
+    auto_create_items: z.boolean(),
+    total_rows: z.number(),
+    valid_rows: z.number(),
+    failed_rows: z.number(),
+    would_create: z.number(),
+    would_update: z.number(),
+    errors: z.array(z.string()),
+    warnings: z.array(z.string()),
+    detected_items: z.array(posCSVDetectedItemSchema),
+    preview_rows: z.array(posCSVPreviewRowSchema),
+    preview_limit: z.number(),
+  })
+  .passthrough();
+export type POSCSVPreviewResponse = z.infer<typeof posCSVPreviewResponseSchema>;
+
+export const posCSVImportResponseSchema = z
+  .object({
+    branch_id: z.string().uuid(),
+    source: z.string(),
+    auto_create_items: z.boolean(),
+    created: z.number(),
+    updated: z.number(),
+    failed: z.number(),
+    errors: z.array(z.string()),
+    auto_created_items: z.number().optional(),
+    detected_items: z.array(posCSVDetectedItemSchema).optional(),
+    csv_tracking: z
+      .object({
+        last_upload_attempt_at: z.string().optional(),
+        total_upload_attempts: z.number().optional(),
+        total_successful_uploads: z.number().optional(),
+        successful_upload_days: z.number().optional(),
+        days_without_upload: z.number().optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+export type POSCSVImportResponse = z.infer<typeof posCSVImportResponseSchema>;

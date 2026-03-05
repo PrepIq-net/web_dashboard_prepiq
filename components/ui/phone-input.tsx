@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { NavArrowDown, Phone } from "iconoir-react";
 
 export type CountryCode = {
@@ -57,18 +57,19 @@ export function PhoneInput({
     }
   }, [value]);
 
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [handleClickOutside]);
 
   function handleCountrySelect(country: CountryCode) {
     setSelectedCountry(country);
@@ -108,7 +109,7 @@ export function PhoneInput({
 
           {isOpen && (
             <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-[200px] rounded-card border border-border-default bg-surface-3 py-1 shadow-2xl animate-in fade-in zoom-in duration-200">
-              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1 space-y-0.5">
+              <div className="max-h-[240px] overflow-y-auto overflow-x-hidden p-1 space-y-0.5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
                 {COUNTRIES.map((country) => (
                   <button
                     key={country.code}

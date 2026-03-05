@@ -50,6 +50,10 @@ type EfficiencyRow = {
   stockoutCausedPurchases: number;
 };
 
+const EMPTY_LIST: never[] = [];
+const supplierColumnHelper = createColumnHelper<SupplierRow>();
+const varianceColumnHelper = createColumnHelper<VarianceRow>();
+
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -88,8 +92,11 @@ export default function PurchasingPage() {
   const isReadOnlyBranchManager = role === "BRANCH_MANAGER" || role === "GM";
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
-  const marginReportQuery = useOwnerMarginProtectionReport(undefined, canAccess);
+  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
+  const marginReportQuery = useOwnerMarginProtectionReport(
+    undefined,
+    canAccess && Boolean(user?.organization_id),
+  );
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -97,10 +104,10 @@ export default function PurchasingPage() {
     }
   }, [isLoading, canAccess, router]);
 
-  const branches = branchesQuery.data ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
-  const alerts = controlTowerQuery.data?.alerts ?? [];
-  const marginBranches = marginReportQuery.data?.branches ?? [];
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
+  const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
+  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
   const supplierRows = useMemo<SupplierRow[]>(() => {
     const suppliers = [
@@ -208,13 +215,12 @@ export default function PurchasingPage() {
   const [supplierA, setSupplierA] = useState("");
   const [supplierB, setSupplierB] = useState("");
 
-  const supplierMap = new Map(supplierRows.map((row) => [row.id, row]));
+  const supplierMap = useMemo(() => new Map(supplierRows.map((row) => [row.id, row])), [supplierRows]);
   const supplierDelta =
     supplierA && supplierB && supplierA !== supplierB
       ? Math.abs((supplierMap.get(supplierA)?.totalSpend ?? 0) - (supplierMap.get(supplierB)?.totalSpend ?? 0))
       : 0;
 
-  const supplierColumnHelper = createColumnHelper<SupplierRow>();
   const supplierColumns = useMemo(
     () => [
       supplierColumnHelper.accessor("supplier", {
@@ -248,7 +254,7 @@ export default function PurchasingPage() {
         },
       }),
     ],
-    [supplierColumnHelper],
+    [],
   );
   const supplierTable = useReactTable({
     data: supplierRows,
@@ -256,7 +262,6 @@ export default function PurchasingPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const varianceColumnHelper = createColumnHelper<VarianceRow>();
   const varianceColumns = useMemo(
     () => [
       varianceColumnHelper.accessor("item", {
@@ -324,7 +329,7 @@ export default function PurchasingPage() {
                 },
       }),
     ],
-    [varianceColumnHelper, flaggedIds, isReadOnlyBranchManager],
+    [flaggedIds, isReadOnlyBranchManager],
   );
   const varianceTable = useReactTable({
     data: varianceRows,

@@ -13,6 +13,16 @@ export const capabilitySchema = z
 
 export const planLimitSchema = z.record(z.string(), z.number());
 
+export const pricingRecommendationSchema = z.object({
+  recommended_plan_type: z.string(),
+  reason: z.string(),
+  branch_count: z.number(),
+  organization_role: z.string().nullable().optional(),
+  current_plan_type: z.string().nullable().optional(),
+  current_subscription_active: z.boolean(),
+});
+export type PricingRecommendation = z.infer<typeof pricingRecommendationSchema>;
+
 export const subscriptionPlanSchema = z
   .object({
     id: z.string().uuid(),
@@ -31,6 +41,14 @@ export const subscriptionPlanSchema = z
   })
   .passthrough();
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
+
+export const subscriptionPlanPricingResponseSchema = z.object({
+  plans: z.array(subscriptionPlanSchema),
+  recommendation: pricingRecommendationSchema.optional(),
+});
+export type SubscriptionPlanPricingResponse = z.infer<
+  typeof subscriptionPlanPricingResponseSchema
+>;
 
 export const addOnSchema = z
   .object({
@@ -304,4 +322,3 @@ export const createSubscriptionQuoteRequestPayloadSchema = z.object({
 export type CreateSubscriptionQuoteRequestPayload = z.infer<
   typeof createSubscriptionQuoteRequestPayloadSchema
 >;
-

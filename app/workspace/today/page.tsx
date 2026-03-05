@@ -32,6 +32,8 @@ type ImpactPreview = {
   margin_impact_estimate: number;
 };
 
+const EMPTY_LIST: never[] = [];
+
 function toPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
@@ -95,8 +97,8 @@ export default function TodayWorkspacePage() {
   const role = user?.organization_role ?? "";
   const canAccess = role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
 
-  const branches = branchesQuery.data ?? [];
-  const accessibleBranches = accessScope?.accessible_branches ?? [];
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const branchOptions = useMemo(() => {
     const accessibleBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
     const byId = new Map<string, (typeof branches)[number]>();
@@ -140,6 +142,7 @@ export default function TodayWorkspacePage() {
   const [wasteItem, setWasteItem] = useState<null | { id: string; title: string; unit: string }>(null);
 
   const evaluateDebounce = useRef<Record<string, number>>({});
+  const initializeAttemptedByKey = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!branchId && defaultBranch?.id) {
@@ -161,12 +164,17 @@ export default function TodayWorkspacePage() {
   const createProductionLogMutation = useCreateProductionLog();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
 
+  const initKey = branchId && targetDate ? `${branchId}:${targetDate}` : "";
   useEffect(() => {
     const err = todayQuery.error as { status?: number } | null;
-    if (err?.status === 404 && branchId && !initializeMutation.isPending) {
+    if (err?.status !== 404 || !branchId || !initKey || initializeMutation.isPending) return;
+    if (initializeAttemptedByKey.current[initKey]) return;
+
+    initializeAttemptedByKey.current[initKey] = true;
+    if (err?.status === 404) {
       initializeMutation.mutate({ branch_id: branchId, date: targetDate });
     }
-  }, [todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation]);
+  }, [todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation.mutate, initKey]);
 
   const branchDay = initializeMutation.data ?? todayQuery.data;
 

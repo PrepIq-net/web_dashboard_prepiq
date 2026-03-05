@@ -56,7 +56,7 @@ export function useChatThreads(params?: ThreadListParams) {
     queryKey: chatQueryKeys.threadsList(params),
     queryFn: () => getChatThreads(params),
     retry: 1,
-    staleTime: 0, // Always fetch fresh data for debugging
+    staleTime: 30_000,
   });
 }
 
@@ -148,8 +148,44 @@ export function useMarkChatThreadAsRead() {
   return useMutation({
     mutationFn: (threadId: string) => markChatThreadAsRead(threadId),
     onSuccess: (_, threadId) => {
-      queryClient.invalidateQueries({ queryKey: chatQueryKeys.thread(threadId) });
-      queryClient.invalidateQueries({ queryKey: chatQueryKeys.threads() });
+      // Optimistically clear unread count locally to prevent repeated /read calls
+      // when server state propagation is slightly delayed.
+      queryClient.setQueryData(chatQueryKeys.thread(threadId), (previous: any) => {
+        if (!previous || typeof previous !== "object") return previous;
+        return {
+          ...previous,
+          unread_count: 0,
+        };
+      });
+      queryClient.setQueriesData({ queryKey: chatQueryKeys.threads() }, (previous: any) => {
+        if (Array.isArray(previous)) {
+          return previous.map((item) =>
+            item?.id === threadId ? { ...item, unread_count: 0 } : item,
+          );
+        }
+        if (previous && Array.isArray(previous.results)) {
+          return {
+            ...previous,
+            results: previous.results.map((item: any) =>
+              item?.id === threadId ? { ...item, unread_count: 0 } : item,
+            ),
+          };
+        }
+        if (previous && Array.isArray(previous.data)) {
+          return {
+            ...previous,
+            data: previous.data.map((item: any) =>
+              item?.id === threadId ? { ...item, unread_count: 0 } : item,
+            ),
+          };
+        }
+        return previous;
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.threads(),
+        refetchType: "inactive",
+      });
     },
   });
 }

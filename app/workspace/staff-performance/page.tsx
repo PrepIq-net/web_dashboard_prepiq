@@ -36,6 +36,34 @@ type StaffPerformanceRow = {
   coachingPriority: "HIGH" | "MEDIUM" | "LOW";
 };
 
+const columnHelper = createColumnHelper<StaffPerformanceRow>();
+const TABLE_PAGE_SIZE = 100;
+const EMPTY_BRANCHES: Array<{ id: string; name: string }> = [];
+const EMPTY_MEMBERS: Array<{
+  id: string;
+  user: string;
+  role: string;
+  is_active: boolean;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  branch_id?: string | null;
+  branch_name?: string | null;
+}> = [];
+const EMPTY_ASSIGNMENTS: Array<{
+  user: string;
+  branch?: string | null;
+  role?: string;
+  user_details: { first_name?: string | null; last_name?: string | null };
+  branch_details?: { id?: string | null; name?: string | null };
+}> = [];
+const EMPTY_BRANCH_GRID: Array<{
+  branch_id: string;
+  waste_pct?: number | string | null;
+  surplus_pct?: number | string | null;
+  compliance_badge?: string | null;
+}> = [];
+
 const STAFF_REMOVE_ROLES = new Set(["STAFF_OPERATOR", "STAFF", "BRANCH_MANAGER", "GM"]);
 
 function normalizeRole(role: string) {
@@ -55,6 +83,14 @@ function percent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+function roleLabel(role: string) {
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function hashNumber(input: string) {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
@@ -62,6 +98,12 @@ function hashNumber(input: string) {
     hash |= 0;
   }
   return Math.abs(hash);
+}
+
+function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
+  if (value === "HIGH") return "text-[#C44949] bg-[#C44949]/10 border-[#C44949]/30";
+  if (value === "MEDIUM") return "text-[#C48B2A] bg-[#C48B2A]/10 border-[#C48B2A]/30";
+  return "text-[#3F8F68] bg-[#3F8F68]/10 border-[#3F8F68]/30";
 }
 
 export default function StaffPerformancePage() {
@@ -75,7 +117,7 @@ export default function StaffPerformancePage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
   const staffQuery = useStaffAssignments(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess);
+  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
   const removeStaffMutation = useRemoveStaff(user?.organization_id ?? "");
   const removeOrgMemberMutation = useRemoveOrganizationMember(user?.organization_id ?? "");
 
@@ -83,6 +125,7 @@ export default function StaffPerformancePage() {
   const [branchFilter, setBranchFilter] = useState("ALL");
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
+  const [tablePage, setTablePage] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -90,10 +133,24 @@ export default function StaffPerformancePage() {
     }
   }, [isLoading, canAccess, router]);
 
-  const branches = branchesQuery.data ?? [];
-  const organizationMembers = orgMembersQuery.data ?? [];
-  const staffAssignments = staffQuery.data ?? [];
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? [];
+  const branches = (branchesQuery.data ?? EMPTY_BRANCHES) as typeof branchesQuery.data extends Array<infer T>
+    ? T[]
+    : typeof EMPTY_BRANCHES;
+  const organizationMembers = (orgMembersQuery.data ?? EMPTY_MEMBERS) as typeof orgMembersQuery.data extends Array<infer T>
+    ? T[]
+    : typeof EMPTY_MEMBERS;
+  const staffAssignments = (staffQuery.data ?? EMPTY_ASSIGNMENTS) as typeof staffQuery.data extends Array<infer T>
+    ? T[]
+    : typeof EMPTY_ASSIGNMENTS;
+  const branchGrid = (controlTowerQuery.data?.branch_grid ?? EMPTY_BRANCH_GRID) as typeof controlTowerQuery.data extends {
+    branch_grid?: Array<infer T>;
+  }
+    ? T[]
+    : typeof EMPTY_BRANCH_GRID;
+
+  const branchSignals = useMemo(() => {
+    return new Map(branchGrid.map((item) => [item.branch_id, item]));
+  }, [branchGrid]);
 
   const branchMap = useMemo(() => {
     return new Map(
@@ -101,19 +158,13 @@ export default function StaffPerformancePage() {
         branch.id,
         {
           name: branch.name,
-          wastePct: Number(
-            branchGrid.find((item) => item.branch_id === branch.id)?.waste_pct ?? 0,
-          ),
-          surplusPct: Number(
-            branchGrid.find((item) => item.branch_id === branch.id)?.surplus_pct ?? 0,
-          ),
-          complianceBadge:
-            branchGrid.find((item) => item.branch_id === branch.id)?.compliance_badge ??
-            "GREEN",
+          wastePct: Number(branchSignals.get(branch.id)?.waste_pct ?? 0),
+          surplusPct: Number(branchSignals.get(branch.id)?.surplus_pct ?? 0),
+          complianceBadge: branchSignals.get(branch.id)?.compliance_badge ?? "GREEN",
         },
       ]),
     );
-  }, [branches, branchGrid]);
+  }, [branches, branchSignals]);
 
   const timeframeMultiplier = timeframe === "7d" ? 0.6 : timeframe === "90d" ? 1.3 : 1;
 
@@ -201,7 +252,18 @@ export default function StaffPerformancePage() {
       .filter((row) => (branchFilter === "ALL" ? true : row.branchId === branchFilter));
   }, [organizationMembers, assignmentsByUserId, branchMap, timeframeMultiplier, branchFilter]);
 
-  const compareMap = new Map(rows.map((row) => [row.id, row]));
+  useEffect(() => {
+    setTablePage(0);
+  }, [timeframe, branchFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const pagedRows = useMemo(() => {
+    const safePage = Math.min(tablePage, totalPages - 1);
+    const start = safePage * TABLE_PAGE_SIZE;
+    return rows.slice(start, start + TABLE_PAGE_SIZE);
+  }, [rows, tablePage, totalPages]);
+
+  const compareMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
   const compareDelta =
     compareA && compareB && compareA !== compareB
       ? (compareMap.get(compareA)?.productionEfficiency ?? 0) -
@@ -225,6 +287,8 @@ export default function StaffPerformancePage() {
   const avgReliability = rows.length
     ? rows.reduce((sum, row) => sum + row.shiftReliability, 0) / rows.length
     : 0;
+  const highCoachingCount = rows.filter((row) => row.coachingPriority === "HIGH").length;
+  const mediumCoachingCount = rows.filter((row) => row.coachingPriority === "MEDIUM").length;
 
   const handleRemoveMember = (row: StaffPerformanceRow) => {
     if (!canManageStaff) return;
@@ -239,7 +303,6 @@ export default function StaffPerformancePage() {
     removeOrgMemberMutation.mutate(row.userId);
   };
 
-  const columnHelper = createColumnHelper<StaffPerformanceRow>();
   const columns = useMemo(
     () => [
       columnHelper.accessor("staffName", {
@@ -301,11 +364,11 @@ export default function StaffPerformancePage() {
         },
       }),
     ],
-    [columnHelper],
+    [],
   );
 
   const table = useReactTable({
-    data: rows,
+    data: pagedRows,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -317,29 +380,56 @@ export default function StaffPerformancePage() {
       description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction."
       insight="Coaching efficiency improves when high-risk operators are identified using reliability, error rate, and waste contribution together."
     >
-      <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Staff Tracked</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{rows.length}</p>
+      <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 md:grid-cols-4">
+        <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Staff Tracked</p>
+          <p className="font-display text-4xl font-semibold tracking-tight text-text-primary">{rows.length}</p>
+          <div className="mt-4 border-t border-surface-4 pt-4">
+            <p className="text-xs text-text-muted">Active operators in current scope</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Avg Efficiency</p>
-          <p className={`mt-1 font-display text-[30px] ${scoreTone(avgEfficiency)}`}>{percent(avgEfficiency)}</p>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Efficiency</p>
+          <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgEfficiency)}`}>
+            {percent(avgEfficiency)}
+          </p>
+          <div className="mt-4 border-t border-surface-4 pt-4">
+            <p className="text-xs text-text-muted">Production completion quality</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Avg Error Rate</p>
-          <p className={`mt-1 font-display text-[30px] ${avgErrorRate >= 8 ? "text-[#C44949]" : avgErrorRate >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Error Rate</p>
+          <p
+            className={`font-display text-4xl font-semibold tracking-tight ${avgErrorRate >= 8 ? "text-[#C44949]" : avgErrorRate >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
+          >
             {percent(avgErrorRate)}
           </p>
+          <div className="mt-4 border-t border-surface-4 pt-4">
+            <p className="text-xs text-text-muted">Execution mistakes per shift</p>
+          </div>
         </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Shift Reliability</p>
-          <p className={`mt-1 font-display text-[30px] ${scoreTone(avgReliability)}`}>{percent(avgReliability)}</p>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Coaching Queue</p>
+          <div className="flex items-baseline gap-2 text-text-primary">
+            <span className="font-display text-3xl text-[#C44949]">{highCoachingCount}</span>
+            <span className="text-sm text-text-muted">high</span>
+            <span className="ml-3 font-display text-2xl text-[#C48B2A]">{mediumCoachingCount}</span>
+            <span className="text-sm text-text-muted">medium</span>
+          </div>
+          <div className="mt-4 border-t border-surface-4 pt-4">
+            <p className={`text-xs ${scoreTone(avgReliability)}`}>Reliability {percent(avgReliability)}</p>
+          </div>
         </article>
       </section>
 
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <section className="mt-10 border-b border-surface-4 pb-10">
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Scope</p>
+          <p className="mt-1 text-sm text-text-muted">
+            Filter by timeframe and branch to isolate staff performance patterns before taking coaching action.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Select
             label="Timeframe"
             value={timeframe}
@@ -359,55 +449,98 @@ export default function StaffPerformancePage() {
               ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
             ]}
           />
-          <p className="flex items-center text-[12px] text-[#8E8E93]">
-            Filter by time and branch to isolate coaching patterns.
+        </div>
+        <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
+          <p className="text-xs text-text-muted">
+            This view updates all metrics and ranking logic for the selected scope.
           </p>
         </div>
       </section>
 
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Performance Table</p>
-        <div className="mt-3 overflow-x-auto">
+      <section className="mt-10 border-b border-surface-4 pb-10">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Performance Table</p>
+            <p className="mt-1 text-sm text-text-muted">Ranked signals per team member for coaching and staffing decisions.</p>
+          </div>
+          <p className="text-xs text-text-muted">
+            {rows.length} total record{rows.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
           {orgMembersQuery.isLoading || staffQuery.isLoading ? (
-            <p className="py-6 text-[13px] text-[#8E8E93]">Loading staff intelligence...</p>
+            <p className="px-6 py-6 text-sm text-text-muted">Loading staff intelligence...</p>
           ) : null}
           {!orgMembersQuery.isLoading && !staffQuery.isLoading && rows.length === 0 ? (
-            <p className="py-6 text-[13px] text-[#8E8E93]">
+            <p className="px-6 py-6 text-sm text-text-muted">
               No active staff records found for the selected branch filter.
             </p>
           ) : null}
-          <table className="w-full min-w-[1320px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#232327]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {rows.length > TABLE_PAGE_SIZE ? (
+            <div className="flex items-center justify-between gap-3 border-b border-surface-4 px-6 py-4">
+              <p className="text-xs text-text-muted">
+                Showing {Math.min(TABLE_PAGE_SIZE, rows.length)} of {rows.length} staff records per page.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={tablePage <= 0}
+                  onClick={() => setTablePage((prev) => Math.max(0, prev - 1))}
+                  className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="text-[11px] text-text-muted">
+                  Page {Math.min(tablePage + 1, totalPages)} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={tablePage >= totalPages - 1}
+                  onClick={() => setTablePage((prev) => Math.min(totalPages - 1, prev + 1))}
+                  className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {rows.length > 0 ? (
+            <table className="w-full min-w-[1320px]">
+              <thead className="border-b border-surface-4 bg-[#232327]/65">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.map((row) => (
+                  <tr key={row.id} className="border-b border-[#232327] transition-colors hover:bg-[#232327]/40">
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Staff</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Compare Staff</p>
+            <p className="mt-1 text-sm text-text-muted">
+              Compare two operators to see who is currently driving stronger execution quality.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <Select
                 label="Compare A"
                 value={compareA}
@@ -427,24 +560,29 @@ export default function StaffPerformancePage() {
                 ]}
               />
             </div>
-            <p className={`mt-3 text-[13px] ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
+            <p className={`mt-4 text-sm font-medium ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-text-muted"}`}>
               Efficiency delta: {compareDelta > 0 ? "+" : ""}
               {compareDelta.toFixed(1)} pts
             </p>
           </article>
 
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Coaching Needs</p>
-            <div className="mt-3 space-y-2">
+          <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Coaching Needs</p>
+            <p className="mt-1 text-sm text-text-muted">
+              Highest-priority interventions sorted by reliability, efficiency, and shift error risk.
+            </p>
+            <div className="mt-4 space-y-2.5">
               {coachingNeeds.length ? (
                 coachingNeeds.map((row) => (
-                  <div key={`coach-${row.id}`} className="border-b border-[#232327] pb-2.5">
-                    <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
+                  <div key={`coach-${row.id}`} className="rounded-lg border border-surface-4 bg-[#232327] px-3 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
+                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(row.coachingPriority)}`}>
+                        {row.coachingPriority}
+                      </span>
+                    </div>
                     <p className="text-[12px] text-[#8E8E93]">
                       {row.branchName} · Efficiency {percent(row.productionEfficiency)} · Error {percent(row.errorRate)}
-                    </p>
-                    <p className={`text-[11px] uppercase tracking-[0.08em] ${row.coachingPriority === "HIGH" ? "text-[#C44949]" : "text-[#C48B2A]"}`}>
-                      {row.coachingPriority} coaching priority
                     </p>
                   </div>
                 ))
@@ -456,16 +594,22 @@ export default function StaffPerformancePage() {
         </div>
       </section>
 
-      <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Staff Management</p>
-        <div className="mt-3 divide-y divide-[#232327] border-y border-[#2A2A2E]">
+      <section className="mt-10">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Staff Management</p>
+            <p className="mt-1 text-sm text-text-muted">Remove branch-level operators when assignments are no longer active.</p>
+          </div>
+          {canManageStaff ? <p className="text-xs text-text-muted">Admin controls enabled</p> : null}
+        </div>
+        <div className="divide-y divide-[#232327] rounded-xl border border-surface-4 bg-surface-2 px-6">
           {rows.length ? (
             rows.slice(0, 16).map((row) => (
               <div key={`member-${row.memberId}`} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
-                  <p className="text-[12px] text-[#8E8E93]">
-                    {row.role.replace(/_/g, " ")} · {row.branchName}
+                  <p className="text-[13px] text-text-primary">{row.staffName}</p>
+                  <p className="text-[12px] text-text-muted">
+                    {roleLabel(row.role)} · {row.branchName}
                   </p>
                 </div>
                 {canManageStaff ? (

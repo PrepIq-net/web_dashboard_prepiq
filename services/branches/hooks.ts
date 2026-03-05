@@ -26,6 +26,8 @@ export const branchKeys = {
     [...branchKeys.departments(orgId), deptId] as const,
 
   invites: (orgId: string) => [...branchKeys.org(orgId), "invites"] as const,
+  inviteContext: (orgId: string) =>
+    [...branchKeys.org(orgId), "invite-context"] as const,
 
   staff: (orgId: string) => [...branchKeys.org(orgId), "staff"] as const,
 };
@@ -60,7 +62,13 @@ export function useCreateBranch(orgId: string) {
       toast.success(`Branch "${branch.name}" created.`);
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create branch.");
+      const message = error?.message || "Failed to create branch.";
+      const isBranchLimitError =
+        String(message).toLowerCase().includes("maximum of") &&
+        String(message).toLowerCase().includes("branch");
+      if (!isBranchLimitError) {
+        toast.error(message);
+      }
     },
   });
 }
@@ -184,6 +192,14 @@ export function useStaffInvites(orgId: string) {
   return useQuery({
     queryKey: branchKeys.invites(orgId),
     queryFn: () => branchService.listInvites(orgId),
+    enabled: !!orgId,
+  });
+}
+
+export function useStaffInviteContext(orgId: string) {
+  return useQuery({
+    queryKey: branchKeys.inviteContext(orgId),
+    queryFn: () => branchService.getStaffInviteContext(orgId),
     enabled: !!orgId,
   });
 }

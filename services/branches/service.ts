@@ -5,6 +5,8 @@ import {
   branchSchema,
   departmentSchema,
   staffInviteSchema,
+  staffRoleEnum,
+  staffInviteContextSchema,
   staffAssignmentSchema,
   inviteValidationSchema,
   type CreateBranchPayload,
@@ -19,14 +21,31 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function listBranches(orgId: string) {
-  return apiClientWithSchema(
-    branchEndpoints.list(orgId),
-    z.union([
-      z.array(branchSchema),
-      z.object({ results: z.array(branchSchema) }),
-    ]).transform((payload) => ("results" in payload ? payload.results : payload)),
-    { method: "GET" },
-  );
+  const response = await apiClient<unknown>(branchEndpoints.list(orgId), {
+    method: "GET",
+  });
+
+  const directArray = z.array(branchSchema).safeParse(response);
+  if (directArray.success) return directArray.data;
+
+  const paginated = z.object({ results: z.array(branchSchema) }).safeParse(response);
+  if (paginated.success) return paginated.data.results;
+
+  const wrappedArray = z
+    .object({
+      data: z.array(branchSchema),
+    })
+    .safeParse(response);
+  if (wrappedArray.success) return wrappedArray.data.data;
+
+  const wrappedPaginated = z
+    .object({
+      data: z.object({ results: z.array(branchSchema) }),
+    })
+    .safeParse(response);
+  if (wrappedPaginated.success) return wrappedPaginated.data.data.results;
+
+  throw new Error("Unexpected branch list response format.");
 }
 
 export async function getBranch(orgId: string, branchId: string) {
@@ -129,15 +148,78 @@ export async function listInvites(orgId: string) {
   );
 }
 
+export async function getStaffInviteContext(orgId: string) {
+  return apiClientWithSchema(
+    branchEndpoints.staffInviteContext(orgId),
+    staffInviteContextSchema,
+    { method: "GET" },
+  );
+}
+
 export async function createInvite(
   orgId: string,
   payload: CreateStaffInvitePayload,
 ) {
-  return apiClientWithSchema(
-    branchEndpoints.invites(orgId),
-    staffInviteSchema,
-    { method: "POST", body: payload },
-  );
+  const response = await apiClient<unknown>(branchEndpoints.invites(orgId), {
+    method: "POST",
+    body: payload,
+  });
+
+  const fullInvite = staffInviteSchema.safeParse(response);
+  if (fullInvite.success) {
+    return fullInvite.data;
+  }
+
+  const wrappedFullInvite = z
+    .object({
+      data: staffInviteSchema,
+    })
+    .safeParse(response);
+  if (wrappedFullInvite.success) {
+    return wrappedFullInvite.data.data;
+  }
+
+  const minimalInvite = z
+    .object({
+      email: z.string().email(),
+      role: staffRoleEnum,
+      branch: z.string().uuid().optional().nullable(),
+    })
+    .safeParse(response);
+  if (minimalInvite.success) {
+    return {
+      id: "invite-created",
+      organization: orgId,
+      email: minimalInvite.data.email,
+      role: minimalInvite.data.role,
+      branch: minimalInvite.data.branch ?? null,
+      status: "PENDING" as const,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  const wrappedMinimalInvite = z
+    .object({
+      data: z.object({
+        email: z.string().email(),
+        role: staffRoleEnum,
+        branch: z.string().uuid().optional().nullable(),
+      }),
+    })
+    .safeParse(response);
+  if (wrappedMinimalInvite.success) {
+    return {
+      id: "invite-created",
+      organization: orgId,
+      email: wrappedMinimalInvite.data.data.email,
+      role: wrappedMinimalInvite.data.data.role,
+      branch: wrappedMinimalInvite.data.data.branch ?? null,
+      status: "PENDING" as const,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  throw new Error("Unexpected invite response format.");
 }
 
 export async function revokeInvite(

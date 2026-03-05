@@ -1,74 +1,169 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ViewColumns3, CheckCircle } from "iconoir-react";
+import { toast } from "react-hot-toast";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  buildMappedCSV,
+  parseCSVFile,
+  suggestCSVMapping,
+  type CSVColumnMapping,
+} from "@/services/production-intelligence/csv-mapping";
+import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
+import {
+  useImportPOSCSV,
+  usePreviewPOSCSVImport,
+} from "@/services/production-intelligence/hooks";
 
-// Mock columns that were "read" from the user's uploaded CSV
-const CSV_COLUMNS = [
-  "Select a column...",
-  "sale_date",
-  "menu_item",
-  "qty",
-  "total_revenue",
-  "tax",
-  "discount",
-  "location_id",
-];
-
-const REQUIRED_FIELDS = [
+const REQUIRED_FIELDS: Array<{
+  id: keyof CSVColumnMapping;
+  label: string;
+  description: string;
+}> = [
   {
-    id: "date",
+    id: "saleDate",
     label: "Date",
     description: "When the sale occurred (e.g., date, timestamp)",
   },
   {
     id: "item",
-    label: "Item name",
-    description: "Product sold (e.g., item_name, product)",
+    label: "Item name or POS item id",
+    description: "Item title or provider item identifier from your export",
   },
   {
     id: "quantity",
     label: "Quantity sold",
     description: "How many units (e.g., qty, amount)",
   },
-  {
-    id: "revenue",
-    label: "Revenue",
-    description: "Total sale value (e.g., net_sales, revenue)",
-  },
+];
+
+const OPTIONAL_FIELDS: Array<{
+  id: keyof CSVColumnMapping;
+  label: string;
+  description: string;
+}> = [
+  { id: "revenue", label: "Revenue (optional)", description: "Total sale value for margin analysis." },
+  { id: "unit", label: "Unit (optional)", description: "PCS, KG, LTR, etc." },
+  { id: "externalRef", label: "External ref (optional)", description: "Order/receipt identifier for dedupe." },
 ];
 
 export default function CSVMappingPage() {
   const router = useRouter();
+  const file = useCSVUploadSessionStore((state) => state.file);
+  const branchId = useCSVUploadSessionStore((state) => state.branchId);
+  const clearSession = useCSVUploadSessionStore((state) => state.clearSession);
+  const previewMutation = usePreviewPOSCSVImport();
+  const importMutation = useImportPOSCSV();
 
-  // Mapping state: field id -> selected CSV column
-  const [mapping, setMapping] = useState<Record<string, string>>({
-    date: "sale_date", // Pre-filling intelligently if possible
-    item: "menu_item",
-    quantity: "qty",
-    revenue: "Select a column...", // Left unmapped to show empty state
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [parsed, setParsed] = useState<Awaited<ReturnType<typeof parseCSVFile>> | null>(null);
+  const [mapping, setMapping] = useState<CSVColumnMapping>({
+    saleDate: "",
+    item: "",
+    quantity: "",
+    revenue: "",
+    unit: "",
+    externalRef: "",
   });
+  const [autoCreateItems, setAutoCreateItems] = useState(false);
+  const [mappingError, setMappingError] = useState("");
+  const [mappedFile, setMappedFile] = useState<File | null>(null);
+  const [isTransitioningAfterImport, setIsTransitioningAfterImport] =
+    useState(false);
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  useEffect(() => {
+    async function loadFile() {
+      if (isTransitioningAfterImport) return;
+      if (!file || !branchId) {
+        router.replace("/setup/sales/csv");
+        return;
+      }
+      const result = await parseCSVFile(file);
+      const availableHeaders = result.headers.filter(Boolean);
+      if (!availableHeaders.length) {
+        setMappingError("CSV has no header row.");
+        return;
+      }
+      setHeaders(availableHeaders);
+      setParsed(result);
+      const suggested = suggestCSVMapping(availableHeaders);
+      setMapping({
+        saleDate: suggested.saleDate || "",
+        item: suggested.item || "",
+        quantity: suggested.quantity || "",
+        revenue: suggested.revenue || "",
+        unit: suggested.unit || "",
+        externalRef: suggested.externalRef || "",
+      });
+    }
+    void loadFile();
+  }, [branchId, file, isTransitioningAfterImport, router]);
 
-  // Check if all required fields are mapped to a valid column
   const isComplete = REQUIRED_FIELDS.every(
-    (field) => mapping[field.id] && mapping[field.id] !== "Select a column...",
+    (field) => Boolean(mapping[field.id]),
   );
 
-  function handleMapChange(fieldId: string, value: string) {
+  const selectOptions = useMemo(() => ["", ...headers], [headers]);
+
+  function handleMapChange(fieldId: keyof CSVColumnMapping, value: string) {
+    setMappingError("");
     setMapping((prev) => ({ ...prev, [fieldId]: value }));
   }
 
-  function handleContinue() {
-    if (!isComplete) return;
+  async function handlePreview() {
+    if (!isComplete || !parsed || !branchId) return;
 
-    setIsProcessing(true);
-    // Simulate processing the CSV and generating items
-    setTimeout(() => {
-      router.push("/setup/items");
-    }, 1500);
+    const normalizedCSV = buildMappedCSV(parsed, mapping);
+    const fileToSend = new File([normalizedCSV], "mapped-sales.csv", {
+      type: "text/csv",
+    });
+    setMappedFile(fileToSend);
+
+    try {
+      await previewMutation.mutateAsync({
+        branch_id: branchId,
+        file: fileToSend,
+        auto_create_items: autoCreateItems,
+        preview_limit: 50,
+      });
+    } catch (error) {
+      setMappingError(error instanceof Error ? error.message : "Failed to preview CSV.");
+    }
+  }
+
+  async function handleImport() {
+    if (!mappedFile || !branchId) return;
+    try {
+      const result = await importMutation.mutateAsync({
+        branch_id: branchId,
+        file: mappedFile,
+        auto_create_items: autoCreateItems,
+      });
+
+      const created = Number(result.created || 0);
+      const updated = Number(result.updated || 0);
+      const failed = Number(result.failed || 0);
+
+      if (created + updated > 0) {
+        toast.success(
+          failed > 0
+            ? `Imported ${created + updated} rows (${failed} failed).`
+            : `Import complete: ${created + updated} rows processed.`,
+        );
+        setIsTransitioningAfterImport(true);
+        router.push("/setup/forecast");
+        setTimeout(() => clearSession(), 400);
+        return;
+      }
+
+      toast.error("No rows were imported. Please check your mapping.");
+      setMappingError("No rows were imported. Please review mapping and try again.");
+    } catch (error) {
+      setMappingError(error instanceof Error ? error.message : "Failed to import CSV.");
+      toast.error(error instanceof Error ? error.message : "Failed to import CSV.");
+    }
   }
 
   return (
@@ -92,7 +187,7 @@ export default function CSVMappingPage() {
           Match your columns
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          We found {CSV_COLUMNS.length - 1} columns in your CSV. Please tell us
+          We found {headers.length} columns in your CSV. Please tell us
           which column matches the data we need to generate your forecasts.
         </p>
 
@@ -108,9 +203,9 @@ export default function CSVMappingPage() {
           </div>
 
           <div className="space-y-4">
-            {REQUIRED_FIELDS.map((field) => {
-              const isMapped =
-                mapping[field.id] && mapping[field.id] !== "Select a column...";
+            {REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).map((field) => {
+              const isRequired = REQUIRED_FIELDS.some((required) => required.id === field.id);
+              const isMapped = Boolean(mapping[field.id]);
               return (
                 <div
                   key={field.id}
@@ -138,21 +233,21 @@ export default function CSVMappingPage() {
                   {/* Right Side: CSV Column Select */}
                   <div>
                     <select
-                      value={mapping[field.id]}
+                      value={mapping[field.id] || ""}
                       onChange={(e) =>
                         handleMapChange(field.id, e.target.value)
                       }
                       className={`w-full h-10 bg-[#141416] border rounded-[6px] px-3 text-[13px] focus:outline-none appearance-none transition-colors
                         ${
-                          !isMapped
+                          isRequired && !isMapped
                             ? "border-[#C48B2A]/50 text-[#C48B2A]"
                             : "border-[#2E2E33] text-[#F5F5F7] focus:border-[#A8821F]"
                         }
                       `}
                     >
-                      {CSV_COLUMNS.map((col) => (
+                      {selectOptions.map((col) => (
                         <option key={col} value={col}>
-                          {col}
+                          {col || "Select a column..."}
                         </option>
                       ))}
                     </select>
@@ -163,14 +258,74 @@ export default function CSVMappingPage() {
           </div>
         </div>
 
-        {/* CTA */}
+        <label className="flex items-center gap-2 text-[13px] text-[#C7C7CC] mb-4">
+          <input
+            type="checkbox"
+            checked={autoCreateItems}
+            onChange={(event) => setAutoCreateItems(event.target.checked)}
+            className="accent-[#A8821F]"
+          />
+          Auto-create missing items from CSV
+        </label>
+
+        {mappingError && (
+          <div className="rounded-[10px] border border-[#C44949]/50 bg-[#C44949]/10 p-3 mb-4">
+            <p className="text-[13px] text-[#E7B4B4]">{mappingError}</p>
+          </div>
+        )}
+
+        {!!previewMutation.data && (
+          <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-4 text-[13px] text-[#C7C7CC]">
+            <p>
+              Preview: {previewMutation.data.valid_rows} valid,{" "}
+              {previewMutation.data.failed_rows} failed, {previewMutation.data.would_create} create,{" "}
+              {previewMutation.data.would_update} update.
+            </p>
+            {!!previewMutation.data.warnings.length && (
+              <p className="text-[#C48B2A] mt-2">{previewMutation.data.warnings[0]}</p>
+            )}
+            {!!previewMutation.data.errors.length && (
+              <p className="text-[#E7B4B4] mt-2">{previewMutation.data.errors[0]}</p>
+            )}
+          </div>
+        )}
+
+        {/* CTA actions */}
         <button
-          onClick={handleContinue}
-          disabled={!isComplete || isProcessing}
+          onClick={() => {
+            void handlePreview();
+          }}
+          disabled={!isComplete || previewMutation.isPending || importMutation.isPending}
+          className="w-full h-12 bg-[#232327] hover:bg-[#2B2B30] border border-[#2E2E33] disabled:opacity-40 disabled:cursor-not-allowed text-[#F5F5F7] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150 mb-3"
+        >
+          {previewMutation.isPending ? (
+            <>
+              <Spinner size="sm" color="#F5F5F7" />
+              Validating...
+            </>
+          ) : (
+            "Validate Mapping"
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            void handleImport();
+          }}
+          disabled={!previewMutation.data || importMutation.isPending}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
-          {isProcessing ? "Processing Data..." : "Import Sales Data"}
-          {!isProcessing && <ArrowRight className="h-4 w-4" />}
+          {importMutation.isPending ? (
+            <>
+              <Spinner size="sm" color="#141416" />
+              Importing...
+            </>
+          ) : (
+            <>
+              Import Sales Data
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
       </div>
     </div>
