@@ -47,6 +47,11 @@ export const usersQueryKeys = {
   detail: (userId: string) => [...usersQueryKeys.root, "detail", userId] as const,
 };
 
+function resetSessionCache(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.cancelQueries();
+  queryClient.clear();
+}
+
 function invalidateCurrentUser(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() });
   queryClient.invalidateQueries({ queryKey: usersQueryKeys.verificationStatus() });
@@ -103,8 +108,12 @@ export function useLoginUser() {
 }
 
 export function useSessionLoginUser() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: LoginPayload) => loginUserWithSession(payload),
+    onSuccess: () => {
+      resetSessionCache(queryClient);
+    },
   });
 }
 
@@ -115,8 +124,12 @@ export function useGoogleLogin() {
 }
 
 export function useSessionGoogleLogin() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: GoogleLoginPayload) => loginWithGoogleSession(payload),
+    onSuccess: () => {
+      resetSessionCache(queryClient);
+    },
   });
 }
 
@@ -133,8 +146,12 @@ export function useLogoutUser() {
 }
 
 export function useSessionLogoutUser() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: logoutUserSession,
+    onSuccess: () => {
+      resetSessionCache(queryClient);
+    },
   });
 }
 
