@@ -55,7 +55,14 @@ export default function InventoryPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
-  const canAccess = ["STAFF_OPERATOR", "BRANCH_MANAGER", "GM", "OPS_DIRECTOR"].includes(role);
+  const canAccess = [
+    "STAFF_OPERATOR",
+    "BRANCH_MANAGER",
+    "GM",
+    "OPS_DIRECTOR",
+    "ORG_OWNER",
+    "ORG_ADMIN",
+  ].includes(role);
   const isOpsDirector = role === "OPS_DIRECTOR";
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
