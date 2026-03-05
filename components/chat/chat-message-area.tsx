@@ -34,6 +34,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const previousMessageCountRef = useRef(0);
+  const readRequestSentForThreadRef = useRef<string | null>(null);
   
   const threadQuery = useChatThread(threadId);
   const messagesQuery = useChatThreadMessages(threadId);
@@ -50,6 +51,10 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       return a.id.localeCompare(b.id);
     });
   }, [messages]);
+
+  useEffect(() => {
+    readRequestSentForThreadRef.current = null;
+  }, [threadId]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -70,10 +75,18 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
   // Mark thread as read when opened
   useEffect(() => {
-    if (thread && thread.unread_count > 0) {
-      markReadMutation.mutate(threadId);
-    }
-  }, [threadId, thread?.unread_count, markReadMutation]);
+    if (!thread || thread.unread_count <= 0) return;
+    if (markReadMutation.isPending) return;
+    if (readRequestSentForThreadRef.current === threadId) return;
+
+    readRequestSentForThreadRef.current = threadId;
+    markReadMutation.mutate(threadId, {
+      onError: () => {
+        // Allow one retry if the request failed.
+        readRequestSentForThreadRef.current = null;
+      },
+    });
+  }, [threadId, thread?.unread_count, markReadMutation.isPending]);
 
   const handleSendMessage = async (content: string, attachment?: File) => {
     if (!content.trim() && !attachment) return;

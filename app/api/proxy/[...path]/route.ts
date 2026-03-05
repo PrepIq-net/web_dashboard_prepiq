@@ -60,7 +60,15 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     });
   }
 
-  let backendResponse = await send(accessTokenFromCookie);
+  let backendResponse: Response;
+  try {
+    backendResponse = await send(accessTokenFromCookie);
+  } catch {
+    return NextResponse.json(
+      { message: "Upstream service unavailable" },
+      { status: 502 },
+    );
+  }
   let refreshedToken: string | null = null;
   let refreshAttempted = false;
   let refreshRefused = false;
@@ -69,7 +77,14 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     refreshAttempted = true;
     refreshedToken = await refreshAccessToken(refreshToken);
     if (refreshedToken) {
-      backendResponse = await send(refreshedToken);
+      try {
+        backendResponse = await send(refreshedToken);
+      } catch {
+        return NextResponse.json(
+          { message: "Upstream service unavailable" },
+          { status: 502 },
+        );
+      }
     } else {
       refreshRefused = true;
     }
