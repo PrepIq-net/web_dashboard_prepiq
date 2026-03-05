@@ -41,6 +41,7 @@ type CommandSection = {
 
 const EMPTY_LIST: never[] = [];
 const priorityColumnHelper = createColumnHelper<PriorityRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -670,7 +671,7 @@ export default function CommandPage() {
   const table = useReactTable({
     data: priorityRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (

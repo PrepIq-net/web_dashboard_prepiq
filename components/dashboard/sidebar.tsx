@@ -355,13 +355,11 @@ function SidebarLink({
   active,
   collapsed,
   sectionTone,
-  onClick,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
   sectionTone?: NavSection["tone"];
-  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const commandItem = item.label === "Command";
   const toneBaseClass =
@@ -378,7 +376,6 @@ function SidebarLink({
   return (
     <Link
       href={item.href}
-      onClick={onClick}
       title={collapsed ? item.label : undefined}
       className={`group relative w-full flex items-center ${
         collapsed ? "justify-center px-0" : "gap-3 px-3"
@@ -446,19 +443,6 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 
   const navSections = getNavSectionsByRole(user?.organization_role);
 
-  // Simple navigation handler - let Next.js handle it naturally
-  const handleNavigation = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    href: string,
-  ) => {
-    // Only prevent if already on the page
-    if (isActive(href)) {
-      e.preventDefault();
-      return;
-    }
-    // Let Next.js Link handle navigation - no manual intervention
-  };
-
   const handleLogout = () => {
     startTransition(() => {
       logoutMutation.mutate(undefined, {
@@ -483,7 +467,6 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
         <div className="relative flex items-center">
           <Link
             href="/"
-            onClick={(e) => handleNavigation(e, "/")}
             className={`inline-flex min-w-0 items-center ${
               collapsed ? "mx-auto justify-center" : "gap-3 pr-10"
             }`}
@@ -553,7 +536,6 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
                   active={isActive(item.href)}
                   collapsed={collapsed}
                   sectionTone={section.tone}
-                  onClick={(e) => handleNavigation(e, item.href)}
                 />
               ))}
             </nav>
@@ -565,7 +547,6 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       <div className="space-y-2 border-t border-[#1C1C1F] p-4">
         <Link
           href="/workspace/support"
-          onClick={(e) => handleNavigation(e, "/workspace/support")}
           title={collapsed ? "Support" : undefined}
           className={`w-full rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-[#1C1C1F] hover:text-text-primary flex items-center ${
             collapsed ? "justify-center" : "gap-3"

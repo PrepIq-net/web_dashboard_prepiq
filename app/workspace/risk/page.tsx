@@ -44,6 +44,7 @@ type BranchRiskRow = {
 
 const EMPTY_LIST: never[] = [];
 const branchRiskColumnHelper = createColumnHelper<BranchRiskRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
@@ -287,7 +288,7 @@ export default function RiskPage() {
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (

@@ -48,6 +48,7 @@ type FinancialTab = "OVERVIEW" | "MARGIN" | "WASTE" | "SALES" | "TAX" | "EXPORTS
 const EMPTY_LIST: never[] = [];
 const financialBranchColumnHelper = createColumnHelper<FinancialBranchRow>();
 const financialCategoryColumnHelper = createColumnHelper<CategoryMarginRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -283,7 +284,7 @@ export default function FinancialPage() {
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const categoryColumns = useMemo(
@@ -315,7 +316,7 @@ export default function FinancialPage() {
   const categoryTable = useReactTable({
     data: categoryRows,
     columns: categoryColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (

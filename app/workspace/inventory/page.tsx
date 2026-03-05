@@ -31,6 +31,7 @@ type InventoryRow = {
 
 const EMPTY_LIST: never[] = [];
 const inventoryColumnHelper = createColumnHelper<InventoryRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function hashNumber(input: string) {
   let hash = 0;
@@ -217,7 +218,7 @@ export default function InventoryPage() {
   const table = useReactTable({
     data: inventoryRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;

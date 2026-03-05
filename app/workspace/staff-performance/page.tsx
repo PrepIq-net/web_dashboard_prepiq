@@ -38,6 +38,7 @@ type StaffPerformanceRow = {
 
 const columnHelper = createColumnHelper<StaffPerformanceRow>();
 const TABLE_PAGE_SIZE = 100;
+const CORE_ROW_MODEL = getCoreRowModel();
 const EMPTY_BRANCHES: Array<{ id: string; name: string }> = [];
 const EMPTY_MEMBERS: Array<{
   id: string;
@@ -370,7 +371,7 @@ export default function StaffPerformancePage() {
   const table = useReactTable({
     data: pagedRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (

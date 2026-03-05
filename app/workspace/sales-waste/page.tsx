@@ -34,6 +34,7 @@ type SalesWasteRow = {
 
 const EMPTY_LIST: never[] = [];
 const salesWasteColumnHelper = createColumnHelper<SalesWasteRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -294,7 +295,7 @@ export default function SalesWastePage() {
   const table = useReactTable({
     data: tableRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (

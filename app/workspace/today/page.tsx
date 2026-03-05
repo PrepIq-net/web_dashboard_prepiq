@@ -166,6 +166,7 @@ export default function TodayWorkspacePage() {
 
   const initKey = branchId && targetDate ? `${branchId}:${targetDate}` : "";
   useEffect(() => {
+    if (!todayQuery.isError) return;
     const err = todayQuery.error as { status?: number } | null;
     if (err?.status !== 404 || !branchId || !initKey || initializeMutation.isPending) return;
     if (initializeAttemptedByKey.current[initKey]) return;
@@ -174,7 +175,7 @@ export default function TodayWorkspacePage() {
     if (err?.status === 404) {
       initializeMutation.mutate({ branch_id: branchId, date: targetDate });
     }
-  }, [todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation.mutate, initKey]);
+  }, [todayQuery.isError, todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation.mutate, initKey]);
 
   const branchDay = initializeMutation.data ?? todayQuery.data;
 

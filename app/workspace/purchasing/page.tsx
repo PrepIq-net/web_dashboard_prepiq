@@ -53,6 +53,7 @@ type EfficiencyRow = {
 const EMPTY_LIST: never[] = [];
 const supplierColumnHelper = createColumnHelper<SupplierRow>();
 const varianceColumnHelper = createColumnHelper<VarianceRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -259,7 +260,7 @@ export default function PurchasingPage() {
   const supplierTable = useReactTable({
     data: supplierRows,
     columns: supplierColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const varianceColumns = useMemo(
@@ -334,7 +335,7 @@ export default function PurchasingPage() {
   const varianceTable = useReactTable({
     data: varianceRows,
     columns: varianceColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const exportAll = () => {

@@ -29,6 +29,7 @@ type BranchControlRow = {
 
 const EMPTY_LIST: never[] = [];
 const branchColumnHelper = createColumnHelper<BranchControlRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -231,7 +232,7 @@ export default function BranchesPage() {
   const table = useReactTable({
     data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (
