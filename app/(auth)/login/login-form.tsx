@@ -42,6 +42,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState(""); // Honeypot field
   const [isUnverified, setIsUnverified] = useState(false);
+  const [isSessionSwitching, setIsSessionSwitching] = useState(false);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
@@ -49,8 +50,8 @@ export function LoginForm() {
   const googleLoginMutation = useSessionGoogleLogin();
 
   const isBusy = useMemo(
-    () => loginMutation.isPending || googleLoginMutation.isPending,
-    [loginMutation.isPending, googleLoginMutation.isPending],
+    () => loginMutation.isPending || googleLoginMutation.isPending || isSessionSwitching,
+    [loginMutation.isPending, googleLoginMutation.isPending, isSessionSwitching],
   );
 
   useEffect(() => {
@@ -137,10 +138,12 @@ export function LoginForm() {
             await googleLoginMutation.mutateAsync({
               id_token: response.credential,
             });
-            toast.success("Signed in successfully.");
+            setIsSessionSwitching(true);
+            toast.success("Session switched, refreshing workspace…");
             router.replace("/");
             router.refresh();
           } catch (error) {
+            setIsSessionSwitching(false);
             toast.error(
               error instanceof Error
                 ? error.message
@@ -183,10 +186,12 @@ export function LoginForm() {
 
     try {
       await loginMutation.mutateAsync({ email, password });
-      toast.success("Signed in successfully.");
+      setIsSessionSwitching(true);
+      toast.success("Session switched, refreshing workspace…");
       router.replace("/");
       router.refresh();
     } catch (error) {
+      setIsSessionSwitching(false);
       const details = error instanceof ApiError ? (error.details as any) : null;
 
       // Robust error code extraction
@@ -223,7 +228,17 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-12 animate-fade-in">
+    <div className="relative w-full max-w-md space-y-12 animate-fade-in">
+      {isSessionSwitching ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl border border-surface-4 bg-surface-1/95 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+            <p className="text-sm font-medium text-text-secondary">
+              Session switched, refreshing workspace…
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="space-y-3 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
           Welcome Back.
