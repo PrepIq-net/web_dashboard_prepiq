@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile } from "@/services";
 import {
@@ -44,6 +44,7 @@ type BranchRiskRow = {
 
 const EMPTY_LIST: never[] = [];
 const branchRiskColumnHelper = createColumnHelper<BranchRiskRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
@@ -287,7 +288,7 @@ export default function RiskPage() {
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (
@@ -392,30 +393,14 @@ export default function RiskPage() {
       <section className="mt-8">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch-Level Breakdown</p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[980px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {branchTable.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {branchTable.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#232327]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <NativeTable
+            table={branchTable}
+            tableClassName="w-full min-w-[980px]"
+            headerClassName="border-b border-[#2A2A2E]"
+            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
+            bodyRowClassName="border-b border-[#232327]"
+            cellClassName="px-2 py-3"
+          />
         </div>
       </section>
     </WorkspaceShell>

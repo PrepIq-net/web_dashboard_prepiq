@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import {
   useBranchCommandView,
@@ -34,6 +34,7 @@ type SalesWasteRow = {
 
 const EMPTY_LIST: never[] = [];
 const salesWasteColumnHelper = createColumnHelper<SalesWasteRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -294,7 +295,7 @@ export default function SalesWastePage() {
   const table = useReactTable({
     data: tableRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (
@@ -409,30 +410,14 @@ export default function SalesWastePage() {
       <section className="mt-8">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Per-Item Performance</p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[1360px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#232327] align-top">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <NativeTable
+            table={table}
+            tableClassName="w-full min-w-[1360px]"
+            headerClassName="border-b border-[#2A2A2E]"
+            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
+            bodyRowClassName="border-b border-[#232327] align-top"
+            cellClassName="px-2 py-3"
+          />
         </div>
       </section>
     </WorkspaceShell>

@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
@@ -38,6 +38,7 @@ type StaffPerformanceRow = {
 
 const columnHelper = createColumnHelper<StaffPerformanceRow>();
 const TABLE_PAGE_SIZE = 100;
+const CORE_ROW_MODEL = getCoreRowModel();
 const EMPTY_BRANCHES: Array<{ id: string; name: string }> = [];
 const EMPTY_MEMBERS: Array<{
   id: string;
@@ -370,7 +371,7 @@ export default function StaffPerformancePage() {
   const table = useReactTable({
     data: pagedRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (
@@ -505,30 +506,14 @@ export default function StaffPerformancePage() {
             </div>
           ) : null}
           {rows.length > 0 ? (
-            <table className="w-full min-w-[1320px]">
-              <thead className="border-b border-surface-4 bg-[#232327]/65">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b border-[#232327] transition-colors hover:bg-[#232327]/40">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <NativeTable
+              table={table}
+              tableClassName="w-full min-w-[1320px]"
+              headerClassName="border-b border-surface-4 bg-[#232327]/65"
+              headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted"
+              bodyRowClassName="border-b border-[#232327] transition-colors hover:bg-[#232327]/40"
+              cellClassName="px-4 py-3"
+            />
           ) : null}
         </div>
       </section>

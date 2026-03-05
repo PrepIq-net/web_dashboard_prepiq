@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import {
   useBranchCommandView,
@@ -31,6 +31,7 @@ type InventoryRow = {
 
 const EMPTY_LIST: never[] = [];
 const inventoryColumnHelper = createColumnHelper<InventoryRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function hashNumber(input: string) {
   let hash = 0;
@@ -54,7 +55,14 @@ export default function InventoryPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
-  const canAccess = ["STAFF_OPERATOR", "BRANCH_MANAGER", "GM", "OPS_DIRECTOR"].includes(role);
+  const canAccess = [
+    "STAFF_OPERATOR",
+    "BRANCH_MANAGER",
+    "GM",
+    "OPS_DIRECTOR",
+    "ORG_OWNER",
+    "ORG_ADMIN",
+  ].includes(role);
   const isOpsDirector = role === "OPS_DIRECTOR";
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -217,7 +225,7 @@ export default function InventoryPage() {
   const table = useReactTable({
     data: inventoryRows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
@@ -273,30 +281,14 @@ export default function InventoryPage() {
       <section className="mt-8 border-b border-[#2A2A2E] pb-8">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Inventory Table</p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[1060px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#232327]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <NativeTable
+            table={table}
+            tableClassName="w-full min-w-[1060px]"
+            headerClassName="border-b border-[#2A2A2E]"
+            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
+            bodyRowClassName="border-b border-[#232327]"
+            cellClassName="px-2 py-3"
+          />
         </div>
       </section>
 

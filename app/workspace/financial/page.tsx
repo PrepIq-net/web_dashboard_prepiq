@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { Download, Calendar, Filter, ArrowUp } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
@@ -48,6 +48,7 @@ type FinancialTab = "OVERVIEW" | "MARGIN" | "WASTE" | "SALES" | "TAX" | "EXPORTS
 const EMPTY_LIST: never[] = [];
 const financialBranchColumnHelper = createColumnHelper<FinancialBranchRow>();
 const financialCategoryColumnHelper = createColumnHelper<CategoryMarginRow>();
+const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -283,7 +284,7 @@ export default function FinancialPage() {
   const branchTable = useReactTable({
     data: branchRows,
     columns: branchColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   const categoryColumns = useMemo(
@@ -315,7 +316,7 @@ export default function FinancialPage() {
   const categoryTable = useReactTable({
     data: categoryRows,
     columns: categoryColumns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: CORE_ROW_MODEL,
   });
 
   return (
@@ -478,30 +479,15 @@ export default function FinancialPage() {
             
             <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px]">
-                  <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                    {branchTable.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-surface-4">
-                    {branchTable.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-6 py-4">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <NativeTable
+                  table={branchTable}
+                  tableClassName="w-full min-w-[860px]"
+                  headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                  bodyClassName="divide-y divide-surface-4"
+                  headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                  bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                  cellClassName="px-6 py-4"
+                />
               </div>
             </div>
           </div>
@@ -522,30 +508,15 @@ export default function FinancialPage() {
             
             <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                  <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                    {categoryTable.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-surface-4">
-                    {categoryTable.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-6 py-4">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <NativeTable
+                  table={categoryTable}
+                  tableClassName="w-full min-w-[760px]"
+                  headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                  bodyClassName="divide-y divide-surface-4"
+                  headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                  bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                  cellClassName="px-6 py-4"
+                />
               </div>
             </div>
           </div>
@@ -740,30 +711,15 @@ export default function FinancialPage() {
           
           <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px]">
-                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                  {branchTable.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody className="divide-y divide-surface-4">
-                  {branchTable.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="transition-all duration-200 hover:bg-surface-3/50">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-6 py-4">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <NativeTable
+                table={branchTable}
+                tableClassName="w-full min-w-[860px]"
+                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                bodyClassName="divide-y divide-surface-4"
+                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                cellClassName="px-6 py-4"
+              />
             </div>
           </div>
         </section>
