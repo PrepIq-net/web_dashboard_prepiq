@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   AUTH_COOKIES,
-  getExpiredCookieOptions,
+  clearAuthCookies,
   resolveBackendApiUrl,
 } from "@/lib/auth/cookies";
 
@@ -27,8 +27,7 @@ export async function POST() {
   }
 
   const response = NextResponse.json({ message: "Logged out" }, { status: 200 });
-  response.cookies.set(AUTH_COOKIES.accessToken, "", getExpiredCookieOptions());
-  response.cookies.set(AUTH_COOKIES.refreshToken, "", getExpiredCookieOptions());
+  clearAuthCookies(response);
 
   return response;
 }

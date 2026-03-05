@@ -46,6 +46,21 @@ function buildUrl(endpoint: string): string {
   return `${normalizedBase}/api${endpointWithoutApiPrefix}`;
 }
 
+async function forceClientLogoutAndRedirect(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Ignore; proxy may have already cleared cookies.
+  }
+
+  window.location.replace("/login");
+}
+
 async function resolveAuthToken(
   authToken?: string | null,
 ): Promise<string | null> {
@@ -100,8 +115,16 @@ export async function apiClient<T>(
     ...rest,
   });
 
-  if (response.status === 401 && runtimeConfig.onUnauthorized) {
-    await runtimeConfig.onUnauthorized();
+  if (response.status === 401) {
+    const authCleared = response.headers.get("x-prepiq-auth-cleared") === "1";
+    if (authCleared) {
+      await forceClientLogoutAndRedirect();
+      return Promise.reject(new Error("Authentication expired"));
+    }
+
+    if (runtimeConfig.onUnauthorized) {
+      await runtimeConfig.onUnauthorized();
+    }
   }
 
   if (!response.ok) {

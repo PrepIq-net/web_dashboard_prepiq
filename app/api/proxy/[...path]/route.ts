@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
   AUTH_COOKIES,
+  clearAuthCookies,
   getAccessTokenCookieOptions,
   resolveBackendApiUrl,
 } from "@/lib/auth/cookies";
@@ -61,11 +62,16 @@ async function proxyRequest(request: NextRequest, path: string[]) {
 
   let backendResponse = await send(accessTokenFromCookie);
   let refreshedToken: string | null = null;
+  let refreshAttempted = false;
+  let refreshRefused = false;
 
   if (backendResponse.status === 401 && refreshToken) {
+    refreshAttempted = true;
     refreshedToken = await refreshAccessToken(refreshToken);
     if (refreshedToken) {
       backendResponse = await send(refreshedToken);
+    } else {
+      refreshRefused = true;
     }
   }
 
@@ -84,6 +90,17 @@ async function proxyRequest(request: NextRequest, path: string[]) {
       refreshedToken,
       getAccessTokenCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS),
     );
+  }
+
+  if (
+    backendResponse.status === 401 &&
+    (refreshAttempted || Boolean(accessTokenFromCookie) || Boolean(refreshToken))
+  ) {
+    clearAuthCookies(response);
+    response.headers.set("x-prepiq-auth-cleared", "1");
+    if (refreshRefused) {
+      response.headers.set("x-prepiq-auth-reason", "refresh_refused");
+    }
   }
 
   return response;
