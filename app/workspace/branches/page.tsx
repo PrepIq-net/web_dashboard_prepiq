@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
@@ -304,30 +304,14 @@ export default function BranchesPage() {
         
         <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1220px]">
-              <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-surface-4">
-                {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="align-top transition-all duration-200 hover:bg-surface-3/50">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-6">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <NativeTable
+              table={table}
+              tableClassName="w-full min-w-[1220px]"
+              headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+              headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+              bodyRowClassName="align-top transition-all duration-200 hover:bg-surface-3/50"
+              cellClassName="px-6 py-6"
+            />
           </div>
         </div>
       </section>

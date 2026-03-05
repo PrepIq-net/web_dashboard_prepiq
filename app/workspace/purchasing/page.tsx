@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+  NativeTable,
+} from "@/components/ui/native-table";
 import { Download, WarningTriangle, CoinsSwap } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useBranches, useCurrentUserProfile } from "@/services";
@@ -405,35 +405,14 @@ export default function PurchasingPage() {
           </button>
         </div>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {supplierTable.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {supplierTable.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#2A2A2E]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <NativeTable
+            table={supplierTable}
+            tableClassName="w-full min-w-[760px]"
+            headerClassName="border-b border-[#2A2A2E]"
+            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
+            bodyRowClassName="border-b border-[#2A2A2E]"
+            cellClassName="px-2 py-3"
+          />
         </div>
       </section>
 
@@ -479,35 +458,14 @@ export default function PurchasingPage() {
       <section className="mt-8 border-b border-[#2A2A2E] pb-8">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Purchase Variance Detection</p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[980px]">
-            <thead className="border-b border-[#2A2A2E]">
-              {varianceTable.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {varianceTable.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-[#2A2A2E]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3 align-top">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <NativeTable
+            table={varianceTable}
+            tableClassName="w-full min-w-[980px]"
+            headerClassName="border-b border-[#2A2A2E]"
+            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
+            bodyRowClassName="border-b border-[#2A2A2E]"
+            cellClassName="px-2 py-3 align-top"
+          />
         </div>
       </section>
 
