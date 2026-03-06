@@ -17,6 +17,7 @@ import {
   useCreateProductionLog,
   useEvaluatePrepPlan,
   useInitializeBranchDay,
+  useLockBranchDayPlan,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
 } from "@/services/production-intelligence/hooks";
@@ -210,6 +211,7 @@ export default function TodayWorkspacePage() {
   const todayQuery = useBranchDayToday({ branch_id: branchId, date: targetDate }, Boolean(branchId));
   const initializeMutation = useInitializeBranchDay();
   const evaluateMutation = useEvaluatePrepPlan();
+  const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
   const createProductionLogMutation = useCreateProductionLog();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
@@ -241,6 +243,7 @@ export default function TodayWorkspacePage() {
   const isMorning = branchDay?.status === "MORNING";
   const isLive = branchDay?.status === "LIVE";
   const isClosed = branchDay?.status === "CLOSED";
+  const isPlanLocked = Boolean(branchDay?.plan_lock?.is_locked);
 
   const rows = useMemo(() => {
     if (!branchDay) return [];
@@ -326,6 +329,7 @@ export default function TodayWorkspacePage() {
 
   const startLiveService = () => {
     if (!branchDay?.id) return;
+    if (!isPlanLocked) return;
     updateBranchDayStatusMutation.mutate(
       {
         branchDayId: branchDay.id,
@@ -335,6 +339,11 @@ export default function TodayWorkspacePage() {
         onSuccess: () => setConfirmAction(null),
       },
     );
+  };
+
+  const lockPlan = () => {
+    if (!branchDay?.id || isPlanLocked) return;
+    lockPlanMutation.mutate({ branchDayId: branchDay.id, payload: {} });
   };
 
   const closeServiceDay = () => {
@@ -474,15 +483,35 @@ export default function TodayWorkspacePage() {
                   Suggestions are pre-filled. Review each item, inspect the reason, and override only where needed.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setConfirmAction("START_LIVE")}
-                disabled={updateBranchDayStatusMutation.isPending}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-brand-gold/45 px-5 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {updateBranchDayStatusMutation.isPending ? "Starting service..." : "Start Live Service"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={lockPlan}
+                  disabled={isPlanLocked || lockPlanMutation.isPending}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-status-success/45 px-5 text-sm font-semibold text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPlanLocked ? "Plan Locked" : lockPlanMutation.isPending ? "Locking plan..." : "Lock Plan"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("START_LIVE")}
+                  disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-brand-gold/45 px-5 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {updateBranchDayStatusMutation.isPending ? "Starting service..." : "Start Live Service"}
+                </button>
+              </div>
             </div>
+            {!isPlanLocked ? (
+              <p className="mt-3 text-xs text-status-warning">
+                Lock the plan to finalize chef decisions before starting live service.
+              </p>
+            ) : branchDay?.plan_lock?.locked_at ? (
+              <p className="mt-3 text-xs text-status-success">
+                Plan locked at {new Date(branchDay.plan_lock.locked_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                {branchDay.plan_lock.locked_by?.name ? ` by ${branchDay.plan_lock.locked_by.name}` : ""}.
+              </p>
+            ) : null}
 
             <div className="mt-8 border-t border-surface-4/60 pt-5">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
@@ -616,60 +645,136 @@ export default function TodayWorkspacePage() {
           <section className="mt-8">
             <div className="space-y-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Focus First</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Chef Plan Input</p>
+                <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                  Enter Your Prep Decision
+                </h3>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Prioritized by stockout and waste risk so the team can decide quickly.
+                  Input your prep plan, review variance against forecast, then evaluate AI guidance before service begins.
                 </p>
+                <div className="mt-3 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2">
+                  <p className="text-xs text-text-secondary">
+                    Workflow: Demand Signal {"->"} Forecast Prep List {"->"} Input Plan {"->"} AI Review {"->"} Confirm or Override {"->"} Start Service
+                  </p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-brand-gold">Target completion time: under 3 minutes</p>
+                </div>
               </div>
 
               <div className="space-y-3">
                 {(highPriorityRows.length ? highPriorityRows : rows.slice(0, 3)).map(({ item, planned, variance, impact, riskScore }) => {
                   const context = item.forecast_context;
+                  const wasteDirection = impact
+                    ? impact.waste_risk_increase < 0
+                      ? "decrease"
+                      : impact.waste_risk_increase > 0
+                        ? "increase"
+                        : "neutral"
+                    : "neutral";
+                  const marginSavedEstimate = impact
+                    ? Math.max(0, impact.potential_unsold_loss - Math.max(0, impact.margin_impact_estimate))
+                    : 0;
                   return (
                     <article key={item.id} className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr,1fr]">
+                        <div className="space-y-3">
                           <div className="flex items-center gap-3">
                             <p className="text-sm font-semibold text-text-primary">{item.product_title}</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}>
                               {riskLabel(riskScore)} risk
                             </span>
                           </div>
-                          <p className="mt-1 text-xs text-text-muted">
-                            Suggested {formatQuantity(item.suggested_quantity, item.unit)} · Expected orders {Math.round(context.predicted_orders)}
+                          <p className="text-xs text-text-muted">
+                            Forecast: {formatQuantity(item.suggested_quantity, item.unit)} · Expected orders {Math.round(context.predicted_orders)}
                           </p>
+                          <div className="rounded-lg border border-surface-4 bg-surface-3/45 px-3 py-3">
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Your Plan</p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                value={plannedQtyByItem[item.id] ?? ""}
+                                onChange={(event) => onPlannedChange(item.id, event.target.value)}
+                                disabled={isPlanLocked}
+                                className="h-9 w-36 rounded-full border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                              />
+                              <span className="text-xs text-text-muted">{item.unit}</span>
+                            </div>
+                            <p className="mt-2 text-xs text-text-secondary">
+                              Variance = Chef plan - forecast
+                            </p>
+                            <p className="mt-1 text-sm font-semibold">
+                              <span className="text-text-muted">Variance: </span>
+                              <span
+                                className={
+                                  variance == null
+                                    ? "text-text-muted"
+                                    : variance > 0
+                                      ? "text-status-warning"
+                                      : variance < 0
+                                        ? "text-status-critical"
+                                        : "text-status-success"
+                                }
+                              >
+                                {variance == null ? "-" : signedQuantity(variance, item.unit)}
+                              </span>
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            value={plannedQtyByItem[item.id] ?? ""}
-                            onChange={(event) => onPlannedChange(item.id, event.target.value)}
-                            className="h-9 w-32 rounded-full border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
-                            className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10"
-                          >
-                            Accept
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => keepMyPlan(item.id, planned)}
-                            className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3"
-                          >
-                            Keep my plan
-                          </button>
+                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-warning">
+                            AI Suggestion Review
+                          </p>
+                          <p className="mt-2 text-xs text-text-secondary">Based on:</p>
+                          <ul className="list-disc pl-4 text-xs text-text-secondary">
+                            <li>90-day demand history</li>
+                            <li>Similar weekday demand</li>
+                            <li>Stockout history</li>
+                            <li>Waste patterns</li>
+                          </ul>
+                          <p className="mt-3 text-xs text-text-secondary">
+                            Suggested:{" "}
+                            <span className="font-semibold text-text-primary">
+                              {formatQuantity(item.suggested_quantity, item.unit)}
+                            </span>
+                          </p>
+                          {impact ? (
+                            <div className="mt-2 space-y-1 text-xs text-text-secondary">
+                              <p>
+                                Waste risk{" "}
+                                <span className={wasteDirection === "decrease" ? "text-status-success" : wasteDirection === "increase" ? "text-status-critical" : "text-text-muted"}>
+                                  {wasteDirection === "decrease"
+                                    ? `decreases ${Math.abs(impact.waste_risk_increase).toFixed(1)}%`
+                                    : wasteDirection === "increase"
+                                      ? `increases ${Math.abs(impact.waste_risk_increase).toFixed(1)}%`
+                                      : "unchanged"}
+                                </span>
+                              </p>
+                              <p>
+                                Estimated margin saved:{" "}
+                                <span className="font-semibold text-status-success">{formatCurrency(marginSavedEstimate)}</span>
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-xs text-text-muted">Adjust your plan quantity to preview potential impact.</p>
+                          )}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
+                              disabled={isPlanLocked}
+                              className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10"
+                            >
+                              Accept Suggestion
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => keepMyPlan(item.id, planned)}
+                              disabled={isPlanLocked}
+                              className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3"
+                            >
+                              Keep My Plan
+                            </button>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-text-secondary">
-                        <span>
-                          Variance:{" "}
-                          <span className={variance == null ? "text-text-muted" : variance > 0 ? "text-status-warning" : variance < 0 ? "text-status-critical" : "text-status-success"}>
-                            {variance == null ? "-" : signedQuantity(variance, item.unit)}
-                          </span>
-                        </span>
                       </div>
 
                       <details className="mt-3">
@@ -715,11 +820,13 @@ export default function TodayWorkspacePage() {
                             <input
                               value={plannedQtyByItem[item.id] ?? ""}
                               onChange={(event) => onPlannedChange(item.id, event.target.value)}
+                              disabled={isPlanLocked}
                               className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
                             />
                             <button
                               type="button"
                               onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
+                              disabled={isPlanLocked}
                               className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10"
                             >
                               Accept
@@ -727,6 +834,7 @@ export default function TodayWorkspacePage() {
                             <button
                               type="button"
                               onClick={() => keepMyPlan(item.id, planned)}
+                              disabled={isPlanLocked}
                               className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3"
                             >
                               Keep

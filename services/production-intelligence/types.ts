@@ -42,7 +42,14 @@ export const prepPlanItemSchema = z.object({
   product_id: z.string().uuid(),
   product_title: z.string(),
   suggested_quantity: z.number(),
+  forecast_qty: z.number().optional(),
+  forecast_confidence: z.number().optional(),
   planned_quantity: z.number().nullable(),
+  chef_planned_qty: z.number().nullable().optional(),
+  ai_suggested_qty: z.number().nullable().optional(),
+  chef_final_qty: z.number().nullable().optional(),
+  variance: z.number().optional(),
+  decision: z.enum(["ACCEPTED_AI", "CHEF_OVERRIDE"]).nullable().optional(),
   final_quantity: z.number(),
   unit: z.string(),
   suggestion_reason_json: z.record(z.string(), z.unknown()),
@@ -172,6 +179,18 @@ export const branchDayTodaySchema = z.object({
     })
     .nullable()
     .optional(),
+  plan_lock: z
+    .object({
+      is_locked: z.boolean(),
+      locked_at: z.string().nullable(),
+      locked_by: z
+        .object({
+          id: z.string().uuid().nullable().optional(),
+          name: z.string().nullable().optional(),
+        })
+        .nullable(),
+    })
+    .optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -186,6 +205,9 @@ export const branchDayStatusUpdatePayloadSchema = z.object({
   status: z.enum(["MORNING", "LIVE", "CLOSED"]),
 });
 export type BranchDayStatusUpdatePayload = z.infer<typeof branchDayStatusUpdatePayloadSchema>;
+
+export const branchDayPlanLockPayloadSchema = z.object({});
+export type BranchDayPlanLockPayload = z.infer<typeof branchDayPlanLockPayloadSchema>;
 
 export const prepPlanEvaluatePayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),

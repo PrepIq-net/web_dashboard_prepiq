@@ -6,6 +6,7 @@ import {
   getBranchDayToday,
   getBranchCommandView,
   initializeBranchDay,
+  lockBranchDayPlan,
   createPrepRecommendationDecision,
   evaluatePrepPlan,
   getExecutiveControlTower,
@@ -40,6 +41,7 @@ import {
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
+  BranchDayPlanLockPayload,
   BranchDayStatusUpdatePayload,
   CreateProductionLogPayload,
   CreatePrepRecommendationDecisionPayload,
@@ -183,6 +185,28 @@ export function useUpdateBranchDayStatus() {
       branchDayId: string;
       payload: BranchDayStatusUpdatePayload;
     }) => updateBranchDayStatus(branchDayId, payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayToday({
+          branch_id: data.branch_id,
+          date: data.date,
+        }),
+      });
+    },
+  });
+}
+
+export function useLockBranchDayPlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      payload,
+    }: {
+      branchDayId: string;
+      payload?: BranchDayPlanLockPayload;
+    }) => lockBranchDayPlan(branchDayId, payload ?? {}),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: productionIntelligenceQueryKeys.branchDayToday({

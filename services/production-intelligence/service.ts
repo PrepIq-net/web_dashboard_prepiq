@@ -3,6 +3,7 @@ import { apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
   branchDayInitializePayloadSchema,
+  branchDayPlanLockPayloadSchema,
   branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
   createProductionLogPayloadSchema,
@@ -32,6 +33,7 @@ import {
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
+  type BranchDayPlanLockPayload,
   type BranchDayStatusUpdatePayload,
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
@@ -126,6 +128,21 @@ export async function updateBranchDayStatus(
     branchDayTodaySchema,
     {
       method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function lockBranchDayPlan(
+  branchDayId: string,
+  payload: BranchDayPlanLockPayload = {},
+) {
+  const body = branchDayPlanLockPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayLockPlan(branchDayId),
+    branchDayTodaySchema,
+    {
+      method: "POST",
       body,
     },
   );
