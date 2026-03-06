@@ -69,6 +69,25 @@ function riskLabel(value: number) {
   return "Low";
 }
 
+function signalToneClasses(direction: "up" | "down" | "neutral", valuePct: number) {
+  if (direction === "neutral") {
+    return "text-text-muted border-surface-4 bg-surface-3/35";
+  }
+  if (direction === "down") {
+    return "text-status-critical border-status-critical/35 bg-status-critical/10";
+  }
+  if (Math.abs(valuePct) >= 8) {
+    return "text-status-success border-status-success/35 bg-status-success/10";
+  }
+  return "text-status-warning border-status-warning/35 bg-status-warning/10";
+}
+
+function popularityLabel(rank: number) {
+  if (rank <= 3) return "Top 3 projected seller";
+  if (rank <= 5) return "High-demand item";
+  return `Projected rank #${rank}`;
+}
+
 function isDiscreteUnit(unit: string) {
   return ["PCS", "PLATES", "BOXES", "TRAYS", "SERVINGS"].includes((unit || "").toUpperCase());
 }
@@ -87,6 +106,37 @@ function signedQuantity(value: number, unit: string) {
   }
   return `${prefix}${value.toFixed(2)} ${unit}`;
 }
+
+const FALLBACK_DEMAND_SIGNALS = [
+  {
+    key: "similar_day",
+    label: "Similar days",
+    value_pct: 0,
+    direction: "neutral" as const,
+    explanation: "Similar weekday baseline signal.",
+  },
+  {
+    key: "reservation",
+    label: "Reservation volume",
+    value_pct: 0,
+    direction: "neutral" as const,
+    explanation: "Reservation-linked demand adjustment.",
+  },
+  {
+    key: "weather",
+    label: "Weather",
+    value_pct: 0,
+    direction: "neutral" as const,
+    explanation: "Weather and temperature demand effect.",
+  },
+  {
+    key: "local_event",
+    label: "Local event",
+    value_pct: 0,
+    direction: "neutral" as const,
+    explanation: "Local event and special activity effect.",
+  },
+];
 
 export default function TodayWorkspacePage() {
   const router = useRouter();
@@ -209,6 +259,13 @@ export default function TodayWorkspacePage() {
 
   const highPriorityRows = useMemo(() => rows.filter((row) => row.riskScore >= 0.45), [rows]);
   const lowerImpactRows = useMemo(() => rows.filter((row) => row.riskScore < 0.45), [rows]);
+  const forecastRowsByDemand = useMemo(
+    () =>
+      [...rows].sort(
+        (a, b) => b.item.forecast_context.predicted_orders - a.item.forecast_context.predicted_orders,
+      ),
+    [rows],
+  );
 
   const evaluateImpact = (prepPlanItemId: string, plannedQuantity: number) => {
     evaluateMutation.mutate(
@@ -427,37 +484,132 @@ export default function TodayWorkspacePage() {
               </button>
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-4 border-t border-surface-4/60 pt-5 sm:grid-cols-2 lg:grid-cols-5">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Expected Demand</p>
-                <p className="mt-1 font-display text-2xl text-text-primary">
-                  {toPercent((branchDay.demand_signal.expected_demand_index - 1) * 100)}
+            <div className="mt-8 border-t border-surface-4/60 pt-5">
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Demand Signal
                 </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Confidence</p>
-                <p className="mt-1 text-base font-semibold text-text-primary">
-                  {confidenceLabel(branchDay.demand_signal.forecast_confidence)} ({percent(branchDay.demand_signal.forecast_confidence)})
+                <h4 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                  Today&apos;s Demand Signal
+                </h4>
+                <p className="mt-3 text-sm text-text-secondary">
+                  Expected Demand:{" "}
+                  <span className="font-semibold text-text-primary">
+                    {toPercent(
+                      branchDay.demand_signal.expected_demand_delta_pct ??
+                        (branchDay.demand_signal.expected_demand_index - 1) * 100,
+                    )}
+                  </span>{" "}
+                  vs typical{" "}
+                  <span className="font-semibold text-text-primary">
+                    {branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString("en-US", { weekday: "long" })}
+                  </span>
                 </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">High Risk Items</p>
-                <p className="mt-1 text-base font-semibold text-status-warning">
-                  {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0}
+                <p className="mt-1 text-sm text-text-secondary">
+                  Confidence:{" "}
+                  <span className="font-semibold text-text-primary">
+                    {branchDay.demand_signal.confidence_label ?? confidenceLabel(branchDay.demand_signal.forecast_confidence)}
+                  </span>{" "}
+                  <span className="text-text-muted">
+                    ({percent(branchDay.demand_signal.forecast_confidence)})
+                  </span>
                 </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Prep Cost (Est.)</p>
-                <p className="mt-1 text-base font-semibold text-text-primary">
-                  {formatCurrency(branchDay.morning_overview?.estimated_total_prep_cost ?? 0)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Projected Margin</p>
-                <p className="mt-1 text-base font-semibold text-status-success">
-                  {formatCurrency(branchDay.morning_overview?.projected_margin_total ?? 0)}
-                </p>
-              </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {(branchDay.demand_signal.signals ?? FALLBACK_DEMAND_SIGNALS).map((signal) => (
+                    <div
+                      key={signal.key}
+                      className={`rounded-lg border px-3 py-3 ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                    >
+                      <p className="text-[11px] uppercase tracking-[0.14em]">{signal.label}</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {signal.direction === "neutral" ? "Neutral" : toPercent(signal.value_pct)}
+                      </p>
+                      <p className="mt-1 text-xs opacity-85">{signal.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">High Risk Items</p>
+                    <p className="mt-1 text-base font-semibold text-status-warning">
+                      {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Prep Cost (Est.)</p>
+                    <p className="mt-1 text-base font-semibold text-text-primary">
+                      {formatCurrency(branchDay.morning_overview?.estimated_total_prep_cost ?? 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Projected Margin</p>
+                    <p className="mt-1 text-base font-semibold text-status-success">
+                      {formatCurrency(branchDay.morning_overview?.projected_margin_total ?? 0)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section className="mb-10">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Forecast Prep List
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Core Planning Interface
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary">
+                One row per prep item with forecast confidence and demand priority.
+              </p>
+            </div>
+
+            <div className="mt-5 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
+              <table className="w-full min-w-[820px]">
+                <thead className="border-b border-surface-4 bg-surface-3/35">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Item</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Forecast</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Confidence</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Risk</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Popularity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4/70">
+                  {forecastRowsByDemand.map(({ item, riskScore }, index) => (
+                    <tr key={`forecast-${item.id}`} className="align-top hover:bg-surface-3/30">
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-semibold text-text-primary">{item.product_title}</p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          Expected orders {Math.round(item.forecast_context.predicted_orders)}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-text-primary">
+                        {formatQuantity(item.suggested_quantity, item.unit)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {percent(item.forecast_context.confidence_score)}
+                        </p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          {confidenceLabel(item.forecast_context.confidence_score)}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${riskTone(riskScore)}`}>
+                          {riskLabel(riskScore)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-text-secondary">
+                        {popularityLabel(index + 1)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
 

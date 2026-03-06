@@ -86,8 +86,22 @@ export const branchDayTodaySchema = z.object({
   demand_signal: z.object({
     expected_demand_index: z.number(),
     forecast_confidence: z.number(),
+    confidence_label: z.enum(["High", "Medium", "Low"]).optional(),
+    expected_demand_delta_pct: z.number().optional(),
+    typical_day_label: z.string().optional(),
     event_modifier_percentage: z.number(),
     weather_modifier_percentage: z.number().nullable(),
+    signals: z
+      .array(
+        z.object({
+          key: z.enum(["similar_day", "reservation", "weather", "local_event"]),
+          label: z.string(),
+          value_pct: z.number(),
+          direction: z.enum(["up", "down", "neutral"]),
+          explanation: z.string(),
+        }),
+      )
+      .optional(),
     high_risk_items: z.number().optional(),
     tracked_items: z.number().optional(),
   }),
