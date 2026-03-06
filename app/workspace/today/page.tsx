@@ -198,6 +198,7 @@ export default function TodayWorkspacePage() {
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
   const [plannedQtyByItem, setPlannedQtyByItem] = useState<Record<string, number | "">>({});
   const [impactByItem, setImpactByItem] = useState<Record<string, ImpactPreview>>({});
+  const [actionErrorByItem, setActionErrorByItem] = useState<Record<string, string>>({});
   const [confirmAction, setConfirmAction] = useState<null | "START_LIVE" | "CLOSE_DAY">(null);
   const [wasteItem, setWasteItem] = useState<null | { id: string; title: string; unit: string }>(null);
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
@@ -245,7 +246,8 @@ export default function TodayWorkspacePage() {
     if (!branchDay) return;
     const initialPlans: Record<string, number | ""> = {};
     for (const item of branchDay.prep_plan_items) {
-      initialPlans[item.id] = item.planned_quantity ?? item.suggested_quantity;
+      const seedValue = item.planned_quantity ?? item.suggested_quantity;
+      initialPlans[item.id] = isDiscreteUnit(item.unit) ? Math.round(seedValue) : seedValue;
     }
     setPlannedQtyByItem(initialPlans);
   }, [branchDay?.id]);
@@ -314,9 +316,20 @@ export default function TodayWorkspacePage() {
     );
   };
 
-  const onPlannedChange = (prepPlanItemId: string, value: string) => {
-    const parsed = value === "" ? "" : Number(value);
+  const normalizePlannedQuantity = (value: number, unit: string) => {
+    if (Number.isNaN(value)) return value;
+    return isDiscreteUnit(unit) ? Math.round(value) : value;
+  };
+
+  const onPlannedChange = (prepPlanItemId: string, value: string, unit: string) => {
+    const parsed = value === "" ? "" : normalizePlannedQuantity(Number(value), unit);
     setPlannedQtyByItem((prev) => ({ ...prev, [prepPlanItemId]: parsed }));
+    setActionErrorByItem((prev) => {
+      if (!prev[prepPlanItemId]) return prev;
+      const next = { ...prev };
+      delete next[prepPlanItemId];
+      return next;
+    });
 
     if (evaluateDebounce.current[prepPlanItemId]) {
       window.clearTimeout(evaluateDebounce.current[prepPlanItemId]);
@@ -329,32 +342,76 @@ export default function TodayWorkspacePage() {
     }, 300);
   };
 
-  const acceptSuggestion = (prepPlanItemId: string, suggestedQuantity: number) => {
+  const acceptSuggestion = (prepPlanItemId: string, suggestedQuantity: number, unit: string) => {
+    const normalizedQuantity = normalizePlannedQuantity(suggestedQuantity, unit);
     updatePrepPlanMutation.mutate(
       {
         prepPlanItemId,
         payload: {
-          planned_quantity: suggestedQuantity,
+          planned_quantity: normalizedQuantity,
           accepted_suggestion: true,
         },
       },
       {
         onSuccess: () => {
-          setPlannedQtyByItem((prev) => ({ ...prev, [prepPlanItemId]: suggestedQuantity }));
+          setPlannedQtyByItem((prev) => ({ ...prev, [prepPlanItemId]: normalizedQuantity }));
+          setActionErrorByItem((prev) => {
+            if (!prev[prepPlanItemId]) return prev;
+            const next = { ...prev };
+            delete next[prepPlanItemId];
+            return next;
+          });
         },
+        onError: () =>
+          setActionErrorByItem((prev) => ({
+            ...prev,
+            [prepPlanItemId]: "Could not accept suggestion. Try again.",
+          })),
       },
     );
   };
 
-  const keepMyPlan = (prepPlanItemId: string, plannedQuantity: number | null) => {
+  const keepMyPlan = (prepPlanItemId: string, plannedQuantity: number | null, unit: string) => {
     if (plannedQuantity == null || Number.isNaN(plannedQuantity)) return;
+    const normalizedQuantity = normalizePlannedQuantity(plannedQuantity, unit);
     updatePrepPlanMutation.mutate({
       prepPlanItemId,
       payload: {
-        planned_quantity: plannedQuantity,
+        planned_quantity: normalizedQuantity,
         accepted_suggestion: false,
       },
+    }, {
+      onSuccess: () => {
+        setPlannedQtyByItem((prev) => ({ ...prev, [prepPlanItemId]: normalizedQuantity }));
+        setActionErrorByItem((prev) => {
+          if (!prev[prepPlanItemId]) return prev;
+          const next = { ...prev };
+          delete next[prepPlanItemId];
+          return next;
+        });
+      },
+      onError: () =>
+        setActionErrorByItem((prev) => ({
+          ...prev,
+          [prepPlanItemId]: "Could not keep chef plan. Try again.",
+        })),
     });
+  };
+
+  const backendDecisionFeedback = (item: { decision?: string | null; accepted_suggestion?: boolean }) => {
+    if (item.decision === "ACCEPTED_AI" || item.accepted_suggestion) {
+      return {
+        tone: "success" as const,
+        message: "Accepted suggestion. Plan aligned with forecast.",
+      };
+    }
+    if (item.decision === "CHEF_OVERRIDE") {
+      return {
+        tone: "warning" as const,
+        message: "Kept chef plan. Override recorded.",
+      };
+    }
+    return null;
   };
 
   const startLiveService = () => {
@@ -768,8 +825,10 @@ export default function TodayWorkspacePage() {
                             <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Your Plan</p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <input
+                                type="number"
+                                step={isDiscreteUnit(item.unit) ? 1 : 0.01}
                                 value={plannedQtyByItem[item.id] ?? ""}
-                                onChange={(event) => onPlannedChange(item.id, event.target.value)}
+                                onChange={(event) => onPlannedChange(item.id, event.target.value, item.unit)}
                                 disabled={isPlanLocked}
                                 className="h-9 w-36 rounded-full border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
                               />
@@ -842,7 +901,7 @@ export default function TodayWorkspacePage() {
                           <div className="mt-3 flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
+                              onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
                               disabled={isPlanLocked}
                               className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10"
                             >
@@ -850,13 +909,30 @@ export default function TodayWorkspacePage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => keepMyPlan(item.id, planned)}
+                              onClick={() => keepMyPlan(item.id, planned, item.unit)}
                               disabled={isPlanLocked}
                               className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3"
                             >
                               Keep My Plan
                             </button>
                           </div>
+                          {actionErrorByItem[item.id] ? (
+                            <p className="mt-2 text-xs text-status-critical">
+                              {actionErrorByItem[item.id]}
+                            </p>
+                          ) : backendDecisionFeedback(item) ? (
+                            <p
+                              className={`mt-2 text-xs ${
+                                backendDecisionFeedback(item)?.tone === "success"
+                                  ? "text-status-success"
+                                  : backendDecisionFeedback(item)?.tone === "warning"
+                                    ? "text-status-warning"
+                                    : "text-status-critical"
+                              }`}
+                            >
+                              {backendDecisionFeedback(item)?.message}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -894,40 +970,94 @@ export default function TodayWorkspacePage() {
                   <div className="mt-3 space-y-3">
                     {lowerImpactRows.map(({ item, planned, variance, impact, riskScore }) => (
                       <article key={item.id} className="rounded-lg border border-surface-4/70 bg-surface-3/30 px-3 py-3">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.1fr,1fr]">
                           <div>
-                            <p className="text-sm font-medium text-text-primary">{item.product_title}</p>
-                            <p className={`mt-1 text-xs ${riskTone(riskScore)}`}>{riskLabel(riskScore)} risk</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-text-primary">{item.product_title}</p>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}>
+                                {riskLabel(riskScore)} risk
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs text-text-muted">
+                              Forecast: {formatQuantity(item.suggested_quantity, item.unit)}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                type="number"
+                                step={isDiscreteUnit(item.unit) ? 1 : 0.01}
+                                value={plannedQtyByItem[item.id] ?? ""}
+                                onChange={(event) => onPlannedChange(item.id, event.target.value, item.unit)}
+                                disabled={isPlanLocked}
+                                className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                              />
+                              <span className="text-[11px] text-text-muted">{item.unit}</span>
+                              <button
+                                type="button"
+                                onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10"
+                              >
+                                Accept Suggestion
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => keepMyPlan(item.id, planned, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3"
+                              >
+                                Keep My Plan
+                              </button>
+                            </div>
+                            {actionErrorByItem[item.id] ? (
+                              <p className="mt-2 text-xs text-status-critical">
+                                {actionErrorByItem[item.id]}
+                              </p>
+                            ) : backendDecisionFeedback(item) ? (
+                              <p
+                                className={`mt-2 text-xs ${
+                                  backendDecisionFeedback(item)?.tone === "success"
+                                    ? "text-status-success"
+                                    : backendDecisionFeedback(item)?.tone === "warning"
+                                      ? "text-status-warning"
+                                      : "text-status-critical"
+                                }`}
+                              >
+                                {backendDecisionFeedback(item)?.message}
+                              </p>
+                            ) : null}
+                            <p className="mt-2 text-xs text-text-muted">
+                              Variance {variance == null ? "-" : signedQuantity(variance, item.unit)}
+                              {impact ? ` · Sell-through ${percent(impact.sell_through_probability)}` : ""}
+                            </p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <input
-                              value={plannedQtyByItem[item.id] ?? ""}
-                              onChange={(event) => onPlannedChange(item.id, event.target.value)}
-                              disabled={isPlanLocked}
-                              className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => acceptSuggestion(item.id, item.suggested_quantity)}
-                              disabled={isPlanLocked}
-                              className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => keepMyPlan(item.id, planned)}
-                              disabled={isPlanLocked}
-                              className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3"
-                            >
-                              Keep
-                            </button>
+                          <div className="rounded-md border border-surface-4 bg-surface-2/60 px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-status-warning">
+                              AI Suggestion Review
+                            </p>
+                            <p className="mt-2 text-xs text-text-secondary">
+                              Suggested: <span className="font-semibold text-text-primary">{formatQuantity(item.suggested_quantity, item.unit)}</span>
+                            </p>
+                            {impact ? (
+                              <div className="mt-1 space-y-1 text-xs text-text-secondary">
+                                <p>
+                                  Deviation: {impact.deviation.toFixed(1)} {item.unit} (threshold {impact.deviation_threshold.toFixed(1)})
+                                </p>
+                                <p>Potential margin saved: <span className="font-semibold text-status-success">{formatCurrency(Math.max(0, impact.impact_simulation.margin_savings))}</span></p>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-xs text-text-muted">Adjust quantity to preview impact.</p>
+                            )}
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-xs font-semibold text-brand-gold">Reasoning and impact details</summary>
+                              <div className="mt-1 space-y-1 text-xs text-text-secondary">
+                                {item.forecast_context.reasoning.map((line) => (
+                                  <p key={`${item.id}-${line}`}>{line}</p>
+                                ))}
+                                {impact ? <p>Potential unsold loss: {formatCurrency(impact.potential_unsold_loss)}</p> : null}
+                              </div>
+                            </details>
                           </div>
                         </div>
-                        <p className="mt-2 text-xs text-text-muted">
-                          Variance {variance == null ? "-" : signedQuantity(variance, item.unit)}
-                          {impact ? ` · Sell-through ${percent(impact.sell_through_probability)}` : ""}
-                        </p>
                       </article>
                     ))}
                   </div>
