@@ -31,6 +31,15 @@ type ImpactPreview = {
   estimated_extra_margin_if_sold: number;
   potential_unsold_loss: number;
   margin_impact_estimate: number;
+  deviation: number;
+  deviation_threshold: number;
+  impact_simulation_triggered: boolean;
+  impact_simulation: {
+    suggested_qty: number;
+    waste_probability_change: number;
+    stockout_probability_change: number;
+    margin_savings: number;
+  };
 };
 
 const EMPTY_LIST: never[] = [];
@@ -191,6 +200,7 @@ export default function TodayWorkspacePage() {
   const [impactByItem, setImpactByItem] = useState<Record<string, ImpactPreview>>({});
   const [confirmAction, setConfirmAction] = useState<null | "START_LIVE" | "CLOSE_DAY">(null);
   const [wasteItem, setWasteItem] = useState<null | { id: string; title: string; unit: string }>(null);
+  const [importantItemsOnly, setImportantItemsOnly] = useState(true);
 
   const evaluateDebounce = useRef<Record<string, number>>({});
   const initializeAttemptedByKey = useRef<Record<string, boolean>>({});
@@ -269,6 +279,26 @@ export default function TodayWorkspacePage() {
       ),
     [rows],
   );
+  const importantForecastRowIds = useMemo(() => {
+    const topDemand = forecastRowsByDemand.slice(0, 5).map((row) => row.item.id);
+    const highRisk = rows.filter((row) => row.riskScore >= 0.35).map((row) => row.item.id);
+    const lowConfidence = rows
+      .filter((row) => row.item.forecast_context.confidence_score < 0.6)
+      .map((row) => row.item.id);
+    return new Set([...topDemand, ...highRisk, ...lowConfidence]);
+  }, [forecastRowsByDemand, rows]);
+  const section2Rows = useMemo(() => {
+    if (!importantItemsOnly) return forecastRowsByDemand;
+    const filtered = forecastRowsByDemand.filter((row) => importantForecastRowIds.has(row.item.id));
+    return filtered.length ? filtered : forecastRowsByDemand.slice(0, 5);
+  }, [forecastRowsByDemand, importantItemsOnly, importantForecastRowIds]);
+  const forecastRankById = useMemo(() => {
+    const rankMap: Record<string, number> = {};
+    forecastRowsByDemand.forEach((row, index) => {
+      rankMap[row.item.id] = index + 1;
+    });
+    return rankMap;
+  }, [forecastRowsByDemand]);
 
   const evaluateImpact = (prepPlanItemId: string, plannedQuantity: number) => {
     evaluateMutation.mutate(
@@ -584,16 +614,62 @@ export default function TodayWorkspacePage() {
           </section>
 
           <section className="mb-10">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Forecast Prep List
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Core Planning Interface
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                One row per prep item with forecast confidence and demand priority.
-              </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Forecast Prep List
+                </p>
+                <h3 className="font-display text-2xl font-semibold text-text-primary">
+                  Core Planning Interface
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  One row per prep item with forecast confidence and demand priority.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImportantItemsOnly((prev) => !prev)}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary transition-all duration-200 hover:border-brand-gold hover:text-brand-gold"
+                >
+                  {importantItemsOnly ? "Important items only: ON" : "Important items only: OFF"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Rows In Focus</p>
+                <p className="mt-1 text-xl font-semibold text-text-primary">
+                  {section2Rows.length}
+                  <span className="ml-2 text-sm font-medium text-text-muted">of {forecastRowsByDemand.length}</span>
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  Showing top demand, high risk, and low-confidence items first.
+                </p>
+              </article>
+              <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">Chef Forecast Accuracy</p>
+                {branchDay.morning_overview?.chef_accuracy_score?.available ? (
+                  <>
+                    <p className="mt-1 text-xl font-semibold text-text-primary">
+                      Last {branchDay.morning_overview.chef_accuracy_score.window_days} days:{" "}
+                      {branchDay.morning_overview.chef_accuracy_score.chef_forecast_accuracy_pct.toFixed(1)}%
+                    </p>
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Better than AI:{" "}
+                      <span className={branchDay.morning_overview.chef_accuracy_score.better_than_ai_pct >= 0 ? "text-status-success font-semibold" : "text-status-critical font-semibold"}>
+                        {branchDay.morning_overview.chef_accuracy_score.better_than_ai_pct >= 0 ? "+" : ""}
+                        {branchDay.morning_overview.chef_accuracy_score.better_than_ai_pct.toFixed(1)}%
+                      </span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Build 30-day history to unlock chef-vs-AI accuracy benchmarking.
+                  </p>
+                )}
+              </article>
             </div>
 
             <div className="mt-5 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
@@ -608,7 +684,7 @@ export default function TodayWorkspacePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-4/70">
-                  {forecastRowsByDemand.map(({ item, riskScore }, index) => (
+                  {section2Rows.map(({ item, riskScore }) => (
                     <tr key={`forecast-${item.id}`} className="align-top hover:bg-surface-3/30">
                       <td className="px-4 py-4">
                         <p className="text-sm font-semibold text-text-primary">{item.product_title}</p>
@@ -633,7 +709,7 @@ export default function TodayWorkspacePage() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-sm text-text-secondary">
-                        {popularityLabel(index + 1)}
+                        {popularityLabel(forecastRankById[item.id] ?? 999)}
                       </td>
                     </tr>
                   ))}
@@ -671,7 +747,9 @@ export default function TodayWorkspacePage() {
                         : "neutral"
                     : "neutral";
                   const marginSavedEstimate = impact
-                    ? Math.max(0, impact.potential_unsold_loss - Math.max(0, impact.margin_impact_estimate))
+                    ? impact.impact_simulation_triggered
+                      ? Math.max(0, impact.impact_simulation.margin_savings)
+                      : 0
                     : 0;
                   return (
                     <article key={item.id} className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
@@ -738,6 +816,11 @@ export default function TodayWorkspacePage() {
                           </p>
                           {impact ? (
                             <div className="mt-2 space-y-1 text-xs text-text-secondary">
+                              {!impact.impact_simulation_triggered ? (
+                                <p className="text-text-muted">
+                                  Deviation is within control threshold ({impact.deviation_threshold.toFixed(1)} {item.unit}); no AI correction needed.
+                                </p>
+                              ) : null}
                               <p>
                                 Waste risk{" "}
                                 <span className={wasteDirection === "decrease" ? "text-status-success" : wasteDirection === "increase" ? "text-status-critical" : "text-text-muted"}>

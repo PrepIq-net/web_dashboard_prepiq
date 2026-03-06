@@ -58,11 +58,15 @@ export const prepPlanItemSchema = z.object({
     predicted_orders: z.number(),
     predicted_quantity_needed: z.number(),
     confidence_score: z.number(),
+    demand_trend: z.enum(["up", "down", "neutral"]).optional(),
+    risk: z.enum(["low", "medium", "high"]).optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
     risk_of_stockout: z.number(),
     risk_of_waste: z.number(),
     projected_margin: z.number(),
+    forecast_engine_input: z.record(z.string(), z.unknown()).optional(),
+    forecast_engine_output: z.record(z.string(), z.unknown()).optional(),
     reasoning: z.array(z.string()),
   }),
   live_monitor: z
@@ -119,6 +123,15 @@ export const branchDayTodaySchema = z.object({
       total_suggested_qty: z.number(),
       estimated_total_prep_cost: z.number(),
       projected_margin_total: z.number(),
+      important_items_count: z.number().optional(),
+      chef_accuracy_score: z
+        .object({
+          window_days: z.number(),
+          chef_forecast_accuracy_pct: z.number(),
+          better_than_ai_pct: z.number(),
+          available: z.boolean(),
+        })
+        .optional(),
     })
     .optional(),
   prep_plan_items: z.array(prepPlanItemSchema),
@@ -176,6 +189,25 @@ export const branchDayTodaySchema = z.object({
           unit: z.string(),
         }),
       ),
+      ml_learning_signals: z
+        .object({
+          rows: z.number(),
+          chef_override_rows: z.number(),
+          waste_rows: z.number(),
+          stockout_rows: z.number(),
+          chef_outperformed_forecast_rows: z.number(),
+          training_dataset: z.array(
+            z.object({
+              item_id: z.string().uuid(),
+              forecast_qty: z.number(),
+              chef_plan_qty: z.number(),
+              actual_sales_qty: z.number(),
+              waste_qty: z.number(),
+              stockout_flag: z.boolean(),
+            }),
+          ),
+        })
+        .optional(),
     })
     .nullable()
     .optional(),
@@ -224,6 +256,15 @@ export const prepPlanEvaluateResponseSchema = z.object({
   estimated_extra_margin_if_sold: z.number(),
   potential_unsold_loss: z.number(),
   margin_impact_estimate: z.number(),
+  deviation: z.number(),
+  deviation_threshold: z.number(),
+  impact_simulation_triggered: z.boolean(),
+  impact_simulation: z.object({
+    suggested_qty: z.number(),
+    waste_probability_change: z.number(),
+    stockout_probability_change: z.number(),
+    margin_savings: z.number(),
+  }),
 });
 export type PrepPlanEvaluateResponse = z.infer<typeof prepPlanEvaluateResponseSchema>;
 
