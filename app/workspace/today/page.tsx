@@ -69,6 +69,11 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatSignedCurrency(value: number) {
+  const base = formatCurrency(Math.abs(value));
+  return value >= 0 ? `+${base}` : `-${base}`;
+}
+
 function riskTone(value: number) {
   if (value >= 0.45) return "text-status-critical";
   if (value >= 0.25) return "text-status-warning";
@@ -1373,6 +1378,59 @@ export default function TodayWorkspacePage() {
           
           {branchDay.review_summary ? (
             <div className="space-y-8">
+              {branchDay.review_truth ? (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      1. Right Prep Decisions?
+                    </p>
+                    <p className="mt-2 font-display text-2xl text-text-primary">
+                      {branchDay.review_truth.did_we_make_the_right_prep_decisions.answer}
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      {branchDay.review_truth.did_we_make_the_right_prep_decisions.message}
+                    </p>
+                    <p className="mt-3 text-xs text-text-muted">
+                      Support: {branchDay.review_truth.did_we_make_the_right_prep_decisions.decision_support_rate_percentage.toFixed(1)}% · Accuracy:{" "}
+                      {branchDay.review_truth.did_we_make_the_right_prep_decisions.forecast_accuracy_percentage.toFixed(1)}%
+                    </p>
+                  </article>
+                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      2. Money Lost Or Saved?
+                    </p>
+                    <p
+                      className={`mt-2 font-display text-2xl ${
+                        branchDay.review_truth.how_much_money_did_we_lose_or_save.estimated_net_impact >= 0
+                          ? "text-status-success"
+                          : "text-status-critical"
+                      }`}
+                    >
+                      {formatSignedCurrency(branchDay.review_truth.how_much_money_did_we_lose_or_save.estimated_net_impact)}
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      {branchDay.review_truth.how_much_money_did_we_lose_or_save.message}
+                    </p>
+                    <p className="mt-3 text-xs text-text-muted">
+                      Waste: {formatCurrency(branchDay.review_truth.how_much_money_did_we_lose_or_save.total_waste_cost)} · Lost sales:{" "}
+                      {formatCurrency(branchDay.review_truth.how_much_money_did_we_lose_or_save.lost_revenue_estimate)}
+                    </p>
+                  </article>
+                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      3. Do Differently Tomorrow?
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {branchDay.review_truth.what_should_we_do_differently_tomorrow.actions.map((action) => (
+                        <li key={action} className="text-sm text-text-secondary">
+                          - {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-5">
                 <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
@@ -1601,6 +1659,40 @@ export default function TodayWorkspacePage() {
                                 <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.suggested_quantity, row.unit)}</td>
                                 <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.planned_quantity, row.unit)}</td>
                                 <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.actual_sold_quantity, row.unit)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {branchDay.review_item_snapshot?.length ? (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                        Frozen Item Snapshot
+                      </p>
+                      <div className="mt-3 overflow-x-auto border-y border-surface-4/70">
+                        <table className="w-full min-w-[920px]">
+                          <thead>
+                            <tr className="border-b border-surface-4/70">
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Item</th>
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Planned</th>
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Additional</th>
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Sold</th>
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste Cost</th>
+                              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Lost Revenue</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-4/55">
+                            {branchDay.review_item_snapshot.map((row) => (
+                              <tr key={row.item_id}>
+                                <td className="px-3 py-3 text-sm font-medium text-text-primary">{row.item_title}</td>
+                                <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.planned_qty, row.unit)}</td>
+                                <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.additional_qty, row.unit)}</td>
+                                <td className="px-3 py-3 text-sm text-text-secondary">{formatQuantity(row.actual_sales, row.unit)}</td>
+                                <td className="px-3 py-3 text-sm text-status-critical">{formatCurrency(Number(row.waste_cost))}</td>
+                                <td className="px-3 py-3 text-sm text-status-warning">{formatCurrency(Number(row.lost_revenue_estimate))}</td>
                               </tr>
                             ))}
                           </tbody>

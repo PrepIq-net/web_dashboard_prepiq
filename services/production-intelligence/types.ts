@@ -240,6 +240,63 @@ export const branchDayTodaySchema = z.object({
     })
     .nullable()
     .optional(),
+  review_truth: z
+    .object({
+      snapshot: z.object({
+        id: z.string().uuid(),
+        branch_day: z.string().uuid(),
+        date: z.string(),
+        forecast_accuracy: z.number(),
+        total_sales: z.string(),
+        total_waste_cost: z.string(),
+        stockout_count: z.number(),
+        lost_revenue_estimate: z.string(),
+        decision_support_rate: z.number(),
+        estimated_net_impact: z.string(),
+        tomorrow_playbook: z.array(z.string()),
+        item_count: z.number(),
+        created_at: z.string(),
+      }),
+      did_we_make_the_right_prep_decisions: z.object({
+        answer: z.enum(["YES", "MIXED", "NO"]),
+        message: z.string(),
+        decision_support_rate_percentage: z.number(),
+        forecast_accuracy_percentage: z.number(),
+      }),
+      how_much_money_did_we_lose_or_save: z.object({
+        answer: z.enum(["SAVED", "LOST"]),
+        message: z.string(),
+        estimated_net_impact: z.number(),
+        total_sales: z.number(),
+        total_waste_cost: z.number(),
+        lost_revenue_estimate: z.number(),
+      }),
+      what_should_we_do_differently_tomorrow: z.object({
+        actions: z.array(z.string()),
+      }),
+    })
+    .nullable()
+    .optional(),
+  review_item_snapshot: z
+    .array(
+      z.object({
+        item_id: z.string().uuid(),
+        item_title: z.string(),
+        planned_qty: z.number(),
+        additional_qty: z.number(),
+        actual_sales: z.number(),
+        waste_qty: z.number(),
+        stockout_flag: z.boolean(),
+        forecast_qty: z.number(),
+        forecast_error: z.number(),
+        revenue: z.string(),
+        waste_cost: z.string(),
+        lost_revenue_estimate: z.string(),
+        unit: z.string(),
+        decision: z.string(),
+      }),
+    )
+    .optional(),
   plan_lock: z
     .object({
       is_locked: z.boolean(),
