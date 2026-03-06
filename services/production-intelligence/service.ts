@@ -29,6 +29,8 @@ import {
   posCSVPreviewResponseSchema,
   posCSVImportResponseSchema,
   updateStaffShiftChecklistSchema,
+  salesManualQuickEntryPayloadSchema,
+  salesManualQuickEntryResponseSchema,
   updatePrepPlanItemPayloadSchema,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
@@ -42,6 +44,7 @@ import {
   type POSCSVImportResponse,
   type UpdatePrepPlanItemPayload,
   type UpdateStaffShiftChecklistPayload,
+  type SalesManualQuickEntryPayload,
 } from "@/services/production-intelligence/types";
 
 type QueryValue = string | number | boolean | null | undefined;
@@ -192,6 +195,18 @@ export async function createProductionLog(payload: CreateProductionLogPayload) {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.productionLogCreate(),
     productionLogSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function createSalesManualQuickEntry(payload: SalesManualQuickEntryPayload) {
+  const body = salesManualQuickEntryPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.salesManualQuickEntry(),
+    salesManualQuickEntryResponseSchema,
     {
       method: "POST",
       body,

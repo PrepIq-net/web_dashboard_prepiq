@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createProductionLog,
+  createSalesManualQuickEntry,
   getBranchDayToday,
   getBranchCommandView,
   initializeBranchDay,
@@ -48,6 +49,7 @@ import type {
   CreateStaffStockoutEventPayload,
   PrepPlanEvaluatePayload,
   SquareOAuthStartPayload,
+  SalesManualQuickEntryPayload,
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
 } from "@/services/production-intelligence/types";
@@ -245,6 +247,22 @@ export function useCreateProductionLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
+      });
+    },
+  });
+}
+
+export function useSalesManualQuickEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: SalesManualQuickEntryPayload) => createSalesManualQuickEntry(payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayToday({
+          branch_id: variables.branch_id,
+          date: variables.target_date ?? "",
+        }),
       });
     },
   });

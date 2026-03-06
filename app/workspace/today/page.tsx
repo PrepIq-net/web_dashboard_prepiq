@@ -18,6 +18,7 @@ import {
   useEvaluatePrepPlan,
   useInitializeBranchDay,
   useLockBranchDayPlan,
+  useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
 } from "@/services/production-intelligence/hooks";
@@ -202,6 +203,7 @@ export default function TodayWorkspacePage() {
   const [confirmAction, setConfirmAction] = useState<null | "START_LIVE" | "CLOSE_DAY">(null);
   const [wasteItem, setWasteItem] = useState<null | { id: string; title: string; unit: string }>(null);
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
+  const [ignoredLiveAlertIds, setIgnoredLiveAlertIds] = useState<string[]>([]);
 
   const evaluateDebounce = useRef<Record<string, number>>({});
   const initializeAttemptedByKey = useRef<Record<string, boolean>>({});
@@ -225,6 +227,7 @@ export default function TodayWorkspacePage() {
   const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
   const createProductionLogMutation = useCreateProductionLog();
+  const salesQuickEntryMutation = useSalesManualQuickEntry();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
 
   const initKey = branchId && targetDate ? `${branchId}:${targetDate}` : "";
@@ -454,11 +457,13 @@ export default function TodayWorkspacePage() {
     });
   };
 
-  const logProduction = (prepPlanItemId: string, quantityProduced: number) => {
+  const logProduction = (prepPlanItemId: string, quantityProduced: number, reason?: string) => {
     createProductionLogMutation.mutate({
       prep_plan_item_id: prepPlanItemId,
       quantity_produced: quantityProduced,
       waste_quantity: 0,
+      event_type: "additional",
+      reason: reason ?? "Chef decision",
     });
   };
 
@@ -472,6 +477,45 @@ export default function TodayWorkspacePage() {
     });
   };
 
+  const quickTapSale = (item: { product_id: string; unit: string }, quantitySold: number) => {
+    if (!branchId) return;
+    const normalizedQty = isDiscreteUnit(item.unit) ? Math.round(quantitySold) : quantitySold;
+    salesQuickEntryMutation.mutate({
+      branch_id: branchId,
+      target_date: targetDate,
+      items: [
+        {
+          item_id: item.product_id,
+          quantity_sold: normalizedQty,
+          unit: item.unit,
+          notes: "Live quick tap sale",
+        },
+      ],
+    });
+  };
+
+  const handlePrepareMoreAlert = (alert: {
+    id: string;
+    prep_plan_item_id: string;
+    suggested_prepare_qty: number;
+    details: Record<string, string | number | boolean>;
+  }) => {
+    const liveItem = branchDay?.prep_plan_items.find((row) => row.id === alert.prep_plan_item_id);
+    if (!liveItem) return;
+    const rawQty = Number(alert.suggested_prepare_qty || 0);
+    const normalizedQty = isDiscreteUnit(liveItem.unit) ? Math.max(1, Math.round(rawQty)) : Math.max(0.1, rawQty);
+    logProduction(liveItem.id, normalizedQty, "Demand spike");
+    ignoreLiveAlert(alert.id);
+  };
+
+  useEffect(() => {
+    if (!isLive || !branchDay?.id) return;
+    const interval = window.setInterval(() => {
+      todayQuery.refetch();
+    }, 20000);
+    return () => window.clearInterval(interval);
+  }, [isLive, branchDay?.id, todayQuery]);
+
   const loading = isLoading || branchesQuery.isLoading || todayQuery.isLoading || initializeMutation.isPending;
   const noBranchContext = !loading && !branchOptions.length;
   const statusLabel = loading
@@ -481,8 +525,37 @@ export default function TodayWorkspacePage() {
       : branchDay
         ? `Status: ${branchDay.status}`
         : branchId
-          ? "Status: NOT_INITIALIZED"
+        ? "Status: NOT_INITIALIZED"
           : "Status: SELECT_BRANCH";
+
+  const liveRows = useMemo(
+    () =>
+      (branchDay?.prep_plan_items ?? []).map((item) => {
+        const monitor = item.live_monitor;
+        const planned = monitor?.planned_qty ?? item.planned_quantity ?? item.suggested_quantity;
+        const additional = monitor?.additional_qty ?? Math.max(item.final_quantity - planned, 0);
+        const sold = monitor?.sold_today ?? 0;
+        const remaining = monitor?.remaining_qty ?? Math.max(item.final_quantity - sold, 0);
+        return { item, monitor, planned, additional, sold, remaining };
+      }),
+    [branchDay?.prep_plan_items],
+  );
+  const liveSmartAlerts = useMemo(
+    () => (branchDay?.live_alerts ?? []).filter((alert) => !ignoredLiveAlertIds.includes(alert.id)).slice(0, 3),
+    [branchDay?.live_alerts, ignoredLiveAlertIds],
+  );
+  const stockoutWatchCount = useMemo(
+    () => liveRows.filter((row) => (row.monitor?.stockout_risk_score ?? 0) >= 0.7).length,
+    [liveRows],
+  );
+  const overproductionWatchCount = useMemo(
+    () => liveRows.filter((row) => (row.monitor?.overproduction_risk_score ?? 0) >= 0.7).length,
+    [liveRows],
+  );
+
+  const ignoreLiveAlert = (alertId: string) => {
+    setIgnoredLiveAlertIds((prev) => (prev.includes(alertId) ? prev : [...prev, alertId]));
+  };
 
   return (
     <WorkspaceShell
@@ -1076,8 +1149,11 @@ export default function TodayWorkspacePage() {
                 Live Service
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Production Logging
+                Passive Monitoring + Critical Alerts
               </h3>
+              <p className="mt-1 text-sm text-text-secondary">
+                Kitchen flow stays uninterrupted. Intervene only on stockout risk, overproduction risk, or prep-now alerts.
+              </p>
             </div>
             <button
               type="button"
@@ -1088,98 +1164,167 @@ export default function TodayWorkspacePage() {
               {updateBranchDayStatusMutation.isPending ? "Closing..." : "Close Day"}
             </button>
           </div>
-          
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px]">
-                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Item</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Planned</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Produced</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Remaining</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-4">
-                  {branchDay.prep_plan_items.map((item) => {
-                    const planned = item.planned_quantity ?? item.suggested_quantity;
-                    const produced = item.final_quantity;
-                    const remaining = Math.max(planned - produced, 0);
-                    const completionPct = planned > 0 ? (produced / planned) * 100 : 0;
-                    const liveMonitor = item.live_monitor;
-                    return (
-                      <tr key={item.id} className="align-middle transition-all duration-200 hover:bg-surface-3/50">
-                        <td className="px-6 py-5">
-                          <p className="text-sm font-semibold text-text-primary">{item.product_title}</p>
-                          {liveMonitor?.signal ? (
-                            <p className="mt-1 text-xs text-status-warning">{liveMonitor.signal}</p>
-                          ) : (
-                            <p className="mt-1 text-xs text-text-muted">
-                              Sell-through {percent(liveMonitor?.sell_through_probability ?? 0)} · Sold{" "}
-                              {formatQuantity(liveMonitor?.sold_today ?? 0, item.unit)}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-6 py-5 text-sm text-text-secondary">
-                          {formatQuantity(planned, item.unit)}
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="space-y-2">
-                            <p className="text-sm font-semibold text-text-primary">
-                              {formatQuantity(produced, item.unit)}
-                            </p>
-                            <div className="w-32 h-1.5 bg-surface-4 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-300 ${
-                                  completionPct >= 100 ? "bg-status-success" :
-                                  completionPct >= 75 ? "bg-brand-gold" :
-                                  completionPct >= 50 ? "bg-status-warning" : "bg-status-critical"
-                                }`}
-                                style={{ width: `${Math.min(completionPct, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <p className={`text-sm font-semibold ${
-                            remaining === 0 ? "text-status-success" :
-                            remaining <= planned * 0.25 ? "text-status-warning" : "text-text-secondary"
-                          }`}>
-                            {formatQuantity(remaining, item.unit)}
-                          </p>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => logProduction(item.id, 1)}
-                              className="inline-flex h-9 items-center justify-center min-w-[64px] rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold active:scale-[0.98]"
-                            >
-                              +1
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => logProduction(item.id, 5)}
-                              className="inline-flex h-9 items-center justify-center min-w-[64px] rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold active:scale-[0.98]"
-                            >
-                              +5
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openWasteModal(item.id, item.product_title, item.unit)}
-                              className="inline-flex h-9 items-center justify-center min-w-[90px] rounded-lg border border-status-critical/40 bg-surface-3 px-3 text-xs font-semibold text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98]"
-                            >
-                              Log Waste
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+
+          {liveSmartAlerts.length ? (
+            <div className="mb-4 space-y-2">
+              {liveSmartAlerts.map((alert) => (
+                <article
+                  key={alert.id}
+                  className={`rounded-xl border px-4 py-3 ${
+                    alert.type === "SALES_SPIKE"
+                      ? "border-brand-gold/45 bg-brand-gold/10"
+                      : "border-status-critical/40 bg-status-critical/10"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-primary">
+                    {alert.type === "SALES_SPIKE" ? "Demand Surge" : alert.title}
+                  </p>
+                  <p className="mt-1 text-sm text-text-primary">
+                    <span className="font-semibold">{alert.product_title}:</span> {alert.message}
+                  </p>
+                  {alert.type === "STOCKOUT_RISK" ? (
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Remaining: {String(alert.details.remaining)} {String(alert.details.unit)} · Projected demand: {String(alert.details.projected_demand)} {String(alert.details.unit)}
+                    </p>
+                  ) : null}
+                  {alert.type === "WASTE_RISK" ? (
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Prepared: {String(alert.details.prepared)} {String(alert.details.unit)} · Projected sold: {String(alert.details.projected_sold)} {String(alert.details.unit)} · Potential waste: {String(alert.details.potential_waste)} {String(alert.details.unit)}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-text-secondary">Suggested action: {alert.suggested_action}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {alert.type === "STOCKOUT_RISK" ? (
+                      <button
+                        type="button"
+                        onClick={() => handlePrepareMoreAlert(alert)}
+                        className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success hover:bg-status-success/10"
+                      >
+                        Prepare More
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => ignoreLiveAlert(alert.id)}
+                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
+          ) : (
+            <div className="mb-4 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
+              <p className="text-sm text-status-success">No critical live interruptions right now.</p>
+            </div>
+          )}
+
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Runout Watch</p>
+              <p className="mt-1 text-xl font-semibold text-status-critical">{stockoutWatchCount}</p>
+            </article>
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Overproduction Watch</p>
+              <p className="mt-1 text-xl font-semibold text-status-warning">{overproductionWatchCount}</p>
+            </article>
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Quick Sales Intake</p>
+              <p className="mt-1 text-sm font-semibold text-text-primary">
+                {salesQuickEntryMutation.isPending ? "Syncing..." : "Manual fallback ready"}
+              </p>
+            </article>
+          </div>
+
+          <div className="space-y-3">
+            {liveRows.map(({ item, monitor, planned, additional, sold, remaining }) => (
+              <article key={item.id} className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary">{item.product_title}</p>
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Planned {formatQuantity(planned, item.unit)} + Added {formatQuantity(additional, item.unit)} - Sold {formatQuantity(sold, item.unit)} = Remaining {formatQuantity(remaining, item.unit)}
+                    </p>
+                    {monitor?.risk_engine ? (
+                      <p className="mt-1 text-xs text-text-muted">
+                        Risk engine: Remaining {formatQuantity(monitor.risk_engine.remaining_stock, item.unit)} · Avg demand last hour{" "}
+                        {formatQuantity(monitor.risk_engine.avg_demand_last_hour, item.unit)}/hr · Closing in{" "}
+                        {monitor.risk_engine.hours_until_closing.toFixed(1)}h · Forecast demand remaining{" "}
+                        {formatQuantity(monitor.risk_engine.forecast_demand_remaining, item.unit)}
+                      </p>
+                    ) : null}
+                    {monitor?.alert ? (
+                      <p className={`mt-2 text-xs ${monitor.alert.severity === "CRITICAL" ? "text-status-critical" : monitor.alert.severity === "HIGH" ? "text-status-warning" : "text-text-muted"}`}>
+                        {monitor.alert.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs lg:grid-cols-3">
+                    <span className="rounded-md border border-surface-4 px-2 py-1 text-text-secondary">
+                      Stockout risk: {((monitor?.stockout_risk_score ?? 0) * 100).toFixed(0)}%
+                    </span>
+                    <span className="rounded-md border border-surface-4 px-2 py-1 text-text-secondary">
+                      Overprep risk: {((monitor?.overproduction_risk_score ?? 0) * 100).toFixed(0)}%
+                    </span>
+                    <span className="rounded-md border border-surface-4 px-2 py-1 text-text-secondary">
+                      Stockout risk: {monitor?.risk_engine?.stockout_risk ?? "LOW"}
+                    </span>
+                    <span className="rounded-md border border-surface-4 px-2 py-1 text-text-secondary">
+                      Waste risk: {monitor?.risk_engine?.waste_risk ?? "LOW"}
+                    </span>
+                    <span className="rounded-md border border-surface-4 px-2 py-1 text-text-secondary">
+                      Intake: {monitor?.sales_intake_mode === "pos_or_import" ? "POS/Import" : monitor?.sales_intake_mode === "manual_quick_tap" ? "Manual" : "Semi-blind"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => logProduction(item.id, 1)}
+                    className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
+                  >
+                    Add Prep +1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => logProduction(item.id, 5)}
+                    className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
+                  >
+                    Add Prep +5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => quickTapSale(item, 1)}
+                    className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
+                  >
+                    Sold +1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => quickTapSale(item, 5)}
+                    className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
+                  >
+                    Sold +5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => quickTapSale(item, 10)}
+                    className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
+                  >
+                    Sold +10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openWasteModal(item.id, item.product_title, item.unit)}
+                    className="inline-flex h-8 items-center rounded-full border border-status-critical/40 px-3 text-xs font-medium text-status-critical hover:bg-status-critical/10"
+                  >
+                    Log Waste
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       ) : null}

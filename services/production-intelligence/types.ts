@@ -71,11 +71,37 @@ export const prepPlanItemSchema = z.object({
   }),
   live_monitor: z
     .object({
+      planned_qty: z.number().optional(),
+      additional_qty: z.number().optional(),
+      total_prepared_qty: z.number().optional(),
       sold_today: z.number(),
+      remaining_qty: z.number().optional(),
       trend_vs_forecast_pct: z.number(),
       sell_through_probability: z.number(),
+      stockout_risk_score: z.number().optional(),
+      overproduction_risk_score: z.number().optional(),
       suggested_additional_qty: z.number(),
+      should_prepare_more_qty: z.number().optional(),
+      risk_engine: z
+        .object({
+          remaining_stock: z.number(),
+          avg_demand_last_hour: z.number(),
+          hours_until_closing: z.number(),
+          forecast_demand_remaining: z.number(),
+          stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+          waste_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+        })
+        .optional(),
+      sales_intake_mode: z.enum(["pos_or_import", "manual_quick_tap", "semi_blind"]).optional(),
       signal: z.string().nullable(),
+      alert: z
+        .object({
+          severity: z.enum(["MEDIUM", "HIGH", "CRITICAL"]),
+          type: z.enum(["STOCKOUT_RISK", "OVERPRODUCTION_RISK", "PREP_NOW"]),
+          message: z.string(),
+        })
+        .nullable()
+        .optional(),
     })
     .nullable()
     .optional(),
@@ -223,6 +249,22 @@ export const branchDayTodaySchema = z.object({
         .nullable(),
     })
     .optional(),
+  live_alerts: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.enum(["STOCKOUT_RISK", "WASTE_RISK", "SALES_SPIKE"]),
+        severity: z.enum(["MEDIUM", "HIGH", "CRITICAL"]),
+        title: z.string(),
+        product_title: z.string(),
+        prep_plan_item_id: z.string().uuid(),
+        message: z.string(),
+        details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+        suggested_action: z.string(),
+        suggested_prepare_qty: z.number(),
+      }),
+    )
+    .optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -278,8 +320,35 @@ export const createProductionLogPayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),
   quantity_produced: z.number().min(0).optional(),
   waste_quantity: z.number().min(0).optional(),
+  event_type: z.enum(["planned", "additional"]).optional(),
+  reason: z.string().max(120).optional(),
 });
 export type CreateProductionLogPayload = z.infer<typeof createProductionLogPayloadSchema>;
+
+export const salesManualQuickEntryPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  target_date: z.string().optional(),
+  items: z.array(
+    z.object({
+      item_id: z.string().uuid(),
+      quantity_sold: z.number(),
+      unit: z.string().optional(),
+      gross_revenue: z.number().optional(),
+      notes: z.string().optional(),
+    }),
+  ),
+});
+export type SalesManualQuickEntryPayload = z.infer<typeof salesManualQuickEntryPayloadSchema>;
+
+export const salesManualQuickEntryResponseSchema = z.object({
+  created: z.number(),
+  updated: z.number(),
+  failed: z.number(),
+  errors: z.array(z.string()),
+  target_date: z.string(),
+  branch_id: z.string().uuid(),
+});
+export type SalesManualQuickEntryResponse = z.infer<typeof salesManualQuickEntryResponseSchema>;
 
 export const productionLogSchema = z.object({
   id: z.string().uuid(),
