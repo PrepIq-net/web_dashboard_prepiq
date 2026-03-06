@@ -1736,6 +1736,24 @@ export default function TodayWorkspacePage() {
                   </ul>
                 </div>
               </section>
+
+              <section>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Tomorrow's Early Signal</p>
+                <article className="mt-4 rounded-xl border border-brand-gold/30 bg-brand-gold/10 p-5">
+                  <p className="text-sm font-semibold text-text-primary">
+                    {branchDay.review_phase.tomorrow_early_signal.message}
+                  </p>
+                  <p className="mt-2 text-xs text-text-muted">
+                    Target day: {branchDay.review_phase.tomorrow_early_signal.target_date}
+                    {" · "}
+                    Demand change: {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct >= 0 ? "+" : ""}
+                    {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct.toFixed(1)}%
+                    {branchDay.review_phase.tomorrow_early_signal.weekday
+                      ? ` · ${branchDay.review_phase.tomorrow_early_signal.weekday}`
+                      : ""}
+                  </p>
+                </article>
+              </section>
             </div>
           ) : (
             <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">

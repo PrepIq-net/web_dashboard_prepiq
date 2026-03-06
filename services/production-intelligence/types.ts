@@ -445,6 +445,14 @@ export const branchDayTodaySchema = z.object({
         ),
         tomorrow_actions: z.array(z.string()),
       }),
+      tomorrow_early_signal: z.object({
+        target_date: z.string(),
+        expected_demand_change_pct: z.number(),
+        pattern_detected: z.boolean(),
+        message: z.string(),
+        weekday: z.string().optional(),
+        sample_size: z.number().optional(),
+      }),
     })
     .nullable()
     .optional(),
