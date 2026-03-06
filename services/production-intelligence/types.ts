@@ -297,6 +297,157 @@ export const branchDayTodaySchema = z.object({
       }),
     )
     .optional(),
+  review_phase: z
+    .object({
+      daily_outcome: z.object({
+        title: z.string(),
+        date: z.string(),
+        metrics: z.object({
+          forecast_accuracy: z.object({
+            value: z.number(),
+            unit: z.enum(["PERCENT"]),
+            comparison: z
+              .object({
+                delta: z.number(),
+                delta_pct: z.number(),
+                direction: z.enum(["up", "down", "flat"]),
+              })
+              .nullable(),
+          }),
+          waste_cost: z.object({
+            value: z.number(),
+            unit: z.enum(["CURRENCY"]),
+            comparison: z
+              .object({
+                delta: z.number(),
+                delta_pct: z.number(),
+                direction: z.enum(["up", "down", "flat"]),
+              })
+              .nullable(),
+          }),
+          stockouts: z.object({
+            value: z.number(),
+            unit: z.enum(["COUNT"]),
+            comparison: z
+              .object({
+                delta: z.number(),
+                delta_pct: z.number(),
+                direction: z.enum(["up", "down", "flat"]),
+              })
+              .nullable(),
+          }),
+          revenue_protected: z.object({
+            value: z.number(),
+            unit: z.enum(["CURRENCY"]),
+            comparison: z.unknown().nullable().optional(),
+          }),
+        }),
+        demand_vs_production: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            unit: z.string(),
+            planned_production: z.number(),
+            actual_production: z.number(),
+            actual_sales: z.number(),
+            waste_qty: z.number(),
+          }),
+        ),
+        waste_distribution: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            share_pct: z.number(),
+            waste_qty: z.number(),
+            waste_cost: z.number(),
+          }),
+        ),
+        forecast_accuracy_trend: z.array(
+          z.object({
+            date: z.string(),
+            accuracy: z.number(),
+          }),
+        ),
+      }),
+      key_insights: z.object({
+        insights: z.array(z.string()),
+      }),
+      item_performance: z.object({
+        rows: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            unit: z.string(),
+            forecast: z.number(),
+            prepared: z.number(),
+            sold: z.number(),
+            waste: z.number(),
+            stockout: z.boolean(),
+            impact: z.number(),
+            lost_revenue_estimate: z.number(),
+            decision: z.string(),
+          }),
+        ),
+      }),
+      learning_signals: z.object({
+        ml_learning_signals: z
+          .object({
+            rows: z.number().optional(),
+            chef_override_rows: z.number().optional(),
+            waste_rows: z.number().optional(),
+            stockout_rows: z.number().optional(),
+            chef_outperformed_forecast_rows: z.number().optional(),
+            training_dataset: z
+              .array(
+                z.object({
+                  item_id: z.string().uuid(),
+                  forecast_qty: z.number(),
+                  chef_plan_qty: z.number(),
+                  actual_sales_qty: z.number(),
+                  waste_qty: z.number(),
+                  stockout_flag: z.boolean(),
+                }),
+              )
+              .optional(),
+          })
+          .optional(),
+        training_rows: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            unit: z.string(),
+            forecast_qty: z.number(),
+            chef_planned_qty: z.number(),
+            additional_qty: z.number(),
+            actual_sales: z.number(),
+            waste: z.number(),
+            stockouts: z.boolean(),
+            forecast_error: z.number(),
+            chef_adjustment: z.number(),
+            service_outcome: z.enum(["IMPROVED_BY_CHEF", "WORSE_THAN_FORECAST"]),
+          }),
+        ),
+        chef_behavior_learning: z.object({
+          chef_adjustment_rate: z.number(),
+          chef_accuracy_score: z.number(),
+          chef_adjustments_improved_outcome_rate: z.number(),
+        }),
+        revenue_loss_signals: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            stockout_time: z.string(),
+            sales_velocity_per_hour: z.number(),
+            remaining_service_time_hours: z.number(),
+            estimated_lost_sales: z.number(),
+            estimated_lost_revenue: z.number(),
+          }),
+        ),
+        tomorrow_actions: z.array(z.string()),
+      }),
+    })
+    .nullable()
+    .optional(),
   plan_lock: z
     .object({
       is_locked: z.boolean(),
