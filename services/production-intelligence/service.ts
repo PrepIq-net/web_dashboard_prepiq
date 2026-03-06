@@ -4,6 +4,8 @@ import { productionIntelligenceEndpoints } from "@/services/production-intellige
 import {
   branchDayInitializePayloadSchema,
   branchDayPlanLockPayloadSchema,
+  branchDayLiveAlertIgnorePayloadSchema,
+  branchDayLiveAlertIgnoreResponseSchema,
   branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
   createProductionLogPayloadSchema,
@@ -36,6 +38,7 @@ import {
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
   type BranchDayPlanLockPayload,
+  type BranchDayLiveAlertIgnorePayload,
   type BranchDayStatusUpdatePayload,
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
@@ -144,6 +147,21 @@ export async function lockBranchDayPlan(
   return apiClientWithSchema(
     productionIntelligenceEndpoints.branchDayLockPlan(branchDayId),
     branchDayTodaySchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function ignoreBranchDayLiveAlert(
+  branchDayId: string,
+  payload: BranchDayLiveAlertIgnorePayload,
+) {
+  const body = branchDayLiveAlertIgnorePayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayAlertIgnore(branchDayId),
+    branchDayLiveAlertIgnoreResponseSchema,
     {
       method: "POST",
       body,

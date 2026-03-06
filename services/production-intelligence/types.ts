@@ -88,6 +88,9 @@ export const prepPlanItemSchema = z.object({
           avg_demand_last_hour: z.number(),
           hours_until_closing: z.number(),
           forecast_demand_remaining: z.number(),
+          runout_minutes: z.number().nullable().optional(),
+          prep_time_minutes: z.number().optional(),
+          start_new_batch_now: z.boolean().optional(),
           stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
           waste_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
         })
@@ -259,7 +262,7 @@ export const branchDayTodaySchema = z.object({
         product_title: z.string(),
         prep_plan_item_id: z.string().uuid(),
         message: z.string(),
-        details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+        details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
         suggested_action: z.string(),
         suggested_prepare_qty: z.number(),
       }),
@@ -282,6 +285,21 @@ export type BranchDayStatusUpdatePayload = z.infer<typeof branchDayStatusUpdateP
 
 export const branchDayPlanLockPayloadSchema = z.object({});
 export type BranchDayPlanLockPayload = z.infer<typeof branchDayPlanLockPayloadSchema>;
+
+export const branchDayLiveAlertIgnorePayloadSchema = z.object({
+  prep_plan_item_id: z.string().uuid(),
+  alert_type: z.enum(["STOCKOUT_RISK", "WASTE_RISK", "SALES_SPIKE"]),
+  cooldown_minutes: z.number().min(5).max(180).optional(),
+});
+export type BranchDayLiveAlertIgnorePayload = z.infer<typeof branchDayLiveAlertIgnorePayloadSchema>;
+
+export const branchDayLiveAlertIgnoreResponseSchema = z.object({
+  updated: z.boolean(),
+  risk_event_id: z.string().uuid().optional(),
+  ignored_until: z.string().optional(),
+  detail: z.string().optional(),
+});
+export type BranchDayLiveAlertIgnoreResponse = z.infer<typeof branchDayLiveAlertIgnoreResponseSchema>;
 
 export const prepPlanEvaluatePayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),

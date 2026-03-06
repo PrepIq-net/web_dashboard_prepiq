@@ -7,6 +7,7 @@ import {
   getBranchDayToday,
   getBranchCommandView,
   initializeBranchDay,
+  ignoreBranchDayLiveAlert,
   lockBranchDayPlan,
   createPrepRecommendationDecision,
   evaluatePrepPlan,
@@ -43,6 +44,7 @@ import {
 import type {
   BranchDayInitializePayload,
   BranchDayPlanLockPayload,
+  BranchDayLiveAlertIgnorePayload,
   BranchDayStatusUpdatePayload,
   CreateProductionLogPayload,
   CreatePrepRecommendationDecisionPayload,
@@ -215,6 +217,25 @@ export function useLockBranchDayPlan() {
           branch_id: data.branch_id,
           date: data.date,
         }),
+      });
+    },
+  });
+}
+
+export function useIgnoreBranchDayLiveAlert() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      payload,
+    }: {
+      branchDayId: string;
+      payload: BranchDayLiveAlertIgnorePayload;
+    }) => ignoreBranchDayLiveAlert(branchDayId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
       });
     },
   });

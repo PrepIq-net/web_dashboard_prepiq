@@ -21,6 +21,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branch-day/${branchDayId}/status/`,
   branchDayLockPlan: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/lock-plan/`,
+  branchDayAlertIgnore: (branchDayId: string) =>
+    `${BASE}/production-intelligence/branch-day/${branchDayId}/alerts/ignore/`,
   prepPlanEvaluate: () =>
     `${BASE}/production-intelligence/prep-plan/evaluate/`,
   prepPlanDetail: (prepPlanItemId: string) =>
