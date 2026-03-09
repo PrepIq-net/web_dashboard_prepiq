@@ -19,6 +19,7 @@ import {
   dailyPrepRecommendationSchema,
   executiveControlTowerSnapshotSchema,
   ownerMarginProtectionReportSchema,
+  ownerNetworkIntelligenceInsightsSchema,
   ownerDailyPerformanceSchema,
   setupForecastWOWSchema,
   productionIntelligenceAccessScopeSchema,
@@ -296,12 +297,28 @@ export type OwnerMarginProtectionReportQuery = {
   target_date?: string;
 };
 
+export type OwnerNetworkIntelligenceInsightsQuery = {
+  organization_id?: string;
+  target_date?: string;
+  lookback_days?: number;
+};
+
 export async function getOwnerMarginProtectionReport(
   params?: OwnerMarginProtectionReportQuery,
 ) {
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.ownerDailyMarginProtection(), params),
     ownerMarginProtectionReportSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getOwnerNetworkIntelligenceInsights(
+  params?: OwnerNetworkIntelligenceInsightsQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.ownerNetworkIntelligenceInsights(), params),
+    ownerNetworkIntelligenceInsightsSchema,
     { method: "GET" },
   );
 }

@@ -163,6 +163,167 @@ export const branchDayTodaySchema = z.object({
         .optional(),
     })
     .optional(),
+  kitchen_intelligence_network: z
+    .object({
+      organization_id: z.string().uuid(),
+      branch_id: z.string().uuid(),
+      target_date: z.string(),
+      lookback_days: z.number(),
+      dataset_contract: z.object({
+        required_fields: z.array(z.string()),
+        derived_signals: z.array(z.string()),
+      }),
+      local_learning: z.object({
+        location_id: z.string().uuid(),
+        location_name: z.string(),
+        rows: z.number(),
+        sell_through_pct: z.number(),
+        waste_ratio_pct: z.number(),
+      }),
+      network_aggregation: z.object({
+        active_locations: z.number(),
+        rows: z.number(),
+        sell_through_pct: z.number(),
+        waste_ratio_pct: z.number(),
+        pattern_quality_threshold: z.number().optional(),
+        validated_pattern_count: z.number().optional(),
+        deployed_pattern_count: z.number().optional(),
+        candidate_pattern_count: z.number().optional(),
+        similarity_threshold: z.number().optional(),
+        transfer_confidence_threshold: z.number().optional(),
+        kitchen_similarity: z
+          .array(
+            z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              similarity_score: z.number(),
+              location_type: z.string(),
+              components: z.object({
+                menu_similarity: z.number(),
+                climate_similarity: z.number(),
+                location_type_similarity: z.number(),
+                customer_volume_similarity: z.number(),
+              }),
+            }),
+          )
+          .optional(),
+        detected_patterns: z
+          .array(
+            z.object({
+              item_id: z.string().uuid(),
+              item_name: z.string(),
+              trigger_factor: z.string(),
+              effect_pct: z.number(),
+              local_effect_pct: z.number().nullable().optional(),
+              confidence: z.number(),
+              sample_size: z.number(),
+              importance_score: z.number(),
+              correlation: z.number(),
+              quality_score: z.number(),
+              is_validated: z.boolean(),
+            }),
+          )
+          .optional(),
+        cross_location_patterns: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_name: z.string(),
+            pattern_type: z.string(),
+            confidence: z.number(),
+            spread_pct: z.number(),
+            best_location: z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              waste_ratio_pct: z.number(),
+              sell_through_pct: z.number(),
+              sample_days: z.number(),
+            }),
+            worst_location: z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              waste_ratio_pct: z.number(),
+              sell_through_pct: z.number(),
+              sample_days: z.number(),
+            }),
+          }),
+        ),
+      }),
+      network_knowledge_graph: z
+        .object({
+          nodes: z.object({
+            total: z.number(),
+            kitchens: z.number(),
+            menu_items: z.number(),
+            patterns: z.number(),
+            environment_factors: z.number(),
+          }),
+          edges: z.object({
+            total: z.number(),
+            sells: z.number(),
+            affects: z.number(),
+            triggered_by: z.number(),
+            validated_in: z.number(),
+          }),
+        })
+        .optional(),
+      feedback_loop: z
+        .object({
+          patterns_total: z.number(),
+          patterns_validated: z.number(),
+          patterns_deployed: z.number().optional(),
+          patterns_candidate: z.number().optional(),
+          patterns_probation: z.number(),
+          patterns_invalid: z.number(),
+          average_freshness_score: z.number().optional(),
+        })
+        .optional(),
+      knowledge_transfer: z.array(
+        z.object({
+          item_id: z.string().uuid(),
+          item_name: z.string(),
+          from_location: z.string(),
+          suggested_action: z.string(),
+          expected_waste_reduction_pct: z.number(),
+          trigger_factor: z.string().optional(),
+          pattern_quality_score: z.number().optional(),
+          network_confidence: z.number().optional(),
+          supporting_kitchens_count: z.number().optional(),
+          supporting_kitchens: z
+            .array(
+              z.object({
+                location_id: z.string().uuid(),
+                location_name: z.string(),
+                similarity_score: z.number(),
+                effect_pct: z.number(),
+                confidence: z.number(),
+                sample_size: z.number(),
+              }),
+            )
+            .optional(),
+        }),
+      ),
+      event_rows_preview: z.array(
+        z.object({
+          location_id: z.string().uuid(),
+          location_name: z.string(),
+          timestamp: z.string(),
+          menu_item_id: z.string().uuid(),
+          menu_item_name: z.string(),
+          quantity_sold: z.number(),
+          quantity_prepped: z.number(),
+          waste_quantity: z.number(),
+          weather: z.string(),
+          day_of_week: z.string(),
+          special_event: z.boolean(),
+          rain: z.boolean(),
+          temperature: z.number().nullable(),
+          holiday: z.boolean(),
+          hour_of_day: z.number().nullable(),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   prep_plan_items: z.array(prepPlanItemSchema),
   review_summary: z
     .object({
@@ -819,6 +980,57 @@ export const ownerMarginProtectionReportSchema = z.object({
 });
 export type OwnerMarginProtectionReport = z.infer<
   typeof ownerMarginProtectionReportSchema
+>;
+
+export const ownerNetworkIntelligenceInsightSchema = z.object({
+  insight_key: z.string(),
+  title: z.string(),
+  observed_in_kitchens: z.number(),
+  confidence: z.number(),
+  effect_pct: z.number(),
+  lifecycle_state: z.enum(["CANDIDATE", "VALIDATED", "DEPLOYED"]),
+  suggested_action: z.string(),
+});
+
+export const ownerNetworkIntelligenceInsightsSchema = z.object({
+  organization_id: z.string().uuid(),
+  target_date: z.string(),
+  lookback_days: z.number(),
+  summary: z.object({
+    branch_count: z.number(),
+    patterns_total: z.number(),
+    candidate_patterns: z.number(),
+    validated_patterns: z.number(),
+    deployed_patterns: z.number(),
+    average_freshness_score: z.number(),
+  }),
+  top_network_insights: z.array(ownerNetworkIntelligenceInsightSchema),
+  location_performance: z.array(
+    z.object({
+      branch_id: z.string().uuid(),
+      branch_name: z.string(),
+      forecast_accuracy: z.number(),
+      waste_cost: z.number(),
+      stockout_count: z.number(),
+      net_impact: z.number(),
+    }),
+  ),
+  shared_patterns: z.array(
+    z.object({
+      item_id: z.string().uuid(),
+      item_name: z.string(),
+      trigger_factor: z.string(),
+      observed_in_kitchens: z.number(),
+      effect_pct: z.number(),
+      confidence: z.number(),
+      quality_score: z.number(),
+      freshness_score: z.number(),
+      lifecycle_state: z.enum(["CANDIDATE", "VALIDATED", "DEPLOYED"]),
+    }),
+  ),
+});
+export type OwnerNetworkIntelligenceInsights = z.infer<
+  typeof ownerNetworkIntelligenceInsightsSchema
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────

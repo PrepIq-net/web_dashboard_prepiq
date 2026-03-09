@@ -63,6 +63,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/owner/central-procurement-visibility/`,
   ownerStrategicIntelligence: () =>
     `${BASE}/production-intelligence/owner/strategic-intelligence/`,
+  ownerNetworkIntelligenceInsights: () =>
+    `${BASE}/production-intelligence/owner/network-intelligence-insights/`,
   ownerLiabilityShield: () =>
     `${BASE}/production-intelligence/owner/liability-shield/`,
   ownerInsuranceIntegration: () =>
