@@ -675,22 +675,71 @@ export default function TodayWorkspacePage() {
           Math.abs(row.variance ?? 0) > row.item.suggested_quantity * 0.15,
       )
       .slice(0, 3);
-    return candidates.map(({ item, riskScore, impact }) => {
+    return candidates.map(({ item, riskScore, impact, planned, variance }) => {
       const confidence = confidenceLabel(item.forecast_context.confidence_score);
+      const stockoutRiskPct = item.forecast_context.risk_of_stockout * 100;
+      const wasteRiskPct = item.forecast_context.risk_of_waste * 100;
+      const plannedQty = planned ?? item.suggested_quantity;
+      const shortfallQty = Math.max(0, item.suggested_quantity - plannedQty);
+      const overprepQty = Math.max(0, plannedQty - item.suggested_quantity);
       const suggestedBuffer = Math.max(
         1,
         isDiscreteUnit(item.unit)
           ? Math.round(item.suggested_quantity * 0.08)
           : Number((item.suggested_quantity * 0.08).toFixed(2)),
       );
+      const primaryRiskType =
+        stockoutRiskPct >= wasteRiskPct && stockoutRiskPct >= 42
+          ? "STOCKOUT"
+          : wasteRiskPct >= 38
+            ? "WASTE"
+            : "MARGIN";
+      const primaryRiskSeverity =
+        riskScore >= 0.65 || stockoutRiskPct >= 60 || wasteRiskPct >= 60
+          ? "HIGH"
+          : riskScore >= 0.45 || stockoutRiskPct >= 45 || wasteRiskPct >= 45
+            ? "MEDIUM"
+            : "WATCH";
+      const drivers: string[] = [
+        `Your current plan is ${formatQuantity(plannedQty, item.unit)} vs suggested ${formatQuantity(item.suggested_quantity, item.unit)}.`,
+        `Expected orders: ${Math.round(item.forecast_context.predicted_orders)}. Forecast confidence: ${confidence} (${percent(item.forecast_context.confidence_score)}).`,
+      ];
+      if (primaryRiskType === "STOCKOUT") {
+        drivers.push(
+          shortfallQty > 0
+            ? `At this plan, you are ${formatQuantity(shortfallQty, item.unit)} below baseline, increasing stockout exposure.`
+            : "Demand pressure is high for this item; consider a protective buffer.",
+        );
+      }
+      if (primaryRiskType === "WASTE") {
+        drivers.push(
+          overprepQty > 0
+            ? `At this plan, you are ${formatQuantity(overprepQty, item.unit)} above baseline, increasing waste exposure.`
+            : "Sell-through signal is weaker than usual for this item.",
+        );
+      }
+      if (primaryRiskType === "MARGIN" && impact) {
+        drivers.push(
+          `Current deviation can shift estimated margin by ${formatSignedCurrency(impact.margin_impact_estimate)}.`,
+        );
+      }
       return {
         id: item.id,
         itemName: item.product_title,
-        title: riskScore >= 0.55 ? "High demand risk" : "Forecast uncertainty",
-        detail:
-          riskScore >= 0.55
-            ? `Confidence: ${confidence}. Suggested action: prep ${signedQuantity(suggestedBuffer, item.unit)} buffer.`
-            : `Confidence: ${confidence}. Watch this item through lunch service.`,
+        riskType: primaryRiskType,
+        severity: primaryRiskSeverity,
+        title: `${primaryRiskType} RISK`,
+        detail: `Risk of ${primaryRiskType === "STOCKOUT" ? "running out" : primaryRiskType === "WASTE" ? "overproduction waste" : "margin loss"} is ${primaryRiskSeverity.toLowerCase()} right now based on your current plan input.`,
+        riskMetrics: {
+          stockoutRiskPct,
+          wasteRiskPct,
+          marginImpact: impact?.margin_impact_estimate ?? 0,
+          variance: variance ?? 0,
+          suggestedBuffer,
+        },
+        varianceLabel: signedQuantity(variance ?? 0, item.unit),
+        bufferLabel: formatQuantity(suggestedBuffer, item.unit),
+        drivers,
         impact,
       };
     });
@@ -790,15 +839,15 @@ export default function TodayWorkspacePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">1. Service Outlook</p>
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
-                <h3 className="font-display text-2xl font-semibold text-text-primary">Service Outlook</h3>
-                <p className="mt-2 text-sm text-text-secondary">
+                <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">Service Outlook</h3>
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Today looks{" "}
                   <span className="font-semibold text-text-primary">
                     {demandDeltaPct <= -2 ? "slower" : demandDeltaPct >= 2 ? "busier" : "steady"}
                   </span>{" "}
                   than usual.
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Expected demand{" "}
                   <span className={demandDeltaPct >= 0 ? "font-semibold text-status-success" : "font-semibold text-status-critical"}>
                     {toPercent(demandDeltaPct)}
@@ -809,7 +858,7 @@ export default function TodayWorkspacePage() {
                       new Date(branchDay.date).toLocaleDateString("en-US", { weekday: "long" })}
                   </span>
                 </p>
-                <p className="mt-1 text-sm text-text-secondary">
+                <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Confidence{" "}
                   <span className="font-semibold text-text-primary">
                     {branchDay.demand_signal.confidence_label ?? confidenceLabel(branchDay.demand_signal.forecast_confidence)}
@@ -847,11 +896,11 @@ export default function TodayWorkspacePage() {
 
               <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-5 py-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Today&apos;s Plan Confidence</p>
-                <p className="mt-2 font-display text-3xl font-semibold text-text-primary">{percent(prepConfidenceGauge)}</p>
+                <p className="mt-2 font-display text-2xl font-semibold text-text-primary sm:text-3xl">{percent(prepConfidenceGauge)}</p>
                 <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-surface-3">
                   <div className="h-full rounded-full bg-brand-gold" style={{ width: percent(prepConfidenceGauge) }} />
                 </div>
-                <p className="mt-3 text-sm text-text-secondary">
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Risk level{" "}
                   <span
                     className={
@@ -887,8 +936,8 @@ export default function TodayWorkspacePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">2. Prep Plan</p>
-                <h3 className="font-display text-2xl font-semibold text-text-primary">Today&apos;s Prep Plan</h3>
-                <p className="text-sm text-text-secondary">
+                <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">Today&apos;s Prep Plan</h3>
+                <p className="text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Edit quantity, accept suggestion, or keep your override. Expand rows only when you need the why.
                 </p>
               </div>
@@ -896,7 +945,7 @@ export default function TodayWorkspacePage() {
                 <button
                   type="button"
                   onClick={() => setImportantItemsOnly((prev) => !prev)}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary transition-all duration-200 hover:border-brand-gold hover:text-brand-gold"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary transition-all duration-200 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                 >
                   {importantItemsOnly ? "Important items only: ON" : "Important items only: OFF"}
                 </button>
@@ -981,7 +1030,7 @@ export default function TodayWorkspacePage() {
                           value={plannedQtyByItem[item.id] ?? ""}
                           onChange={(event) => onPlannedChange(item.id, event.target.value, item.unit)}
                           disabled={isPlanLocked}
-                          className="h-8 w-20 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                          className="h-8 w-20 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                         />
                         <span className="text-[11px] text-text-muted">{item.unit}</span>
                       </div>
@@ -993,7 +1042,7 @@ export default function TodayWorkspacePage() {
                       type="button"
                       onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
                       disabled={isPlanLocked}
-                      className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10"
+                      className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                     >
                       Accept
                     </button>
@@ -1001,7 +1050,7 @@ export default function TodayWorkspacePage() {
                       type="button"
                       onClick={() => keepMyPlan(item.id, planned, item.unit)}
                       disabled={isPlanLocked}
-                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3"
+                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                     >
                       Override
                     </button>
@@ -1090,7 +1139,7 @@ export default function TodayWorkspacePage() {
                             value={plannedQtyByItem[item.id] ?? ""}
                             onChange={(event) => onPlannedChange(item.id, event.target.value, item.unit)}
                             disabled={isPlanLocked}
-                            className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                            className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                           />
                           <span className="text-xs text-text-muted">{item.unit}</span>
                         </div>
@@ -1122,7 +1171,7 @@ export default function TodayWorkspacePage() {
                             type="button"
                             onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
                             disabled={isPlanLocked}
-                            className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10"
+                            className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                           >
                             Accept
                           </button>
@@ -1130,7 +1179,7 @@ export default function TodayWorkspacePage() {
                             type="button"
                             onClick={() => keepMyPlan(item.id, planned, item.unit)}
                             disabled={isPlanLocked}
-                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3"
+                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                           >
                             Override
                           </button>
@@ -1166,31 +1215,59 @@ export default function TodayWorkspacePage() {
                   <article
                     key={alert.id}
                     className={`rounded-xl border px-4 py-3 shadow-sm ${
-                      alert.title.toLowerCase().includes("high")
+                      alert.severity === "HIGH"
                         ? "border-status-critical/40 bg-status-critical/10"
                         : "border-status-warning/40 bg-status-warning/10"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-text-primary">{alert.itemName}</p>
+                        <p className="text-sm font-semibold text-text-primary sm:text-[15px]">{alert.itemName}</p>
                         <p
                           className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                            alert.title.toLowerCase().includes("high")
+                            alert.severity === "HIGH"
                               ? "bg-status-critical/20 text-status-critical"
                               : "bg-status-warning/20 text-status-warning"
                           }`}
                         >
-                          {alert.title}
+                          {alert.title} · {alert.severity}
                         </p>
                       </div>
                       <span
                         className={`mt-0.5 h-2.5 w-2.5 rounded-full ${
-                          alert.title.toLowerCase().includes("high") ? "bg-status-critical" : "bg-status-warning"
+                          alert.severity === "HIGH" ? "bg-status-critical" : "bg-status-warning"
                         }`}
                       />
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-text-secondary">{alert.detail}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">{alert.detail}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
+                        <p className="text-text-muted">Stockout risk</p>
+                        <p className="mt-1 font-semibold text-text-primary">{alert.riskMetrics.stockoutRiskPct.toFixed(1)}%</p>
+                      </div>
+                      <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
+                        <p className="text-text-muted">Waste risk</p>
+                        <p className="mt-1 font-semibold text-text-primary">{alert.riskMetrics.wasteRiskPct.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
+                      <p className="font-semibold text-text-primary">Why this alert</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {alert.drivers.map((driver) => (
+                          <li key={`${alert.id}-${driver}`}>{driver}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1">
+                        Variance now:{" "}
+                        <span className="font-semibold text-text-primary">
+                          {alert.varianceLabel}
+                        </span>
+                        {" · "}Suggested buffer:{" "}
+                        <span className="font-semibold text-text-primary">
+                          {alert.bufferLabel}
+                        </span>
+                      </p>
+                    </div>
                     {alert.impact?.impact_simulation_triggered ? (
                       <p className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
                         Suggested quantity:{" "}
@@ -1247,8 +1324,8 @@ export default function TodayWorkspacePage() {
             <div className="space-y-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">5. Confirm Plan</p>
-                <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">Chef Decision Summary</h3>
-                <p className="mt-1 text-sm text-text-secondary">Finalize your prep decisions, lock the plan, then start service.</p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-text-primary sm:text-2xl">Chef Decision Summary</h3>
+                <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">Finalize your prep decisions, lock the plan, then start service.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -1282,7 +1359,7 @@ export default function TodayWorkspacePage() {
                   type="button"
                   onClick={lockPlan}
                   disabled={isPlanLocked || lockPlanMutation.isPending}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-status-success/45 px-5 text-sm font-semibold text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-status-success/45 px-5 text-sm font-semibold text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {isPlanLocked ? "Plan Locked" : lockPlanMutation.isPending ? "Locking plan..." : "Lock Plan"}
                 </button>
@@ -1290,7 +1367,7 @@ export default function TodayWorkspacePage() {
                   type="button"
                   onClick={() => setConfirmAction("START_LIVE")}
                   disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-brand-gold/45 px-5 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-brand-gold/45 px-5 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {updateBranchDayStatusMutation.isPending ? "Starting service..." : "Lock Plan & Start Service"}
                 </button>
