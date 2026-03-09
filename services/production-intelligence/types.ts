@@ -163,6 +163,83 @@ export const branchDayTodaySchema = z.object({
         .optional(),
     })
     .optional(),
+  kitchen_intelligence_network: z
+    .object({
+      organization_id: z.string().uuid(),
+      branch_id: z.string().uuid(),
+      target_date: z.string(),
+      lookback_days: z.number(),
+      dataset_contract: z.object({
+        required_fields: z.array(z.string()),
+        derived_signals: z.array(z.string()),
+      }),
+      local_learning: z.object({
+        location_id: z.string().uuid(),
+        location_name: z.string(),
+        rows: z.number(),
+        sell_through_pct: z.number(),
+        waste_ratio_pct: z.number(),
+      }),
+      network_aggregation: z.object({
+        active_locations: z.number(),
+        rows: z.number(),
+        sell_through_pct: z.number(),
+        waste_ratio_pct: z.number(),
+        cross_location_patterns: z.array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_name: z.string(),
+            pattern_type: z.string(),
+            confidence: z.number(),
+            spread_pct: z.number(),
+            best_location: z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              waste_ratio_pct: z.number(),
+              sell_through_pct: z.number(),
+              sample_days: z.number(),
+            }),
+            worst_location: z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              waste_ratio_pct: z.number(),
+              sell_through_pct: z.number(),
+              sample_days: z.number(),
+            }),
+          }),
+        ),
+      }),
+      knowledge_transfer: z.array(
+        z.object({
+          item_id: z.string().uuid(),
+          item_name: z.string(),
+          from_location: z.string(),
+          suggested_action: z.string(),
+          expected_waste_reduction_pct: z.number(),
+        }),
+      ),
+      event_rows_preview: z.array(
+        z.object({
+          location_id: z.string().uuid(),
+          location_name: z.string(),
+          timestamp: z.string(),
+          menu_item_id: z.string().uuid(),
+          menu_item_name: z.string(),
+          quantity_sold: z.number(),
+          quantity_prepped: z.number(),
+          waste_quantity: z.number(),
+          weather: z.string(),
+          day_of_week: z.string(),
+          special_event: z.boolean(),
+          rain: z.boolean(),
+          temperature: z.number().nullable(),
+          holiday: z.boolean(),
+          hour_of_day: z.number().nullable(),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   prep_plan_items: z.array(prepPlanItemSchema),
   review_summary: z
     .object({

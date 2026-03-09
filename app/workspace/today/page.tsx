@@ -710,6 +710,7 @@ export default function TodayWorkspacePage() {
             ) : null}
 
             <div className="mt-8 border-t border-surface-4/60 pt-5">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                   Demand Signal
@@ -776,6 +777,87 @@ export default function TodayWorkspacePage() {
                   </div>
                 </div>
               </article>
+                <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-5 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                    Kitchen Intelligence Network
+                  </p>
+                  <h4 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                    Local + Cross-Location Learning
+                  </h4>
+                  {branchDay.kitchen_intelligence_network ? (
+                    <>
+                      <p className="mt-3 text-sm text-text-secondary">
+                        Local model rows:{" "}
+                        <span className="font-semibold text-text-primary">
+                          {branchDay.kitchen_intelligence_network.local_learning.rows}
+                        </span>
+                        {" · "}
+                        Network rows:{" "}
+                        <span className="font-semibold text-text-primary">
+                          {branchDay.kitchen_intelligence_network.network_aggregation.rows}
+                        </span>
+                        {" · "}
+                        Locations:{" "}
+                        <span className="font-semibold text-text-primary">
+                          {branchDay.kitchen_intelligence_network.network_aggregation.active_locations}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Waste ratio:{" "}
+                        <span className="font-semibold text-status-warning">
+                          {branchDay.kitchen_intelligence_network.local_learning.waste_ratio_pct.toFixed(1)}%
+                        </span>
+                        {" local vs "}
+                        <span className="font-semibold text-text-primary">
+                          {branchDay.kitchen_intelligence_network.network_aggregation.waste_ratio_pct.toFixed(1)}%
+                        </span>
+                        {" network"}
+                      </p>
+                      <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                          Top Cross-Location Pattern
+                        </p>
+                        {branchDay.kitchen_intelligence_network.network_aggregation.cross_location_patterns[0] ? (
+                          <>
+                            <p className="mt-1 text-sm font-semibold text-text-primary">
+                              {branchDay.kitchen_intelligence_network.network_aggregation.cross_location_patterns[0].item_name}
+                            </p>
+                            <p className="mt-1 text-xs text-text-secondary">
+                              Spread {branchDay.kitchen_intelligence_network.network_aggregation.cross_location_patterns[0].spread_pct.toFixed(1)}%
+                              {" · "}confidence {percent(branchDay.kitchen_intelligence_network.network_aggregation.cross_location_patterns[0].confidence)}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-xs text-text-secondary">
+                            Not enough cross-location variance yet. Keep capturing daily rows.
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                          Knowledge Transfer
+                        </p>
+                        {branchDay.kitchen_intelligence_network.knowledge_transfer.length ? (
+                          <p className="mt-1 text-xs text-text-secondary">
+                            {branchDay.kitchen_intelligence_network.knowledge_transfer[0].suggested_action} Potential waste reduction:{" "}
+                            <span className="font-semibold text-status-success">
+                              {branchDay.kitchen_intelligence_network.knowledge_transfer[0].expected_waste_reduction_pct.toFixed(1)}%
+                            </span>
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-text-secondary">
+                            No validated transfer action yet for this branch.
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-3 text-sm text-text-secondary">
+                      Network intelligence is unavailable for this branch day.
+                    </p>
+                  )}
+                </article>
+              </div>
             </div>
           </section>
 
@@ -1601,31 +1683,31 @@ export default function TodayWorkspacePage() {
                   <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Signal Rows</p>
                     <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals.ml_learning_signals.rows ?? 0}
+                      {branchDay.review_phase.learning_signals.ml_learning_signals?.rows ?? 0}
                     </p>
                   </article>
                   <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Chef Overrides</p>
                     <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals.ml_learning_signals.chef_override_rows ?? 0}
+                      {branchDay.review_phase.learning_signals.ml_learning_signals?.chef_override_rows ?? 0}
                     </p>
                   </article>
                   <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Rows</p>
                     <p className="mt-2 font-display text-2xl text-status-critical">
-                      {branchDay.review_phase.learning_signals.ml_learning_signals.waste_rows ?? 0}
+                      {branchDay.review_phase.learning_signals.ml_learning_signals?.waste_rows ?? 0}
                     </p>
                   </article>
                   <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Stockout Rows</p>
                     <p className="mt-2 font-display text-2xl text-status-warning">
-                      {branchDay.review_phase.learning_signals.ml_learning_signals.stockout_rows ?? 0}
+                      {branchDay.review_phase.learning_signals.ml_learning_signals?.stockout_rows ?? 0}
                     </p>
                   </article>
                   <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Chef Beats AI</p>
                     <p className="mt-2 font-display text-2xl text-status-success">
-                      {branchDay.review_phase.learning_signals.ml_learning_signals.chef_outperformed_forecast_rows ?? 0}
+                      {branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0}
                     </p>
                   </article>
                 </div>
