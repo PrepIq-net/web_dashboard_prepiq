@@ -906,6 +906,12 @@ export default function TodayWorkspacePage() {
                           {" validated / "}
                           {branchDay.kitchen_intelligence_network.feedback_loop.patterns_total}
                           {" patterns"}
+                          {typeof branchDay.kitchen_intelligence_network.feedback_loop.patterns_deployed === "number"
+                            ? ` · ${branchDay.kitchen_intelligence_network.feedback_loop.patterns_deployed} deployed`
+                            : ""}
+                          {typeof branchDay.kitchen_intelligence_network.feedback_loop.average_freshness_score === "number"
+                            ? ` · freshness ${percent(branchDay.kitchen_intelligence_network.feedback_loop.average_freshness_score)}`
+                            : ""}
                         </p>
                       ) : null}
                       <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">

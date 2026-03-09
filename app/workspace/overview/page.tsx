@@ -8,9 +8,9 @@ import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile, useProductionIntelligenceAccessScope } from "@/services";
 import {
-  useBranchDayToday,
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
+  useOwnerNetworkIntelligenceInsights,
 } from "@/services/production-intelligence/hooks";
 
 const EMPTY_LIST: never[] = [];
@@ -111,48 +111,22 @@ export default function WorkspaceOverviewPage() {
     { branch_id: branchId || undefined, target_date: targetDate },
     Boolean(branchId),
   );
-  const branchDayQuery = useBranchDayToday(
-    { branch_id: branchId || undefined, date: targetDate },
-    Boolean(branchId),
+  const organizationNetworkQuery = useOwnerNetworkIntelligenceInsights(
+    {
+      organization_id: user?.organization_id ?? undefined,
+      target_date: targetDate,
+      lookback_days: 30,
+    },
+    Boolean(user?.organization_id),
   );
 
   const networkInsights = useMemo(() => {
-    const network = branchDayQuery.data?.kitchen_intelligence_network;
-    if (!network) return [];
-    const rows: Array<{ title: string; detail: string; confidence?: number }> = [];
-    const rainPattern = (network.network_aggregation.detected_patterns ?? [])
-      .filter((pattern) => pattern.trigger_factor === "rain" && pattern.is_validated && pattern.effect_pct > 0)
-      .sort((a, b) => b.confidence - a.confidence)[0];
-    if (rainPattern) {
-      const supporting = network.knowledge_transfer.find(
-        (transfer) => transfer.item_id === rainPattern.item_id && transfer.trigger_factor === "rain",
-      )?.supporting_kitchens_count ?? 0;
-      rows.push({
-        title: `Rain increases ${rainPattern.item_name.toLowerCase()} demand`,
-        detail: `Observed in ${supporting || 1} kitchen${supporting === 1 ? "" : "s"}.`,
-        confidence: rainPattern.confidence,
-      });
-    }
-    const positivePattern = (network.network_aggregation.detected_patterns ?? [])
-      .filter((pattern) => pattern.is_validated && pattern.effect_pct > 0)
-      .sort((a, b) => b.effect_pct - a.effect_pct)[0];
-    if (positivePattern) {
-      rows.push({
-        title: `${positivePattern.item_name} demand trending ${positivePattern.effect_pct >= 0 ? "+" : ""}${positivePattern.effect_pct.toFixed(1)}%`,
-        detail: `Observed across ${network.network_aggregation.active_locations} locations.`,
-        confidence: positivePattern.confidence,
-      });
-    }
-    const wastePattern = (network.network_aggregation.cross_location_patterns ?? [])[0];
-    if (wastePattern) {
-      rows.push({
-        title: `${wastePattern.item_name} waste clustering detected`,
-        detail: `Spread ${wastePattern.spread_pct.toFixed(1)}% across multiple locations.`,
-        confidence: wastePattern.confidence,
-      });
-    }
-    return rows.slice(0, 3);
-  }, [branchDayQuery.data?.kitchen_intelligence_network]);
+    return (organizationNetworkQuery.data?.top_network_insights ?? []).slice(0, 3).map((row) => ({
+      title: row.title,
+      detail: `Observed in ${row.observed_in_kitchens} kitchen${row.observed_in_kitchens === 1 ? "" : "s"}.`,
+      confidence: row.confidence,
+    }));
+  }, [organizationNetworkQuery.data?.top_network_insights]);
 
   if (shouldHold) {
     return (
@@ -204,8 +178,8 @@ export default function WorkspaceOverviewPage() {
           <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">Suggested Action</p>
             <p className="mt-1 text-sm text-text-primary">
-              {branchDayQuery.data?.kitchen_intelligence_network?.knowledge_transfer?.[0]?.suggested_action ??
-                "No validated network transfer action for this branch/day yet."}
+              {organizationNetworkQuery.data?.top_network_insights?.[0]?.suggested_action ??
+                "No validated organization-wide transfer action yet."}
             </p>
           </article>
         </div>
@@ -239,7 +213,9 @@ export default function WorkspaceOverviewPage() {
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Locations</p>
-              <p className="mt-1 text-xl font-semibold text-text-primary">{executiveQuery.data?.branch_count ?? 0}</p>
+              <p className="mt-1 text-xl font-semibold text-text-primary">
+                {organizationNetworkQuery.data?.summary.branch_count ?? executiveQuery.data?.branch_count ?? 0}
+              </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Forecast Accuracy (7d)</p>
@@ -257,6 +233,15 @@ export default function WorkspaceOverviewPage() {
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Total Waste Cost</p>
               <p className="mt-1 text-xl font-semibold text-status-critical">
                 {formatNumberishCurrency(marginQuery.data?.summary?.total_waste_cost)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3 col-span-2">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Lifecycle</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Candidate {organizationNetworkQuery.data?.summary.candidate_patterns ?? 0}
+                {" · "}Validated {organizationNetworkQuery.data?.summary.validated_patterns ?? 0}
+                {" · "}Deployed {organizationNetworkQuery.data?.summary.deployed_patterns ?? 0}
+                {" · "}Freshness {percent(organizationNetworkQuery.data?.summary.average_freshness_score ?? 0)}
               </p>
             </div>
           </div>
@@ -278,16 +263,35 @@ export default function WorkspaceOverviewPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-4/55">
-              {(executiveQuery.data?.branch_grid ?? []).map((row) => {
+              {(organizationNetworkQuery.data?.location_performance ?? executiveQuery.data?.branch_grid ?? []).map((row) => {
                 const marginRow = (marginQuery.data?.branches ?? []).find((item) => item.branch_id === row.branch_id);
+                const rowRecord = row as Record<string, unknown>;
+                const revenueValue =
+                  typeof rowRecord.revenue === "number"
+                    ? rowRecord.revenue
+                    : typeof rowRecord.net_impact === "number"
+                      ? rowRecord.net_impact
+                      : 0;
+                const wasteText =
+                  typeof rowRecord.waste_pct === "number"
+                    ? `${rowRecord.waste_pct.toFixed(1)}%`
+                    : formatCurrency(typeof rowRecord.waste_cost === "number" ? rowRecord.waste_cost : 0);
+                const forecastValue =
+                  typeof rowRecord.forecast_accuracy === "number" ? rowRecord.forecast_accuracy : null;
                 return (
                   <tr key={row.branch_id}>
                     <td className="px-3 py-3 text-sm font-medium text-text-primary">{row.branch_name}</td>
-                    <td className="px-3 py-3 text-sm text-text-secondary">{formatCurrency(row.revenue ?? 0)}</td>
-                    <td className="px-3 py-3 text-sm text-status-warning">{(row.waste_pct ?? 0).toFixed(1)}%</td>
                     <td className="px-3 py-3 text-sm text-text-secondary">
-                      {typeof marginRow?.forecast_accuracy_summary === "number"
-                        ? `${marginRow.forecast_accuracy_summary.toFixed(1)}%`
+                      {formatCurrency(revenueValue)}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-status-warning">
+                      {wasteText}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-text-secondary">
+                      {typeof forecastValue === "number"
+                        ? `${forecastValue.toFixed(1)}%`
+                        : typeof marginRow?.forecast_accuracy_summary === "number"
+                          ? `${marginRow.forecast_accuracy_summary.toFixed(1)}%`
                         : "N/A"}
                     </td>
                     <td className="px-3 py-3 text-sm text-text-secondary">{marginRow?.margin_signal_status ?? "N/A"}</td>

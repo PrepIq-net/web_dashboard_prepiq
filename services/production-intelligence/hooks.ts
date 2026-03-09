@@ -13,6 +13,7 @@ import {
   evaluatePrepPlan,
   getExecutiveControlTower,
   getOwnerMarginProtectionReport,
+  getOwnerNetworkIntelligenceInsights,
   createStaffStockoutEvent,
   getOwnerDailyPerformance,
   getProductionIntelligenceAccessScope,
@@ -32,6 +33,7 @@ import {
   type BranchCommandViewQuery,
   type ExecutiveControlTowerQuery,
   type OwnerMarginProtectionReportQuery,
+  type OwnerNetworkIntelligenceInsightsQuery,
   type OwnerDailyPerformanceQuery,
   type SalesDataValidationQuery,
   type SetupForecastWOWQuery,
@@ -102,6 +104,14 @@ export const productionIntelligenceQueryKeys = {
       "owner-margin-protection-report",
       params?.branch_id ?? "",
       params?.target_date ?? "",
+    ] as const,
+  ownerNetworkIntelligenceInsights: (params?: OwnerNetworkIntelligenceInsightsQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "owner-network-intelligence-insights",
+      params?.organization_id ?? "",
+      params?.target_date ?? "",
+      params?.lookback_days ?? 30,
     ] as const,
   salesDataValidation: (params: SalesDataValidationQuery) =>
     [
@@ -345,6 +355,17 @@ export function useOwnerMarginProtectionReport(
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.ownerMarginProtectionReport(params),
     queryFn: () => getOwnerMarginProtectionReport(params),
+    enabled,
+  });
+}
+
+export function useOwnerNetworkIntelligenceInsights(
+  params?: OwnerNetworkIntelligenceInsightsQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.ownerNetworkIntelligenceInsights(params),
+    queryFn: () => getOwnerNetworkIntelligenceInsights(params),
     enabled,
   });
 }

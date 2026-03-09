@@ -187,6 +187,8 @@ export const branchDayTodaySchema = z.object({
         waste_ratio_pct: z.number(),
         pattern_quality_threshold: z.number().optional(),
         validated_pattern_count: z.number().optional(),
+        deployed_pattern_count: z.number().optional(),
+        candidate_pattern_count: z.number().optional(),
         similarity_threshold: z.number().optional(),
         transfer_confidence_threshold: z.number().optional(),
         kitchen_similarity: z
@@ -268,8 +270,11 @@ export const branchDayTodaySchema = z.object({
         .object({
           patterns_total: z.number(),
           patterns_validated: z.number(),
+          patterns_deployed: z.number().optional(),
+          patterns_candidate: z.number().optional(),
           patterns_probation: z.number(),
           patterns_invalid: z.number(),
+          average_freshness_score: z.number().optional(),
         })
         .optional(),
       knowledge_transfer: z.array(
@@ -975,6 +980,57 @@ export const ownerMarginProtectionReportSchema = z.object({
 });
 export type OwnerMarginProtectionReport = z.infer<
   typeof ownerMarginProtectionReportSchema
+>;
+
+export const ownerNetworkIntelligenceInsightSchema = z.object({
+  insight_key: z.string(),
+  title: z.string(),
+  observed_in_kitchens: z.number(),
+  confidence: z.number(),
+  effect_pct: z.number(),
+  lifecycle_state: z.enum(["CANDIDATE", "VALIDATED", "DEPLOYED"]),
+  suggested_action: z.string(),
+});
+
+export const ownerNetworkIntelligenceInsightsSchema = z.object({
+  organization_id: z.string().uuid(),
+  target_date: z.string(),
+  lookback_days: z.number(),
+  summary: z.object({
+    branch_count: z.number(),
+    patterns_total: z.number(),
+    candidate_patterns: z.number(),
+    validated_patterns: z.number(),
+    deployed_patterns: z.number(),
+    average_freshness_score: z.number(),
+  }),
+  top_network_insights: z.array(ownerNetworkIntelligenceInsightSchema),
+  location_performance: z.array(
+    z.object({
+      branch_id: z.string().uuid(),
+      branch_name: z.string(),
+      forecast_accuracy: z.number(),
+      waste_cost: z.number(),
+      stockout_count: z.number(),
+      net_impact: z.number(),
+    }),
+  ),
+  shared_patterns: z.array(
+    z.object({
+      item_id: z.string().uuid(),
+      item_name: z.string(),
+      trigger_factor: z.string(),
+      observed_in_kitchens: z.number(),
+      effect_pct: z.number(),
+      confidence: z.number(),
+      quality_score: z.number(),
+      freshness_score: z.number(),
+      lifecycle_state: z.enum(["CANDIDATE", "VALIDATED", "DEPLOYED"]),
+    }),
+  ),
+});
+export type OwnerNetworkIntelligenceInsights = z.infer<
+  typeof ownerNetworkIntelligenceInsightsSchema
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
