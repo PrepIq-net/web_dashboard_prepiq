@@ -1969,7 +1969,7 @@ export default function TodayWorkspacePage() {
                 type="button"
                 onClick={() => setConfirmAction("CLOSE_DAY")}
                 disabled={updateBranchDayStatusMutation.isPending}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-status-critical/40 bg-surface-3 px-4 text-sm font-medium text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-status-critical/45 px-6 text-sm font-semibold text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-critical/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {updateBranchDayStatusMutation.isPending
                   ? "Closing..."
