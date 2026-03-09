@@ -900,6 +900,14 @@ export default function TodayWorkspacePage() {
                           </span>
                         </p>
                       ) : null}
+                      {branchDay.kitchen_intelligence_network.feedback_loop ? (
+                        <p className="mt-1 text-xs text-text-secondary">
+                          Feedback loop: {branchDay.kitchen_intelligence_network.feedback_loop.patterns_validated}
+                          {" validated / "}
+                          {branchDay.kitchen_intelligence_network.feedback_loop.patterns_total}
+                          {" patterns"}
+                        </p>
+                      ) : null}
                       <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">
                         <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
                           Top Cross-Location Pattern

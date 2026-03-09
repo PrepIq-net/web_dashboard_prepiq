@@ -264,6 +264,14 @@ export const branchDayTodaySchema = z.object({
           }),
         })
         .optional(),
+      feedback_loop: z
+        .object({
+          patterns_total: z.number(),
+          patterns_validated: z.number(),
+          patterns_probation: z.number(),
+          patterns_invalid: z.number(),
+        })
+        .optional(),
       knowledge_transfer: z.array(
         z.object({
           item_id: z.string().uuid(),
