@@ -24,6 +24,11 @@ import {
   getStaffStockoutEvents,
   previewPOSCSVImport,
   getTodayPrepRecommendations,
+  getStaffPersonalDashboard,
+  getStaffAccountability,
+  getIntegrationsOverview,
+  getOperationsProductionSnapshot,
+  retryIntegrationsSync,
   startSquareOAuth,
   updateBranchDayStatus,
   updatePrepPlanItem,
@@ -42,6 +47,10 @@ import {
   type StaffShiftChecklistQuery,
   type StaffStockoutEventsQuery,
   type TodayPrepRecommendationsQuery,
+  type StaffPersonalDashboardQuery,
+  type StaffAccountabilityQuery,
+  type IntegrationsOverviewQuery,
+  type OperationsProductionQuery,
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
@@ -61,7 +70,11 @@ import type {
 export const productionIntelligenceQueryKeys = {
   root: ["production-intelligence"] as const,
   accessScope: (organizationId?: string) =>
-    [...productionIntelligenceQueryKeys.root, "access-scope", organizationId ?? ""] as const,
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "access-scope",
+      organizationId ?? "",
+    ] as const,
   todayRecommendations: (params?: TodayPrepRecommendationsQuery) =>
     [
       ...productionIntelligenceQueryKeys.root,
@@ -105,7 +118,9 @@ export const productionIntelligenceQueryKeys = {
       params?.branch_id ?? "",
       params?.target_date ?? "",
     ] as const,
-  ownerNetworkIntelligenceInsights: (params?: OwnerNetworkIntelligenceInsightsQuery) =>
+  ownerNetworkIntelligenceInsights: (
+    params?: OwnerNetworkIntelligenceInsightsQuery,
+  ) =>
     [
       ...productionIntelligenceQueryKeys.root,
       "owner-network-intelligence-insights",
@@ -142,23 +157,60 @@ export const productionIntelligenceQueryKeys = {
       params.branch_id,
       params.target_date ?? "",
     ] as const,
+  staffPersonalDashboard: (params: StaffPersonalDashboardQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "staff-personal-dashboard",
+      params.staff_user_id ?? "",
+      params.branch_id ?? "",
+      params.target_date ?? "",
+    ] as const,
+  staffAccountability: (params: StaffAccountabilityQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "staff-accountability",
+      params.branch_id,
+      params.target_date ?? "",
+    ] as const,
+  integrationsOverview: (params: IntegrationsOverviewQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "integrations-overview",
+      params.organization_id,
+    ] as const,
+  operationsProduction: (params: OperationsProductionQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "operations-production",
+      params.branch_id ?? "",
+      params.target_date ?? "",
+    ] as const,
 };
 
-export function useProductionIntelligenceAccessScope(params?: AccessScopeQuery) {
+export function useProductionIntelligenceAccessScope(
+  params?: AccessScopeQuery,
+) {
   return useQuery({
-    queryKey: productionIntelligenceQueryKeys.accessScope(params?.organization_id),
+    queryKey: productionIntelligenceQueryKeys.accessScope(
+      params?.organization_id,
+    ),
     queryFn: () => getProductionIntelligenceAccessScope(params),
   });
 }
 
-export function useTodayPrepRecommendations(params?: TodayPrepRecommendationsQuery) {
+export function useTodayPrepRecommendations(
+  params?: TodayPrepRecommendationsQuery,
+) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.todayRecommendations(params),
     queryFn: () => getTodayPrepRecommendations(params),
   });
 }
 
-export function useBranchDayToday(params?: BranchDayTodayQuery, enabled = true) {
+export function useBranchDayToday(
+  params?: BranchDayTodayQuery,
+  enabled = true,
+) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.branchDayToday(params),
     queryFn: () => getBranchDayToday(params),
@@ -170,7 +222,8 @@ export function useInitializeBranchDay() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: BranchDayInitializePayload) => initializeBranchDay(payload),
+    mutationFn: (payload: BranchDayInitializePayload) =>
+      initializeBranchDay(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: productionIntelligenceQueryKeys.branchDayToday({
@@ -274,7 +327,8 @@ export function useCreateProductionLog() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateProductionLogPayload) => createProductionLog(payload),
+    mutationFn: (payload: CreateProductionLogPayload) =>
+      createProductionLog(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
@@ -287,7 +341,8 @@ export function useSalesManualQuickEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: SalesManualQuickEntryPayload) => createSalesManualQuickEntry(payload),
+    mutationFn: (payload: SalesManualQuickEntryPayload) =>
+      createSalesManualQuickEntry(payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: productionIntelligenceQueryKeys.branchDayToday({
@@ -299,7 +354,10 @@ export function useSalesManualQuickEntry() {
   });
 }
 
-export function useBranchCommandView(params: BranchCommandViewQuery, enabled = true) {
+export function useBranchCommandView(
+  params: BranchCommandViewQuery,
+  enabled = true,
+) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.branchCommandView(params),
     queryFn: () => getBranchCommandView(params),
@@ -323,7 +381,10 @@ export function useCreatePrepRecommendationDecision() {
         queryKey: productionIntelligenceQueryKeys.todayRecommendations(),
       });
       queryClient.invalidateQueries({
-        queryKey: [...productionIntelligenceQueryKeys.root, "owner-daily-performance"],
+        queryKey: [
+          ...productionIntelligenceQueryKeys.root,
+          "owner-daily-performance",
+        ],
       });
     },
   });
@@ -353,7 +414,8 @@ export function useOwnerMarginProtectionReport(
   enabled = true,
 ) {
   return useQuery({
-    queryKey: productionIntelligenceQueryKeys.ownerMarginProtectionReport(params),
+    queryKey:
+      productionIntelligenceQueryKeys.ownerMarginProtectionReport(params),
     queryFn: () => getOwnerMarginProtectionReport(params),
     enabled,
   });
@@ -364,7 +426,8 @@ export function useOwnerNetworkIntelligenceInsights(
   enabled = true,
 ) {
   return useQuery({
-    queryKey: productionIntelligenceQueryKeys.ownerNetworkIntelligenceInsights(params),
+    queryKey:
+      productionIntelligenceQueryKeys.ownerNetworkIntelligenceInsights(params),
     queryFn: () => getOwnerNetworkIntelligenceInsights(params),
     enabled,
   });
@@ -378,7 +441,10 @@ export function useSalesDataValidation(params: SalesDataValidationQuery) {
   });
 }
 
-export function useSetupForecastWOW(params?: SetupForecastWOWQuery, enabled = true) {
+export function useSetupForecastWOW(
+  params?: SetupForecastWOWQuery,
+  enabled = true,
+) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.setupForecastWOW(params),
     queryFn: () => getSetupForecastWOW(params),
@@ -435,6 +501,53 @@ export function useCreateStaffStockoutEvent() {
         queryKey: productionIntelligenceQueryKeys.salesDataValidation({
           branch_id: variables.branch_id,
         }),
+      });
+    },
+  });
+}
+
+export function useStaffPersonalDashboard(params: StaffPersonalDashboardQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.staffPersonalDashboard(params),
+    queryFn: () => getStaffPersonalDashboard(params),
+    enabled: Boolean(params.staff_user_id),
+  });
+}
+
+export function useStaffAccountability(params: StaffAccountabilityQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.staffAccountability(params),
+    queryFn: () => getStaffAccountability(params),
+    enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useIntegrationsOverview(params: IntegrationsOverviewQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.integrationsOverview(params),
+    queryFn: () => getIntegrationsOverview(params),
+    enabled: Boolean(params.organization_id),
+  });
+}
+
+export function useOperationsProduction(params: OperationsProductionQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.operationsProduction(params),
+    queryFn: () => getOperationsProductionSnapshot(params),
+    enabled: Boolean(params.branch_id || params.target_date),
+  });
+}
+
+export function useRetryIntegrationsSync() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => retryIntegrationsSync(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          ...productionIntelligenceQueryKeys.root,
+          "integrations-overview",
+        ],
       });
     },
   });

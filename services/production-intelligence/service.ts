@@ -35,6 +35,10 @@ import {
   salesManualQuickEntryPayloadSchema,
   salesManualQuickEntryResponseSchema,
   updatePrepPlanItemPayloadSchema,
+  staffAccountabilityOverviewSchema,
+  staffPersonalDashboardSchema,
+  integrationsOverviewSchema,
+  operationsProductionSnapshotSchema,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
@@ -50,6 +54,72 @@ import {
   type UpdateStaffShiftChecklistPayload,
   type SalesManualQuickEntryPayload,
 } from "@/services/production-intelligence/types";
+
+export type StaffPersonalDashboardQuery = {
+  branch_id?: string;
+  staff_user_id?: string;
+  target_date?: string;
+};
+
+export async function getStaffPersonalDashboard(
+  params: StaffPersonalDashboardQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.staffPersonalDashboard(), params),
+    staffPersonalDashboardSchema,
+    { method: "GET" },
+  );
+}
+
+export type StaffAccountabilityQuery = {
+  branch_id: string;
+  target_date?: string;
+};
+
+export async function getStaffAccountability(params: StaffAccountabilityQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.staffAccountability(), params),
+    staffAccountabilityOverviewSchema,
+    { method: "GET" },
+  );
+}
+
+export type IntegrationsOverviewQuery = {
+  organization_id: string;
+};
+
+export async function getIntegrationsOverview(
+  params: IntegrationsOverviewQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.integrationsOverview(), params),
+    integrationsOverviewSchema,
+    { method: "GET" },
+  );
+}
+
+export type OperationsProductionQuery = {
+  branch_id?: string;
+  target_date?: string;
+};
+
+export async function getOperationsProductionSnapshot(
+  params: OperationsProductionQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.operationsProduction(), params),
+    operationsProductionSnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export async function retryIntegrationsSync() {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.integrationsSyncRetry(),
+    z.object({ status: z.string() }),
+    { method: "POST" },
+  );
+}
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -221,7 +291,9 @@ export async function createProductionLog(payload: CreateProductionLogPayload) {
   );
 }
 
-export async function createSalesManualQuickEntry(payload: SalesManualQuickEntryPayload) {
+export async function createSalesManualQuickEntry(
+  payload: SalesManualQuickEntryPayload,
+) {
   const body = salesManualQuickEntryPayloadSchema.parse(payload);
   return apiClientWithSchema(
     productionIntelligenceEndpoints.salesManualQuickEntry(),
@@ -307,7 +379,10 @@ export async function getOwnerMarginProtectionReport(
   params?: OwnerMarginProtectionReportQuery,
 ) {
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.ownerDailyMarginProtection(), params),
+    withQuery(
+      productionIntelligenceEndpoints.ownerDailyMarginProtection(),
+      params,
+    ),
     ownerMarginProtectionReportSchema,
     { method: "GET" },
   );
@@ -317,7 +392,10 @@ export async function getOwnerNetworkIntelligenceInsights(
   params?: OwnerNetworkIntelligenceInsightsQuery,
 ) {
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.ownerNetworkIntelligenceInsights(), params),
+    withQuery(
+      productionIntelligenceEndpoints.ownerNetworkIntelligenceInsights(),
+      params,
+    ),
     ownerNetworkIntelligenceInsightsSchema,
     { method: "GET" },
   );
@@ -429,11 +507,17 @@ export type POSCSVPreviewPayload = POSCSVImportPayload & {
   preview_limit?: number;
 };
 
-function buildPOSCSVFormData(payload: POSCSVImportPayload | POSCSVPreviewPayload, dryRun: boolean): FormData {
+function buildPOSCSVFormData(
+  payload: POSCSVImportPayload | POSCSVPreviewPayload,
+  dryRun: boolean,
+): FormData {
   const form = new FormData();
   form.append("branch_id", payload.branch_id);
   form.append("file", payload.file);
-  form.append("auto_create_items", payload.auto_create_items ? "true" : "false");
+  form.append(
+    "auto_create_items",
+    payload.auto_create_items ? "true" : "false",
+  );
   if (dryRun) {
     form.append("dry_run", "true");
     const previewPayload = payload as POSCSVPreviewPayload;
@@ -442,7 +526,9 @@ function buildPOSCSVFormData(payload: POSCSVImportPayload | POSCSVPreviewPayload
   return form;
 }
 
-export async function previewPOSCSVImport(payload: POSCSVPreviewPayload): Promise<POSCSVPreviewResponse> {
+export async function previewPOSCSVImport(
+  payload: POSCSVPreviewPayload,
+): Promise<POSCSVPreviewResponse> {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.posCSVImport(),
     posCSVPreviewResponseSchema,
@@ -453,7 +539,9 @@ export async function previewPOSCSVImport(payload: POSCSVPreviewPayload): Promis
   );
 }
 
-export async function importPOSCSV(payload: POSCSVImportPayload): Promise<POSCSVImportResponse> {
+export async function importPOSCSV(
+  payload: POSCSVImportPayload,
+): Promise<POSCSVImportResponse> {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.posCSVImport(),
     posCSVImportResponseSchema,
