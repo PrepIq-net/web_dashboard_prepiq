@@ -258,6 +258,52 @@ export default function TodayWorkspacePage() {
   }, [todayQuery.isError, todayQuery.error, branchId, targetDate, initializeMutation.isPending, initializeMutation.mutate, initKey]);
 
   const branchDay = initializeMutation.data ?? todayQuery.data;
+  const networkLearnings = useMemo(() => {
+    const network = branchDay?.kitchen_intelligence_network;
+    if (!network) return [];
+    const learnings: Array<{ label: string; detail: string; confidence?: number }> = [];
+    const activeLocations = network.network_aggregation.active_locations ?? 0;
+    const positivePattern = (network.network_aggregation.detected_patterns ?? [])
+      .filter((pattern) => pattern.is_validated && pattern.effect_pct > 0)
+      .sort((a, b) => b.effect_pct - a.effect_pct)[0];
+    if (positivePattern) {
+      learnings.push({
+        label: `${positivePattern.item_name} demand trending ${positivePattern.effect_pct >= 0 ? "+" : ""}${positivePattern.effect_pct.toFixed(1)}%`,
+        detail: `Observed across ${activeLocations} location${activeLocations === 1 ? "" : "s"}.`,
+        confidence: positivePattern.confidence,
+      });
+    }
+    const rainPattern = (network.network_aggregation.detected_patterns ?? [])
+      .filter((pattern) => pattern.is_validated && pattern.trigger_factor === "rain" && pattern.effect_pct > 0)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    if (rainPattern) {
+      const supported =
+        network.knowledge_transfer.find(
+          (row) => row.item_id === rainPattern.item_id && row.trigger_factor === "rain",
+        )?.supporting_kitchens_count ?? 0;
+      learnings.push({
+        label: `Rain increases ${rainPattern.item_name.toLowerCase()} demand`,
+        detail: `Validated in ${supported || 1} similar branch${supported === 1 ? "" : "es"}.`,
+        confidence: rainPattern.confidence,
+      });
+    }
+    const wastePattern = (network.network_aggregation.cross_location_patterns ?? [])[0];
+    if (wastePattern) {
+      learnings.push({
+        label: `${wastePattern.item_name} waste variance detected`,
+        detail: `Visible across at least 2 locations (spread ${wastePattern.spread_pct.toFixed(1)}%).`,
+        confidence: wastePattern.confidence,
+      });
+    }
+    return learnings.slice(0, 3);
+  }, [branchDay?.kitchen_intelligence_network]);
+  const networkSuggestedAction = useMemo(() => {
+    const transfer = branchDay?.kitchen_intelligence_network?.knowledge_transfer?.[0];
+    if (transfer?.suggested_action) return transfer.suggested_action;
+    const wastePattern = branchDay?.kitchen_intelligence_network?.network_aggregation?.cross_location_patterns?.[0];
+    if (!wastePattern) return "No high-confidence network action right now.";
+    return `Reduce ${wastePattern.item_name} prep exposure for the next run and monitor sell-through before close.`;
+  }, [branchDay?.kitchen_intelligence_network]);
 
   useEffect(() => {
     if (!branchDay) return;
@@ -911,6 +957,37 @@ export default function TodayWorkspacePage() {
                   )}
                 </article>
               </div>
+              <article className="mt-4 rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Network Learnings
+                </p>
+                <h4 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                  Actionable Network Intelligence
+                </h4>
+                {networkLearnings.length ? (
+                  <div className="mt-3 space-y-2">
+                    {networkLearnings.map((learning) => (
+                      <div key={`${learning.label}-${learning.detail}`} className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
+                        <p className="text-sm font-semibold text-text-primary">{learning.label}</p>
+                        <p className="mt-1 text-xs text-text-secondary">
+                          {learning.detail}
+                          {typeof learning.confidence === "number"
+                            ? ` Confidence ${percent(learning.confidence)}.`
+                            : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-text-secondary">
+                    Network insights will appear as soon as validated cross-location patterns are available.
+                  </p>
+                )}
+                <div className="mt-4 rounded-lg border border-status-warning/35 bg-status-warning/10 px-3 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">Suggested Action</p>
+                  <p className="mt-1 text-sm text-text-primary">{networkSuggestedAction}</p>
+                </div>
+              </article>
             </div>
           </section>
 
