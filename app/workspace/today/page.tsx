@@ -813,6 +813,16 @@ export default function TodayWorkspacePage() {
                         </span>
                         {" network"}
                       </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Validated patterns:{" "}
+                        <span className="font-semibold text-status-success">
+                          {branchDay.kitchen_intelligence_network.network_aggregation.validated_pattern_count ?? 0}
+                        </span>
+                        {" · "}quality threshold{" "}
+                        <span className="font-semibold text-text-primary">
+                          {percent(branchDay.kitchen_intelligence_network.network_aggregation.pattern_quality_threshold ?? 0.62)}
+                        </span>
+                      </p>
                       <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">
                         <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
                           Top Cross-Location Pattern
@@ -838,12 +848,19 @@ export default function TodayWorkspacePage() {
                           Knowledge Transfer
                         </p>
                         {branchDay.kitchen_intelligence_network.knowledge_transfer.length ? (
-                          <p className="mt-1 text-xs text-text-secondary">
-                            {branchDay.kitchen_intelligence_network.knowledge_transfer[0].suggested_action} Potential waste reduction:{" "}
-                            <span className="font-semibold text-status-success">
-                              {branchDay.kitchen_intelligence_network.knowledge_transfer[0].expected_waste_reduction_pct.toFixed(1)}%
-                            </span>
-                          </p>
+                          <>
+                            <p className="mt-1 text-xs text-text-secondary">
+                              {branchDay.kitchen_intelligence_network.knowledge_transfer[0].suggested_action} Potential waste reduction:{" "}
+                              <span className="font-semibold text-status-success">
+                                {branchDay.kitchen_intelligence_network.knowledge_transfer[0].expected_waste_reduction_pct.toFixed(1)}%
+                              </span>
+                            </p>
+                            {typeof branchDay.kitchen_intelligence_network.knowledge_transfer[0].pattern_quality_score === "number" ? (
+                              <p className="mt-1 text-[11px] text-text-muted">
+                                Pattern quality: {percent(branchDay.kitchen_intelligence_network.knowledge_transfer[0].pattern_quality_score ?? 0)}
+                              </p>
+                            ) : null}
+                          </>
                         ) : (
                           <p className="mt-1 text-xs text-text-secondary">
                             No validated transfer action yet for this branch.

@@ -185,6 +185,25 @@ export const branchDayTodaySchema = z.object({
         rows: z.number(),
         sell_through_pct: z.number(),
         waste_ratio_pct: z.number(),
+        pattern_quality_threshold: z.number().optional(),
+        validated_pattern_count: z.number().optional(),
+        detected_patterns: z
+          .array(
+            z.object({
+              item_id: z.string().uuid(),
+              item_name: z.string(),
+              trigger_factor: z.string(),
+              effect_pct: z.number(),
+              local_effect_pct: z.number().nullable().optional(),
+              confidence: z.number(),
+              sample_size: z.number(),
+              importance_score: z.number(),
+              correlation: z.number(),
+              quality_score: z.number(),
+              is_validated: z.boolean(),
+            }),
+          )
+          .optional(),
         cross_location_patterns: z.array(
           z.object({
             item_id: z.string().uuid(),
@@ -216,6 +235,8 @@ export const branchDayTodaySchema = z.object({
           from_location: z.string(),
           suggested_action: z.string(),
           expected_waste_reduction_pct: z.number(),
+          trigger_factor: z.string().optional(),
+          pattern_quality_score: z.number().optional(),
         }),
       ),
       event_rows_preview: z.array(
