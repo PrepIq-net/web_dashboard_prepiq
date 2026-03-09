@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Shop, Calendar } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
 import {
@@ -1029,20 +1030,11 @@ export default function TodayWorkspacePage() {
             }
           />
 
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Date
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
-              <input
-                type="date"
-                value={targetDate}
-                onChange={(event) => setTargetDate(event.target.value)}
-                className="h-12 w-full rounded-button border border-border-default bg-surface-3 pl-10 pr-3 text-sm text-text-primary transition-all duration-200 hover:bg-surface-4 focus:outline-none focus:ring-1 focus:border-brand-gold focus:ring-brand-gold/20"
-              />
-            </div>
-          </div>
+          <OperationalCalendar
+            label="Date"
+            value={targetDate}
+            onChange={setTargetDate}
+          />
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
