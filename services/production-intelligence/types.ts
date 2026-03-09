@@ -246,6 +246,24 @@ export const branchDayTodaySchema = z.object({
           }),
         ),
       }),
+      network_knowledge_graph: z
+        .object({
+          nodes: z.object({
+            total: z.number(),
+            kitchens: z.number(),
+            menu_items: z.number(),
+            patterns: z.number(),
+            environment_factors: z.number(),
+          }),
+          edges: z.object({
+            total: z.number(),
+            sells: z.number(),
+            affects: z.number(),
+            triggered_by: z.number(),
+            validated_in: z.number(),
+          }),
+        })
+        .optional(),
       knowledge_transfer: z.array(
         z.object({
           item_id: z.string().uuid(),

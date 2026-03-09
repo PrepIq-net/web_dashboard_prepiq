@@ -842,6 +842,18 @@ export default function TodayWorkspacePage() {
                           ({percent(branchDay.kitchen_intelligence_network.network_aggregation.kitchen_similarity[0].similarity_score)})
                         </p>
                       ) : null}
+                      {branchDay.kitchen_intelligence_network.network_knowledge_graph ? (
+                        <p className="mt-1 text-xs text-text-secondary">
+                          Knowledge graph:{" "}
+                          <span className="font-semibold text-text-primary">
+                            {branchDay.kitchen_intelligence_network.network_knowledge_graph.nodes.total} nodes
+                          </span>
+                          {" · "}
+                          <span className="font-semibold text-text-primary">
+                            {branchDay.kitchen_intelligence_network.network_knowledge_graph.edges.total} edges
+                          </span>
+                        </p>
+                      ) : null}
                       <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">
                         <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
                           Top Cross-Location Pattern
