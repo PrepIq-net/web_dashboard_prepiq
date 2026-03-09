@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Shop, Calendar } from "iconoir-react";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
@@ -127,6 +128,38 @@ export default function WorkspaceOverviewPage() {
       confidence: row.confidence,
     }));
   }, [organizationNetworkQuery.data?.top_network_insights]);
+  const locationRows = useMemo(() => {
+    return (organizationNetworkQuery.data?.location_performance ?? executiveQuery.data?.branch_grid ?? []).map((row) => {
+      const rowRecord = row as Record<string, unknown>;
+      const branchIdValue = String(rowRecord.branch_id ?? "");
+      const branchNameValue = String(rowRecord.branch_name ?? "Branch");
+      const marginRow = (marginQuery.data?.branches ?? []).find((item) => item.branch_id === branchIdValue);
+      const revenueValue =
+        typeof rowRecord.revenue === "number"
+          ? rowRecord.revenue
+          : typeof rowRecord.net_impact === "number"
+            ? rowRecord.net_impact
+            : 0;
+      const wasteText =
+        typeof rowRecord.waste_pct === "number"
+          ? `${rowRecord.waste_pct.toFixed(1)}%`
+          : formatCurrency(typeof rowRecord.waste_cost === "number" ? rowRecord.waste_cost : 0);
+      const forecastText =
+        typeof rowRecord.forecast_accuracy === "number"
+          ? `${rowRecord.forecast_accuracy.toFixed(1)}%`
+          : typeof marginRow?.forecast_accuracy_summary === "number"
+            ? `${marginRow.forecast_accuracy_summary.toFixed(1)}%`
+            : "N/A";
+      return {
+        branchId: branchIdValue,
+        branchName: branchNameValue,
+        revenueValue,
+        wasteText,
+        forecastText,
+        marginSignal: marginRow?.margin_signal_status ?? "N/A",
+      };
+    });
+  }, [organizationNetworkQuery.data?.location_performance, executiveQuery.data?.branch_grid, marginQuery.data?.branches]);
 
   if (shouldHold) {
     return (
@@ -251,8 +284,41 @@ export default function WorkspaceOverviewPage() {
       <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Location Performance</p>
         <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">Shared Patterns and Waste Comparison</h3>
+        <p className="mt-1 text-sm text-text-secondary">
+          Open any branch for a read-only Today snapshot with phase, plan, forecast, and money exposure.
+        </p>
+        <div className="mt-4 space-y-3 lg:hidden">
+          {locationRows.map((row) => (
+            <article key={`mobile-${row.branchId}`} className="rounded-xl border border-surface-4 bg-surface-3/30 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">{row.branchName}</p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    Forecast {row.forecastText} · Margin signal {row.marginSignal}
+                  </p>
+                </div>
+                <Link
+                  href={`/workspace/overview/branch/${row.branchId}?date=${targetDate}`}
+                  className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
+                >
+                  Open
+                </Link>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
+                  <p className="text-text-muted">Revenue</p>
+                  <p className="mt-1 font-semibold text-text-primary">{formatCurrency(row.revenueValue)}</p>
+                </div>
+                <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
+                  <p className="text-text-muted">Waste</p>
+                  <p className="mt-1 font-semibold text-status-warning">{row.wasteText}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
         <div className="mt-4 overflow-x-auto border-y border-surface-4/60">
-          <table className="w-full min-w-[860px]">
+          <table className="hidden w-full min-w-[860px] lg:table">
             <thead className="border-b border-surface-4/70">
               <tr>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Location</th>
@@ -260,41 +326,32 @@ export default function WorkspaceOverviewPage() {
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste %</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Forecast Accuracy</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Margin Signal</th>
+                <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Branch View</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-4/55">
-              {(organizationNetworkQuery.data?.location_performance ?? executiveQuery.data?.branch_grid ?? []).map((row) => {
-                const marginRow = (marginQuery.data?.branches ?? []).find((item) => item.branch_id === row.branch_id);
-                const rowRecord = row as Record<string, unknown>;
-                const revenueValue =
-                  typeof rowRecord.revenue === "number"
-                    ? rowRecord.revenue
-                    : typeof rowRecord.net_impact === "number"
-                      ? rowRecord.net_impact
-                      : 0;
-                const wasteText =
-                  typeof rowRecord.waste_pct === "number"
-                    ? `${rowRecord.waste_pct.toFixed(1)}%`
-                    : formatCurrency(typeof rowRecord.waste_cost === "number" ? rowRecord.waste_cost : 0);
-                const forecastValue =
-                  typeof rowRecord.forecast_accuracy === "number" ? rowRecord.forecast_accuracy : null;
+              {locationRows.map((row) => {
                 return (
-                  <tr key={row.branch_id}>
-                    <td className="px-3 py-3 text-sm font-medium text-text-primary">{row.branch_name}</td>
+                  <tr key={row.branchId}>
+                    <td className="px-3 py-3 text-sm font-medium text-text-primary">{row.branchName}</td>
                     <td className="px-3 py-3 text-sm text-text-secondary">
-                      {formatCurrency(revenueValue)}
+                      {formatCurrency(row.revenueValue)}
                     </td>
                     <td className="px-3 py-3 text-sm text-status-warning">
-                      {wasteText}
+                      {row.wasteText}
                     </td>
                     <td className="px-3 py-3 text-sm text-text-secondary">
-                      {typeof forecastValue === "number"
-                        ? `${forecastValue.toFixed(1)}%`
-                        : typeof marginRow?.forecast_accuracy_summary === "number"
-                          ? `${marginRow.forecast_accuracy_summary.toFixed(1)}%`
-                        : "N/A"}
+                      {row.forecastText}
                     </td>
-                    <td className="px-3 py-3 text-sm text-text-secondary">{marginRow?.margin_signal_status ?? "N/A"}</td>
+                    <td className="px-3 py-3 text-sm text-text-secondary">{row.marginSignal}</td>
+                    <td className="px-3 py-3 text-right">
+                      <Link
+                        href={`/workspace/overview/branch/${row.branchId}?date=${targetDate}`}
+                        className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
+                      >
+                        Open
+                      </Link>
+                    </td>
                   </tr>
                 );
               })}
