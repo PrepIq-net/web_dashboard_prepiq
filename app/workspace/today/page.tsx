@@ -823,6 +823,25 @@ export default function TodayWorkspacePage() {
                           {percent(branchDay.kitchen_intelligence_network.network_aggregation.pattern_quality_threshold ?? 0.62)}
                         </span>
                       </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Similarity threshold{" "}
+                        <span className="font-semibold text-text-primary">
+                          {percent(branchDay.kitchen_intelligence_network.network_aggregation.similarity_threshold ?? 0.65)}
+                        </span>
+                        {" · "}transfer confidence{" "}
+                        <span className="font-semibold text-text-primary">
+                          {percent(branchDay.kitchen_intelligence_network.network_aggregation.transfer_confidence_threshold ?? 0.72)}
+                        </span>
+                      </p>
+                      {branchDay.kitchen_intelligence_network.network_aggregation.kitchen_similarity?.length ? (
+                        <p className="mt-1 text-xs text-text-secondary">
+                          Most similar:{" "}
+                          <span className="font-semibold text-text-primary">
+                            {branchDay.kitchen_intelligence_network.network_aggregation.kitchen_similarity[0].location_name}
+                          </span>{" "}
+                          ({percent(branchDay.kitchen_intelligence_network.network_aggregation.kitchen_similarity[0].similarity_score)})
+                        </p>
+                      ) : null}
                       <div className="mt-4 rounded-lg border border-surface-4 bg-surface-2/60 px-3 py-3">
                         <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
                           Top Cross-Location Pattern
@@ -858,6 +877,11 @@ export default function TodayWorkspacePage() {
                             {typeof branchDay.kitchen_intelligence_network.knowledge_transfer[0].pattern_quality_score === "number" ? (
                               <p className="mt-1 text-[11px] text-text-muted">
                                 Pattern quality: {percent(branchDay.kitchen_intelligence_network.knowledge_transfer[0].pattern_quality_score ?? 0)}
+                              </p>
+                            ) : null}
+                            {typeof branchDay.kitchen_intelligence_network.knowledge_transfer[0].supporting_kitchens_count === "number" ? (
+                              <p className="mt-1 text-[11px] text-text-muted">
+                                Supported by {branchDay.kitchen_intelligence_network.knowledge_transfer[0].supporting_kitchens_count} similar kitchen(s)
                               </p>
                             ) : null}
                           </>

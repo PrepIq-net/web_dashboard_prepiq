@@ -187,6 +187,24 @@ export const branchDayTodaySchema = z.object({
         waste_ratio_pct: z.number(),
         pattern_quality_threshold: z.number().optional(),
         validated_pattern_count: z.number().optional(),
+        similarity_threshold: z.number().optional(),
+        transfer_confidence_threshold: z.number().optional(),
+        kitchen_similarity: z
+          .array(
+            z.object({
+              location_id: z.string().uuid(),
+              location_name: z.string(),
+              similarity_score: z.number(),
+              location_type: z.string(),
+              components: z.object({
+                menu_similarity: z.number(),
+                climate_similarity: z.number(),
+                location_type_similarity: z.number(),
+                customer_volume_similarity: z.number(),
+              }),
+            }),
+          )
+          .optional(),
         detected_patterns: z
           .array(
             z.object({
@@ -237,6 +255,20 @@ export const branchDayTodaySchema = z.object({
           expected_waste_reduction_pct: z.number(),
           trigger_factor: z.string().optional(),
           pattern_quality_score: z.number().optional(),
+          network_confidence: z.number().optional(),
+          supporting_kitchens_count: z.number().optional(),
+          supporting_kitchens: z
+            .array(
+              z.object({
+                location_id: z.string().uuid(),
+                location_name: z.string(),
+                similarity_score: z.number(),
+                effect_pct: z.number(),
+                confidence: z.number(),
+                sample_size: z.number(),
+              }),
+            )
+            .optional(),
         }),
       ),
       event_rows_preview: z.array(
