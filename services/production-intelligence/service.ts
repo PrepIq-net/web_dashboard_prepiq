@@ -29,6 +29,8 @@ import {
   staffStockoutEventsResponseSchema,
   squareOAuthStartPayloadSchema,
   squareOAuthStartResponseSchema,
+  toastOAuthStartPayloadSchema,
+  toastOAuthStartResponseSchema,
   posCSVPreviewResponseSchema,
   posCSVImportResponseSchema,
   updateStaffShiftChecklistSchema,
@@ -48,6 +50,7 @@ import {
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
   type SquareOAuthStartPayload,
+  type ToastOAuthStartPayload,
   type POSCSVPreviewResponse,
   type POSCSVImportResponse,
   type UpdatePrepPlanItemPayload,
@@ -501,6 +504,19 @@ export async function startSquareOAuth(payload: SquareOAuthStartPayload) {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.squareOAuthStart(),
     squareOAuthStartResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function startToastOAuth(payload: ToastOAuthStartPayload) {
+  const body = toastOAuthStartPayloadSchema.parse(payload);
+
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.toastOAuthStart(),
+    toastOAuthStartResponseSchema,
     {
       method: "POST",
       body,

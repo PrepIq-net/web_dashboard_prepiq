@@ -30,6 +30,7 @@ import {
   getOperationsProductionSnapshot,
   retryIntegrationsSync,
   startSquareOAuth,
+  startToastOAuth,
   updateBranchDayStatus,
   updatePrepPlanItem,
   updateStaffShiftChecklist,
@@ -62,6 +63,7 @@ import type {
   CreateStaffStockoutEventPayload,
   PrepPlanEvaluatePayload,
   SquareOAuthStartPayload,
+  ToastOAuthStartPayload,
   SalesManualQuickEntryPayload,
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
@@ -338,7 +340,9 @@ export function useCreateProductionLog(options?: { skipInvalidate?: boolean }) {
   });
 }
 
-export function useSalesManualQuickEntry(options?: { skipInvalidate?: boolean }) {
+export function useSalesManualQuickEntry(options?: {
+  skipInvalidate?: boolean;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -558,6 +562,12 @@ export function useRetryIntegrationsSync() {
 export function useStartSquareOAuth() {
   return useMutation({
     mutationFn: (payload: SquareOAuthStartPayload) => startSquareOAuth(payload),
+  });
+}
+
+export function useStartToastOAuth() {
+  return useMutation({
+    mutationFn: (payload: ToastOAuthStartPayload) => startToastOAuth(payload),
   });
 }
 

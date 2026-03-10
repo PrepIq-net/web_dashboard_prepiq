@@ -1376,6 +1376,32 @@ export type SquareOAuthStartResponse = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Toast OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const toastOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  client_id: z.string(),
+  client_secret: z.string(),
+  restaurant_external_id: z.string().optional(),
+});
+export type ToastOAuthStartPayload = z.infer<
+  typeof toastOAuthStartPayloadSchema
+>;
+
+export const toastOAuthStartResponseSchema = z.object({
+  status: z.string(),
+  connection_id: z.string(),
+  branch_id: z.string(),
+  organization_id: z.string(),
+  restaurant_guid: z.string(),
+  restaurant_name: z.string(),
+  token_expires_in: z.number(),
+});
+export type ToastOAuthStartResponse = z.infer<
+  typeof toastOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CSV Import
 // ─────────────────────────────────────────────────────────────────────────────
 export const posCSVPreviewRowSchema = z
