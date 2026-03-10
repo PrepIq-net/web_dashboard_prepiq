@@ -1402,6 +1402,25 @@ export type ToastOAuthStartResponse = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Loyverse OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const loyverseOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  post_connect_redirect: z.string().url().optional(),
+});
+export type LoyverseOAuthStartPayload = z.infer<
+  typeof loyverseOAuthStartPayloadSchema
+>;
+
+export const loyverseOAuthStartResponseSchema = z.object({
+  authorize_url: z.string().url(),
+  state_expires_in_seconds: z.number(),
+});
+export type LoyverseOAuthStartResponse = z.infer<
+  typeof loyverseOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CSV Import
 // ─────────────────────────────────────────────────────────────────────────────
 export const posCSVPreviewRowSchema = z

@@ -108,4 +108,10 @@ export const productionIntelligenceEndpoints = {
   toastOAuthStart: () =>
     `${BASE}/production-intelligence/integrations/toast/oauth/start/`,
   toastPOSWebhook: () => `${BASE}/production-intelligence/webhooks/toast/`,
+  loyverseOAuthStart: () =>
+    `${BASE}/production-intelligence/integrations/loyverse/oauth/start/`,
+  loyverseOAuthCallback: () =>
+    `${BASE}/production-intelligence/integrations/loyverse/oauth/callback/`,
+  loyversePOSWebhook: () =>
+    `${BASE}/production-intelligence/webhooks/loyverse/`,
 } as const;
