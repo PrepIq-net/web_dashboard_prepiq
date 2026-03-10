@@ -122,6 +122,13 @@ export async function retryIntegrationsSync() {
 }
 
 type QueryValue = string | number | boolean | null | undefined;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeBranchId(branchId?: string) {
+  if (!branchId) return undefined;
+  return UUID_PATTERN.test(branchId) ? branchId : undefined;
+}
 
 function withQuery(
   endpoint: string,
@@ -188,8 +195,12 @@ export async function initializeBranchDay(payload: BranchDayInitializePayload) {
 }
 
 export async function getBranchDayToday(params?: BranchDayTodayQuery) {
+  const safeBranchId = normalizeBranchId(params?.branch_id);
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.branchDayToday(), params),
+    withQuery(productionIntelligenceEndpoints.branchDayToday(), {
+      ...params,
+      branch_id: safeBranchId,
+    }),
     branchDayTodaySchema,
     { method: "GET" },
   );
@@ -501,6 +512,10 @@ export type POSCSVImportPayload = {
   branch_id: string;
   file: File;
   auto_create_items?: boolean;
+  column_mapping?: Record<string, string>;
+  provider_code?: string;
+  use_saved_mapping_profile?: boolean;
+  save_mapping_profile?: boolean;
 };
 
 export type POSCSVPreviewPayload = POSCSVImportPayload & {
@@ -518,6 +533,24 @@ function buildPOSCSVFormData(
     "auto_create_items",
     payload.auto_create_items ? "true" : "false",
   );
+  if (payload.provider_code) {
+    form.append("provider_code", payload.provider_code);
+  }
+  if (typeof payload.use_saved_mapping_profile === "boolean") {
+    form.append(
+      "use_saved_mapping_profile",
+      payload.use_saved_mapping_profile ? "true" : "false",
+    );
+  }
+  if (typeof payload.save_mapping_profile === "boolean") {
+    form.append(
+      "save_mapping_profile",
+      payload.save_mapping_profile ? "true" : "false",
+    );
+  }
+  if (payload.column_mapping && Object.keys(payload.column_mapping).length) {
+    form.append("column_mapping", JSON.stringify(payload.column_mapping));
+  }
   if (dryRun) {
     form.append("dry_run", "true");
     const previewPayload = payload as POSCSVPreviewPayload;

@@ -323,13 +323,14 @@ export function useUpdatePrepPlanItem() {
   });
 }
 
-export function useCreateProductionLog() {
+export function useCreateProductionLog(options?: { skipInvalidate?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: CreateProductionLogPayload) =>
       createProductionLog(payload),
     onSuccess: () => {
+      if (options?.skipInvalidate) return;
       queryClient.invalidateQueries({
         queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
       });
@@ -337,13 +338,14 @@ export function useCreateProductionLog() {
   });
 }
 
-export function useSalesManualQuickEntry() {
+export function useSalesManualQuickEntry(options?: { skipInvalidate?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: SalesManualQuickEntryPayload) =>
       createSalesManualQuickEntry(payload),
     onSuccess: (_data, variables) => {
+      if (options?.skipInvalidate) return;
       queryClient.invalidateQueries({
         queryKey: productionIntelligenceQueryKeys.branchDayToday({
           branch_id: variables.branch_id,

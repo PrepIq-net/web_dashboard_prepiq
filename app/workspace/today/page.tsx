@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Shop, Calendar } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
+import { ModalShell } from "@/components/ui/modal-shell";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -23,7 +25,11 @@ import {
   useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
+  productionIntelligenceQueryKeys,
 } from "@/services/production-intelligence/hooks";
+import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
+import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
+import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -46,6 +52,8 @@ type ImpactPreview = {
 };
 
 const EMPTY_LIST: never[] = [];
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function toPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
@@ -250,15 +258,49 @@ export default function TodayWorkspacePage() {
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
   const [ignoredLiveAlertIds, setIgnoredLiveAlertIds] = useState<string[]>([]);
   const [quietMode, setQuietMode] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvUploadFile, setCsvUploadFile] = useState<File | null>(null);
+  const [csvUploadHeaders, setCsvUploadHeaders] = useState<string[]>([]);
+  const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
+  const [csvUploadStatus, setCsvUploadStatus] = useState<string | null>(null);
+  const [showCsvImportBanner, setShowCsvImportBanner] = useState(false);
+
+  const csvUploadSession = useCSVUploadSessionStore();
+  const queryClient = useQueryClient();
 
   const evaluateDebounce = useRef<Record<string, number>>({});
   const initializeAttemptedByKey = useRef<Record<string, boolean>>({});
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const paramBranchId = searchParams.get("branch_id");
+    if (paramBranchId && UUID_PATTERN.test(paramBranchId)) {
+      setBranchId(paramBranchId);
+    }
+    const paramDate = searchParams.get("date");
+    if (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) {
+      setTargetDate(paramDate);
+    }
+    setShowCsvImportBanner(searchParams.get("csv_import") === "1");
+  }, [searchParams]);
 
   useEffect(() => {
     if (!branchId && defaultBranch?.id) {
       setBranchId(defaultBranch.id);
     }
   }, [branchId, defaultBranch?.id]);
+  useEffect(() => {
+    if (!branchId || UUID_PATTERN.test(branchId)) return;
+    const normalizedName = branchId.split(" day ")[0].trim();
+    const matched = branchOptions.find(
+      (branch) => branch.name.toLowerCase() === normalizedName.toLowerCase(),
+    );
+    if (matched?.id) {
+      setBranchId(matched.id);
+    } else {
+      setBranchId(defaultBranch?.id ?? "");
+    }
+  }, [branchId, branchOptions, defaultBranch?.id]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -267,26 +309,38 @@ export default function TodayWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canAccess]);
 
+  const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
   const todayQuery = useBranchDayToday(
-    { branch_id: branchId, date: targetDate },
-    Boolean(branchId),
+    { branch_id: safeBranchId, date: targetDate },
+    Boolean(safeBranchId),
   );
   const initializeMutation = useInitializeBranchDay();
   const evaluateMutation = useEvaluatePrepPlan();
   const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
-  const createProductionLogMutation = useCreateProductionLog();
-  const salesQuickEntryMutation = useSalesManualQuickEntry();
+  const createProductionLogMutation = useCreateProductionLog({
+    skipInvalidate: true,
+  });
+  const salesQuickEntryMutation = useSalesManualQuickEntry({
+    skipInvalidate: true,
+  });
   const ignoreLiveAlertMutation = useIgnoreBranchDayLiveAlert();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
 
-  const initKey = branchId && targetDate ? `${branchId}:${targetDate}` : "";
+  useEffect(() => {
+    if (showCsvImportBanner) {
+      todayQuery.refetch();
+    }
+  }, [showCsvImportBanner, todayQuery]);
+
+  const initKey =
+    safeBranchId && targetDate ? `${safeBranchId}:${targetDate}` : "";
   useEffect(() => {
     if (!todayQuery.isError) return;
     const err = todayQuery.error as { status?: number } | null;
     if (
       err?.status !== 404 ||
-      !branchId ||
+      !safeBranchId ||
       !initKey ||
       initializeMutation.isPending
     )
@@ -295,12 +349,12 @@ export default function TodayWorkspacePage() {
 
     initializeAttemptedByKey.current[initKey] = true;
     if (err?.status === 404) {
-      initializeMutation.mutate({ branch_id: branchId, date: targetDate });
+      initializeMutation.mutate({ branch_id: safeBranchId, date: targetDate });
     }
   }, [
     todayQuery.isError,
     todayQuery.error,
-    branchId,
+    safeBranchId,
     targetDate,
     initializeMutation.isPending,
     initializeMutation.mutate,
@@ -388,6 +442,7 @@ export default function TodayWorkspacePage() {
   const isLive = branchDay?.status === "LIVE";
   const isClosed = branchDay?.status === "CLOSED";
   const isPlanLocked = Boolean(branchDay?.plan_lock?.is_locked);
+
 
   const rows = useMemo(() => {
     if (!branchDay) return [];
@@ -636,18 +691,106 @@ export default function TodayWorkspacePage() {
     });
   };
 
+  const applyOptimisticLiveMonitor = (
+    prepPlanItemId: string,
+    adjust: (live: {
+      planned: number;
+      additional: number;
+      sold: number;
+    }) => { additional?: number; sold?: number },
+  ) => {
+    if (!safeBranchId) return null;
+    const queryKey = productionIntelligenceQueryKeys.branchDayToday({
+      branch_id: safeBranchId,
+      date: targetDate,
+    });
+    const current = queryClient.getQueryData<typeof branchDay>(queryKey);
+    if (!current) return null;
+
+    const nextItems = current.prep_plan_items.map((row) => {
+      if (row.id !== prepPlanItemId) return row;
+      const live = row.live_monitor ?? null;
+      const planned =
+        live?.planned_qty ??
+        row.planned_quantity ??
+        row.suggested_quantity ??
+        0;
+      const additional =
+        live?.additional_qty ?? Math.max(row.final_quantity - planned, 0);
+      const sold = live?.sold_today ?? 0;
+      const delta = adjust({ planned, additional, sold });
+      const nextAdditional =
+        typeof delta.additional === "number"
+          ? Math.max(0, delta.additional)
+          : additional;
+      const nextSold =
+        typeof delta.sold === "number" ? Math.max(0, delta.sold) : sold;
+      const totalPrepared = planned + nextAdditional;
+      const remaining = Math.max(0, totalPrepared - nextSold);
+
+      const nextLive = {
+        ...(live ?? {}),
+        planned_qty: planned,
+        additional_qty: nextAdditional,
+        total_prepared_qty: totalPrepared,
+        sold_today: nextSold,
+        remaining_qty: remaining,
+        risk_engine: live?.risk_engine
+          ? {
+              ...live.risk_engine,
+              remaining_stock: remaining,
+            }
+          : live?.risk_engine,
+      };
+
+      return { ...row, live_monitor: nextLive };
+    });
+
+    queryClient.setQueryData(queryKey, {
+      ...current,
+      prep_plan_items: nextItems,
+    });
+    return { queryKey, previous: current };
+  };
+
   const logProduction = (
     prepPlanItemId: string,
     quantityProduced: number,
     reason?: string,
   ) => {
-    createProductionLogMutation.mutate({
-      prep_plan_item_id: prepPlanItemId,
-      quantity_produced: quantityProduced,
-      waste_quantity: 0,
-      event_type: "additional",
-      reason: reason ?? "Chef decision",
-    });
+    const snapshot = applyOptimisticLiveMonitor(prepPlanItemId, (live) => ({
+      additional: live.additional + quantityProduced,
+    }));
+    createProductionLogMutation.mutate(
+      {
+        prep_plan_item_id: prepPlanItemId,
+        quantity_produced: quantityProduced,
+        waste_quantity: 0,
+        event_type: "additional",
+        reason: reason ?? "Chef decision",
+      },
+      {
+        onSuccess: (data) => {
+          if (!data?.live_monitor || !snapshot) return;
+          queryClient.setQueryData(snapshot.queryKey, (existing: typeof branchDay | undefined) => {
+            if (!existing) return existing;
+            return {
+              ...existing,
+              prep_plan_items: existing.prep_plan_items.map((row) =>
+                row.id === prepPlanItemId
+                  ? { ...row, live_monitor: data.live_monitor }
+                  : row,
+              ),
+            };
+          });
+        },
+        onError: () => {
+          if (snapshot) {
+            queryClient.setQueryData(snapshot.queryKey, snapshot.previous);
+          }
+        },
+      },
+    );
   };
 
   const logWaste = (prepPlanItemId: string, wasteQuantity: number) => {
@@ -664,6 +807,7 @@ export default function TodayWorkspacePage() {
   };
 
   const quickTapSale = (
+    prepPlanItemId: string,
     item: { product_id: string; unit: string },
     quantitySold: number,
   ) => {
@@ -671,18 +815,45 @@ export default function TodayWorkspacePage() {
     const normalizedQty = isDiscreteUnit(item.unit)
       ? Math.round(quantitySold)
       : quantitySold;
-    salesQuickEntryMutation.mutate({
-      branch_id: branchId,
-      target_date: targetDate,
-      items: [
-        {
-          item_id: item.product_id,
-          quantity_sold: normalizedQty,
-          unit: item.unit,
-          notes: "Live quick tap sale",
+    const snapshot = applyOptimisticLiveMonitor(prepPlanItemId, (live) => ({
+      sold: live.sold + normalizedQty,
+    }));
+    salesQuickEntryMutation.mutate(
+      {
+        branch_id: branchId,
+        target_date: targetDate,
+        items: [
+          {
+            item_id: item.product_id,
+            quantity_sold: normalizedQty,
+            unit: item.unit,
+            notes: "Live quick tap sale",
+          },
+        ],
+      },
+      {
+        onSuccess: (data) => {
+          const liveMap = data?.live_monitor_by_item ?? {};
+          if (!snapshot || !Object.keys(liveMap).length) return;
+          queryClient.setQueryData(snapshot.queryKey, (existing: typeof branchDay | undefined) => {
+            if (!existing) return existing;
+            return {
+              ...existing,
+              prep_plan_items: existing.prep_plan_items.map((row) =>
+                liveMap[row.id]
+                  ? { ...row, live_monitor: liveMap[row.id] }
+                  : row,
+              ),
+            };
+          });
         },
-      ],
-    });
+        onError: () => {
+          if (snapshot) {
+            queryClient.setQueryData(snapshot.queryKey, snapshot.previous);
+          }
+        },
+      },
+    );
   };
 
   const handlePrepareMoreAlert = (alert: {
@@ -705,14 +876,97 @@ export default function TodayWorkspacePage() {
       type: "STOCKOUT_RISK",
     });
   };
+  const resetCsvUploadState = () => {
+    setCsvUploadFile(null);
+    setCsvUploadHeaders([]);
+    setCsvUploadError(null);
+    setCsvUploadStatus(null);
+  };
+
+  const handleCsvFileSelect = async (file: File | null) => {
+    resetCsvUploadState();
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setCsvUploadError("Please upload a .csv file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCsvUploadError("CSV must be 5MB or smaller.");
+      return;
+    }
+    try {
+      const parsed = await parseCSVFile(file);
+      if (!parsed.headers.length) {
+        setCsvUploadError("CSV file is missing a header row.");
+        return;
+      }
+      setCsvUploadFile(file);
+      setCsvUploadHeaders(parsed.headers);
+      setCsvUploadStatus(`Detected ${parsed.headers.length} columns.`);
+    } catch {
+      setCsvUploadError("Unable to read this CSV file.");
+    }
+  };
+
+  const handleCsvDownload = async () => {
+    setCsvUploadStatus(null);
+    setCsvUploadError(null);
+    try {
+      const response = await fetch(
+        productionIntelligenceEndpoints.posCSVTemplate(),
+      );
+      if (!response.ok) {
+        setCsvUploadError("Unable to download template. Please try again.");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "prepIQ_pos_sales_import_template.csv";
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      setCsvUploadStatus("Template downloaded.");
+    } catch {
+      setCsvUploadError("Unable to download template. Please try again.");
+    }
+  };
+
+  const proceedToCsvMapping = () => {
+    if (!csvUploadFile || !branchId) {
+      setCsvUploadError("Select a CSV file before continuing.");
+      return;
+    }
+    const returnPath = `/workspace/today?branch_id=${branchId}&date=${targetDate}&csv_import=1`;
+    csvUploadSession.setSession({
+      file: csvUploadFile,
+      branchId,
+      returnPath,
+      targetDate,
+    });
+    setCsvModalOpen(false);
+    router.push("/setup/sales/csv/map");
+  };
 
   useEffect(() => {
     if (!isLive || !branchDay?.id) return;
+    if (
+      createProductionLogMutation.isPending ||
+      salesQuickEntryMutation.isPending
+    ) {
+      return;
+    }
     const interval = window.setInterval(() => {
       todayQuery.refetch();
     }, 20000);
     return () => window.clearInterval(interval);
-  }, [isLive, branchDay?.id, todayQuery]);
+  }, [
+    isLive,
+    branchDay?.id,
+    todayQuery,
+    createProductionLogMutation.isPending,
+    salesQuickEntryMutation.isPending,
+  ]);
 
   const loading =
     isLoading ||
@@ -1959,6 +2213,13 @@ export default function TodayWorkspacePage() {
               </button>
               <button
                 type="button"
+                onClick={() => setCsvModalOpen(true)}
+                className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary hover:border-brand-gold hover:text-brand-gold"
+              >
+                CSV Import
+              </button>
+              <button
+                type="button"
                 onClick={() => setConfirmAction("CLOSE_DAY")}
                 disabled={updateBranchDayStatusMutation.isPending}
                 className="inline-flex h-11 items-center justify-center rounded-full border border-status-critical/45 px-6 text-sm font-semibold text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-critical/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1969,6 +2230,125 @@ export default function TodayWorkspacePage() {
               </button>
             </div>
           </div>
+          {showCsvImportBanner ? (
+            <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success">
+                  CSV Import Complete
+                </p>
+                <p className="mt-1 text-sm text-text-primary">
+                  Sales data is updated from your CSV. Live totals now include
+                  the imported rows.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvImportBanner(false);
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.delete("csv_import");
+                  const next = params.toString();
+                  router.replace(
+                    next ? `/workspace/today?${next}` : "/workspace/today",
+                  );
+                }}
+                className="text-xs font-semibold text-status-success hover:text-status-success/80"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
+          <ModalShell
+            open={csvModalOpen}
+            onClose={() => {
+              setCsvModalOpen(false);
+              resetCsvUploadState();
+            }}
+            title="CSV Sales Import"
+            description="Upload a POS export when live sales are offline. We will validate the file, then let you map columns before importing."
+            maxWidthClassName="max-w-xl"
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCsvModalOpen(false);
+                    resetCsvUploadState();
+                  }}
+                  className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={proceedToCsvMapping}
+                  disabled={!csvUploadFile}
+                  className="inline-flex h-10 items-center rounded-full border border-brand-gold/45 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Continue to Mapping
+                </button>
+              </>
+            }
+          >
+            <div className="space-y-4">
+              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Template
+                </p>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Download a clean template if you need it.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCsvDownload}
+                  className="mt-3 inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold text-text-primary hover:bg-surface-3"
+                >
+                  Download CSV Template
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Upload
+                </p>
+                <p className="mt-2 text-sm text-text-secondary">
+                  If you upload the same file twice, PrepIQ will not
+                  double-count sales.
+                </p>
+                <label className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-full border border-surface-4 bg-surface-2 px-4 py-2 text-sm text-text-secondary hover:border-brand-gold">
+                  <span>
+                    {csvUploadFile ? csvUploadFile.name : "Choose CSV file"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(event) =>
+                      handleCsvFileSelect(event.target.files?.[0] ?? null)
+                    }
+                    className="hidden"
+                  />
+                  <span className="text-xs font-semibold text-brand-gold">
+                    Browse
+                  </span>
+                </label>
+                {csvUploadStatus ? (
+                  <p className="mt-2 text-xs text-text-secondary">
+                    {csvUploadStatus}
+                  </p>
+                ) : null}
+                {csvUploadHeaders.length ? (
+                  <p className="mt-2 text-xs text-text-muted">
+                    Columns detected: {csvUploadHeaders.join(", ")}
+                  </p>
+                ) : null}
+                {csvUploadError ? (
+                  <p className="mt-2 text-xs text-status-critical">
+                    {csvUploadError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </ModalShell>
 
           {liveSmartAlerts.length ? (
             <div className="mb-4 space-y-2">
@@ -2264,14 +2644,14 @@ export default function TodayWorkspacePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => quickTapSale(item, 1)}
+                    onClick={() => quickTapSale(item.id, item, 1)}
                     className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
                   >
                     +1 Sold
                   </button>
                   <button
                     type="button"
-                    onClick={() => quickTapSale(item, 5)}
+                    onClick={() => quickTapSale(item.id, item, 5)}
                     className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
                   >
                     +5 Sold

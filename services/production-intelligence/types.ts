@@ -117,6 +117,8 @@ export const prepPlanItemSchema = z.object({
 });
 export type PrepPlanItem = z.infer<typeof prepPlanItemSchema>;
 
+export const liveMonitorSchema = prepPlanItemSchema.shape.live_monitor;
+
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
@@ -770,6 +772,7 @@ export const salesManualQuickEntryResponseSchema = z.object({
   errors: z.array(z.string()),
   target_date: z.string(),
   branch_id: z.string().uuid(),
+  live_monitor_by_item: z.record(liveMonitorSchema).optional(),
 });
 export type SalesManualQuickEntryResponse = z.infer<
   typeof salesManualQuickEntryResponseSchema
@@ -782,6 +785,7 @@ export const productionLogSchema = z.object({
   waste_quantity: z.number(),
   created_by: z.union([z.string().uuid(), z.null()]),
   created_at: z.string(),
+  live_monitor: liveMonitorSchema.optional(),
 });
 export type ProductionLog = z.infer<typeof productionLogSchema>;
 
@@ -1422,6 +1426,9 @@ export const posCSVPreviewResponseSchema = z
     detected_items: z.array(posCSVDetectedItemSchema),
     preview_rows: z.array(posCSVPreviewRowSchema),
     preview_limit: z.number(),
+    column_mapping: z.record(z.string(), z.string()).optional(),
+    mapping_source: z.string().optional(),
+    mapping_profile_applied: z.boolean().optional(),
   })
   .passthrough();
 export type POSCSVPreviewResponse = z.infer<typeof posCSVPreviewResponseSchema>;
@@ -1437,6 +1444,11 @@ export const posCSVImportResponseSchema = z
     errors: z.array(z.string()),
     auto_created_items: z.number().optional(),
     detected_items: z.array(posCSVDetectedItemSchema).optional(),
+    column_mapping: z.record(z.string(), z.string()).optional(),
+    mapping_source: z.string().optional(),
+    mapping_profile_applied: z.boolean().optional(),
+    mapping_profile_saved: z.boolean().optional(),
+    mapping_profile_id: z.string().optional(),
     csv_tracking: z
       .object({
         last_upload_attempt_at: z.string().optional(),
