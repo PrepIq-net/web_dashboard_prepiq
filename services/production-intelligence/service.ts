@@ -33,6 +33,8 @@ import {
   toastOAuthStartResponseSchema,
   loyverseOAuthStartPayloadSchema,
   loyverseOAuthStartResponseSchema,
+  cloverOAuthStartPayloadSchema,
+  cloverOAuthStartResponseSchema,
   posCSVPreviewResponseSchema,
   posCSVImportResponseSchema,
   updateStaffShiftChecklistSchema,
@@ -54,6 +56,7 @@ import {
   type SquareOAuthStartPayload,
   type ToastOAuthStartPayload,
   type LoyverseOAuthStartPayload,
+  type CloverOAuthStartPayload,
   type POSCSVPreviewResponse,
   type POSCSVImportResponse,
   type UpdatePrepPlanItemPayload,
@@ -533,6 +536,18 @@ export async function startLoyverseOAuth(payload: LoyverseOAuthStartPayload) {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.loyverseOAuthStart(),
     loyverseOAuthStartResponseSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function startCloverOAuth(payload: CloverOAuthStartPayload) {
+  const body = cloverOAuthStartPayloadSchema.parse(payload);
+
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.cloverOAuthStart(),
+    cloverOAuthStartResponseSchema,
     {
       method: "GET",
     },

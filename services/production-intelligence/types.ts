@@ -1421,6 +1421,25 @@ export type LoyverseOAuthStartResponse = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Clover OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const cloverOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  post_connect_redirect: z.string().url().optional(),
+});
+export type CloverOAuthStartPayload = z.infer<
+  typeof cloverOAuthStartPayloadSchema
+>;
+
+export const cloverOAuthStartResponseSchema = z.object({
+  authorize_url: z.string().url(),
+  state_expires_in_seconds: z.number(),
+});
+export type CloverOAuthStartResponse = z.infer<
+  typeof cloverOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CSV Import
 // ─────────────────────────────────────────────────────────────────────────────
 export const posCSVPreviewRowSchema = z

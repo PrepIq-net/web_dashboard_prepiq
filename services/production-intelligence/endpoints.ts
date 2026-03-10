@@ -114,4 +114,9 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/integrations/loyverse/oauth/callback/`,
   loyversePOSWebhook: () =>
     `${BASE}/production-intelligence/webhooks/loyverse/`,
+  cloverOAuthStart: () =>
+    `${BASE}/production-intelligence/integrations/clover/oauth/start/`,
+  cloverOAuthCallback: () =>
+    `${BASE}/production-intelligence/integrations/clover/oauth/callback/`,
+  cloverPOSWebhook: () => `${BASE}/production-intelligence/webhooks/clover/`,
 } as const;

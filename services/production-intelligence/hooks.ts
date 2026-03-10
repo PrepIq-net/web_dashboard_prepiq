@@ -32,6 +32,7 @@ import {
   startSquareOAuth,
   startToastOAuth,
   startLoyverseOAuth,
+  startCloverOAuth,
   updateBranchDayStatus,
   updatePrepPlanItem,
   updateStaffShiftChecklist,
@@ -66,6 +67,7 @@ import type {
   SquareOAuthStartPayload,
   ToastOAuthStartPayload,
   LoyverseOAuthStartPayload,
+  CloverOAuthStartPayload,
   SalesManualQuickEntryPayload,
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
@@ -579,12 +581,14 @@ export function useStartLoyverseOAuth() {
       startLoyverseOAuth(payload),
   });
 }
-export function useStartLoyverseOAuth() {
+
+export function useStartCloverOAuth() {
   return useMutation({
-    mutationFn: (payload: LoyverseOAuthStartPayload) =>
-      startLoyverseOAuth(payload),
+    mutationFn: (payload: CloverOAuthStartPayload) =>
+      startCloverOAuth(payload),
   });
 }
+
 export function usePreviewPOSCSVImport() {
   return useMutation({
     mutationFn: (payload: POSCSVPreviewPayload) => previewPOSCSVImport(payload),
