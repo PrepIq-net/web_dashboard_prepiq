@@ -15,20 +15,17 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/recommendations/today/`,
   branchDayInitialize: () =>
     `${BASE}/production-intelligence/branch-day/initialize/`,
-  branchDayToday: () =>
-    `${BASE}/production-intelligence/branch-day/today/`,
+  branchDayToday: () => `${BASE}/production-intelligence/branch-day/today/`,
   branchDayStatus: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/status/`,
   branchDayLockPlan: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/lock-plan/`,
   branchDayAlertIgnore: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/alerts/ignore/`,
-  prepPlanEvaluate: () =>
-    `${BASE}/production-intelligence/prep-plan/evaluate/`,
+  prepPlanEvaluate: () => `${BASE}/production-intelligence/prep-plan/evaluate/`,
   prepPlanDetail: (prepPlanItemId: string) =>
     `${BASE}/production-intelligence/prep-plan/${prepPlanItemId}/`,
-  productionLogCreate: () =>
-    `${BASE}/production-intelligence/production-log/`,
+  productionLogCreate: () => `${BASE}/production-intelligence/production-log/`,
   generateForecast: () =>
     `${BASE}/production-intelligence/recommendations/generate/`,
   recommendationDecision: (recommendationId: string) =>
@@ -37,7 +34,8 @@ export const productionIntelligenceEndpoints = {
   // ── Operations Views ─────────────────────────────────────────────────────
   operationsProduction: () =>
     `${BASE}/production-intelligence/operations/production/`,
-  operationsSurplus: () => `${BASE}/production-intelligence/operations/surplus/`,
+  operationsSurplus: () =>
+    `${BASE}/production-intelligence/operations/surplus/`,
   operationsLiveSignals: () =>
     `${BASE}/production-intelligence/operations/live-signals/`,
   operationsHealth: () => `${BASE}/production-intelligence/operations/health/`,
@@ -85,18 +83,15 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/owner/staff-accountability/`,
 
   // ── Sales Data ───────────────────────────────────────────────────────────
-  posCSVImport: () =>
-    `${BASE}/production-intelligence/sales/import-csv/`,
+  posCSVImport: () => `${BASE}/production-intelligence/sales/import-csv/`,
   posCSVTemplate: () =>
     `${BASE}/production-intelligence/sales/import-csv/template/`,
   posEmailImport: () =>
     `${BASE}/production-intelligence/sales/import-email-report/`,
-  posInboundEmail: () =>
-    `${BASE}/production-intelligence/sales/inbound-email/`,
+  posInboundEmail: () => `${BASE}/production-intelligence/sales/inbound-email/`,
   salesDataValidation: () =>
     `${BASE}/production-intelligence/sales/data-validation/`,
-  setupForecastWOW: () =>
-    `${BASE}/production-intelligence/setup/forecast-wow/`,
+  setupForecastWOW: () => `${BASE}/production-intelligence/setup/forecast-wow/`,
   salesManualQuickEntry: () =>
     `${BASE}/production-intelligence/sales/manual-quick-entry/`,
 
@@ -109,6 +104,19 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/integrations/square/oauth/start/`,
   squareOAuthCallback: () =>
     `${BASE}/production-intelligence/integrations/square/oauth/callback/`,
-  squarePOSWebhook: () =>
-    `${BASE}/production-intelligence/webhooks/square/`,
+  squarePOSWebhook: () => `${BASE}/production-intelligence/webhooks/square/`,
+  toastOAuthStart: () =>
+    `${BASE}/production-intelligence/integrations/toast/oauth/start/`,
+  toastPOSWebhook: () => `${BASE}/production-intelligence/webhooks/toast/`,
+  loyverseOAuthStart: () =>
+    `${BASE}/production-intelligence/integrations/loyverse/oauth/start/`,
+  loyverseOAuthCallback: () =>
+    `${BASE}/production-intelligence/integrations/loyverse/oauth/callback/`,
+  loyversePOSWebhook: () =>
+    `${BASE}/production-intelligence/webhooks/loyverse/`,
+  cloverOAuthStart: () =>
+    `${BASE}/production-intelligence/integrations/clover/oauth/start/`,
+  cloverOAuthCallback: () =>
+    `${BASE}/production-intelligence/integrations/clover/oauth/callback/`,
+  cloverPOSWebhook: () => `${BASE}/production-intelligence/webhooks/clover/`,
 } as const;

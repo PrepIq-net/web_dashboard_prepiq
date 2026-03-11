@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ViewColumns3, CheckCircle } from "iconoir-react";
+import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
+import { Select } from "@/components/ui/select";
 import {
   buildMappedCSV,
   parseCSVFile,
@@ -53,6 +55,7 @@ export default function CSVMappingPage() {
   const router = useRouter();
   const file = useCSVUploadSessionStore((state) => state.file);
   const branchId = useCSVUploadSessionStore((state) => state.branchId);
+  const returnPath = useCSVUploadSessionStore((state) => state.returnPath);
   const clearSession = useCSVUploadSessionStore((state) => state.clearSession);
   const previewMutation = usePreviewPOSCSVImport();
   const importMutation = useImportPOSCSV();
@@ -101,11 +104,57 @@ export default function CSVMappingPage() {
     void loadFile();
   }, [branchId, file, isTransitioningAfterImport, router]);
 
-  const isComplete = REQUIRED_FIELDS.every(
-    (field) => Boolean(mapping[field.id]),
+  const mappingSchema = z
+    .object({
+      saleDate: z.string().min(1, "Sale date column is required."),
+      item: z.string().min(1, "Item column is required."),
+      quantity: z.string().min(1, "Quantity column is required."),
+      revenue: z.string().optional(),
+      unit: z.string().optional(),
+      externalRef: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      const values = [
+        data.saleDate,
+        data.item,
+        data.quantity,
+        data.revenue,
+        data.unit,
+        data.externalRef,
+      ].filter(Boolean);
+      const unique = new Set(values);
+      if (unique.size !== values.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Each CSV column can only map to one field.",
+        });
+      }
+      if (headers.length) {
+        const headerSet = new Set(headers);
+        for (const [key, value] of Object.entries(data)) {
+          if (!value) continue;
+          if (!headerSet.has(value)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Column "${value}" is not in the CSV headers.`,
+              path: [key],
+            });
+          }
+        }
+      }
+    });
+
+  const isComplete = REQUIRED_FIELDS.every((field) =>
+    Boolean(mapping[field.id]),
   );
 
-  const selectOptions = useMemo(() => ["", ...headers], [headers]);
+  const selectOptions = useMemo(
+    () => [
+      { value: "", label: "Unmapped" },
+      ...headers.map((header) => ({ value: header, label: header })),
+    ],
+    [headers],
+  );
 
   function handleMapChange(fieldId: keyof CSVColumnMapping, value: string) {
     setMappingError("");
@@ -114,6 +163,12 @@ export default function CSVMappingPage() {
 
   async function handlePreview() {
     if (!isComplete || !parsed || !branchId) return;
+
+    const validation = mappingSchema.safeParse(mapping);
+    if (!validation.success) {
+      setMappingError(validation.error.issues[0]?.message ?? "Please fix mapping errors.");
+      return;
+    }
 
     const normalizedCSV = buildMappedCSV(parsed, mapping);
     const fileToSend = new File([normalizedCSV], "mapped-sales.csv", {
@@ -153,7 +208,7 @@ export default function CSVMappingPage() {
             : `Import complete: ${created + updated} rows processed.`,
         );
         setIsTransitioningAfterImport(true);
-        router.push("/setup/forecast");
+        router.push(returnPath || "/workspace/today");
         setTimeout(() => clearSession(), 400);
         return;
       }
@@ -177,6 +232,14 @@ export default function CSVMappingPage() {
           >
             ← Back
           </button>
+          {returnPath ? (
+            <button
+              onClick={() => router.push(returnPath)}
+              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F] hover:text-[#D6A83A] transition-colors"
+            >
+              Back to Live
+            </button>
+          ) : null}
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
             Step 2 — Map Columns
@@ -232,25 +295,17 @@ export default function CSVMappingPage() {
 
                   {/* Right Side: CSV Column Select */}
                   <div>
-                    <select
+                    <Select
+                      label="CSV Column"
+                      options={selectOptions}
                       value={mapping[field.id] || ""}
-                      onChange={(e) =>
-                        handleMapChange(field.id, e.target.value)
-                      }
-                      className={`w-full h-10 bg-[#141416] border rounded-[6px] px-3 text-[13px] focus:outline-none appearance-none transition-colors
-                        ${
-                          isRequired && !isMapped
-                            ? "border-[#C48B2A]/50 text-[#C48B2A]"
-                            : "border-[#2E2E33] text-[#F5F5F7] focus:border-[#A8821F]"
-                        }
-                      `}
-                    >
-                      {selectOptions.map((col) => (
-                        <option key={col} value={col}>
-                          {col || "Select a column..."}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => handleMapChange(field.id, value)}
+                      className={`${
+                        isRequired && !isMapped
+                          ? "[&_button]:border-[#C48B2A]/50 [&_span]:text-[#C48B2A]"
+                          : ""
+                      }`}
+                    />
                   </div>
                 </div>
               );

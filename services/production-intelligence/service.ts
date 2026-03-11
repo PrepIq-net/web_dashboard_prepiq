@@ -29,12 +29,22 @@ import {
   staffStockoutEventsResponseSchema,
   squareOAuthStartPayloadSchema,
   squareOAuthStartResponseSchema,
+  toastOAuthStartPayloadSchema,
+  toastOAuthStartResponseSchema,
+  loyverseOAuthStartPayloadSchema,
+  loyverseOAuthStartResponseSchema,
+  cloverOAuthStartPayloadSchema,
+  cloverOAuthStartResponseSchema,
   posCSVPreviewResponseSchema,
   posCSVImportResponseSchema,
   updateStaffShiftChecklistSchema,
   salesManualQuickEntryPayloadSchema,
   salesManualQuickEntryResponseSchema,
   updatePrepPlanItemPayloadSchema,
+  staffAccountabilityOverviewSchema,
+  staffPersonalDashboardSchema,
+  integrationsOverviewSchema,
+  operationsProductionSnapshotSchema,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
@@ -44,6 +54,9 @@ import {
   type CreateStaffStockoutEventPayload,
   type PrepPlanEvaluatePayload,
   type SquareOAuthStartPayload,
+  type ToastOAuthStartPayload,
+  type LoyverseOAuthStartPayload,
+  type CloverOAuthStartPayload,
   type POSCSVPreviewResponse,
   type POSCSVImportResponse,
   type UpdatePrepPlanItemPayload,
@@ -51,7 +64,80 @@ import {
   type SalesManualQuickEntryPayload,
 } from "@/services/production-intelligence/types";
 
+export type StaffPersonalDashboardQuery = {
+  branch_id?: string;
+  staff_user_id?: string;
+  target_date?: string;
+};
+
+export async function getStaffPersonalDashboard(
+  params: StaffPersonalDashboardQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.staffPersonalDashboard(), params),
+    staffPersonalDashboardSchema,
+    { method: "GET" },
+  );
+}
+
+export type StaffAccountabilityQuery = {
+  branch_id: string;
+  target_date?: string;
+};
+
+export async function getStaffAccountability(params: StaffAccountabilityQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.staffAccountability(), params),
+    staffAccountabilityOverviewSchema,
+    { method: "GET" },
+  );
+}
+
+export type IntegrationsOverviewQuery = {
+  organization_id: string;
+};
+
+export async function getIntegrationsOverview(
+  params: IntegrationsOverviewQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.integrationsOverview(), params),
+    integrationsOverviewSchema,
+    { method: "GET" },
+  );
+}
+
+export type OperationsProductionQuery = {
+  branch_id?: string;
+  target_date?: string;
+};
+
+export async function getOperationsProductionSnapshot(
+  params: OperationsProductionQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.operationsProduction(), params),
+    operationsProductionSnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export async function retryIntegrationsSync() {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.integrationsSyncRetry(),
+    z.object({ status: z.string() }),
+    { method: "POST" },
+  );
+}
+
 type QueryValue = string | number | boolean | null | undefined;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeBranchId(branchId?: string) {
+  if (!branchId) return undefined;
+  return UUID_PATTERN.test(branchId) ? branchId : undefined;
+}
 
 function withQuery(
   endpoint: string,
@@ -118,8 +204,12 @@ export async function initializeBranchDay(payload: BranchDayInitializePayload) {
 }
 
 export async function getBranchDayToday(params?: BranchDayTodayQuery) {
+  const safeBranchId = normalizeBranchId(params?.branch_id);
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.branchDayToday(), params),
+    withQuery(productionIntelligenceEndpoints.branchDayToday(), {
+      ...params,
+      branch_id: safeBranchId,
+    }),
     branchDayTodaySchema,
     { method: "GET" },
   );
@@ -221,7 +311,9 @@ export async function createProductionLog(payload: CreateProductionLogPayload) {
   );
 }
 
-export async function createSalesManualQuickEntry(payload: SalesManualQuickEntryPayload) {
+export async function createSalesManualQuickEntry(
+  payload: SalesManualQuickEntryPayload,
+) {
   const body = salesManualQuickEntryPayloadSchema.parse(payload);
   return apiClientWithSchema(
     productionIntelligenceEndpoints.salesManualQuickEntry(),
@@ -307,7 +399,10 @@ export async function getOwnerMarginProtectionReport(
   params?: OwnerMarginProtectionReportQuery,
 ) {
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.ownerDailyMarginProtection(), params),
+    withQuery(
+      productionIntelligenceEndpoints.ownerDailyMarginProtection(),
+      params,
+    ),
     ownerMarginProtectionReportSchema,
     { method: "GET" },
   );
@@ -317,7 +412,10 @@ export async function getOwnerNetworkIntelligenceInsights(
   params?: OwnerNetworkIntelligenceInsightsQuery,
 ) {
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.ownerNetworkIntelligenceInsights(), params),
+    withQuery(
+      productionIntelligenceEndpoints.ownerNetworkIntelligenceInsights(),
+      params,
+    ),
     ownerNetworkIntelligenceInsightsSchema,
     { method: "GET" },
   );
@@ -419,21 +517,86 @@ export async function startSquareOAuth(payload: SquareOAuthStartPayload) {
   );
 }
 
+export async function startToastOAuth(payload: ToastOAuthStartPayload) {
+  const body = toastOAuthStartPayloadSchema.parse(payload);
+
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.toastOAuthStart(),
+    toastOAuthStartResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function startLoyverseOAuth(payload: LoyverseOAuthStartPayload) {
+  const body = loyverseOAuthStartPayloadSchema.parse(payload);
+
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.loyverseOAuthStart(),
+    loyverseOAuthStartResponseSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function startCloverOAuth(payload: CloverOAuthStartPayload) {
+  const body = cloverOAuthStartPayloadSchema.parse(payload);
+
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.cloverOAuthStart(),
+    cloverOAuthStartResponseSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
 export type POSCSVImportPayload = {
   branch_id: string;
   file: File;
   auto_create_items?: boolean;
+  column_mapping?: Record<string, string>;
+  provider_code?: string;
+  use_saved_mapping_profile?: boolean;
+  save_mapping_profile?: boolean;
 };
 
 export type POSCSVPreviewPayload = POSCSVImportPayload & {
   preview_limit?: number;
 };
 
-function buildPOSCSVFormData(payload: POSCSVImportPayload | POSCSVPreviewPayload, dryRun: boolean): FormData {
+function buildPOSCSVFormData(
+  payload: POSCSVImportPayload | POSCSVPreviewPayload,
+  dryRun: boolean,
+): FormData {
   const form = new FormData();
   form.append("branch_id", payload.branch_id);
   form.append("file", payload.file);
-  form.append("auto_create_items", payload.auto_create_items ? "true" : "false");
+  form.append(
+    "auto_create_items",
+    payload.auto_create_items ? "true" : "false",
+  );
+  if (payload.provider_code) {
+    form.append("provider_code", payload.provider_code);
+  }
+  if (typeof payload.use_saved_mapping_profile === "boolean") {
+    form.append(
+      "use_saved_mapping_profile",
+      payload.use_saved_mapping_profile ? "true" : "false",
+    );
+  }
+  if (typeof payload.save_mapping_profile === "boolean") {
+    form.append(
+      "save_mapping_profile",
+      payload.save_mapping_profile ? "true" : "false",
+    );
+  }
+  if (payload.column_mapping && Object.keys(payload.column_mapping).length) {
+    form.append("column_mapping", JSON.stringify(payload.column_mapping));
+  }
   if (dryRun) {
     form.append("dry_run", "true");
     const previewPayload = payload as POSCSVPreviewPayload;
@@ -442,7 +605,9 @@ function buildPOSCSVFormData(payload: POSCSVImportPayload | POSCSVPreviewPayload
   return form;
 }
 
-export async function previewPOSCSVImport(payload: POSCSVPreviewPayload): Promise<POSCSVPreviewResponse> {
+export async function previewPOSCSVImport(
+  payload: POSCSVPreviewPayload,
+): Promise<POSCSVPreviewResponse> {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.posCSVImport(),
     posCSVPreviewResponseSchema,
@@ -453,7 +618,9 @@ export async function previewPOSCSVImport(payload: POSCSVPreviewPayload): Promis
   );
 }
 
-export async function importPOSCSV(payload: POSCSVImportPayload): Promise<POSCSVImportResponse> {
+export async function importPOSCSV(
+  payload: POSCSVImportPayload,
+): Promise<POSCSVImportResponse> {
   return apiClientWithSchema(
     productionIntelligenceEndpoints.posCSVImport(),
     posCSVImportResponseSchema,

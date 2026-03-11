@@ -35,7 +35,9 @@ export const branchDayInitializePayloadSchema = z.object({
   weather_modifier_percentage: z.number().nullable().optional(),
   reservation_modifier: z.number().optional(),
 });
-export type BranchDayInitializePayload = z.infer<typeof branchDayInitializePayloadSchema>;
+export type BranchDayInitializePayload = z.infer<
+  typeof branchDayInitializePayloadSchema
+>;
 
 export const prepPlanItemSchema = z.object({
   id: z.string().uuid(),
@@ -95,7 +97,9 @@ export const prepPlanItemSchema = z.object({
           waste_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
         })
         .optional(),
-      sales_intake_mode: z.enum(["pos_or_import", "manual_quick_tap", "semi_blind"]).optional(),
+      sales_intake_mode: z
+        .enum(["pos_or_import", "manual_quick_tap", "semi_blind"])
+        .optional(),
       signal: z.string().nullable(),
       alert: z
         .object({
@@ -112,6 +116,8 @@ export const prepPlanItemSchema = z.object({
   updated_at: z.string(),
 });
 export type PrepPlanItem = z.infer<typeof prepPlanItemSchema>;
+
+export const liveMonitorSchema = prepPlanItemSchema.shape.live_monitor;
 
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
@@ -585,7 +591,10 @@ export const branchDayTodaySchema = z.object({
             stockouts: z.boolean(),
             forecast_error: z.number(),
             chef_adjustment: z.number(),
-            service_outcome: z.enum(["IMPROVED_BY_CHEF", "WORSE_THAN_FORECAST"]),
+            service_outcome: z.enum([
+              "IMPROVED_BY_CHEF",
+              "WORSE_THAN_FORECAST",
+            ]),
           }),
         ),
         chef_behavior_learning: z.object({
@@ -639,7 +648,10 @@ export const branchDayTodaySchema = z.object({
         product_title: z.string(),
         prep_plan_item_id: z.string().uuid(),
         message: z.string(),
-        details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+        details: z.record(
+          z.string(),
+          z.union([z.string(), z.number(), z.boolean(), z.null()]),
+        ),
         suggested_action: z.string(),
         suggested_prepare_qty: z.number(),
       }),
@@ -658,17 +670,23 @@ export type BranchDayToday = z.infer<typeof branchDayTodaySchema>;
 export const branchDayStatusUpdatePayloadSchema = z.object({
   status: z.enum(["MORNING", "LIVE", "CLOSED"]),
 });
-export type BranchDayStatusUpdatePayload = z.infer<typeof branchDayStatusUpdatePayloadSchema>;
+export type BranchDayStatusUpdatePayload = z.infer<
+  typeof branchDayStatusUpdatePayloadSchema
+>;
 
 export const branchDayPlanLockPayloadSchema = z.object({});
-export type BranchDayPlanLockPayload = z.infer<typeof branchDayPlanLockPayloadSchema>;
+export type BranchDayPlanLockPayload = z.infer<
+  typeof branchDayPlanLockPayloadSchema
+>;
 
 export const branchDayLiveAlertIgnorePayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),
   alert_type: z.enum(["STOCKOUT_RISK", "WASTE_RISK", "SALES_SPIKE"]),
   cooldown_minutes: z.number().min(5).max(180).optional(),
 });
-export type BranchDayLiveAlertIgnorePayload = z.infer<typeof branchDayLiveAlertIgnorePayloadSchema>;
+export type BranchDayLiveAlertIgnorePayload = z.infer<
+  typeof branchDayLiveAlertIgnorePayloadSchema
+>;
 
 export const branchDayLiveAlertIgnoreResponseSchema = z.object({
   updated: z.boolean(),
@@ -676,13 +694,17 @@ export const branchDayLiveAlertIgnoreResponseSchema = z.object({
   ignored_until: z.string().optional(),
   detail: z.string().optional(),
 });
-export type BranchDayLiveAlertIgnoreResponse = z.infer<typeof branchDayLiveAlertIgnoreResponseSchema>;
+export type BranchDayLiveAlertIgnoreResponse = z.infer<
+  typeof branchDayLiveAlertIgnoreResponseSchema
+>;
 
 export const prepPlanEvaluatePayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),
   planned_quantity: z.number().min(0),
 });
-export type PrepPlanEvaluatePayload = z.infer<typeof prepPlanEvaluatePayloadSchema>;
+export type PrepPlanEvaluatePayload = z.infer<
+  typeof prepPlanEvaluatePayloadSchema
+>;
 
 export const prepPlanEvaluateResponseSchema = z.object({
   delta_quantity: z.number(),
@@ -703,13 +725,17 @@ export const prepPlanEvaluateResponseSchema = z.object({
     margin_savings: z.number(),
   }),
 });
-export type PrepPlanEvaluateResponse = z.infer<typeof prepPlanEvaluateResponseSchema>;
+export type PrepPlanEvaluateResponse = z.infer<
+  typeof prepPlanEvaluateResponseSchema
+>;
 
 export const updatePrepPlanItemPayloadSchema = z.object({
   planned_quantity: z.number().min(0).optional(),
   accepted_suggestion: z.boolean().optional(),
 });
-export type UpdatePrepPlanItemPayload = z.infer<typeof updatePrepPlanItemPayloadSchema>;
+export type UpdatePrepPlanItemPayload = z.infer<
+  typeof updatePrepPlanItemPayloadSchema
+>;
 
 export const createProductionLogPayloadSchema = z.object({
   prep_plan_item_id: z.string().uuid(),
@@ -718,7 +744,9 @@ export const createProductionLogPayloadSchema = z.object({
   event_type: z.enum(["planned", "additional"]).optional(),
   reason: z.string().max(120).optional(),
 });
-export type CreateProductionLogPayload = z.infer<typeof createProductionLogPayloadSchema>;
+export type CreateProductionLogPayload = z.infer<
+  typeof createProductionLogPayloadSchema
+>;
 
 export const salesManualQuickEntryPayloadSchema = z.object({
   branch_id: z.string().uuid(),
@@ -733,7 +761,9 @@ export const salesManualQuickEntryPayloadSchema = z.object({
     }),
   ),
 });
-export type SalesManualQuickEntryPayload = z.infer<typeof salesManualQuickEntryPayloadSchema>;
+export type SalesManualQuickEntryPayload = z.infer<
+  typeof salesManualQuickEntryPayloadSchema
+>;
 
 export const salesManualQuickEntryResponseSchema = z.object({
   created: z.number(),
@@ -742,8 +772,11 @@ export const salesManualQuickEntryResponseSchema = z.object({
   errors: z.array(z.string()),
   target_date: z.string(),
   branch_id: z.string().uuid(),
+  live_monitor_by_item: z.record(liveMonitorSchema).optional(),
 });
-export type SalesManualQuickEntryResponse = z.infer<typeof salesManualQuickEntryResponseSchema>;
+export type SalesManualQuickEntryResponse = z.infer<
+  typeof salesManualQuickEntryResponseSchema
+>;
 
 export const productionLogSchema = z.object({
   id: z.string().uuid(),
@@ -752,6 +785,7 @@ export const productionLogSchema = z.object({
   waste_quantity: z.number(),
   created_by: z.union([z.string().uuid(), z.null()]),
   created_at: z.string(),
+  live_monitor: liveMonitorSchema.optional(),
 });
 export type ProductionLog = z.infer<typeof productionLogSchema>;
 
@@ -1342,6 +1376,70 @@ export type SquareOAuthStartResponse = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Toast OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const toastOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  client_id: z.string(),
+  client_secret: z.string(),
+  restaurant_external_id: z.string().optional(),
+});
+export type ToastOAuthStartPayload = z.infer<
+  typeof toastOAuthStartPayloadSchema
+>;
+
+export const toastOAuthStartResponseSchema = z.object({
+  status: z.string(),
+  connection_id: z.string(),
+  branch_id: z.string(),
+  organization_id: z.string(),
+  restaurant_guid: z.string(),
+  restaurant_name: z.string(),
+  token_expires_in: z.number(),
+});
+export type ToastOAuthStartResponse = z.infer<
+  typeof toastOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loyverse OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const loyverseOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  post_connect_redirect: z.string().url().optional(),
+});
+export type LoyverseOAuthStartPayload = z.infer<
+  typeof loyverseOAuthStartPayloadSchema
+>;
+
+export const loyverseOAuthStartResponseSchema = z.object({
+  authorize_url: z.string().url(),
+  state_expires_in_seconds: z.number(),
+});
+export type LoyverseOAuthStartResponse = z.infer<
+  typeof loyverseOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clover OAuth
+// ─────────────────────────────────────────────────────────────────────────────
+export const cloverOAuthStartPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  post_connect_redirect: z.string().url().optional(),
+});
+export type CloverOAuthStartPayload = z.infer<
+  typeof cloverOAuthStartPayloadSchema
+>;
+
+export const cloverOAuthStartResponseSchema = z.object({
+  authorize_url: z.string().url(),
+  state_expires_in_seconds: z.number(),
+});
+export type CloverOAuthStartResponse = z.infer<
+  typeof cloverOAuthStartResponseSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CSV Import
 // ─────────────────────────────────────────────────────────────────────────────
 export const posCSVPreviewRowSchema = z
@@ -1392,6 +1490,9 @@ export const posCSVPreviewResponseSchema = z
     detected_items: z.array(posCSVDetectedItemSchema),
     preview_rows: z.array(posCSVPreviewRowSchema),
     preview_limit: z.number(),
+    column_mapping: z.record(z.string(), z.string()).optional(),
+    mapping_source: z.string().optional(),
+    mapping_profile_applied: z.boolean().optional(),
   })
   .passthrough();
 export type POSCSVPreviewResponse = z.infer<typeof posCSVPreviewResponseSchema>;
@@ -1407,6 +1508,11 @@ export const posCSVImportResponseSchema = z
     errors: z.array(z.string()),
     auto_created_items: z.number().optional(),
     detected_items: z.array(posCSVDetectedItemSchema).optional(),
+    column_mapping: z.record(z.string(), z.string()).optional(),
+    mapping_source: z.string().optional(),
+    mapping_profile_applied: z.boolean().optional(),
+    mapping_profile_saved: z.boolean().optional(),
+    mapping_profile_id: z.string().optional(),
     csv_tracking: z
       .object({
         last_upload_attempt_at: z.string().optional(),
@@ -1419,3 +1525,45 @@ export const posCSVImportResponseSchema = z
   })
   .passthrough();
 export type POSCSVImportResponse = z.infer<typeof posCSVImportResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Integrations Overview
+// ─────────────────────────────────────────────────────────────────────────────
+export const integrationsOverviewBranchSchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  status: z.string(),
+  last_sync: z.string().nullable(),
+});
+
+export const integrationsOverviewSchema = z.object({
+  organization_id: z.string().uuid(),
+  summary: z.object({
+    total_branches: z.number(),
+    active_connections: z.number(),
+    health_pct: z.number(),
+  }),
+  branches: z.array(integrationsOverviewBranchSchema),
+});
+export type IntegrationsOverview = z.infer<typeof integrationsOverviewSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff Accountability Overview
+// ─────────────────────────────────────────────────────────────────────────────
+export const staffAccountabilityMemberSchema = z.object({
+  user_id: z.string().uuid(),
+  user_name: z.string(),
+  chef_profit_score: z.number(),
+  adherence_score: z.number(),
+  batches_prepared: z.number(),
+});
+
+export const staffAccountabilityOverviewSchema = z.object({
+  branch_id: z.string().uuid(),
+  target_date: z.string(),
+  staff_metrics: z.array(staffAccountabilityMemberSchema),
+  avg_branch_score: z.number(),
+});
+export type StaffAccountabilityOverview = z.infer<
+  typeof staffAccountabilityOverviewSchema
+>;
