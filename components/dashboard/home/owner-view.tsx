@@ -44,6 +44,7 @@ export function OwnerView({
   topAlerts,
   hasError,
 }: OwnerViewProps) {
+  const today = new Date().toISOString().slice(0, 10);
   const maxRevenue = Math.max(
     ...branchRankingSummary.map((b) => Number(b.revenue ?? 0)),
     1,
@@ -240,8 +241,8 @@ export function OwnerView({
                         : 'bg-surface-3 border-surface-4 hover:border-surface-4/80'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold ${
                           isTopPerformer 
                             ? 'bg-brand-gold text-background' 
@@ -262,13 +263,19 @@ export function OwnerView({
                             </span>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-display text-xl font-semibold text-text-primary">
-                          ${Number(branch.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        </p>
-                      </div>
                     </div>
+                    <div className="text-right">
+                      <p className="font-display text-xl font-semibold text-text-primary">
+                        ${Number(branch.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                      <Link
+                        href={`/workspace/overview/branch/${branch.branch_id}?date=${today}`}
+                        className="mt-2 inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
+                      >
+                        View Today
+                      </Link>
+                    </div>
+                  </div>
                     <div className="h-2 bg-surface-1 rounded-full overflow-hidden">
                       <div 
                         className={`h-2 rounded-full transition-all duration-500 ${
