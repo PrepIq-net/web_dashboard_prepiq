@@ -337,20 +337,20 @@ export default function TodayWorkspacePage() {
     safeBranchId && targetDate ? `${safeBranchId}:${targetDate}` : "";
   useEffect(() => {
     if (!todayQuery.isError) return;
-    const err = todayQuery.error as { status?: number } | null;
-    if (
-      err?.status !== 404 ||
-      !safeBranchId ||
-      !initKey ||
-      initializeMutation.isPending
-    )
+    const err = todayQuery.error as
+      | { status?: number; details?: unknown }
+      | null;
+    const errDetails =
+      err && typeof err === "object" ? (err.details as any) : null;
+    const canInitialize =
+      err?.status === 404 ||
+      Boolean(errDetails?.error?.details?.can_initialize);
+    if (!canInitialize || !safeBranchId || !initKey || initializeMutation.isPending)
       return;
     if (initializeAttemptedByKey.current[initKey]) return;
 
     initializeAttemptedByKey.current[initKey] = true;
-    if (err?.status === 404) {
-      initializeMutation.mutate({ branch_id: safeBranchId, date: targetDate });
-    }
+    initializeMutation.mutate({ branch_id: safeBranchId, date: targetDate });
   }, [
     todayQuery.isError,
     todayQuery.error,
@@ -983,6 +983,27 @@ export default function TodayWorkspacePage() {
         : branchId
           ? "Status: NOT_INITIALIZED"
           : "Status: SELECT_BRANCH";
+  const todayQueryErrorMessage = useMemo(() => {
+    if (!todayQuery.isError) return "";
+    const err = todayQuery.error as
+      | { message?: string; details?: unknown; status?: number }
+      | null;
+    if (!err) return "Unable to load day data.";
+    if (typeof err.message === "string" && err.message.length) return err.message;
+    const details = (err as any)?.details;
+    if (typeof details?.message === "string") return details.message;
+    if (typeof details?.detail === "string") return details.detail;
+    if (typeof details?.error === "string") return details.error;
+    return "Unable to load day data.";
+  }, [todayQuery.isError, todayQuery.error]);
+  const canInitializeDay = useMemo(() => {
+    if (!todayQuery.isError) return false;
+    const err = todayQuery.error as
+      | { status?: number; details?: unknown }
+      | null;
+    const details = err && typeof err === "object" ? (err.details as any) : null;
+    return err?.status === 404 || Boolean(details?.error?.details?.can_initialize);
+  }, [todayQuery.isError, todayQuery.error]);
 
   const liveRows = useMemo(
     () =>
@@ -1290,12 +1311,12 @@ export default function TodayWorkspacePage() {
             onChange={setTargetDate}
           />
 
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Status
-            </label>
-            <div className="flex items-center h-12 px-4 rounded-button bg-surface-3 border border-border-default">
-              <div className="flex items-center gap-2">
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Status
+              </label>
+              <div className="flex items-center h-12 px-4 rounded-button bg-surface-3 border border-border-default">
+                <div className="flex items-center gap-2">
                 <span
                   className={`h-2 w-2 rounded-full ${
                     loading
@@ -1314,6 +1335,26 @@ export default function TodayWorkspacePage() {
             </div>
           </div>
         </div>
+        {todayQuery.isError ? (
+          <div className="mt-4 rounded-lg border border-status-warning/40 bg-status-warning/10 px-4 py-3 text-xs text-status-warning">
+            <p className="font-semibold">Day data not available.</p>
+            <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+            {canInitializeDay && safeBranchId ? (
+              <button
+                type="button"
+                onClick={() =>
+                  initializeMutation.mutate({
+                    branch_id: safeBranchId,
+                    date: targetDate,
+                  })
+                }
+                className="mt-2 inline-flex h-8 items-center rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10"
+              >
+                Initialize Day
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {noBranchContext ? (
