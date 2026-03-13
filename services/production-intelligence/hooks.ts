@@ -33,6 +33,13 @@ import {
   startToastOAuth,
   startLoyverseOAuth,
   startCloverOAuth,
+  getAdvancedForecast,
+  getForecastScenarios,
+  getForecastConfidence,
+  getForecastMetrics,
+  getChefSkillScore,
+  getDataQualityReport,
+  updateRealTimeVelocity,
   updateBranchDayStatus,
   updatePrepPlanItem,
   updateStaffShiftChecklist,
@@ -54,6 +61,13 @@ import {
   type StaffAccountabilityQuery,
   type IntegrationsOverviewQuery,
   type OperationsProductionQuery,
+  type AdvancedForecastPayload,
+  type ForecastScenariosQuery,
+  type ForecastConfidenceQuery,
+  type ForecastMetricsQuery,
+  type ChefSkillScoreQuery,
+  type DataQualityReportQuery,
+  type VelocityUpdatePayload,
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
@@ -190,6 +204,53 @@ export const productionIntelligenceQueryKeys = {
       "operations-production",
       params.branch_id ?? "",
       params.target_date ?? "",
+    ] as const,
+  advancedForecast: (params?: AdvancedForecastPayload) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "advanced-forecast",
+      params?.branch_id ?? "",
+      params?.item_id ?? "",
+      params?.target_date ?? "",
+    ] as const,
+  forecastScenarios: (params?: ForecastScenariosQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "forecast-scenarios",
+      params?.branch_id ?? "",
+      params?.item_id ?? "",
+      params?.target_date ?? "",
+    ] as const,
+  forecastConfidence: (params?: ForecastConfidenceQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "forecast-confidence",
+      params?.branch_id ?? "",
+      params?.item_id ?? "",
+      params?.target_date ?? "",
+    ] as const,
+  forecastMetrics: (params?: ForecastMetricsQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "forecast-metrics",
+      params?.branch_id ?? "",
+      params?.item_id ?? "",
+      params?.lookback_days ?? "",
+    ] as const,
+  chefSkillScore: (params?: ChefSkillScoreQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "chef-skill-score",
+      params?.user_id ?? "",
+      params?.branch_id ?? "",
+      params?.days_window ?? "",
+    ] as const,
+  dataQualityReport: (params?: DataQualityReportQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "data-quality-report",
+      params?.branch_id ?? "",
+      params?.days_window ?? "",
     ] as const,
 };
 
@@ -545,6 +606,79 @@ export function useOperationsProduction(params: OperationsProductionQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsProduction(params),
     queryFn: () => getOperationsProductionSnapshot(params),
     enabled: Boolean(params.branch_id || params.target_date),
+  });
+}
+
+export function useAdvancedForecast(
+  params?: AdvancedForecastPayload,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.advancedForecast(params),
+    queryFn: () => getAdvancedForecast(params as AdvancedForecastPayload),
+    enabled: Boolean(enabled && params?.branch_id && params?.item_id),
+  });
+}
+
+export function useForecastScenarios(
+  params?: ForecastScenariosQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.forecastScenarios(params),
+    queryFn: () => getForecastScenarios(params as ForecastScenariosQuery),
+    enabled: Boolean(enabled && params?.branch_id && params?.item_id),
+  });
+}
+
+export function useForecastConfidence(
+  params?: ForecastConfidenceQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.forecastConfidence(params),
+    queryFn: () => getForecastConfidence(params as ForecastConfidenceQuery),
+    enabled: Boolean(enabled && params?.branch_id && params?.item_id),
+  });
+}
+
+export function useForecastMetrics(
+  params?: ForecastMetricsQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.forecastMetrics(params),
+    queryFn: () => getForecastMetrics(params as ForecastMetricsQuery),
+    enabled: Boolean(enabled && params?.branch_id),
+  });
+}
+
+export function useChefSkillScore(
+  params?: ChefSkillScoreQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.chefSkillScore(params),
+    queryFn: () => getChefSkillScore(params as ChefSkillScoreQuery),
+    enabled: Boolean(enabled && params?.user_id && params?.branch_id),
+  });
+}
+
+export function useDataQualityReport(
+  params?: DataQualityReportQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.dataQualityReport(params),
+    queryFn: () => getDataQualityReport(params as DataQualityReportQuery),
+    enabled: Boolean(enabled && params?.branch_id),
+  });
+}
+
+export function useRealTimeVelocity() {
+  return useMutation({
+    mutationFn: (payload: VelocityUpdatePayload) =>
+      updateRealTimeVelocity(payload),
   });
 }
 

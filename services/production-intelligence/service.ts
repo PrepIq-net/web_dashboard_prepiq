@@ -45,6 +45,15 @@ import {
   staffPersonalDashboardSchema,
   integrationsOverviewSchema,
   operationsProductionSnapshotSchema,
+  advancedForecastResponseSchema,
+  forecastScenariosResponseSchema,
+  forecastConfidenceResponseSchema,
+  forecastMetricsResponseSchema,
+  chefSkillScoreResponseSchema,
+  dataQualityReportSchema,
+  velocityUpdateResponseSchema,
+  advancedForecastPayloadSchema,
+  velocityUpdatePayloadSchema,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
@@ -62,7 +71,24 @@ import {
   type UpdatePrepPlanItemPayload,
   type UpdateStaffShiftChecklistPayload,
   type SalesManualQuickEntryPayload,
+  type AdvancedForecastPayload,
+  type ForecastScenariosQuery,
+  type ForecastConfidenceQuery,
+  type ForecastMetricsQuery,
+  type ChefSkillScoreQuery,
+  type DataQualityReportQuery,
+  type VelocityUpdatePayload,
 } from "@/services/production-intelligence/types";
+
+export type {
+  AdvancedForecastPayload,
+  ForecastScenariosQuery,
+  ForecastConfidenceQuery,
+  ForecastMetricsQuery,
+  ChefSkillScoreQuery,
+  DataQualityReportQuery,
+  VelocityUpdatePayload,
+};
 
 export type StaffPersonalDashboardQuery = {
   branch_id?: string;
@@ -188,6 +214,91 @@ export async function getTodayPrepRecommendations(
     withQuery(productionIntelligenceEndpoints.todayRecommendations(), params),
     z.array(dailyPrepRecommendationSchema),
     { method: "GET" },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Advanced Forecast Intelligence
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAdvancedForecast(payload: AdvancedForecastPayload) {
+  const body = advancedForecastPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.advancedForecast(),
+    advancedForecastResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function getForecastScenarios(params: ForecastScenariosQuery) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.forecastScenarios(safeBranchId), {
+      item_id: params.item_id,
+      target_date: params.target_date,
+    }),
+    forecastScenariosResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getForecastConfidence(params: ForecastConfidenceQuery) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.forecastConfidence(safeBranchId), {
+      item_id: params.item_id,
+      target_date: params.target_date,
+    }),
+    forecastConfidenceResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getForecastMetrics(params: ForecastMetricsQuery) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.forecastMetrics(safeBranchId), {
+      item_id: params.item_id,
+      lookback_days: params.lookback_days,
+    }),
+    forecastMetricsResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getChefSkillScore(params: ChefSkillScoreQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.chefSkillScore(params.user_id), {
+      branch_id: params.branch_id,
+      days_window: params.days_window,
+    }),
+    chefSkillScoreResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getDataQualityReport(params: DataQualityReportQuery) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.dataQualityReport(safeBranchId), {
+      days_window: params.days_window,
+    }),
+    dataQualityReportSchema,
+    { method: "GET" },
+  );
+}
+
+export async function updateRealTimeVelocity(payload: VelocityUpdatePayload) {
+  const body = velocityUpdatePayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.velocityUpdate(body.branch_id),
+    velocityUpdateResponseSchema,
+    {
+      method: "POST",
+      body,
+    },
   );
 }
 
