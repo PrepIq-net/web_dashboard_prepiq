@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Shop, Calendar } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
@@ -10,6 +11,7 @@ import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -25,6 +27,10 @@ import {
   useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
+  useAdvancedForecast,
+  useForecastMetrics,
+  useDataQualityReport,
+  useRealTimeVelocity,
   productionIntelligenceQueryKeys,
 } from "@/services/production-intelligence/hooks";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
@@ -238,6 +244,7 @@ export default function TodayWorkspacePage() {
     new Date().toISOString().slice(0, 10),
   );
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
+  const [selectedItemId, setSelectedItemId] = useState("");
   const [plannedQtyByItem, setPlannedQtyByItem] = useState<
     Record<string, number | "">
   >({});
@@ -326,6 +333,31 @@ export default function TodayWorkspacePage() {
   });
   const ignoreLiveAlertMutation = useIgnoreBranchDayLiveAlert();
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
+  const advancedForecastQuery = useAdvancedForecast(
+    {
+      branch_id: safeBranchId,
+      item_id: selectedItemId,
+      target_date: targetDate,
+    },
+    Boolean(safeBranchId && selectedItemId),
+  );
+  const metricsQuery = useForecastMetrics(
+    {
+      branch_id: safeBranchId,
+      item_id: selectedItemId || undefined,
+      lookback_days: 60,
+    },
+    Boolean(safeBranchId && selectedItemId),
+  );
+  const dataQualityQuery = useDataQualityReport(
+    { branch_id: safeBranchId, days_window: 30 },
+    Boolean(safeBranchId),
+  );
+  const velocityMutation = useRealTimeVelocity();
+  const advancedForecast = advancedForecastQuery.data;
+  const forecastMetrics = metricsQuery.data;
+  const dataQuality = dataQualityQuery.data;
+  const velocitySnapshot = velocityMutation.data;
 
   useEffect(() => {
     if (showCsvImportBanner) {
@@ -362,6 +394,14 @@ export default function TodayWorkspacePage() {
   ]);
 
   const branchDay = initializeMutation.data ?? todayQuery.data;
+  useEffect(() => {
+    if (!branchDay?.prep_plan_items?.length) return;
+    const hasSelected = branchDay.prep_plan_items.some(
+      (item) => item.product_id === selectedItemId,
+    );
+    if (hasSelected) return;
+    setSelectedItemId(branchDay.prep_plan_items[0].product_id);
+  }, [branchDay?.id, branchDay?.prep_plan_items, selectedItemId]);
   const networkLearnings = useMemo(() => {
     const network = branchDay?.kitchen_intelligence_network;
     if (!network) return [];
@@ -425,6 +465,21 @@ export default function TodayWorkspacePage() {
     if (!wastePattern) return "No high-confidence network action right now.";
     return `Reduce ${wastePattern.item_name} prep exposure for the next run and monitor sell-through before close.`;
   }, [branchDay?.kitchen_intelligence_network]);
+  const advancedItemOptions = useMemo(() => {
+    if (!branchDay?.prep_plan_items) return [];
+    return branchDay.prep_plan_items.map((item) => ({
+      value: item.product_id,
+      label: item.product_title,
+    }));
+  }, [branchDay?.prep_plan_items]);
+  const selectedPrepItem = useMemo(() => {
+    if (!branchDay?.prep_plan_items) return null;
+    return (
+      branchDay.prep_plan_items.find(
+        (item) => item.product_id === selectedItemId,
+      ) ?? null
+    );
+  }, [branchDay?.prep_plan_items, selectedItemId]);
 
   useEffect(() => {
     if (!branchDay) return;
@@ -1367,6 +1422,246 @@ export default function TodayWorkspacePage() {
               No branch context is available for this account yet. Assign this
               user to at least one active branch, then refresh this page.
             </p>
+          </div>
+        </section>
+      ) : null}
+
+      {branchDay ? (
+        <section className="mb-10 border-b border-surface-4/70 pb-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Advanced Forecast Intelligence
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+                Model Ensemble, Confidence, and Live Signals
+              </h3>
+            </div>
+          <div className="flex flex-wrap gap-3">
+            <Select
+              label="Focus Item"
+              options={advancedItemOptions}
+              value={selectedItemId}
+              onChange={setSelectedItemId}
+              disabled={!advancedItemOptions.length}
+              placeholder={
+                advancedItemOptions.length ? "Select item" : "No items"
+              }
+            />
+            {safeBranchId && selectedItemId ? (
+              <Link
+                href={`/workspace/forecast-intelligence/${selectedItemId}?branch_id=${safeBranchId}&date=${targetDate}`}
+                className="inline-flex h-12 items-center rounded-button border border-brand-gold/45 px-4 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
+              >
+                Open drill-down
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                advancedForecastQuery.refetch();
+                metricsQuery.refetch();
+                  dataQualityQuery.refetch();
+                }}
+                className="inline-flex h-12 items-center rounded-button border border-surface-4 bg-surface-3 px-4 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 active:scale-[0.98]"
+              >
+                Refresh intelligence
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr]">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                    Ensemble Forecast
+                  </p>
+                  <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
+                    {advancedForecast?.ensemble_forecast != null
+                      ? formatQuantity(
+                          advancedForecast.ensemble_forecast,
+                          selectedPrepItem?.unit ?? "PCS",
+                        )
+                      : "—"}
+                  </p>
+                  <p className="mt-2 text-xs text-text-secondary">
+                    Loss-optimized prep target:{" "}
+                    <span className="font-semibold text-text-primary">
+                      {advancedForecast?.loss_optimized_qty != null
+                        ? formatQuantity(
+                            advancedForecast.loss_optimized_qty,
+                            selectedPrepItem?.unit ?? "PCS",
+                          )
+                        : "—"}
+                    </span>
+                  </p>
+                </div>
+                <div className="rounded-lg border border-surface-4 bg-surface-3/50 px-3 py-3 text-right">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    Confidence
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-text-primary">
+                    {advancedForecast?.confidence != null
+                      ? percent(advancedForecast.confidence)
+                      : "—"}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    {advancedForecast?.confidence_label ?? "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    Model Agreement
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-text-primary">
+                    {advancedForecast?.model_agreement != null
+                      ? percent(advancedForecast.model_agreement)
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    Chef Override
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-text-primary">
+                    {advancedForecast?.chef_recommendation ?? "—"}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Weight{" "}
+                    {advancedForecast?.chef_weight != null
+                      ? percent(advancedForecast.chef_weight)
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    Quality Flags
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-text-primary">
+                    {(advancedForecast?.quality_issues ?? []).length || "None"}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    {(advancedForecast?.quality_issues ?? []).slice(0, 2).join(", ") ||
+                      "No issues flagged."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <ScenarioBarChart
+                  baseValue={advancedForecast?.ensemble_forecast ?? null}
+                  scenarios={advancedForecast?.scenarios ?? []}
+                  unitLabel={selectedPrepItem?.unit ?? "PCS"}
+                />
+              </div>
+            </article>
+
+            <div className="space-y-4">
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Data Quality Gate
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">
+                  {dataQuality?.overall_quality_score != null
+                    ? `${dataQuality.overall_quality_score.toFixed(0)}%`
+                    : "—"}
+                </p>
+                <p className="text-sm text-text-secondary">
+                  {dataQuality?.quality_label ?? "No quality score yet."}
+                </p>
+                <p className="mt-2 text-xs text-text-muted">
+                  {dataQuality?.recommendation ??
+                    "Quality checks will appear once data is available."}
+                </p>
+              </article>
+
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Performance Metrics
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                      Accuracy
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-text-primary">
+                      {forecastMetrics?.forecast_accuracy != null
+                        ? `${forecastMetrics.forecast_accuracy.toFixed(1)}%`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                      MAPE
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-text-primary">
+                      {forecastMetrics?.mape != null
+                        ? `${forecastMetrics.mape.toFixed(1)}%`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                      Stockout Rate
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-text-primary">
+                      {forecastMetrics?.stockout_rate != null
+                        ? `${forecastMetrics.stockout_rate.toFixed(1)}%`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                      Waste Rate
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-text-primary">
+                      {forecastMetrics?.waste_rate != null
+                        ? `${forecastMetrics.waste_rate.toFixed(1)}%`
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Live Velocity
+                </p>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Compare real-time sales velocity to today’s forecast.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!safeBranchId || !selectedItemId) return;
+                    velocityMutation.mutate({
+                      branch_id: safeBranchId,
+                      item_id: selectedItemId,
+                      window_minutes: 60,
+                    });
+                  }}
+                  className="mt-3 inline-flex h-9 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-3"
+                  disabled={velocityMutation.isPending}
+                >
+                  {velocityMutation.isPending ? "Checking..." : "Check velocity"}
+                </button>
+                {velocitySnapshot?.comparison ? (
+                  <div className="mt-3 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3 text-xs text-text-secondary">
+                    <p className="font-semibold text-text-primary">
+                      {velocitySnapshot.comparison.status ?? "Status"}
+                    </p>
+                    <p className="mt-1">
+                      {velocitySnapshot.comparison.recommendation ??
+                        "Monitoring live velocity."}
+                    </p>
+                  </div>
+                ) : null}
+              </article>
+            </div>
           </div>
         </section>
       ) : null}

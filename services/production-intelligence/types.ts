@@ -772,7 +772,7 @@ export const salesManualQuickEntryResponseSchema = z.object({
   errors: z.array(z.string()),
   target_date: z.string(),
   branch_id: z.string().uuid(),
-  live_monitor_by_item: z.record(liveMonitorSchema).optional(),
+  live_monitor_by_item: z.record(z.string(), liveMonitorSchema).optional(),
 });
 export type SalesManualQuickEntryResponse = z.infer<
   typeof salesManualQuickEntryResponseSchema
@@ -1566,4 +1566,183 @@ export const staffAccountabilityOverviewSchema = z.object({
 });
 export type StaffAccountabilityOverview = z.infer<
   typeof staffAccountabilityOverviewSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Advanced Forecast Intelligence
+// ─────────────────────────────────────────────────────────────────────────────
+export const forecastScenarioSchema = z.object({
+  name: z.string().optional(),
+  scenario: z.string().optional(),
+  forecast: z.number().optional(),
+  change_pct: z.number().optional(),
+  description: z.string().optional(),
+});
+
+export const advancedForecastResponseSchema = z.object({
+  branch_id: z.string().optional(),
+  item_id: z.string().optional(),
+  target_date: z.string().optional(),
+  ensemble_forecast: z.number().optional(),
+  confidence: z.number().optional(),
+  confidence_label: z.string().optional(),
+  scenarios: z.array(forecastScenarioSchema).optional(),
+  chef_weight: z.number().optional(),
+  chef_recommendation: z.string().optional(),
+  loss_optimized_qty: z.number().optional(),
+  base_predictions: z.record(z.string(), z.number().nullable()).optional(),
+  model_agreement: z.number().optional(),
+  quality_issues: z.array(z.string()).optional(),
+  confidence_components: z.record(z.string(), z.unknown()).optional(),
+});
+export type AdvancedForecastResponse = z.infer<
+  typeof advancedForecastResponseSchema
+>;
+
+export const forecastScenariosResponseSchema = z.object({
+  base_forecast: z.number().nullable().optional(),
+  scenarios: z.array(forecastScenarioSchema),
+});
+export type ForecastScenariosResponse = z.infer<
+  typeof forecastScenariosResponseSchema
+>;
+
+export const forecastConfidenceResponseSchema = z.object({
+  overall_confidence: z.number().nullable().optional(),
+  confidence_label: z.string().optional(),
+  components: z.record(z.string(), z.unknown()).optional(),
+});
+export type ForecastConfidenceResponse = z.infer<
+  typeof forecastConfidenceResponseSchema
+>;
+
+export const forecastMetricsResponseSchema = z.object({
+  mape: z.number().nullable().optional(),
+  rmse: z.number().nullable().optional(),
+  forecast_accuracy: z.number().nullable().optional(),
+  stockout_rate: z.number().nullable().optional(),
+  waste_rate: z.number().nullable().optional(),
+  confidence_calibration: z.record(z.string(), z.unknown()).optional(),
+  summary: z.string().optional(),
+  trend: z
+    .object({
+      weekly_mapes: z.array(z.number()).optional(),
+      trend: z.string().optional(),
+      latest_mape: z.number().nullable().optional(),
+    })
+    .optional(),
+  data_points: z.number().optional(),
+});
+export type ForecastMetricsResponse = z.infer<typeof forecastMetricsResponseSchema>;
+
+export const chefSkillScoreResponseSchema = z.object({
+  overall_skill_score: z.number().nullable().optional(),
+  accuracy_component: z.number().nullable().optional(),
+  profit_component: z.number().nullable().optional(),
+  waste_component: z.number().nullable().optional(),
+  recommendation: z.string().optional(),
+  metrics: z.record(z.string(), z.unknown()).optional(),
+});
+export type ChefSkillScoreResponse = z.infer<typeof chefSkillScoreResponseSchema>;
+
+export const dataQualityReportSchema = z.object({
+  overall_quality_score: z.number().nullable().optional(),
+  quality_label: z.string().optional(),
+  checks: z.array(z.record(z.string(), z.unknown())).optional(),
+  recommendation: z.string().optional(),
+  passed_checks: z.number().optional(),
+  total_checks: z.number().optional(),
+  is_training_safe: z.boolean().optional(),
+});
+export type DataQualityReport = z.infer<typeof dataQualityReportSchema>;
+
+export const velocitySnapshotSchema = z.object({
+  velocity_units_per_hour: z.number().optional(),
+  velocity_units_per_minute: z.number().optional(),
+  total_units: z.number().optional(),
+  time_span_minutes: z.number().optional(),
+  sample_count: z.number().optional(),
+});
+
+export const velocityComparisonSchema = z.object({
+  velocity_ratio: z.number().optional(),
+  status: z.string().optional(),
+  deviation_pct: z.number().optional(),
+  alert_level: z.string().optional(),
+  recommendation: z.string().optional(),
+  actual_velocity_per_hour: z.number().optional(),
+  forecast_velocity_per_hour: z.number().optional(),
+});
+
+export const velocityUpdateResponseSchema = z.object({
+  sales_velocity: velocitySnapshotSchema.nullable().optional(),
+  forecast_velocity: z
+    .object({
+      forecast_velocity_per_hour: z.number().optional(),
+      forecast_velocity_per_minute: z.number().optional(),
+      daily_forecast: z.number().optional(),
+      business_hours: z.number().optional(),
+    })
+    .nullable()
+    .optional(),
+  comparison: velocityComparisonSchema.optional(),
+  forecast_qty: z.number().optional(),
+  window_minutes: z.number().optional(),
+});
+export type VelocityUpdateResponse = z.infer<typeof velocityUpdateResponseSchema>;
+
+export const advancedForecastPayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  target_date: z.string().optional(),
+});
+export type AdvancedForecastPayload = z.infer<
+  typeof advancedForecastPayloadSchema
+>;
+
+export const forecastScenariosQuerySchema = z.object({
+  branch_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  target_date: z.string().optional(),
+});
+export type ForecastScenariosQuery = z.infer<typeof forecastScenariosQuerySchema>;
+
+export const forecastConfidenceQuerySchema = z.object({
+  branch_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  target_date: z.string().optional(),
+});
+export type ForecastConfidenceQuery = z.infer<typeof forecastConfidenceQuerySchema>;
+
+export const forecastMetricsQuerySchema = z.object({
+  branch_id: z.string().uuid(),
+  item_id: z.string().uuid().optional(),
+  lookback_days: z.number().optional(),
+});
+export type ForecastMetricsQuery = z.infer<typeof forecastMetricsQuerySchema>;
+
+export const chefSkillScoreQuerySchema = z.object({
+  user_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  days_window: z.number().optional(),
+});
+export type ChefSkillScoreQuery = z.infer<typeof chefSkillScoreQuerySchema>;
+
+export const dataQualityReportQuerySchema = z.object({
+  branch_id: z.string().uuid(),
+  days_window: z.number().optional(),
+});
+export type DataQualityReportQuery = z.infer<
+  typeof dataQualityReportQuerySchema
+>;
+
+export const velocityUpdatePayloadSchema = z.object({
+  branch_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  sales_qty: z.number().optional(),
+  timestamp: z.string().optional(),
+  window_minutes: z.number().optional(),
+});
+export type VelocityUpdatePayload = z.infer<
+  typeof velocityUpdatePayloadSchema
 >;

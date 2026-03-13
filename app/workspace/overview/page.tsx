@@ -12,6 +12,8 @@ import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
   useOwnerNetworkIntelligenceInsights,
+  useForecastMetrics,
+  useDataQualityReport,
 } from "@/services/production-intelligence/hooks";
 
 const EMPTY_LIST: never[] = [];
@@ -110,6 +112,14 @@ export default function WorkspaceOverviewPage() {
   );
   const marginQuery = useOwnerMarginProtectionReport(
     { branch_id: branchId || undefined, target_date: targetDate },
+    Boolean(branchId),
+  );
+  const metricsQuery = useForecastMetrics(
+    { branch_id: branchId || undefined, lookback_days: 60 },
+    Boolean(branchId),
+  );
+  const dataQualityQuery = useDataQualityReport(
+    { branch_id: branchId || undefined, days_window: 30 },
     Boolean(branchId),
   );
   const organizationNetworkQuery = useOwnerNetworkIntelligenceInsights(
@@ -216,6 +226,70 @@ export default function WorkspaceOverviewPage() {
             </p>
           </article>
         </div>
+      </section>
+
+      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Forecast Accuracy
+          </p>
+          <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
+            {metricsQuery.data?.forecast_accuracy != null
+              ? `${metricsQuery.data.forecast_accuracy.toFixed(1)}%`
+              : "—"}
+          </p>
+          <p className="text-xs text-text-secondary">
+            {metricsQuery.data?.summary ?? "Awaiting forecast metrics."}
+          </p>
+        </article>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Error Metrics
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                MAPE
+              </p>
+              <p className="mt-1 font-semibold text-text-primary">
+                {metricsQuery.data?.mape != null
+                  ? `${metricsQuery.data.mape.toFixed(1)}%`
+                  : "—"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                RMSE
+              </p>
+              <p className="mt-1 font-semibold text-text-primary">
+                {metricsQuery.data?.rmse != null
+                  ? metricsQuery.data.rmse.toFixed(2)
+                  : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-text-secondary">
+            Stockout {metricsQuery.data?.stockout_rate?.toFixed(1) ?? "—"}% ·
+            Waste {metricsQuery.data?.waste_rate?.toFixed(1) ?? "—"}%
+          </div>
+        </article>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Data Quality
+          </p>
+          <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
+            {dataQualityQuery.data?.overall_quality_score != null
+              ? `${dataQualityQuery.data.overall_quality_score.toFixed(0)}%`
+              : "—"}
+          </p>
+          <p className="text-xs text-text-secondary">
+            {dataQualityQuery.data?.quality_label ?? "No quality score yet."}
+          </p>
+          <p className="mt-2 text-xs text-text-muted">
+            {dataQualityQuery.data?.recommendation ??
+              "Quality checks appear after ingest."}
+          </p>
+        </article>
       </section>
 
       <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">

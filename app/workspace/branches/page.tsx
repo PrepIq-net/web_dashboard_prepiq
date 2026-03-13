@@ -14,6 +14,8 @@ import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
+  useForecastMetrics,
+  useDataQualityReport,
 } from "@/services/production-intelligence/hooks";
 
 type BranchControlRow = {
@@ -56,6 +58,23 @@ export default function BranchesPage() {
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
   const [targetAdjustments, setTargetAdjustments] = useState<Record<string, number>>({});
+
+  const compareMetricsA = useForecastMetrics(
+    { branch_id: compareA || undefined, lookback_days: 60 },
+    Boolean(compareA),
+  );
+  const compareMetricsB = useForecastMetrics(
+    { branch_id: compareB || undefined, lookback_days: 60 },
+    Boolean(compareB),
+  );
+  const compareQualityA = useDataQualityReport(
+    { branch_id: compareA || undefined, days_window: 30 },
+    Boolean(compareA),
+  );
+  const compareQualityB = useDataQualityReport(
+    { branch_id: compareB || undefined, days_window: 30 },
+    Boolean(compareB),
+  );
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -370,6 +389,48 @@ export default function BranchesPage() {
                   {compareDelta >= 0 ? "+" : ""}{compareDelta.toFixed(1)}
                 </p>
               </div>
+              {(compareA || compareB) ? (
+                <div className="pt-4 mt-4 border-t border-surface-4 space-y-3 text-xs text-text-secondary">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                        Branch A Accuracy
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-text-primary">
+                        {compareMetricsA.data?.forecast_accuracy != null
+                          ? `${compareMetricsA.data.forecast_accuracy.toFixed(1)}%`
+                          : "—"}
+                      </p>
+                      <p className="text-[11px] text-text-muted">
+                        Quality{" "}
+                        {compareQualityA.data?.overall_quality_score != null
+                          ? `${compareQualityA.data.overall_quality_score.toFixed(0)}%`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                        Branch B Accuracy
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-text-primary">
+                        {compareMetricsB.data?.forecast_accuracy != null
+                          ? `${compareMetricsB.data.forecast_accuracy.toFixed(1)}%`
+                          : "—"}
+                      </p>
+                      <p className="text-[11px] text-text-muted">
+                        Quality{" "}
+                        {compareQualityB.data?.overall_quality_score != null
+                          ? `${compareQualityB.data.overall_quality_score.toFixed(0)}%`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <p>
+                    Forecast accuracy reflects recent learning signals; data
+                    quality highlights ingestion reliability.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </article>
         </div>

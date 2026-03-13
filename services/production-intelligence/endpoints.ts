@@ -31,6 +31,21 @@ export const productionIntelligenceEndpoints = {
   recommendationDecision: (recommendationId: string) =>
     `${BASE}/production-intelligence/recommendations/${recommendationId}/decision/`,
 
+  // ── Advanced Forecasting ────────────────────────────────────────────────
+  advancedForecast: () => `${BASE}/production-intelligence/forecasts/advanced/`,
+  forecastScenarios: (branchId: string) =>
+    `${BASE}/production-intelligence/forecasts/${branchId}/scenarios/`,
+  forecastConfidence: (branchId: string) =>
+    `${BASE}/production-intelligence/forecasts/${branchId}/confidence/`,
+  forecastMetrics: (branchId: string) =>
+    `${BASE}/production-intelligence/forecasts/${branchId}/metrics/`,
+  chefSkillScore: (userId: string) =>
+    `${BASE}/production-intelligence/chefs/${userId}/skill-score/`,
+  dataQualityReport: (branchId: string) =>
+    `${BASE}/production-intelligence/branches/${branchId}/data-quality/`,
+  velocityUpdate: (branchId: string) =>
+    `${BASE}/production-intelligence/branches/${branchId}/velocity-update/`,
+
   // ── Operations Views ─────────────────────────────────────────────────────
   operationsProduction: () =>
     `${BASE}/production-intelligence/operations/production/`,
