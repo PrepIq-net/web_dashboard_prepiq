@@ -90,6 +90,31 @@ function agreementNarrative(score?: number | null) {
   return "Models diverge; treat the forecast as less certain.";
 }
 
+function velocitySummary(comparison?: {
+  status?: string;
+  deviation_pct?: number;
+}) {
+  if (!comparison || !comparison.status) {
+    return "No live pace check yet. Tap update to compare today’s sales pace to plan.";
+  }
+  const deviation = comparison.deviation_pct ?? 0;
+  const absDeviation = Math.abs(deviation);
+  const deviationLabel = `${absDeviation.toFixed(0)}%`;
+  if (comparison.status === "HIGH_DEMAND") {
+    return `Selling faster than plan by ${deviationLabel}. Consider a quick batch cook to protect revenue.`;
+  }
+  if (comparison.status === "LOW_DEMAND") {
+    return `Sales are ${deviationLabel} below plan. Slow prep to reduce waste.`;
+  }
+  return "Sales pace matches the plan. Keep the current prep rhythm.";
+}
+
+function velocityStatusTone(status?: string) {
+  if (status === "HIGH_DEMAND") return "text-status-critical";
+  if (status === "LOW_DEMAND") return "text-status-warning";
+  return "text-status-success";
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -399,6 +424,8 @@ export default function TodayWorkspacePage() {
   const forecastMetrics = metricsQuery.data;
   const dataQuality = dataQualityQuery.data;
   const velocitySnapshot = velocityMutation.data;
+  const [velocityLastUpdated, setVelocityLastUpdated] =
+    useState<Date | null>(null);
 
   useEffect(() => {
     if (!advancedModalOpen || !safeBranchId || !selectedItemId) return;
@@ -412,6 +439,42 @@ export default function TodayWorkspacePage() {
     advancedForecastQuery,
     metricsQuery,
     dataQualityQuery,
+  ]);
+
+  useEffect(() => {
+    if (velocitySnapshot) {
+      setVelocityLastUpdated(new Date());
+    }
+  }, [velocitySnapshot]);
+
+  useEffect(() => {
+    if (
+      !advancedModalOpen ||
+      !safeBranchId ||
+      !selectedItemId ||
+      branchDay?.status !== "LIVE"
+    ) {
+      return;
+    }
+
+    const runVelocityCheck = () => {
+      if (velocityMutation.isPending) return;
+      velocityMutation.mutate({
+        branch_id: safeBranchId,
+        item_id: selectedItemId,
+        window_minutes: 60,
+      });
+    };
+
+    runVelocityCheck();
+    const interval = window.setInterval(runVelocityCheck, 180000);
+    return () => window.clearInterval(interval);
+  }, [
+    advancedModalOpen,
+    safeBranchId,
+    selectedItemId,
+    branchDay?.status,
+    velocityMutation,
   ]);
 
   useEffect(() => {
@@ -4001,11 +4064,21 @@ export default function TodayWorkspacePage() {
 
             <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Live Pace Check
+                Live Sales Pace
               </p>
               <p className="mt-2 text-sm text-text-secondary">
-                Compare the last hour of sales to today’s forecast.
+                We compare the last hour of sales to today’s plan and suggest
+                the next action.
               </p>
+              {branchDay?.status === "LIVE" ? (
+                <p className="mt-1 text-xs text-text-muted">
+                  Auto-checks every 3 minutes during live service.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-text-muted">
+                  Start live service to enable auto-checks.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -4019,18 +4092,53 @@ export default function TodayWorkspacePage() {
                 className="mt-3 inline-flex h-9 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-3"
                 disabled={velocityMutation.isPending}
               >
-                {velocityMutation.isPending ? "Checking..." : "Check live pace"}
+                {velocityMutation.isPending ? "Updating..." : "Update pace now"}
               </button>
               {velocitySnapshot?.comparison ? (
                 <div className="mt-3 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3 text-xs text-text-secondary">
-                  <p className="font-semibold text-text-primary">
-                    {velocitySnapshot.comparison.status ?? "Status"}
+                  <p
+                    className={`font-semibold ${velocityStatusTone(velocitySnapshot.comparison.status)}`}
+                  >
+                    {velocitySnapshot.comparison.status === "HIGH_DEMAND"
+                      ? "Selling faster than plan"
+                      : velocitySnapshot.comparison.status === "LOW_DEMAND"
+                        ? "Selling slower than plan"
+                        : "On pace with plan"}
                   </p>
                   <p className="mt-1">
-                    {velocitySnapshot.comparison.recommendation ??
-                      "Monitoring live velocity."}
+                    {velocitySummary(velocitySnapshot.comparison)}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-text-muted">
+                    <span>
+                      Sales pace:{" "}
+                      {velocitySnapshot.comparison.actual_velocity_per_hour?.toFixed(
+                        1,
+                      ) ?? "—"}
+                      /hr
+                    </span>
+                    <span>
+                      Plan pace:{" "}
+                      {velocitySnapshot.comparison.forecast_velocity_per_hour?.toFixed(
+                        1,
+                      ) ?? "—"}
+                      /hr
+                    </span>
+                    {velocityLastUpdated ? (
+                      <span>
+                        Updated{" "}
+                        {velocityLastUpdated.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
+              ) : null}
+              {!velocitySnapshot?.comparison ? (
+                <p className="mt-3 text-xs text-text-muted">
+                  {velocitySummary()}
+                </p>
               ) : null}
             </article>
           </div>
