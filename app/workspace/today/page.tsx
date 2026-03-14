@@ -424,8 +424,10 @@ export default function TodayWorkspacePage() {
   const forecastMetrics = metricsQuery.data;
   const dataQuality = dataQualityQuery.data;
   const velocitySnapshot = velocityMutation.data;
-  const [velocityLastUpdated, setVelocityLastUpdated] =
-    useState<Date | null>(null);
+  const [velocityLastUpdated, setVelocityLastUpdated] = useState<Date | null>(
+    null,
+  );
+  const branchDay = initializeMutation.data ?? todayQuery.data;
 
   useEffect(() => {
     if (!advancedModalOpen || !safeBranchId || !selectedItemId) return;
@@ -517,7 +519,6 @@ export default function TodayWorkspacePage() {
     initKey,
   ]);
 
-  const branchDay = initializeMutation.data ?? todayQuery.data;
   useEffect(() => {
     if (!branchDay?.prep_plan_items?.length) return;
     const hasSelected = branchDay.prep_plan_items.some(
