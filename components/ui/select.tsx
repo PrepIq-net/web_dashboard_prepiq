@@ -10,7 +10,7 @@ type SelectOption = {
 };
 
 type SelectProps = {
-  label: string;
+  label?: string;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
@@ -87,8 +87,13 @@ export function Select({
   }
 
   return (
-    <div className={`block space-y-2 ${className}`} ref={containerRef}>
-      <span className="text-sm font-medium text-text-secondary">{label}</span>
+    <div
+      className={`block ${label ? "space-y-2" : ""} ${className}`}
+      ref={containerRef}
+    >
+      {label && (
+        <span className="text-sm font-medium text-text-secondary">{label}</span>
+      )}
       <div className="relative">
         <button
           ref={buttonRef}

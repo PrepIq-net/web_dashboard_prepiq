@@ -26,7 +26,8 @@ import {
   listSubscriptionQuoteRequests,
   listSubscriptions,
   type PaymentHistoryQuery,
-} from "@/services/payment/service";
+  type SubscriptionQuery,
+} from "./service";
 import type {
   AttachSubscriptionAddOnPayload,
   CancelSubscriptionPayload,
@@ -43,7 +44,8 @@ export const paymentQueryKeys = {
   root: ["payment"] as const,
 
   plans: () => [...paymentQueryKeys.root, "plans"] as const,
-  plansPricing: () => [...paymentQueryKeys.root, "plans-pricing"] as const,
+  plansPricing: (params?: SubscriptionQuery) =>
+    [...paymentQueryKeys.root, "plans-pricing", params] as const,
 
   subscriptions: (params?: SubscriptionQuery) =>
     [...paymentQueryKeys.root, "subscriptions", params] as const,
@@ -84,10 +86,10 @@ export function useSubscriptionPlans() {
   });
 }
 
-export function useSubscriptionPlanPricing() {
+export function useSubscriptionPlanPricing(params?: SubscriptionQuery) {
   return useQuery({
-    queryKey: paymentQueryKeys.plansPricing(),
-    queryFn: getSubscriptionPlanPricing,
+    queryKey: paymentQueryKeys.plansPricing(params),
+    queryFn: () => getSubscriptionPlanPricing(params),
   });
 }
 

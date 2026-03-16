@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ArrowLeft } from "iconoir-react";
@@ -55,7 +55,7 @@ function formatQuantity(value: number, unit: string) {
   return `${discrete ? Math.round(value) : value.toFixed(2)} ${unit}`;
 }
 
-export default function ForecastIntelligencePage() {
+function ForecastIntelligenceContent() {
   const router = useRouter();
   const params = useParams<{ itemId: string }>();
   const searchParams = useSearchParams();
@@ -64,14 +64,16 @@ export default function ForecastIntelligencePage() {
 
   const itemId = String(params?.itemId ?? "");
   const branchId = searchParams.get("branch_id") ?? "";
-  const initialDate = searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  const initialDate =
+    searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   const [targetDate, setTargetDate] = useState(initialDate);
   const [pollingEnabled, setPollingEnabled] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [velocityHistory, setVelocityHistory] = useState<VelocityEntry[]>([]);
 
   const allowedBranchIds = useMemo(
-    () => new Set((accessScope?.accessible_branches ?? []).map((row) => row.id)),
+    () =>
+      new Set((accessScope?.accessible_branches ?? []).map((row) => row.id)),
     [accessScope?.accessible_branches],
   );
 
@@ -164,7 +166,8 @@ export default function ForecastIntelligencePage() {
 
   const branchName =
     branchDay?.branch_name ??
-    accessScope?.accessible_branches?.find((row) => row.id === branchId)?.name ??
+    accessScope?.accessible_branches?.find((row) => row.id === branchId)
+      ?.name ??
     "Branch";
 
   const confidenceLabel = advancedQuery.data?.confidence_label ?? "—";
@@ -201,9 +204,7 @@ export default function ForecastIntelligencePage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Today
           </Link>
-          <span className="text-xs text-text-muted">
-            {branchName}
-          </span>
+          <span className="text-xs text-text-muted">{branchName}</span>
         </div>
         <div className="relative w-full max-w-[220px]">
           <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
@@ -277,7 +278,8 @@ export default function ForecastIntelligencePage() {
                 {advancedQuery.data?.chef_recommendation ?? "—"}
               </p>
               <p className="mt-1 text-xs text-text-muted">
-                Chef weight {advancedQuery.data?.chef_weight != null
+                Chef weight{" "}
+                {advancedQuery.data?.chef_weight != null
                   ? percent(advancedQuery.data.chef_weight)
                   : "—"}
               </p>
@@ -384,7 +386,8 @@ export default function ForecastIntelligencePage() {
             </p>
             <p className="text-sm text-text-secondary">
               Live demand velocity vs forecast, refreshed every{" "}
-              {VELOCITY_POLL_INTERVAL_MINUTES} minutes while this tab is visible.
+              {VELOCITY_POLL_INTERVAL_MINUTES} minutes while this tab is
+              visible.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -450,5 +453,13 @@ export default function ForecastIntelligencePage() {
         </div>
       </section>
     </WorkspaceShell>
+  );
+}
+
+export default function ForecastIntelligencePage() {
+  return (
+    <Suspense fallback={null}>
+      <ForecastIntelligenceContent />
+    </Suspense>
   );
 }

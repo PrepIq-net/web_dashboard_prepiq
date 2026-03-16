@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,7 +17,6 @@ import {
 
 export default function ToastConnectPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const {
     data: scope,

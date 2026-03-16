@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -249,7 +249,7 @@ const FALLBACK_DEMAND_SIGNALS = [
   },
 ];
 
-export default function TodayWorkspacePage() {
+function TodayWorkspacePageContent() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -4179,5 +4179,13 @@ export default function TodayWorkspacePage() {
         }}
       />
     </WorkspaceShell>
+  );
+}
+
+export default function TodayWorkspacePage() {
+  return (
+    <Suspense fallback={null}>
+      <TodayWorkspacePageContent />
+    </Suspense>
   );
 }

@@ -7,7 +7,11 @@ import { Shop, Calendar } from "iconoir-react";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
-import { useBranches, useCurrentUserProfile, useProductionIntelligenceAccessScope } from "@/services";
+import {
+  useBranches,
+  useCurrentUserProfile,
+  useProductionIntelligenceAccessScope,
+} from "@/services";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -46,7 +50,9 @@ export default function WorkspaceOverviewPage() {
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
 
   const branchOptions = useMemo(() => {
-    const accessibleBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
+    const accessibleBranchIds = new Set(
+      accessibleBranches.map((branch) => branch.id),
+    );
     const byId = new Map<string, (typeof branches)[number]>();
     for (const branch of branches) {
       byId.set(branch.id, branch);
@@ -72,15 +78,24 @@ export default function WorkspaceOverviewPage() {
     const merged = Array.from(byId.values());
     if (!accessibleBranchIds.size) return merged;
     return merged.filter((branch) => accessibleBranchIds.has(branch.id));
-  }, [branches, accessibleBranches, user?.organization_id, user?.organization_name]);
+  }, [
+    branches,
+    accessibleBranches,
+    user?.organization_id,
+    user?.organization_name,
+  ]);
 
   const defaultBranch =
-    branchOptions.find((branch) => branch.id === accessScope?.default_branch_id) ??
+    branchOptions.find(
+      (branch) => branch.id === accessScope?.default_branch_id,
+    ) ??
     branchOptions.find((branch) => branch.is_primary) ??
     branchOptions[0] ??
     null;
 
-  const [targetDate, setTargetDate] = useState(new Date().toISOString().slice(0, 10));
+  const [targetDate, setTargetDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
 
   useEffect(() => {
@@ -90,7 +105,8 @@ export default function WorkspaceOverviewPage() {
   }, [branchId, defaultBranch?.id]);
 
   const role = user?.organization_role ?? "";
-  const canAccess = role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
+  const canAccess =
+    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
   useEffect(() => {
     if (!userLoading && !canAccess) {
       router.replace("/");
@@ -107,43 +123,53 @@ export default function WorkspaceOverviewPage() {
     !branchesQuery.isLoading;
 
   const executiveQuery = useExecutiveControlTower(
-    { branch_id: branchId || undefined, target_date: targetDate },
+    branchId ? { branch_id: branchId, target_date: targetDate } : undefined,
     Boolean(branchId),
   );
   const marginQuery = useOwnerMarginProtectionReport(
-    { branch_id: branchId || undefined, target_date: targetDate },
+    branchId ? { branch_id: branchId, target_date: targetDate } : undefined,
     Boolean(branchId),
   );
   const metricsQuery = useForecastMetrics(
-    { branch_id: branchId || undefined, lookback_days: 60 },
+    branchId ? { branch_id: branchId, lookback_days: 60 } : undefined,
     Boolean(branchId),
   );
   const dataQualityQuery = useDataQualityReport(
-    { branch_id: branchId || undefined, days_window: 30 },
+    branchId ? { branch_id: branchId, days_window: 30 } : undefined,
     Boolean(branchId),
   );
   const organizationNetworkQuery = useOwnerNetworkIntelligenceInsights(
-    {
-      organization_id: user?.organization_id ?? undefined,
-      target_date: targetDate,
-      lookback_days: 30,
-    },
+    user?.organization_id
+      ? {
+          organization_id: user.organization_id,
+          target_date: targetDate,
+          lookback_days: 30,
+        }
+      : undefined,
     Boolean(user?.organization_id),
   );
 
   const networkInsights = useMemo(() => {
-    return (organizationNetworkQuery.data?.top_network_insights ?? []).slice(0, 3).map((row) => ({
-      title: row.title,
-      detail: `Observed in ${row.observed_in_kitchens} kitchen${row.observed_in_kitchens === 1 ? "" : "s"}.`,
-      confidence: row.confidence,
-    }));
+    return (organizationNetworkQuery.data?.top_network_insights ?? [])
+      .slice(0, 3)
+      .map((row) => ({
+        title: row.title,
+        detail: `Observed in ${row.observed_in_kitchens} kitchen${row.observed_in_kitchens === 1 ? "" : "s"}.`,
+        confidence: row.confidence,
+      }));
   }, [organizationNetworkQuery.data?.top_network_insights]);
   const locationRows = useMemo(() => {
-    return (organizationNetworkQuery.data?.location_performance ?? executiveQuery.data?.branch_grid ?? []).map((row) => {
+    return (
+      organizationNetworkQuery.data?.location_performance ??
+      executiveQuery.data?.branch_grid ??
+      []
+    ).map((row) => {
       const rowRecord = row as Record<string, unknown>;
       const branchIdValue = String(rowRecord.branch_id ?? "");
       const branchNameValue = String(rowRecord.branch_name ?? "Branch");
-      const marginRow = (marginQuery.data?.branches ?? []).find((item) => item.branch_id === branchIdValue);
+      const marginRow = (marginQuery.data?.branches ?? []).find(
+        (item) => item.branch_id === branchIdValue,
+      );
       const revenueValue =
         typeof rowRecord.revenue === "number"
           ? rowRecord.revenue
@@ -153,7 +179,11 @@ export default function WorkspaceOverviewPage() {
       const wasteText =
         typeof rowRecord.waste_pct === "number"
           ? `${rowRecord.waste_pct.toFixed(1)}%`
-          : formatCurrency(typeof rowRecord.waste_cost === "number" ? rowRecord.waste_cost : 0);
+          : formatCurrency(
+              typeof rowRecord.waste_cost === "number"
+                ? rowRecord.waste_cost
+                : 0,
+            );
       const forecastText =
         typeof rowRecord.forecast_accuracy === "number"
           ? `${rowRecord.forecast_accuracy.toFixed(1)}%`
@@ -169,7 +199,11 @@ export default function WorkspaceOverviewPage() {
         marginSignal: marginRow?.margin_signal_status ?? "N/A",
       };
     });
-  }, [organizationNetworkQuery.data?.location_performance, executiveQuery.data?.branch_grid, marginQuery.data?.branches]);
+  }, [
+    organizationNetworkQuery.data?.location_performance,
+    executiveQuery.data?.branch_grid,
+    marginQuery.data?.branches,
+  ]);
 
   if (shouldHold) {
     return (
@@ -200,14 +234,21 @@ export default function WorkspaceOverviewPage() {
           <Select
             label="Anchor Branch"
             leadingIcon={<Shop className="h-4 w-4" />}
-            options={branchOptions.map((branch) => ({ value: branch.id, label: branch.name }))}
+            options={branchOptions.map((branch) => ({
+              value: branch.id,
+              label: branch.name,
+            }))}
             value={branchId}
             onChange={setBranchId}
             disabled={!branchOptions.length}
-            placeholder={!branchOptions.length ? "No branches available" : "Select branch"}
+            placeholder={
+              !branchOptions.length ? "No branches available" : "Select branch"
+            }
           />
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Date</label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
               <input
@@ -219,9 +260,12 @@ export default function WorkspaceOverviewPage() {
             </div>
           </div>
           <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">Suggested Action</p>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">
+              Suggested Action
+            </p>
             <p className="mt-1 text-sm text-text-primary">
-              {organizationNetworkQuery.data?.top_network_insights?.[0]?.suggested_action ??
+              {organizationNetworkQuery.data?.top_network_insights?.[0]
+                ?.suggested_action ??
                 "No validated organization-wide transfer action yet."}
             </p>
           </article>
@@ -294,16 +338,27 @@ export default function WorkspaceOverviewPage() {
 
       <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Network Intelligence</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">Top Network Insights</h3>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Network Intelligence
+          </p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+            Top Network Insights
+          </h3>
           {networkInsights.length ? (
             <div className="mt-3 space-y-2">
               {networkInsights.map((row) => (
-                <div key={`${row.title}-${row.detail}`} className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                  <p className="text-sm font-semibold text-text-primary">{row.title}</p>
+                <div
+                  key={`${row.title}-${row.detail}`}
+                  className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3"
+                >
+                  <p className="text-sm font-semibold text-text-primary">
+                    {row.title}
+                  </p>
                   <p className="mt-1 text-xs text-text-secondary">
                     {row.detail}
-                    {typeof row.confidence === "number" ? ` Confidence ${percent(row.confidence)}.` : ""}
+                    {typeof row.confidence === "number"
+                      ? ` Confidence ${percent(row.confidence)}.`
+                      : ""}
                   </p>
                 </div>
               ))}
@@ -315,40 +370,69 @@ export default function WorkspaceOverviewPage() {
           )}
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Enterprise Value</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">Cross Location Snapshot</h3>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Enterprise Value
+          </p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+            Cross Location Snapshot
+          </h3>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Locations</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Locations
+              </p>
               <p className="mt-1 text-xl font-semibold text-text-primary">
-                {organizationNetworkQuery.data?.summary.branch_count ?? executiveQuery.data?.branch_count ?? 0}
+                {organizationNetworkQuery.data?.summary.branch_count ??
+                  executiveQuery.data?.branch_count ??
+                  0}
               </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Forecast Accuracy (7d)</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Forecast Accuracy (7d)
+              </p>
               <p className="mt-1 text-xl font-semibold text-text-primary">
-                {percent(executiveQuery.data?.summary?.forecast_accuracy_rolling_7d ?? 0)}
+                {percent(
+                  executiveQuery.data?.summary?.forecast_accuracy_rolling_7d ??
+                    0,
+                )}
               </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Risk</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Waste Risk
+              </p>
               <p className="mt-1 text-xl font-semibold text-status-warning">
-                {(executiveQuery.data?.summary?.waste_risk_pct ?? 0).toFixed(1)}%
+                {(executiveQuery.data?.summary?.waste_risk_pct ?? 0).toFixed(1)}
+                %
               </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Total Waste Cost</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Total Waste Cost
+              </p>
               <p className="mt-1 text-xl font-semibold text-status-critical">
-                {formatNumberishCurrency(marginQuery.data?.summary?.total_waste_cost)}
+                {formatNumberishCurrency(
+                  marginQuery.data?.summary?.total_waste_cost,
+                )}
               </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3 col-span-2">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Lifecycle</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Lifecycle
+              </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Candidate {organizationNetworkQuery.data?.summary.candidate_patterns ?? 0}
-                {" · "}Validated {organizationNetworkQuery.data?.summary.validated_patterns ?? 0}
-                {" · "}Deployed {organizationNetworkQuery.data?.summary.deployed_patterns ?? 0}
-                {" · "}Freshness {percent(organizationNetworkQuery.data?.summary.average_freshness_score ?? 0)}
+                Candidate{" "}
+                {organizationNetworkQuery.data?.summary.candidate_patterns ?? 0}
+                {" · "}Validated{" "}
+                {organizationNetworkQuery.data?.summary.validated_patterns ?? 0}
+                {" · "}Deployed{" "}
+                {organizationNetworkQuery.data?.summary.deployed_patterns ?? 0}
+                {" · "}Freshness{" "}
+                {percent(
+                  organizationNetworkQuery.data?.summary
+                    .average_freshness_score ?? 0,
+                )}
               </p>
             </div>
           </div>
@@ -356,19 +440,30 @@ export default function WorkspaceOverviewPage() {
       </section>
 
       <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Location Performance</p>
-        <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">Shared Patterns and Waste Comparison</h3>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+          Location Performance
+        </p>
+        <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
+          Shared Patterns and Waste Comparison
+        </h3>
         <p className="mt-1 text-sm text-text-secondary">
-          Open any branch for a read-only Today snapshot with phase, plan, forecast, and money exposure.
+          Open any branch for a read-only Today snapshot with phase, plan,
+          forecast, and money exposure.
         </p>
         <div className="mt-4 space-y-3 lg:hidden">
           {locationRows.map((row) => (
-            <article key={`mobile-${row.branchId}`} className="rounded-xl border border-surface-4 bg-surface-3/30 px-4 py-4">
+            <article
+              key={`mobile-${row.branchId}`}
+              className="rounded-xl border border-surface-4 bg-surface-3/30 px-4 py-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">{row.branchName}</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {row.branchName}
+                  </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    Forecast {row.forecastText} · Margin signal {row.marginSignal}
+                    Forecast {row.forecastText} · Margin signal{" "}
+                    {row.marginSignal}
                   </p>
                 </div>
                 <Link
@@ -381,11 +476,15 @@ export default function WorkspaceOverviewPage() {
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
                   <p className="text-text-muted">Revenue</p>
-                  <p className="mt-1 font-semibold text-text-primary">{formatCurrency(row.revenueValue)}</p>
+                  <p className="mt-1 font-semibold text-text-primary">
+                    {formatCurrency(row.revenueValue)}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
                   <p className="text-text-muted">Waste</p>
-                  <p className="mt-1 font-semibold text-status-warning">{row.wasteText}</p>
+                  <p className="mt-1 font-semibold text-status-warning">
+                    {row.wasteText}
+                  </p>
                 </div>
               </div>
             </article>
@@ -395,19 +494,33 @@ export default function WorkspaceOverviewPage() {
           <table className="hidden w-full min-w-[860px] lg:table">
             <thead className="border-b border-surface-4/70">
               <tr>
-                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Location</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Revenue</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste %</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Forecast Accuracy</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Margin Signal</th>
-                <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Branch View</th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Location
+                </th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Revenue
+                </th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Waste %
+                </th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Forecast Accuracy
+                </th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Margin Signal
+                </th>
+                <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                  Branch View
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-4/55">
               {locationRows.map((row) => {
                 return (
                   <tr key={row.branchId}>
-                    <td className="px-3 py-3 text-sm font-medium text-text-primary">{row.branchName}</td>
+                    <td className="px-3 py-3 text-sm font-medium text-text-primary">
+                      {row.branchName}
+                    </td>
                     <td className="px-3 py-3 text-sm text-text-secondary">
                       {formatCurrency(row.revenueValue)}
                     </td>
@@ -417,7 +530,9 @@ export default function WorkspaceOverviewPage() {
                     <td className="px-3 py-3 text-sm text-text-secondary">
                       {row.forecastText}
                     </td>
-                    <td className="px-3 py-3 text-sm text-text-secondary">{row.marginSignal}</td>
+                    <td className="px-3 py-3 text-sm text-text-secondary">
+                      {row.marginSignal}
+                    </td>
                     <td className="px-3 py-3 text-right">
                       <Link
                         href={`/workspace/overview/branch/${row.branchId}?date=${targetDate}`}

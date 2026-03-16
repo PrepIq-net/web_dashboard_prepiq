@@ -99,9 +99,9 @@ export async function getSubscriptionPlans() {
   return unwrapListResponse(response);
 }
 
-export async function getSubscriptionPlanPricing() {
+export async function getSubscriptionPlanPricing(params?: SubscriptionQuery) {
   const response = await apiClientWithSchema(
-    paymentEndpoints.plansPricing(),
+    withQuery(paymentEndpoints.plansPricing(), params),
     plansPricingResponseSchema,
     { method: "GET" },
   );
