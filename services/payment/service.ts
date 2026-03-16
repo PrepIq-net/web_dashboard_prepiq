@@ -83,7 +83,8 @@ const plansPricingResponseSchema = z.union([
   z.object({
     data: z.object({
       plans: z.array(subscriptionPlanSchema),
-      recommendation: subscriptionPlanPricingResponseSchema.shape.recommendation,
+      recommendation:
+        subscriptionPlanPricingResponseSchema.shape.recommendation,
     }),
   }),
 ]);
@@ -109,9 +110,13 @@ export async function getSubscriptionPlanPricing() {
   return response.data;
 }
 
-export async function listSubscriptions() {
+export type SubscriptionQuery = {
+  branch_id?: string;
+};
+
+export async function listSubscriptions(params?: SubscriptionQuery) {
   const response = await apiClientWithSchema(
-    paymentEndpoints.subscriptions(),
+    withQuery(paymentEndpoints.subscriptions(), params),
     listResponseSchema(subscriptionListSchema),
     { method: "GET" },
   );
@@ -127,9 +132,9 @@ export async function getSubscriptionDetail(subscriptionId: string) {
   );
 }
 
-export async function getCurrentSubscription() {
+export async function getCurrentSubscription(params?: SubscriptionQuery) {
   return apiClientWithSchema(
-    paymentEndpoints.subscriptionCurrent(),
+    withQuery(paymentEndpoints.subscriptionCurrent(), params),
     subscriptionDetailSchema,
     { method: "GET" },
   );
@@ -204,15 +209,18 @@ export async function detachSubscriptionAddOn(
 ) {
   const body = detachSubscriptionAddOnPayloadSchema.parse(payload);
 
-  return apiClient<void>(paymentEndpoints.subscriptionDetachAddOn(subscriptionId), {
-    method: "POST",
-    body,
-  });
+  return apiClient<void>(
+    paymentEndpoints.subscriptionDetachAddOn(subscriptionId),
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
-export async function listPayments() {
+export async function listPayments(params?: SubscriptionQuery) {
   const response = await apiClientWithSchema(
-    paymentEndpoints.payments(),
+    withQuery(paymentEndpoints.payments(), params),
     listResponseSchema(paymentSchema),
     { method: "GET" },
   );
@@ -240,6 +248,7 @@ export async function createPayment(payload: CreatePaymentPayload) {
 export type PaymentHistoryQuery = {
   status?: string;
   type?: string;
+  branch_id?: string;
 };
 
 export async function listPaymentHistory(params?: PaymentHistoryQuery) {
@@ -281,7 +290,10 @@ export async function completePayment(
   );
 }
 
-export async function failPayment(paymentId: string, payload: FailPaymentPayload) {
+export async function failPayment(
+  paymentId: string,
+  payload: FailPaymentPayload,
+) {
   const body = failPaymentPayloadSchema.parse(payload);
 
   return apiClientWithSchema(
@@ -319,9 +331,9 @@ export async function createSubscriptionQuoteRequest(
   );
 }
 
-export async function listInvoices() {
+export async function listInvoices(params?: SubscriptionQuery) {
   const response = await apiClientWithSchema(
-    paymentEndpoints.invoices(),
+    withQuery(paymentEndpoints.invoices(), params),
     listResponseSchema(invoiceSchema),
     { method: "GET" },
   );

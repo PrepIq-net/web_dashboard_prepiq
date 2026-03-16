@@ -83,6 +83,8 @@ export const subscriptionListSchema = z
   .object({
     id: z.string().uuid(),
     organization_name: z.string().optional(),
+    branch: z.string().uuid().optional(),
+    branch_name: z.string().optional(),
     plan_name: z.string().optional(),
     plan_type: z.string().optional(),
     status: z.string(),
@@ -109,6 +111,8 @@ export const subscriptionDetailSchema = z
   .object({
     id: z.string().uuid(),
     organization_name: z.string().optional(),
+    branch: z.string().uuid().optional(),
+    branch_name: z.string().optional(),
     plan: subscriptionPlanSchema,
     status: z.string(),
     billing_cycle: z.string(),
@@ -136,6 +140,7 @@ export type SubscriptionDetail = z.infer<typeof subscriptionDetailSchema>;
 
 export const createSubscriptionPayloadSchema = z.object({
   plan_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
   billing_cycle: z.string().optional(),
   auto_renew: z.boolean().optional(),
 });
@@ -172,6 +177,8 @@ export const paymentSchema = z
     payment_type: z.string(),
     reference_number: z.string(),
     organization_name: z.string().optional(),
+    branch: z.string().uuid().optional(),
+    branch_name: z.string().optional(),
     subscription: z.string().uuid().nullable().optional(),
     subscription_plan: z.string().nullable().optional(),
     amount: moneyValueSchema,
@@ -207,6 +214,7 @@ export type CreatePaymentPayload = z.infer<typeof createPaymentPayloadSchema>;
 
 export const paymentCheckoutPayloadSchema = z.object({
   plan_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
   billing_cycle: z.string().optional(),
   payment_method: z.string(),
   business_name: z.string().min(1),
@@ -257,6 +265,8 @@ export const invoiceSchema = z
     id: z.string().uuid(),
     invoice_number: z.string(),
     organization_name: z.string().optional(),
+    branch: z.string().uuid().optional(),
+    branch_name: z.string().optional(),
     payment_reference: z.string().optional(),
     payment_status: z.string().optional(),
     issue_date: z.string().optional(),

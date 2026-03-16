@@ -45,15 +45,20 @@ export const paymentQueryKeys = {
   plans: () => [...paymentQueryKeys.root, "plans"] as const,
   plansPricing: () => [...paymentQueryKeys.root, "plans-pricing"] as const,
 
-  subscriptions: () => [...paymentQueryKeys.root, "subscriptions"] as const,
+  subscriptions: (params?: SubscriptionQuery) =>
+    [...paymentQueryKeys.root, "subscriptions", params] as const,
   subscriptionDetail: (subscriptionId: string) =>
     [...paymentQueryKeys.subscriptions(), subscriptionId] as const,
-  currentSubscription: () =>
-    [...paymentQueryKeys.subscriptions(), "current"] as const,
+  currentSubscription: (params?: SubscriptionQuery) =>
+    [...paymentQueryKeys.subscriptions(), "current", params] as const,
   subscriptionAddOns: (subscriptionId: string) =>
-    [...paymentQueryKeys.subscriptionDetail(subscriptionId), "add-ons"] as const,
+    [
+      ...paymentQueryKeys.subscriptionDetail(subscriptionId),
+      "add-ons",
+    ] as const,
 
-  payments: () => [...paymentQueryKeys.root, "payments"] as const,
+  payments: (params?: SubscriptionQuery) =>
+    [...paymentQueryKeys.root, "payments", params] as const,
   paymentDetail: (paymentId: string) =>
     [...paymentQueryKeys.payments(), paymentId] as const,
   paymentHistory: (params?: PaymentHistoryQuery) =>
@@ -66,7 +71,8 @@ export const paymentQueryKeys = {
 
   quoteRequests: () => [...paymentQueryKeys.root, "quote-requests"] as const,
 
-  invoices: () => [...paymentQueryKeys.root, "invoices"] as const,
+  invoices: (params?: SubscriptionQuery) =>
+    [...paymentQueryKeys.root, "invoices", params] as const,
   invoiceDetail: (invoiceId: string) =>
     [...paymentQueryKeys.invoices(), invoiceId] as const,
 };
@@ -85,10 +91,10 @@ export function useSubscriptionPlanPricing() {
   });
 }
 
-export function useSubscriptions() {
+export function useSubscriptions(params?: SubscriptionQuery) {
   return useQuery({
-    queryKey: paymentQueryKeys.subscriptions(),
-    queryFn: listSubscriptions,
+    queryKey: paymentQueryKeys.subscriptions(params),
+    queryFn: () => listSubscriptions(params),
   });
 }
 
@@ -100,10 +106,10 @@ export function useSubscriptionDetail(subscriptionId: string) {
   });
 }
 
-export function useCurrentSubscription() {
+export function useCurrentSubscription(params?: SubscriptionQuery) {
   return useQuery({
-    queryKey: paymentQueryKeys.currentSubscription(),
-    queryFn: getCurrentSubscription,
+    queryKey: paymentQueryKeys.currentSubscription(params),
+    queryFn: () => getCurrentSubscription(params),
   });
 }
 
@@ -119,9 +125,12 @@ export function useCreateSubscription() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateSubscriptionPayload) => createSubscription(payload),
+    mutationFn: (payload: CreateSubscriptionPayload) =>
+      createSubscription(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.currentSubscription(),
       });
@@ -136,7 +145,9 @@ export function useCancelSubscription(subscriptionId: string) {
     mutationFn: (payload: CancelSubscriptionPayload) =>
       cancelSubscription(subscriptionId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
@@ -153,7 +164,9 @@ export function useActivateSubscription(subscriptionId: string) {
   return useMutation({
     mutationFn: () => activateSubscription(subscriptionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
@@ -171,7 +184,9 @@ export function useDetachSubscriptionAddOn(subscriptionId: string) {
     mutationFn: (payload: DetachSubscriptionAddOnPayload) =>
       detachSubscriptionAddOn(subscriptionId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
@@ -186,7 +201,9 @@ export function useAttachSubscriptionAddOn(subscriptionId: string) {
     mutationFn: (payload: AttachSubscriptionAddOnPayload) =>
       attachSubscriptionAddOn(subscriptionId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
@@ -197,10 +214,10 @@ export function useAttachSubscriptionAddOn(subscriptionId: string) {
   });
 }
 
-export function usePayments() {
+export function usePayments(params?: SubscriptionQuery) {
   return useQuery({
-    queryKey: paymentQueryKeys.payments(),
-    queryFn: listPayments,
+    queryKey: paymentQueryKeys.payments(params),
+    queryFn: () => listPayments(params),
   });
 }
 
@@ -226,7 +243,9 @@ export function useCreatePayment() {
     mutationFn: (payload: CreatePaymentPayload) => createPayment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.payments() });
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
     },
   });
 }
@@ -238,7 +257,9 @@ export function useCheckoutPayment() {
     mutationFn: (payload: PaymentCheckoutPayload) => checkoutPayment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.payments() });
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.currentSubscription(),
       });
@@ -258,7 +279,9 @@ export function useCompletePayment(paymentId: string) {
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.paymentDetail(paymentId),
       });
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.invoices() });
     },
   });
@@ -268,7 +291,8 @@ export function useFailPayment(paymentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: FailPaymentPayload) => failPayment(paymentId, payload),
+    mutationFn: (payload: FailPaymentPayload) =>
+      failPayment(paymentId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.payments() });
       queryClient.invalidateQueries({
@@ -292,15 +316,17 @@ export function useCreateSubscriptionQuoteRequest() {
     mutationFn: (payload: CreateSubscriptionQuoteRequestPayload) =>
       createSubscriptionQuoteRequest(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentQueryKeys.quoteRequests() });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.quoteRequests(),
+      });
     },
   });
 }
 
-export function useInvoices() {
+export function useInvoices(params?: SubscriptionQuery) {
   return useQuery({
-    queryKey: paymentQueryKeys.invoices(),
-    queryFn: listInvoices,
+    queryKey: paymentQueryKeys.invoices(params),
+    queryFn: () => listInvoices(params),
   });
 }
 

@@ -68,6 +68,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Settings className="h-4 w-4" />,
           },
           {
+            label: "Billing",
+            href: "/workspace/billing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
             label: "Chat",
             href: "/workspace/chat",
             icon: <ChatBubble className="h-4 w-4" />,
@@ -210,6 +215,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             label: "Risk",
             href: "/workspace/risk",
             icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Billing",
+            href: "/workspace/billing",
+            icon: <Folder className="h-4 w-4" />,
           },
           {
             label: "Chat",
