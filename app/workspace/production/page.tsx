@@ -6,24 +6,27 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
   useBranchDayToday,
+  useCreateProductionLog,
   useSalesDataValidation,
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 
 type LocalLog = {
   id: string;
-  type: "BATCH" | "WASTE" | "ISSUE";
+  type: "BATCH" | "WASTE";
   itemTitle: string;
   quantity: number;
   unit: string;
   notes: string;
   timestamp: string;
+  status: "pending" | "sent" | "failed";
 };
 
 type LiveItem = {
   id: string;
   title: string;
   unit: string;
+  forecast: number;
   planned: number;
   prepared: number;
   sold: number;
@@ -32,7 +35,7 @@ type LiveItem = {
   runoutMinutes: number | null;
   stockoutRisk: "LOW" | "MEDIUM" | "HIGH";
   wasteRisk: "LOW" | "MEDIUM" | "HIGH";
-  trend: number;
+  trendPct: number;
   alertLabel: string | null;
   startBatchNow: boolean;
   avgDemandLastHour: number | null;
@@ -81,6 +84,18 @@ function riskRank(value: LiveItem["stockoutRisk"]) {
   if (value === "HIGH") return 0;
   if (value === "MEDIUM") return 1;
   return 2;
+}
+
+function getTrendLabel(value: number) {
+  if (value >= 12) return "High";
+  if (value <= -12) return "Slow";
+  return "Normal";
+}
+
+function getTrendTone(label: string) {
+  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === "Slow") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
 }
 
 export default function ProductionPage() {
@@ -143,6 +158,7 @@ export default function ProductionPage() {
     { branch_id: activeBranchId, date: todayDate },
     Boolean(activeBranchId),
   );
+  const createProductionLogMutation = useCreateProductionLog();
   const salesValidationQuery = useSalesDataValidation({
     branch_id: activeBranchId,
     target_date: todayDate,
@@ -156,6 +172,13 @@ export default function ProductionPage() {
       const monitor = item.live_monitor ?? {};
       const riskEngine = monitor.risk_engine;
       const sold = Number(monitor.sold_today ?? 0);
+      const forecast = Number(
+        item.forecast_qty ??
+          item.forecast_context?.predicted_quantity_needed ??
+          item.final_quantity ??
+          item.suggested_quantity ??
+          0,
+      );
       const planned = Number(
         monitor.planned_qty ?? item.final_quantity ?? item.suggested_quantity ?? 0,
       );
@@ -169,6 +192,7 @@ export default function ProductionPage() {
         id: item.id,
         title: item.product_title,
         unit: item.unit,
+        forecast,
         planned,
         prepared: Number(monitor.total_prepared_qty ?? 0),
         sold,
@@ -177,7 +201,7 @@ export default function ProductionPage() {
         runoutMinutes: riskEngine?.runout_minutes ?? null,
         stockoutRisk: riskEngine?.stockout_risk ?? "LOW",
         wasteRisk: riskEngine?.waste_risk ?? "LOW",
-        trend: Number(monitor.trend_vs_forecast_pct ?? 0),
+        trendPct: Number(monitor.trend_vs_forecast_pct ?? 0),
         alertLabel: monitor.alert?.message ?? monitor.signal ?? null,
         startBatchNow: Boolean(riskEngine?.start_new_batch_now),
         avgDemandLastHour: riskEngine?.avg_demand_last_hour ?? null,
@@ -202,8 +226,8 @@ export default function ProductionPage() {
       totalRemaining += item.remaining;
       totalPrepared += item.prepared;
       totalPlanned += item.planned;
-      if (!Number.isNaN(item.trend)) {
-        trendSum += item.trend;
+      if (!Number.isNaN(item.trendPct)) {
+        trendSum += item.trendPct;
         trendCount += 1;
       }
       if (item.avgDemandLastHour !== null && !Number.isNaN(item.avgDemandLastHour)) {
@@ -252,29 +276,65 @@ export default function ProductionPage() {
       .slice(0, 6);
   }, [enrichedItems]);
 
-  const queueItems = useMemo(() => {
+  const velocityRows = useMemo(() => {
     return [...enrichedItems]
       .sort((a, b) => {
-        if (b.planned !== a.planned) return b.planned - a.planned;
-        return a.title.localeCompare(b.title);
+        if (b.sold !== a.sold) return b.sold - a.sold;
+        return b.forecast - a.forecast;
       })
-      .slice(0, 8);
+      .slice(0, 10);
   }, [enrichedItems]);
 
-  const watchItems = useMemo(() => {
-    return [...enrichedItems]
-      .filter(
-        (item) =>
-          item.stockoutRisk === "HIGH" ||
-          (item.runoutMinutes !== null && item.runoutMinutes <= 30),
-      )
+  const stockAlerts = useMemo(() => {
+    return enrichedItems
+      .map((item) => {
+        const runout = item.runoutMinutes;
+        const stockoutRisk =
+          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 45);
+        const highDemand = item.trendPct >= 15;
+        if (!stockoutRisk && !highDemand) return null;
+
+        const severity =
+          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 30)
+            ? "HIGH"
+            : "MEDIUM";
+        const title = stockoutRisk ? "Stock risk alert" : "High demand detected";
+        const message = stockoutRisk
+          ? `Only ${formatQuantity(item.remaining, item.unit)} remaining`
+          : `Selling ${Math.round(item.trendPct)}% faster than forecast`;
+        const detail = stockoutRisk
+          ? runout !== null
+            ? `Estimated depletion in ${formatMinutes(runout)}`
+            : "Estimated depletion soon"
+          : `Forecast ${formatQuantity(item.forecast, item.unit)} · Sold ${formatQuantity(item.sold, item.unit)}`;
+        let action = "Check line now";
+        if (item.prepNowQty > 0) {
+          action = `Prep +${formatQuantity(item.prepNowQty, item.unit)}`;
+        } else if (item.startBatchNow) {
+          action = "Start new batch now";
+        }
+
+        return {
+          id: item.id,
+          item: item.title,
+          severity,
+          title,
+          message,
+          detail,
+          action,
+          runoutMinutes: runout,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
       .sort((a, b) => {
+        const severityRank = a.severity === "HIGH" ? 0 : 1;
+        const severityRankB = b.severity === "HIGH" ? 0 : 1;
+        if (severityRank !== severityRankB) return severityRank - severityRankB;
         const runoutA = a.runoutMinutes ?? Number.POSITIVE_INFINITY;
         const runoutB = b.runoutMinutes ?? Number.POSITIVE_INFINITY;
-        if (runoutA !== runoutB) return runoutA - runoutB;
-        return riskRank(a.stockoutRisk) - riskRank(b.stockoutRisk);
+        return runoutA - runoutB;
       })
-      .slice(0, 5);
+      .slice(0, 6);
   }, [enrichedItems]);
 
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -283,6 +343,7 @@ export default function ProductionPage() {
   const [wasteReason, setWasteReason] = useState("NONE");
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [logError, setLogError] = useState<string | null>(null);
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
 
@@ -301,23 +362,38 @@ export default function ProductionPage() {
     return () => clearInterval(interval);
   }, [activeBranchId, branchDayQuery, salesValidationQuery]);
 
-  const submitLocalLog = (type: LocalLog["type"], itemTitle: string, unit: string) => {
+  const submitLocalLog = async (type: LocalLog["type"]) => {
     const quantity = Number(batchQuantity || 0);
-    if (!itemTitle || quantity <= 0) return;
+    if (!selectedItem || quantity <= 0 || createProductionLogMutation.isPending) return;
+    const normalizedQty = isDiscreteUnit(selectedItem.unit)
+      ? Math.round(quantity)
+      : quantity;
+    if (normalizedQty <= 0) return;
 
-    const notePrefix = wasteReason !== "NONE" ? `Waste reason: ${wasteReason}. ` : "";
+    const noteParts: string[] = [];
+    if (type === "WASTE" && wasteReason !== "NONE") {
+      noteParts.push(`Waste reason: ${wasteReason}.`);
+    }
+    if (batchNotes.trim()) {
+      noteParts.push(batchNotes.trim());
+    }
+    const reason = noteParts.join(" ").slice(0, 120);
+
+    const logId = crypto.randomUUID();
+    setLogError(null);
     setLocalLogs((prev) => [
       {
-        id: crypto.randomUUID(),
+        id: logId,
         type,
-        itemTitle,
-        quantity,
-        unit,
-        notes: `${notePrefix}${batchNotes}`.trim(),
+        itemTitle: selectedItem.title,
+        quantity: normalizedQty,
+        unit: selectedItem.unit,
+        notes: reason,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        status: "pending",
       },
       ...prev,
     ]);
@@ -325,6 +401,29 @@ export default function ProductionPage() {
     setBatchQuantity("");
     setBatchNotes("");
     setWasteReason("NONE");
+
+    try {
+      await createProductionLogMutation.mutateAsync({
+        prep_plan_item_id: selectedItem.id,
+        quantity_produced: type === "BATCH" ? normalizedQty : 0,
+        waste_quantity: type === "WASTE" ? normalizedQty : 0,
+        event_type: "additional",
+        reason,
+      });
+      branchDayQuery.refetch();
+      setLocalLogs((prev) =>
+        prev.map((entry) =>
+          entry.id === logId ? { ...entry, status: "sent" } : entry,
+        ),
+      );
+    } catch (error) {
+      setLocalLogs((prev) =>
+        prev.map((entry) =>
+          entry.id === logId ? { ...entry, status: "failed" } : entry,
+        ),
+      );
+      setLogError("Unable to log production. Please retry.");
+    }
   };
 
   const status = branchDay?.status ?? "--";
@@ -467,170 +566,151 @@ export default function ProductionPage() {
         ) : null}
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="mb-8 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">
+              Immediate actions for the line.
+            </p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
+        </div>
+        <div className="mt-4 space-y-3">
+          {prepNowItems.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+            >
               <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
-                <p className="mt-1 text-[14px] text-[#C7C7CC]">
-                  Immediate actions for the line.
+                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
+                <p className="mt-1 text-[12px] text-[#8E8E93]">
+                  Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
                 </p>
               </div>
-              <p className="text-[12px] text-[#8E8E93]">
-                {prepNowItems.length} active alerts
+              <div className="flex items-center gap-3">
+                <p className="text-[16px] font-semibold text-[#E0B86B]">
+                  {item.prepNowQty > 0
+                    ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                    : "Check"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    const suggestedQty =
+                      item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
+                    setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
+                  }}
+                  className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
+                >
+                  Queue batch
+                </button>
+              </div>
+            </div>
+          ))}
+          {!prepNowItems.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
+        <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
+              <p className="mt-1 text-[14px] text-[#C7C7CC]">
+                Actual demand vs forecast.
               </p>
             </div>
-            <div className="mt-4 space-y-3">
-              {prepNowItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-                >
-                  <div>
-                    <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
-                    <p className="mt-1 text-[12px] text-[#8E8E93]">
-                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-[16px] font-semibold text-[#E0B86B]">
-                      {item.prepNowQty > 0
-                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                        : "Check"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedItemId(item.id);
-                        const suggestedQty =
-                          item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
-                        setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
-                      }}
-                      className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
-                    >
-                      Queue batch
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {!prepNowItems.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
-              ) : null}
-            </div>
-          </article>
-
-          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Production queue</p>
-                <p className="mt-1 text-[14px] text-[#C7C7CC]">What we are producing.</p>
-              </div>
-              <p className="text-[12px] text-[#8E8E93]">{queueItems.length} items</p>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              {queueItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-                >
-                  <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
-                  <div className="mt-2 grid grid-cols-3 gap-3 text-[12px] text-[#8E8E93]">
-                    <div>
-                      <p className="uppercase tracking-[0.12em]">Planned</p>
-                      <p className="mt-1 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.planned, item.unit)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="uppercase tracking-[0.12em]">Sold</p>
-                      <p className="mt-1 text-[13px] text-[#C7C7CC]">
+            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead className="border-b border-[#2A2A2E]">
+                <tr>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {velocityRows.map((item) => {
+                  const trendLabel = getTrendLabel(item.trendPct);
+                  return (
+                    <tr key={item.id} className="border-b border-[#2A2A2E]">
+                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.forecast, item.unit)}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                         {formatQuantity(item.sold, item.unit)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="uppercase tracking-[0.12em]">Remaining</p>
-                      <p className="mt-1 text-[13px] text-[#C7C7CC]">
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                         {formatQuantity(item.remaining, item.unit)}
-                      </p>
-                    </div>
-                  </div>
-                  {item.alertLabel ? (
-                    <p className="mt-2 text-[12px] text-[#E0B86B]">{item.alertLabel}</p>
-                  ) : null}
-                </div>
-              ))}
-              {!queueItems.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No production items yet.</p>
-              ) : null}
-            </div>
-          </article>
-        </div>
+                      </td>
+                      <td className="px-2 py-3">
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                        >
+                          {trendLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!velocityRows.length ? (
+              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+            ) : null}
+          </div>
+        </article>
 
         <div className="space-y-6">
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Sales velocity</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">How fast items are selling.</p>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Items sold</p>
-                <p className="mt-1 font-display text-[24px] text-[#F5F5F7]">
-                  {Math.round(totals.totalSold).toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Avg trend</p>
-                <p className="mt-1 font-display text-[24px] text-[#F5F5F7]">
-                  {totals.trendCount ? `${totals.avgTrend.toFixed(1)}%` : "--"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Demand last hour</p>
-                <p className="mt-1 font-display text-[24px] text-[#F5F5F7]">
-                  {totals.demandCount ? totals.totalDemandLastHour.toFixed(1) : "--"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Planned today</p>
-                <p className="mt-1 font-display text-[24px] text-[#F5F5F7]">
-                  {Math.round(totals.totalPlanned).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </article>
-
-          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Stockout watch</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Items most likely to run out.</p>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Immediate depletion risk.</p>
             <div className="mt-4 space-y-3">
-              {watchItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] text-[#F5F5F7]">{item.title}</p>
-                    <p className="mt-1 text-[12px] text-[#8E8E93]">
-                      Runout {formatMinutes(item.runoutMinutes)} · Remaining {formatQuantity(item.remaining, item.unit)}
-                    </p>
+              {stockAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
+                        alert.severity === "HIGH"
+                          ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
+                          : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
+                      }`}
+                    >
+                      {alert.severity}
+                    </span>
                   </div>
-                  <span
-                    className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
-                      item.stockoutRisk === "HIGH"
-                        ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
-                        : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
-                    }`}
-                  >
-                    {item.stockoutRisk}
-                  </span>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    {alert.title}
+                  </p>
+                  <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
+                  <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                    Suggested action: {alert.action}
+                  </p>
                 </div>
               ))}
-              {!watchItems.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No stockout risks right now.</p>
+              {!stockAlerts.length ? (
+                <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
               ) : null}
             </div>
           </article>
 
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Log batches, waste, or issues.</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Log batches and waste in real time.</p>
 
             <div className="mt-4 grid grid-cols-1 gap-3">
               <select
@@ -672,32 +752,24 @@ export default function ProductionPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  submitLocalLog("BATCH", selectedItem?.title ?? "", selectedItem?.unit ?? "PCS")
-                }
-                className="h-10 rounded-[10px] bg-[#E0B86B] px-4 text-[12px] font-semibold text-[#141416]"
+                onClick={() => submitLocalLog("BATCH")}
+                disabled={!selectedItem || createProductionLogMutation.isPending}
+                className="h-10 rounded-[10px] bg-[#E0B86B] px-4 text-[12px] font-semibold text-[#141416] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Log batch
+                {createProductionLogMutation.isPending ? "Logging..." : "Log batch"}
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  submitLocalLog("WASTE", selectedItem?.title ?? "", selectedItem?.unit ?? "PCS")
-                }
-                className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E0B86B]"
+                onClick={() => submitLocalLog("WASTE")}
+                disabled={!selectedItem || createProductionLogMutation.isPending}
+                className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E0B86B] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Report waste
               </button>
-              <button
-                type="button"
-                onClick={() =>
-                  submitLocalLog("ISSUE", selectedItem?.title ?? "", selectedItem?.unit ?? "PCS")
-                }
-                className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E07070]"
-              >
-                Flag issue
-              </button>
             </div>
+            {logError ? (
+              <p className="mt-3 text-[12px] text-[#E07070]">{logError}</p>
+            ) : null}
 
             <div className="mt-4 space-y-2">
               {localLogs.slice(0, 4).map((entry) => (
@@ -705,14 +777,36 @@ export default function ProductionPage() {
                   key={entry.id}
                   className="flex items-center justify-between border-b border-[#2A2A2E] pb-2 text-[12px]"
                 >
-                  <p className="text-[#C7C7CC]">
-                    {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
-                  </p>
-                  <p className="text-[#8E8E93]">{entry.timestamp}</p>
+                  <div>
+                    <p className="text-[#C7C7CC]">
+                      {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
+                    </p>
+                    {entry.notes ? (
+                      <p className="mt-1 text-[11px] text-[#8E8E93]">{entry.notes}</p>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#8E8E93]">{entry.timestamp}</p>
+                    <p
+                      className={`text-[11px] ${
+                        entry.status === "failed"
+                          ? "text-[#E07070]"
+                          : entry.status === "pending"
+                            ? "text-[#E0B86B]"
+                            : "text-[#5DD39E]"
+                      }`}
+                    >
+                      {entry.status === "pending"
+                        ? "Sending"
+                        : entry.status === "failed"
+                          ? "Failed"
+                          : "Sent"}
+                    </p>
+                  </div>
                 </div>
               ))}
               {!localLogs.length ? (
-                <p className="text-[12px] text-[#8E8E93]">No local logs yet.</p>
+                <p className="text-[12px] text-[#8E8E93]">No logs yet.</p>
               ) : null}
             </div>
           </article>
