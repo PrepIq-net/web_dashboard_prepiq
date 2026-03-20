@@ -120,10 +120,13 @@ export default function ProductionPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
+  const isOwner = role === "ORG_OWNER";
+  const isOrgAdmin = role === "ORG_ADMIN";
   const isStaffOperator = role === "STAFF_OPERATOR";
   const isBranchManager = role === "BRANCH_MANAGER" || role === "GM";
   const isOpsDirector = role === "OPS_DIRECTOR";
-  const canViewProduction = isStaffOperator || isBranchManager || isOpsDirector;
+  const canViewProduction =
+    isOwner || isOrgAdmin || isStaffOperator || isBranchManager || isOpsDirector;
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;

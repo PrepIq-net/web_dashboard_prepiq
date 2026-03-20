@@ -28,6 +28,7 @@ import {
   getStaffAccountability,
   getIntegrationsOverview,
   getOperationsProductionSnapshot,
+  getSalesWasteReport,
   retryIntegrationsSync,
   startSquareOAuth,
   startToastOAuth,
@@ -61,6 +62,7 @@ import {
   type StaffAccountabilityQuery,
   type IntegrationsOverviewQuery,
   type OperationsProductionQuery,
+  type SalesWasteReportQuery,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
   type ForecastConfidenceQuery,
@@ -203,6 +205,14 @@ export const productionIntelligenceQueryKeys = {
       ...productionIntelligenceQueryKeys.root,
       "operations-production",
       params.branch_id ?? "",
+      params.target_date ?? "",
+    ] as const,
+  salesWasteReport: (params: SalesWasteReportQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "sales-waste-report",
+      params.branch_id ?? "",
+      params.period ?? "",
       params.target_date ?? "",
     ] as const,
   advancedForecast: (params?: AdvancedForecastPayload) =>
@@ -606,6 +616,14 @@ export function useOperationsProduction(params: OperationsProductionQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsProduction(params),
     queryFn: () => getOperationsProductionSnapshot(params),
     enabled: Boolean(params.branch_id || params.target_date),
+  });
+}
+
+export function useSalesWasteReport(params: SalesWasteReportQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.salesWasteReport(params),
+    queryFn: () => getSalesWasteReport(params),
+    enabled: Boolean(params.branch_id),
   });
 }
 

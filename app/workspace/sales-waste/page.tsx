@@ -10,31 +10,38 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import {
-  useBranchCommandView,
   useBranches,
   useCurrentUserProfile,
-  useExecutiveControlTower,
-  useOwnerMarginProtectionReport,
   useProductionIntelligenceAccessScope,
+  useSalesWasteReport,
 } from "@/services";
 
+const EMPTY_LIST: never[] = [];
+const CORE_ROW_MODEL = getCoreRowModel();
+
+type SalesWasteTab = "OVERVIEW" | "ITEMS" | "TRENDS";
+
 type SalesWasteRow = {
-  id: string;
-  itemId: string;
-  item: string;
+  item_id: string;
+  item_title: string | null;
   unit: string;
   forecasted: number;
   produced: number;
   sold: number;
   waste: number;
-  wasteCost: number;
-  marginImpact: number;
+  revenue: number;
+  food_cost: number;
+  waste_cost: number;
+  over_prep: number;
+  under_prep: number;
+  lost_revenue: number;
+  margin_impact: number;
+  margin_pct: number;
 };
 
-const EMPTY_LIST: never[] = [];
-const salesWasteColumnHelper = createColumnHelper<SalesWasteRow>();
-const CORE_ROW_MODEL = getCoreRowModel();
+const columnHelper = createColumnHelper<SalesWasteRow>();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -44,21 +51,19 @@ function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-function hashNumber(input: string) {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function buildTrendSeries(base: number, periods: number, direction = 1) {
-  return Array.from({ length: periods }, (_, index) => {
-    const wave = Math.sin((index + 1) * 0.8) * 0.06;
-    const drift = ((index / Math.max(1, periods - 1)) * 0.1 + wave) * direction;
-    return Math.max(0, base * (1 + drift));
-  });
+function buildSparklinePoints(values: number[], width: number, height: number) {
+  if (!values.length) return "";
+  const maxVal = Math.max(...values, 0);
+  const minVal = Math.min(...values, 0);
+  const span = Math.max(1, maxVal - minVal);
+  const step = values.length > 1 ? width / (values.length - 1) : width;
+  return values
+    .map((value, index) => {
+      const x = index * step;
+      const y = height - ((value - minVal) / span) * (height - 10) - 5;
+      return `${x},${y}`;
+    })
+    .join(" ");
 }
 
 function SalesWasteContent() {
@@ -68,21 +73,26 @@ function SalesWasteContent() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const role = user?.organization_role ?? "";
-  const isBranchManager = role === "BRANCH_MANAGER" || role === "GM";
-  const isOpsDirector = role === "OPS_DIRECTOR";
-  const isOwner = role === "ORG_OWNER" || role === "ORG_ADMIN";
-  const canAccess = isBranchManager || isOpsDirector || isOwner;
-  const readOnly = isOwner;
+  const canAccess = ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
 
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const scopedBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
-  const branchOptions =
-    isBranchManager && scopedBranchIds.size
-      ? branches.filter((branch) => scopedBranchIds.has(branch.id))
-      : branches;
+  const branchOptions = useMemo(() => {
+    if (canViewAllBranches) {
+      return branches;
+    }
+    if (accessibleBranches.length) {
+      if (!branches.length) {
+        return accessibleBranches;
+      }
+      return branches.filter((branch) => scopedBranchIds.has(branch.id));
+    }
+    return [];
+  }, [accessibleBranches, branches, canViewAllBranches, scopedBranchIds]);
 
   const defaultBranch =
     branchOptions.find((branch) => branch.id === accessScope?.default_branch_id) ??
@@ -95,16 +105,15 @@ function SalesWasteContent() {
   const queryItemId = searchParams.get("item") ?? "";
   const queryPeriod = searchParams.get("period") ?? "";
 
-  const [targetDate, setTargetDate] = useState(
-    queryDate || new Date().toISOString().slice(0, 10),
-  );
+  const [activeTab, setActiveTab] = useState<SalesWasteTab>("OVERVIEW");
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
-  const [periodDays, setPeriodDays] = useState(queryPeriod || "30");
+  const [anchorDate, setAnchorDate] = useState(
+    queryDate || new Date().toISOString().slice(0, 10),
+  );
+  const [period, setPeriod] = useState(queryPeriod || "30d");
   const [focusedItemId] = useState(queryItemId);
-  const [flaggedRows, setFlaggedRows] = useState<Record<string, boolean>>({});
-  const [wasteNotes, setWasteNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!selectedBranchId && defaultBranch?.id) {
@@ -113,328 +122,400 @@ function SalesWasteContent() {
   }, [defaultBranch?.id, selectedBranchId]);
 
   useEffect(() => {
+    if (!branchOptions.length) return;
+    if (!selectedBranchId) return;
+    const isAllowed = branchOptions.some((branch) => branch.id === selectedBranchId);
+    if (!isAllowed && defaultBranch?.id) {
+      setSelectedBranchId(defaultBranch.id);
+    }
+  }, [branchOptions, defaultBranch?.id, selectedBranchId]);
+
+  useEffect(() => {
     if (!isLoading && !canAccess) {
       router.replace("/");
     }
   }, [isLoading, canAccess, router]);
 
-  const canLoadBranch = Boolean(selectedBranchId);
-
-  const branchCommandQuery = useBranchCommandView(
+  const reportQuery = useSalesWasteReport(
     {
       branch_id: selectedBranchId,
-      target_date: targetDate,
+      period,
+      target_date: anchorDate,
     },
-    canLoadBranch,
   );
 
-  const executiveQuery = useExecutiveControlTower(
-    {
-      branch_id: isBranchManager ? selectedBranchId : undefined,
-      target_date: targetDate,
-    },
-    (isOpsDirector || isOwner) &&
-      Boolean(user?.organization_id) &&
-      (!isBranchManager || Boolean(selectedBranchId)),
+  const report = reportQuery.data;
+  const summaries = report?.summaries;
+  const summaryCards = useMemo(
+    () => [
+      { label: "Today", data: summaries?.today },
+      { label: "Last 7 Days", data: summaries?.week },
+      { label: "Last 30 Days", data: summaries?.month },
+    ],
+    [summaries],
   );
 
-  const marginReportQuery = useOwnerMarginProtectionReport(
-    {
-      branch_id: isBranchManager ? selectedBranchId : undefined,
-      target_date: targetDate,
-    },
-    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
-  );
-
-  const recommendations = branchCommandQuery.data?.panels.forecast.recommendations ?? EMPTY_LIST;
-  const preparedTotal = Number(branchCommandQuery.data?.panels.real_time.prepared_total ?? 0);
-  const soldTotal = Number(branchCommandQuery.data?.panels.real_time.sold_total ?? 0);
-
-  const producedRatio = recommendations.length
-    ? preparedTotal / Math.max(1, recommendations.reduce((sum, row) => sum + Number(row.recommended_quantity ?? 0), 0))
-    : 1;
-  const soldRatio = recommendations.length
-    ? soldTotal / Math.max(1, recommendations.reduce((sum, row) => sum + Number(row.recommended_quantity ?? 0), 0))
-    : 1;
-
-  const tableRows = useMemo<SalesWasteRow[]>(() => {
-    const rows = recommendations.map((item, index) => {
-      const seed = hashNumber(item.item_id);
-      const forecasted = Number(item.recommended_quantity ?? 0);
-      const varianceNudge = ((seed % 7) - 3) * 0.03;
-      const produced = Math.max(0, Math.round(forecasted * Math.max(0.4, producedRatio + varianceNudge)));
-      const sold = Math.max(0, Math.round(forecasted * Math.max(0.35, soldRatio - varianceNudge * 0.6)));
-      const waste = Math.max(0, produced - sold);
-      const unitCost = 2.2 + (seed % 9) * 0.35;
-      const wasteCost = waste * unitCost;
-      const underProduction = Math.max(0, sold - produced);
-      const marginImpact = wasteCost + underProduction * unitCost * 1.4;
-
-      return {
-        id: `${item.id}-${index}`,
-        itemId: item.item_id,
-        item: item.item_title,
-        unit: item.unit,
-        forecasted,
-        produced,
-        sold,
-        waste,
-        wasteCost,
-        marginImpact,
-      };
-    });
-    if (focusedItemId) {
-      return rows.filter((row) => row.itemId === focusedItemId);
-    }
-    return rows;
-  }, [recommendations, producedRatio, soldRatio, focusedItemId]);
-
-  const totalForecasted = tableRows.reduce((sum, row) => sum + row.forecasted, 0);
-  const totalProduced = tableRows.reduce((sum, row) => sum + row.produced, 0);
-  const totalSold = tableRows.reduce((sum, row) => sum + row.sold, 0);
-  const totalWasteUnits = tableRows.reduce((sum, row) => sum + row.waste, 0);
-  const overproductionCost = tableRows
-    .reduce((sum, row) => sum + Math.max(0, row.produced - row.sold) * (row.wasteCost / Math.max(1, row.waste)), 0);
-  const underproductionCost = tableRows
-    .reduce((sum, row) => sum + Math.max(0, row.sold - row.produced) * (row.marginImpact / Math.max(1, row.sold)), 0);
-
-  const branchGrid = executiveQuery.data?.branch_grid ?? EMPTY_LIST;
-  const totalRevenueFromGrid = executiveQuery.data?.summary?.total_revenue ?? 0;
-  const selectedBranchRevenue = branchGrid.find((branch) => branch.branch_id === selectedBranchId)?.revenue;
-
-  const estimatedSales = Number(
-    (isOpsDirector || isOwner
-      ? selectedBranchId
-        ? selectedBranchRevenue ?? totalSold * 5.2
-        : totalRevenueFromGrid || totalSold * 5.2
-      : totalSold * 5.2) ?? 0,
-  );
-
-  const wasteValueFromMargin = Number(
-    marginReportQuery.data?.branches.find((branch) => branch.branch_id === selectedBranchId)?.total_waste_cost ?? 0,
-  );
-  const wasteValue = wasteValueFromMargin > 0 ? wasteValueFromMargin : overproductionCost;
-  const wastePct = totalProduced > 0 ? (totalWasteUnits / totalProduced) * 100 : 0;
-
-  const periods = periodDays === "7" ? 7 : periodDays === "14" ? 14 : 30;
-  const salesTrend = buildTrendSeries(Math.max(200, estimatedSales / periods), periods, 1);
-  const wasteTrend = buildTrendSeries(Math.max(40, wasteValue / periods), periods, -1);
-  const varianceTrend = buildTrendSeries(
-    Math.max(15, Math.abs(totalForecasted - totalProduced) / Math.max(1, periods)),
-    periods,
-    -1,
-  );
-
-  const maxSalesTrend = Math.max(...salesTrend, 1);
-  const maxWasteTrend = Math.max(...wasteTrend, 1);
-  const maxVarianceTrend = Math.max(...varianceTrend, 1);
-  const maxItemWaste = Math.max(...tableRows.map((row) => row.wasteCost), 1);
+  const items = useMemo(() => {
+    if (!report?.items) return [] as SalesWasteRow[];
+    if (!focusedItemId) return report.items;
+    return report.items.filter((row) => row.item_id === focusedItemId);
+  }, [report?.items, focusedItemId]);
 
   const columns = useMemo(
     () => [
-      salesWasteColumnHelper.accessor("item", {
+      columnHelper.accessor("item_title", {
         header: "Item",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm font-semibold text-text-primary">
+            {info.getValue() ?? "Unknown"}
+          </span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("forecasted", {
+      columnHelper.accessor("forecasted", {
         header: "Forecasted",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm text-text-secondary">{info.getValue()}</span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("produced", {
+      columnHelper.accessor("produced", {
         header: "Produced",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm text-text-secondary">{info.getValue()}</span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("sold", {
+      columnHelper.accessor("sold", {
         header: "Sold",
-        cell: (info) => <span className="text-[12px] text-[#F5F5F7]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm text-text-secondary">{info.getValue()}</span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("waste", {
+      columnHelper.accessor("waste", {
         header: "Waste",
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{info.getValue()}</span>,
+        cell: (info) => (
+          <span className="text-sm text-status-warning">{info.getValue()}</span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("wasteCost", {
+      columnHelper.accessor("revenue", {
+        header: "Revenue",
+        cell: (info) => (
+          <span className="text-sm text-text-secondary">
+            {toCurrency(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("waste_cost", {
         header: "Waste Cost",
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{toCurrency(info.getValue())}</span>,
+        cell: (info) => (
+          <span className="text-sm font-semibold text-status-warning">
+            {toCurrency(info.getValue())}
+          </span>
+        ),
       }),
-      salesWasteColumnHelper.accessor("marginImpact", {
-        header: "Margin Impact",
-        cell: (info) => <span className="text-[12px] text-[#C44949]">{toCurrency(info.getValue())}</span>,
-      }),
-      salesWasteColumnHelper.display({
-        id: "actions",
-        header: "Actions",
+      columnHelper.display({
+        id: "overUnder",
+        header: "Over/Under",
         cell: (info) => {
           const row = info.row.original;
+          const over = row.over_prep > 0 ? `+${row.over_prep}` : "0";
+          const under = row.under_prep > 0 ? `-${row.under_prep}` : "0";
           return (
-            <div className="flex flex-wrap gap-1.5">
-              <Link
-                href={`/workspace/production?item=${row.itemId}&date=${targetDate}&branch=${selectedBranchId}`}
-                className="inline-flex h-7 items-center rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#F5F5F7]"
-              >
-                Drill in
-              </Link>
-              <button
-                type="button"
-                disabled={readOnly}
-                onClick={() => {
-                  if (readOnly) return;
-                  setFlaggedRows((prev) => ({ ...prev, [row.id]: !prev[row.id] }));
-                }}
-                className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#C48B2A] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {flaggedRows[row.id] ? "Flagged" : "Flag waste"}
-              </button>
-              <button
-                type="button"
-                disabled={readOnly}
-                onClick={() => {
-                  if (readOnly) return;
-                  const existing = wasteNotes[row.id] ?? "";
-                  const note = window.prompt(`Waste note for ${row.item}`, existing);
-                  if (note !== null) {
-                    setWasteNotes((prev) => ({ ...prev, [row.id]: note.trim() }));
-                  }
-                }}
-                className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#8E8E93] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {wasteNotes[row.id] ? "Edit note" : "Add note"}
-              </button>
-            </div>
+            <span className="text-sm text-text-muted">{over} / {under}</span>
           );
         },
       }),
+      columnHelper.accessor("margin_impact", {
+        header: "Margin Impact",
+        cell: (info) => (
+          <span className="text-sm font-semibold text-status-critical">
+            {toCurrency(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("margin_pct", {
+        header: "Margin %",
+        cell: (info) => (
+          <span className="text-sm font-semibold text-brand-gold">
+            {toPercent(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "Action",
+        cell: (info) => (
+          <Link
+            href={`/workspace/production?item=${info.row.original.item_id}&branch=${selectedBranchId}&date=${anchorDate}`}
+            className="inline-flex h-8 items-center rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-text-primary"
+          >
+            Drill In
+          </Link>
+        ),
+      }),
     ],
-    [targetDate, selectedBranchId, readOnly, flaggedRows, wasteNotes],
+    [anchorDate, selectedBranchId],
   );
 
   const table = useReactTable({
-    data: tableRows,
+    data: items,
     columns,
     getCoreRowModel: CORE_ROW_MODEL,
   });
 
+  const trendSeries = useMemo(() => {
+    const trends = report?.trends ?? [];
+    return {
+      labels: trends.map((row) => row.date.slice(5)),
+      revenue: trends.map((row) => row.revenue),
+      waste: trends.map((row) => row.waste_cost),
+      food: trends.map((row) => row.food_cost),
+      margin: trends.map((row) => row.margin),
+    };
+  }, [report?.trends]);
+
   return (
     <WorkspaceShell
       eyebrow="Sales & Waste"
-      title="Operational Finance"
-      description="Daily performance impact through sales flow, waste intensity, overproduction cost, and underproduction drag."
-      insight="Waste decisions improve when item-level variance and margin impact are reviewed alongside sales performance in the same window."
+      title="Profit Intelligence"
+      description="Connect sales performance with waste loss and forecasting impact."
+      insight="Understand where revenue is being captured and where margin leaks are happening."
     >
-      <section className="border-b border-[#2A2A2E] pb-8">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <input
-            type="date"
-            value={targetDate}
-            onChange={(event) => setTargetDate(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          />
-          <select
+      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <Select
+            label="Branch"
+            options={branchOptions.map((branch) => ({
+              value: branch.id,
+              label: branch.name,
+            }))}
             value={selectedBranchId}
-            onChange={(event) => setSelectedBranchId(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            {branchOptions.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={periodDays}
-            onChange={(event) => setPeriodDays(event.target.value)}
-            className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-          <p className="flex items-center text-[12px] text-[#8E8E93]">
-            {readOnly ? "Read-only mode for owner." : "Operational actions enabled for this role."}
-          </p>
-        </div>
-      </section>
-
-      <section className="mt-8 grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-5">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales</p>
-          <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{toCurrency(estimatedSales)}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Waste Value</p>
-          <p className="mt-1 font-display text-[28px] text-[#C48B2A]">{toCurrency(wasteValue)}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Waste %</p>
-          <p className="mt-1 font-display text-[28px] text-[#C48B2A]">{toPercent(wastePct)}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Overproduction Cost</p>
-          <p className="mt-1 font-display text-[28px] text-[#C44949]">{toCurrency(overproductionCost)}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Underproduction Cost</p>
-          <p className="mt-1 font-display text-[28px] text-[#C44949]">{toCurrency(underproductionCost)}</p>
-        </article>
-      </section>
-
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Sales Trend ({periodDays}d)</p>
-            <div className="mt-3 flex h-24 items-end gap-1">
-              {salesTrend.map((point, index) => (
-                <div key={`sales-${index}`} className="flex-1 rounded-t-[4px] bg-[#3F8F68]/70" style={{ height: `${Math.max(8, (point / maxSalesTrend) * 100)}%` }} />
-              ))}
-            </div>
-          </article>
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste Trend ({periodDays}d)</p>
-            <div className="mt-3 flex h-24 items-end gap-1">
-              {wasteTrend.map((point, index) => (
-                <div key={`waste-${index}`} className="flex-1 rounded-t-[4px] bg-[#C48B2A]/70" style={{ height: `${Math.max(8, (point / maxWasteTrend) * 100)}%` }} />
-              ))}
-            </div>
-          </article>
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste by Item</p>
-            <div className="mt-3 space-y-2">
-              {tableRows.slice(0, 6).map((row) => (
-                <div key={`waste-item-${row.id}`}>
-                  <div className="flex items-center justify-between text-[12px] text-[#C7C7CC]">
-                    <span>{row.item}</span>
-                    <span>{toCurrency(row.wasteCost)}</span>
-                  </div>
-                  <div className="mt-1 h-1.5 rounded-full bg-[#1F1F23]">
-                    <div className="h-1.5 rounded-full bg-[#C48B2A]" style={{ width: `${Math.max(4, (row.wasteCost / maxItemWaste) * 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast vs Actual Variance</p>
-            <div className="mt-3 flex h-24 items-end gap-1">
-              {varianceTrend.map((point, index) => (
-                <div key={`var-${index}`} className="flex-1 rounded-t-[4px] bg-[#8E8E93]/60" style={{ height: `${Math.max(8, (point / maxVarianceTrend) * 100)}%` }} />
-              ))}
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Per-Item Performance</p>
-        <div className="mt-3 overflow-x-auto">
-          <NativeTable
-            table={table}
-            tableClassName="w-full min-w-[1360px]"
-            headerClassName="border-b border-[#2A2A2E]"
-            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-            bodyRowClassName="border-b border-[#232327] align-top"
-            cellClassName="px-2 py-3"
+            onChange={setSelectedBranchId}
           />
+          <Select
+            label="Period"
+            options={[
+              { value: "today", label: "Today" },
+              { value: "7d", label: "Last 7 days" },
+              { value: "30d", label: "Last 30 days" },
+            ]}
+            value={period}
+            onChange={setPeriod}
+          />
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Anchor Date
+            </label>
+            <input
+              type="date"
+              value={anchorDate}
+              onChange={(event) => setAnchorDate(event.target.value)}
+              className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 text-sm text-text-secondary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Selected Window
+            </label>
+            <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
+              {report
+                ? `${report.period_start_date} → ${report.period_end_date}`
+                : "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-surface-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "OVERVIEW", label: "Overview" },
+              { id: "ITEMS", label: "Item Performance" },
+              { id: "TRENDS", label: "Trends" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as SalesWasteTab)}
+                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
+
+      {activeTab === "OVERVIEW" ? (
+        <section className="space-y-10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Sales Summary
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Performance at a Glance
+            </h3>
+            <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {summaryCards.map((card) => (
+                <article key={card.label} className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    {card.label}
+                  </p>
+                  <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                    {toCurrency(card.data?.revenue ?? 0)}
+                  </p>
+                  <div className="mt-4 space-y-2 text-sm text-text-secondary">
+                    <p>Orders: {card.data?.total_orders ?? 0}</p>
+                    <p>Avg Order: {toCurrency(card.data?.avg_order_value ?? 0)}</p>
+                    <p>Top Item: {card.data?.top_item?.item_title ?? "—"}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Waste Summary
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Where Profit Leaks Happen
+            </h3>
+            <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {summaryCards.map((card) => (
+                <article key={`waste-${card.label}`} className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                    {card.label}
+                  </p>
+                  <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
+                    {toCurrency(card.data?.waste_summary?.total_waste_value ?? 0)}
+                  </p>
+                  <div className="mt-4 space-y-2 text-sm text-text-secondary">
+                    <p>Waste Rate: {toPercent(card.data?.waste_summary?.waste_rate_pct ?? 0)}</p>
+                    <p>Top Waste: {card.data?.waste_summary?.top_waste_item?.item_title ?? "—"}</p>
+                    <p>
+                      Units Wasted: {card.data?.waste_summary?.top_waste_item?.units_wasted ?? 0}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "ITEMS" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Item Performance
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Sales, Waste, and Forecast Impact
+            </h3>
+            <p className="mt-2 text-sm text-text-muted">
+              Over/under prep shows forecasting drag. Margin impact combines waste and lost revenue.
+            </p>
+          </div>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Revenue</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
+                {toCurrency(report?.totals.revenue ?? 0)}
+              </p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Food Cost Ratio</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                {toPercent(report?.totals.food_cost_ratio ?? 0)}
+              </p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Rate</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-warning">
+                {toPercent(report?.totals.waste_rate_pct ?? 0)}
+              </p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Lost Revenue</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-critical">
+                {toCurrency(report?.totals.lost_revenue ?? 0)}
+              </p>
+            </article>
+          </div>
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <NativeTable
+                table={table}
+                tableClassName="w-full min-w-[1200px]"
+                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                bodyClassName="divide-y divide-surface-4"
+                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                cellClassName="px-6 py-4"
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "TRENDS" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Cost Trends
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Revenue, Waste, Food Cost, Margin
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {[
+              { label: "Revenue", color: "text-status-success", series: trendSeries.revenue },
+              { label: "Food Cost", color: "text-text-secondary", series: trendSeries.food },
+              { label: "Waste Cost", color: "text-status-critical", series: trendSeries.waste },
+              { label: "Margin", color: "text-brand-gold", series: trendSeries.margin },
+            ].map((chart) => {
+              const points = buildSparklinePoints(chart.series, 520, 160);
+              return (
+                <div key={chart.label} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                    {chart.label} Trend
+                  </p>
+                  {chart.series.length ? (
+                    <div className="mt-4">
+                      <svg viewBox="0 0 520 160" className="h-40 w-full">
+                        <polyline
+                          points={points}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                          className={chart.color}
+                        />
+                      </svg>
+                      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                        {trendSeries.labels.slice(-6).map((label, index) => (
+                          <div key={`${chart.label}-${label}-${index}`}>
+                            <p>{label}</p>
+                            <p className="font-semibold text-text-secondary">
+                              {toCurrency(chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-text-muted">
+                      Not enough historical data yet.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </WorkspaceShell>
   );
 }

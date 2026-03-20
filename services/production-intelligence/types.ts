@@ -1752,3 +1752,86 @@ export const velocityUpdatePayloadSchema = z.object({
 export type VelocityUpdatePayload = z.infer<
   typeof velocityUpdatePayloadSchema
 >;
+
+export const salesWasteTopItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  revenue: z.number().optional(),
+  units_sold: z.number().optional(),
+});
+
+export const salesWasteTopWasteItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  units_wasted: z.number(),
+  waste_value: z.number(),
+});
+
+export const salesWastePeriodSummarySchema = z.object({
+  start_date: z.string(),
+  end_date: z.string(),
+  total_orders: z.number(),
+  revenue: z.number(),
+  avg_order_value: z.number(),
+  top_item: salesWasteTopItemSchema.nullable(),
+  waste_summary: z.object({
+    total_waste_value: z.number(),
+    waste_rate_pct: z.number(),
+    top_waste_item: salesWasteTopWasteItemSchema.nullable(),
+  }),
+});
+
+export const salesWasteItemRowSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  unit: z.string(),
+  forecasted: z.number(),
+  produced: z.number(),
+  sold: z.number(),
+  waste: z.number(),
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  over_prep: z.number(),
+  under_prep: z.number(),
+  lost_revenue: z.number(),
+  margin_impact: z.number(),
+  margin_pct: z.number(),
+});
+
+export const salesWasteTrendSchema = z.object({
+  date: z.string(),
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  margin: z.number(),
+});
+
+export const salesWasteReportSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  period: z.string(),
+  period_start_date: z.string(),
+  period_end_date: z.string(),
+  summaries: z.object({
+    today: salesWastePeriodSummarySchema,
+    week: salesWastePeriodSummarySchema,
+    month: salesWastePeriodSummarySchema,
+  }),
+  totals: z.object({
+    total_orders: z.number(),
+    revenue: z.number(),
+    avg_order_value: z.number(),
+    food_cost: z.number(),
+    food_cost_ratio: z.number(),
+    waste_cost: z.number(),
+    waste_rate_pct: z.number(),
+    over_prep_qty: z.number(),
+    under_prep_qty: z.number(),
+    lost_revenue: z.number(),
+  }),
+  items: z.array(salesWasteItemRowSchema),
+  trends: z.array(salesWasteTrendSchema),
+});
+
+export type SalesWasteReport = z.infer<typeof salesWasteReportSchema>;
