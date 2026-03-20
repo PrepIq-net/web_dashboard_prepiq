@@ -402,6 +402,26 @@ export default function ProductionPage() {
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
+  type ProductionTab =
+    | "SERVICE"
+    | "ACTIONS"
+    | "VELOCITY"
+    | "ALERTS"
+    | "QUEUE"
+    | "WASTE"
+    | "CARDS";
+
+  const [activeTab, setActiveTab] = useState<ProductionTab>("SERVICE");
+
+  const sectionTabs: { id: ProductionTab; label: string }[] = [
+    { id: "SERVICE", label: "Service" },
+    { id: "ACTIONS", label: "Prep Actions" },
+    { id: "VELOCITY", label: "Velocity" },
+    { id: "ALERTS", label: "Stock Alerts" },
+    { id: "QUEUE", label: "Prep Queue" },
+    { id: "WASTE", label: "Waste Signals" },
+    { id: "CARDS", label: "Cards" },
+  ];
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
 
@@ -539,13 +559,13 @@ export default function ProductionPage() {
       <section className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+            <label className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
               Branch Context
             </label>
             <select
               value={activeBranchId}
               onChange={(event) => setSelectedBranchId(event.target.value)}
-              className="h-10 min-w-[220px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
+              className="h-11 min-w-[240px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[14px] text-[#F5F5F7]"
             >
               {!branchOptions.length ? <option value="">No branches available</option> : null}
               {branchOptions.map((branch) => (
@@ -555,7 +575,7 @@ export default function ProductionPage() {
               ))}
             </select>
             {activeBranch ? (
-              <p className="text-[12px] text-[#8E8E93]">
+              <p className="text-[13px] text-[#8E8E93]">
                 Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
               </p>
             ) : null}
@@ -574,7 +594,27 @@ export default function ProductionPage() {
         </div>
       </section>
 
-      <section className="mb-8 rounded-[18px] border border-[#2A2A2E] bg-[#151518] p-6">
+      <section className="mb-6 rounded-[14px] border border-[#2A2A2E] bg-[#121216] px-3 py-3">
+        <div className="flex flex-wrap gap-2">
+          {sectionTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {activeTab === "SERVICE" ? (
+        <section className="mb-8 rounded-[18px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
@@ -591,37 +631,37 @@ export default function ProductionPage() {
           </span>
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">{timeOpen}</p>
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{timeOpen}</p>
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {Math.round(totals.totalSold).toLocaleString()}
             </p>
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {Math.round(totals.totalRemaining).toLocaleString()}
             </p>
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {totals.prepNowCount}
             </p>
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {totals.stockoutCount}
             </p>
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
-            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {salesPerHour > 0 ? salesPerHour.toFixed(1) : "--"}
             </p>
           </div>
@@ -634,154 +674,64 @@ export default function ProductionPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
-      <section className="mb-8 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">
-              Immediate actions for the line.
-            </p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
-        </div>
-        <div className="mt-4 space-y-3">
-          {prepNowItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-            >
-              <div>
-                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
-                <p className="mt-1 text-[12px] text-[#8E8E93]">
-                  Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <p className="text-[16px] font-semibold text-[#E0B86B]">
-                  {item.prepNowQty > 0
-                    ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                    : "Check"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedItemId(item.id);
-                    const suggestedQty =
-                      item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
-                    setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
-                  }}
-                  className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
-                >
-                  Queue batch
-                </button>
-              </div>
-            </div>
-          ))}
-          {!prepNowItems.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
-        <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
-              <p className="mt-1 text-[14px] text-[#C7C7CC]">
-                Actual demand vs forecast.
-              </p>
-            </div>
-            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead className="border-b border-[#2A2A2E]">
-                <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
-                </tr>
-              </thead>
-              <tbody>
-                {velocityRows.map((item) => {
-                  const trendLabel = getTrendLabel(item.trendPct);
-                  return (
-                    <tr key={item.id} className="border-b border-[#2A2A2E]">
-                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.forecast, item.unit)}
-                      </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.sold, item.unit)}
-                      </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.remaining, item.unit)}
-                      </td>
-                      <td className="px-2 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
-                        >
-                          {trendLabel}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {!velocityRows.length ? (
-              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
-            ) : null}
-          </div>
-        </article>
-
-        <div className="space-y-6">
+      {activeTab === "ACTIONS" ? (
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Immediate depletion risk.</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
+                <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                  Immediate actions for the line.
+                </p>
+              </div>
+              <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
+            </div>
             <div className="mt-4 space-y-3">
-              {stockAlerts.map((alert) => (
+              {prepNowItems.map((item) => (
                 <div
-                  key={alert.id}
-                  className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
-                    <span
-                      className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
-                        alert.severity === "HIGH"
-                          ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
-                          : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
-                      }`}
-                    >
-                      {alert.severity}
-                    </span>
+                  <div>
+                    <p className="text-[16px] font-semibold text-[#F5F5F7]">{item.title}</p>
+                    <p className="mt-1 text-[13px] text-[#8E8E93]">
+                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
+                    </p>
                   </div>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                    {alert.title}
-                  </p>
-                  <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
-                  <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
-                  <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                    Suggested action: {alert.action}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-[18px] font-semibold text-[#E0B86B]">
+                      {item.prepNowQty > 0
+                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                        : "Check"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedItemId(item.id);
+                        const suggestedQty =
+                          item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
+                        setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
+                      }}
+                      className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
+                    >
+                      Queue batch
+                    </button>
+                  </div>
                 </div>
               ))}
-              {!stockAlerts.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
+              {!prepNowItems.length ? (
+                <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
               ) : null}
             </div>
           </article>
 
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Log batches and waste in real time.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Log batches and waste in real time.</p>
 
-            <div className="mt-4 grid grid-cols-1 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <select
                 value={selectedItemId}
                 onChange={(event) => setSelectedItemId(event.target.value)}
@@ -816,7 +766,7 @@ export default function ProductionPage() {
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
                 placeholder="Notes"
-                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
+                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7] md:col-span-2"
               />
             </div>
 
@@ -881,14 +831,110 @@ export default function ProductionPage() {
               ) : null}
             </div>
           </article>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+      {activeTab === "VELOCITY" ? (
+        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
+              <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                Actual demand vs forecast.
+              </p>
+            </div>
+            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead className="border-b border-[#2A2A2E]">
+                <tr>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {velocityRows.map((item) => {
+                  const trendLabel = getTrendLabel(item.trendPct);
+                  return (
+                    <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
+                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.forecast, item.unit)}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.sold, item.unit)}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.remaining, item.unit)}
+                      </td>
+                      <td className="px-2 py-3">
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                        >
+                          {trendLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!velocityRows.length ? (
+              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "ALERTS" ? (
+        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+          <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
+          <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Immediate depletion risk.</p>
+          <div className="mt-4 space-y-3">
+            {stockAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
+                  <span
+                    className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
+                      alert.severity === "HIGH"
+                        ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
+                        : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
+                    }`}
+                  >
+                    {alert.severity}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  {alert.title}
+                </p>
+                <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
+                <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
+                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                  Suggested action: {alert.action}
+                </p>
+              </div>
+            ))}
+            {!stockAlerts.length ? (
+              <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "QUEUE" ? (
+        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">What needs to be prepared next.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">What needs to be prepared next.</p>
           </div>
           <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
         </div>
@@ -906,7 +952,7 @@ export default function ProductionPage() {
               {prepQueueItems.map((item) => {
                 const priority = getPriority(item);
                 return (
-                  <tr key={item.id} className="border-b border-[#2A2A2E]">
+                  <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
                     <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
                     <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                       {formatQuantity(item.remaining, item.unit)}
@@ -932,13 +978,15 @@ export default function ProductionPage() {
             <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
           ) : null}
         </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+      {activeTab === "WASTE" ? (
+        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Demand is slowing. Adjust prep.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Demand is slowing. Adjust prep.</p>
           </div>
           <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
         </div>
@@ -965,13 +1013,15 @@ export default function ProductionPage() {
             <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
           ) : null}
         </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+      {activeTab === "CARDS" ? (
+        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
-            <p className="mt-1 text-[14px] text-[#C7C7CC]">Large cards for kitchen screens.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Large cards for kitchen screens.</p>
           </div>
           <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
         </div>
@@ -987,25 +1037,25 @@ export default function ProductionPage() {
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
-                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.forecast, item.unit)}
                     </p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
-                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.sold, item.unit)}
                     </p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
-                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.remaining, item.unit)}
                     </p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
-                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {trendLabel}
                     </p>
                   </div>
@@ -1022,7 +1072,8 @@ export default function ProductionPage() {
             <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
           ) : null}
         </div>
-      </section>
+        </section>
+      ) : null}
     </WorkspaceShell>
   );
 }
