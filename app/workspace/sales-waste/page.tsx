@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   createColumnHelper,
@@ -61,7 +61,7 @@ function buildTrendSeries(base: number, periods: number, direction = 1) {
   });
 }
 
-export default function SalesWastePage() {
+function SalesWasteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -436,5 +436,19 @@ export default function SalesWastePage() {
         </div>
       </section>
     </WorkspaceShell>
+  );
+}
+
+export default function SalesWastePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-6 py-8 text-sm text-text-muted">
+          Loading sales &amp; waste workspace…
+        </div>
+      }
+    >
+      <SalesWasteContent />
+    </Suspense>
   );
 }
