@@ -98,6 +98,22 @@ function getTrendTone(label: string) {
   return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
 }
 
+function getPriority(item: LiveItem) {
+  if (item.stockoutRisk === "HIGH" || (item.runoutMinutes !== null && item.runoutMinutes <= 30)) {
+    return "High";
+  }
+  if (item.prepNowQty > 0 || (item.runoutMinutes !== null && item.runoutMinutes <= 60)) {
+    return "Medium";
+  }
+  return "Low";
+}
+
+function getPriorityTone(label: string) {
+  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === "Medium") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
+}
+
 export default function ProductionPage() {
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -334,6 +350,32 @@ export default function ProductionPage() {
         const runoutB = b.runoutMinutes ?? Number.POSITIVE_INFINITY;
         return runoutA - runoutB;
       })
+      .slice(0, 6);
+  }, [enrichedItems]);
+
+  const prepQueueItems = useMemo(() => {
+    const priorityRank = (label: string) =>
+      label === "High" ? 0 : label === "Medium" ? 1 : 2;
+    return [...enrichedItems]
+      .sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+        if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
+        return b.prepNowQty - a.prepNowQty;
+      })
+      .slice(0, 8);
+  }, [enrichedItems]);
+
+  const wasteSignals = useMemo(() => {
+    return enrichedItems
+      .filter((item) => item.wasteRisk === "HIGH" || item.trendPct <= -12)
+      .sort((a, b) => a.trendPct - b.trendPct)
+      .slice(0, 6);
+  }, [enrichedItems]);
+
+  const productionCards = useMemo(() => {
+    return [...enrichedItems]
+      .sort((a, b) => b.sold - a.sold)
       .slice(0, 6);
   }, [enrichedItems]);
 
@@ -810,6 +852,146 @@ export default function ProductionPage() {
               ) : null}
             </div>
           </article>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">What needs to be prepared next.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead className="border-b border-[#2A2A2E]">
+              <tr>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep needed</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prepQueueItems.map((item) => {
+                const priority = getPriority(item);
+                return (
+                  <tr key={item.id} className="border-b border-[#2A2A2E]">
+                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                      {formatQuantity(item.remaining, item.unit)}
+                    </td>
+                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                      {item.prepNowQty > 0
+                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                        : "0"}
+                    </td>
+                    <td className="px-2 py-3">
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
+                      >
+                        {priority}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!prepQueueItems.length ? (
+            <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Demand is slowing. Adjust prep.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
+        </div>
+        <div className="mt-4 space-y-3">
+          {wasteSignals.map((item) => {
+            const expectedDemandRemaining = Math.max(0, item.forecast - item.sold);
+            const overage = Math.max(0, Math.round(item.remaining - expectedDemandRemaining));
+            return (
+              <div
+                key={item.id}
+                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+              >
+                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
+                <p className="mt-1 text-[12px] text-[#E0B86B]">
+                  Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
+                </p>
+                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                  Suggested action: Slow production.
+                </p>
+              </div>
+            );
+          })}
+          {!wasteSignals.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Large cards for kitchen screens.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {productionCards.map((item) => {
+            const trendLabel = getTrendLabel(item.trendPct);
+            return (
+              <div
+                key={item.id}
+                className="rounded-[14px] border border-[#2A2A2E] bg-[#101012] p-4"
+              >
+                <p className="text-[15px] text-[#F5F5F7]">{item.title}</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.forecast, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.sold, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.remaining, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {trendLabel}
+                    </p>
+                  </div>
+                </div>
+                {item.prepNowQty > 0 ? (
+                  <p className="mt-3 text-[12px] text-[#E0B86B]">
+                    Prep recommended: +{formatQuantity(item.prepNowQty, item.unit)}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+          {!productionCards.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
+          ) : null}
         </div>
       </section>
     </WorkspaceShell>
