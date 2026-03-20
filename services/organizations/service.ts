@@ -5,7 +5,9 @@ import {
   organizationSchema,
   organizationMemberSchema,
   organizationRegisterPayloadSchema,
+  organizationFinancialOverviewSchema,
   type AddOrganizationMemberPayload,
+  type OrganizationFinancialOverviewQuery,
   type OrganizationRegisterPayload,
 } from "./types";
 import { z } from "zod";
@@ -150,4 +152,23 @@ export async function removeOrganizationMember(id: string, userId: string) {
       method: "DELETE",
     },
   );
+}
+
+export async function getOrganizationFinancialOverview(
+  id: string,
+  params: OrganizationFinancialOverviewQuery = {},
+) {
+  const searchParams = new URLSearchParams();
+  if (params.timeframe) searchParams.set("timeframe", params.timeframe);
+  if (params.start_date) searchParams.set("start_date", params.start_date);
+  if (params.end_date) searchParams.set("end_date", params.end_date);
+  if (params.branch_id) searchParams.set("branch_id", params.branch_id);
+
+  const url = `${organizationsEndpoints.financialOverview(id)}${
+    searchParams.toString() ? `?${searchParams.toString()}` : ""
+  }`;
+
+  return apiClientWithSchema(url, organizationFinancialOverviewSchema, {
+    method: "GET",
+  });
 }

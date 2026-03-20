@@ -7,4 +7,5 @@ export const organizationsEndpoints = {
   removeMember: (id: string, userId: string) =>
     `/api/organizations/${id}/members/${userId}/`,
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,
+  financialOverview: (id: string) => `/api/organizations/${id}/financial/overview/`,
 } as const;
