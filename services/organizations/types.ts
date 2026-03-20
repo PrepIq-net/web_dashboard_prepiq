@@ -89,3 +89,110 @@ export const organizationRegisterPayloadSchema = z.object({
 export type OrganizationRegisterPayload = z.infer<
   typeof organizationRegisterPayloadSchema
 >;
+
+export const financialOverviewSummarySchema = z.object({
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  gross_margin: z.number(),
+  margin_pct: z.number(),
+  revenue_delta_pct: z.number().nullable().optional(),
+  food_cost_delta_pct: z.number().nullable().optional(),
+  waste_cost_delta_pct: z.number().nullable().optional(),
+  gross_margin_delta_pct: z.number().nullable().optional(),
+  margin_pct_delta: z.number().nullable().optional(),
+});
+
+export const financialOverviewBranchSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  gross_margin: z.number(),
+  margin_pct: z.number(),
+  revenue_delta_pct: z.number().nullable().optional(),
+  food_cost_delta_pct: z.number().nullable().optional(),
+  waste_cost_delta_pct: z.number().nullable().optional(),
+  gross_margin_delta_pct: z.number().nullable().optional(),
+  margin_pct_delta: z.number().nullable().optional(),
+});
+
+export const organizationFinancialOverviewSchema = z.object({
+  organization_id: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  previous_start_date: z.string(),
+  previous_end_date: z.string(),
+  scope: z.enum(["ORGANIZATION", "BRANCH"]),
+  branch_id: z.string().nullable(),
+  branch_name: z.string().nullable(),
+  summary: financialOverviewSummarySchema,
+  branches: z.array(financialOverviewBranchSchema),
+  waste_analysis: z.object({
+    total_waste_cost: z.number(),
+    waste_rate_pct: z.number(),
+    top_items: z.array(
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        waste_cost: z.number(),
+      }),
+    ),
+  }),
+  stockout_impact: z.object({
+    lost_revenue: z.number(),
+    stockout_events: z.number(),
+    top_items: z.array(
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        lost_revenue: z.number(),
+      }),
+    ),
+    revenue_protected: z.number(),
+    lost_revenue_delta_pct: z.number().nullable().optional(),
+    revenue_protected_delta_pct: z.number().nullable().optional(),
+  }),
+  forecast_accuracy_impact: z.object({
+    accuracy_pct: z.number(),
+    waste_prevented: z.number(),
+    stockouts_avoided: z.number(),
+  }),
+  impact_report: z.object({
+    accuracy_pct: z.number(),
+    waste_reduced: z.number(),
+    stockouts_avoided: z.number(),
+    revenue_protected: z.number(),
+  }),
+  item_profitability: z.array(
+    z.object({
+      item_id: z.string(),
+      item_title: z.string(),
+      revenue: z.number(),
+      food_cost: z.number(),
+      gross_margin: z.number(),
+      margin_pct: z.number(),
+    }),
+  ),
+  cost_trends: z.array(
+    z.object({
+      date: z.string(),
+      revenue: z.number(),
+      food_cost: z.number(),
+      waste_cost: z.number(),
+      margin: z.number(),
+    }),
+  ),
+});
+
+export type OrganizationFinancialOverview = z.infer<
+  typeof organizationFinancialOverviewSchema
+>;
+
+export type OrganizationFinancialOverviewQuery = {
+  timeframe?: "7d" | "30d" | "90d";
+  start_date?: string;
+  end_date?: string;
+  branch_id?: string;
+};

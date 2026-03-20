@@ -53,11 +53,6 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Brain className="h-4 w-4" />,
           },
           {
-            label: "Financial",
-            href: "/workspace/financial",
-            icon: <Folder className="h-4 w-4" />,
-          },
-          {
             label: "Purchasing",
             href: "/workspace/purchasing",
             icon: <Brain className="h-4 w-4" />,
@@ -142,6 +137,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
           {
             label: "Sales & Waste",
             href: "/workspace/sales-waste",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Financial",
+            href: "/workspace/financial",
             icon: <Folder className="h-4 w-4" />,
           },
           {
@@ -231,7 +231,7 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
     ];
   }
 
-  if (role === "ORG_OWNER" || role === "ORG_ADMIN") {
+  if (role === "ORG_OWNER") {
     return [
       {
         title: "Operations",
@@ -272,6 +272,79 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
           {
             label: "Financial",
             href: "/workspace/financial",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Purchasing",
+            href: "/workspace/purchasing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Staff",
+            href: "/workspace/staff-performance",
+            icon: <User className="h-4 w-4" />,
+          },
+        ],
+      },
+      {
+        title: "Governance",
+        tone: "governance",
+        items: [
+          {
+            label: "Risk",
+            href: "/workspace/risk",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            label: "Billing",
+            href: "/workspace/billing",
+            icon: <Folder className="h-4 w-4" />,
+          },
+          {
+            label: "Chat",
+            href: "/workspace/chat",
+            icon: <ChatBubble className="h-4 w-4" />,
+          },
+          {
+            label: "Settings",
+            href: "/workspace/settings",
+            icon: <Settings className="h-4 w-4" />,
+          },
+        ],
+      },
+    ];
+  }
+
+  if (role === "ORG_ADMIN") {
+    return [
+      {
+        title: "Operations",
+        tone: "operations",
+        items: [
+          { label: "Overview", href: "/", icon: <Home className="h-4 w-4" /> },
+          {
+            label: "Command",
+            href: "/workspace/command",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Branches",
+            href: "/workspace/branches",
+            icon: <Shop className="h-4 w-4" />,
+          },
+          {
+            label: "Production",
+            href: "/workspace/production",
+            icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "Inventory",
+            href: "/workspace/inventory",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
+            label: "Sales & Waste",
+            href: "/workspace/sales-waste",
             icon: <Folder className="h-4 w-4" />,
           },
           {

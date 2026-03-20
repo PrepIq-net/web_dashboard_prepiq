@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import type {
   AddOrganizationMemberPayload,
   OrganizationRegisterPayload,
+  OrganizationFinancialOverviewQuery,
 } from "./types";
 import { usersQueryKeys } from "../users/hooks";
 import { branchKeys } from "../branches/hooks";
@@ -13,6 +14,16 @@ export const organizationKeys = {
   lists: () => [...organizationKeys.all, "list"] as const,
   details: (id: string) => [...organizationKeys.all, "detail", id] as const,
   members: (id: string) => [...organizationKeys.all, "members", id] as const,
+  financialOverview: (id: string, params?: OrganizationFinancialOverviewQuery) =>
+    [
+      ...organizationKeys.all,
+      "financial-overview",
+      id,
+      params?.timeframe ?? "",
+      params?.start_date ?? "",
+      params?.end_date ?? "",
+      params?.branch_id ?? "",
+    ] as const,
 };
 
 export function useMyOrganizations() {
@@ -97,5 +108,17 @@ export function useRemoveOrganizationMember(id: string) {
     onError: (error: any) => {
       toast.error(error.message || "Failed to remove member.");
     },
+  });
+}
+
+export function useOrganizationFinancialOverview(
+  id: string,
+  params?: OrganizationFinancialOverviewQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: organizationKeys.financialOverview(id, params),
+    queryFn: () => organizationService.getOrganizationFinancialOverview(id, params),
+    enabled: Boolean(id) && enabled,
   });
 }
