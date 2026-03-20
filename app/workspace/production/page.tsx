@@ -5,43 +5,113 @@ import {
   useBranches,
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
-  useBranchCommandView,
-  useExecutiveControlTower,
-  useOwnerMarginProtectionReport,
+  useBranchDayToday,
+  useCreateProductionLog,
   useSalesDataValidation,
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { WarningTriangle } from "iconoir-react";
 
 type LocalLog = {
   id: string;
-  type: "BATCH" | "WASTE" | "ISSUE";
+  type: "BATCH" | "WASTE";
   itemTitle: string;
   quantity: number;
   unit: string;
   notes: string;
   timestamp: string;
+  status: "pending" | "sent" | "failed";
+};
+
+type LiveItem = {
+  id: string;
+  title: string;
+  unit: string;
+  forecast: number;
+  planned: number;
+  prepared: number;
+  sold: number;
+  remaining: number;
+  prepNowQty: number;
+  runoutMinutes: number | null;
+  stockoutRisk: "LOW" | "MEDIUM" | "HIGH";
+  wasteRisk: "LOW" | "MEDIUM" | "HIGH";
+  trendPct: number;
+  alertLabel: string | null;
+  startBatchNow: boolean;
+  avgDemandLastHour: number | null;
 };
 
 const EMPTY_LIST: never[] = [];
 
 function isDiscreteUnit(unit: string) {
-  return ["PCS", "PLATES", "BOXES", "TRAYS", "SERVINGS"].includes((unit || "").toUpperCase());
+  return ["PCS", "PLATES", "BOXES", "TRAYS", "SERVINGS"].includes(
+    (unit || "").toUpperCase(),
+  );
 }
 
 function formatQuantity(value: number, unit: string) {
+  if (Number.isNaN(value)) return `0 ${unit}`;
   if (isDiscreteUnit(unit)) {
     return `${Math.round(value)} ${unit}`;
   }
   return `${value.toFixed(2)} ${unit}`;
 }
 
-function formatSignedQuantity(value: number, unit: string) {
-  const sign = value > 0 ? "+" : "";
-  if (isDiscreteUnit(unit)) {
-    return `${sign}${Math.round(value)} ${unit}`;
+function formatDurationFrom(timestamp?: string) {
+  if (!timestamp) return "--";
+  const start = new Date(timestamp);
+  if (Number.isNaN(start.getTime())) return "--";
+  const diffMs = Date.now() - start.getTime();
+  if (diffMs <= 0) return "0m";
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `${minutes}m`;
+  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+}
+
+function formatShortTime(value: Date | null) {
+  if (!value) return "--";
+  return value.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatMinutes(value: number | null) {
+  if (value === null || Number.isNaN(value)) return "--";
+  return `${Math.max(0, Math.round(value))}m`;
+}
+
+function riskRank(value: LiveItem["stockoutRisk"]) {
+  if (value === "HIGH") return 0;
+  if (value === "MEDIUM") return 1;
+  return 2;
+}
+
+function getTrendLabel(value: number) {
+  if (value >= 12) return "High";
+  if (value <= -12) return "Slow";
+  return "Normal";
+}
+
+function getTrendTone(label: string) {
+  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === "Slow") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
+}
+
+function getPriority(item: LiveItem) {
+  if (item.stockoutRisk === "HIGH" || (item.runoutMinutes !== null && item.runoutMinutes <= 30)) {
+    return "High";
   }
-  return `${sign}${value.toFixed(2)} ${unit}`;
+  if (item.prepNowQty > 0 || (item.runoutMinutes !== null && item.runoutMinutes <= 60)) {
+    return "Medium";
+  }
+  return "Low";
+}
+
+function getPriorityTone(label: string) {
+  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === "Medium") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
 }
 
 export default function ProductionPage() {
@@ -53,7 +123,7 @@ export default function ProductionPage() {
   const isStaffOperator = role === "STAFF_OPERATOR";
   const isBranchManager = role === "BRANCH_MANAGER" || role === "GM";
   const isOpsDirector = role === "OPS_DIRECTOR";
-  const isOwner = role === "ORG_OWNER" || role === "ORG_ADMIN";
+  const canViewProduction = isStaffOperator || isBranchManager || isOpsDirector;
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
@@ -100,75 +170,272 @@ export default function ProductionPage() {
   const activeBranch = branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
   const todayDate = new Date().toISOString().slice(0, 10);
 
-  const branchCommandQuery = useBranchCommandView(
-    { branch_id: activeBranchId, target_date: todayDate },
+  const branchDayQuery = useBranchDayToday(
+    { branch_id: activeBranchId, date: todayDate },
     Boolean(activeBranchId),
   );
+  const createProductionLogMutation = useCreateProductionLog();
   const salesValidationQuery = useSalesDataValidation({
     branch_id: activeBranchId,
     target_date: todayDate,
   });
-  const controlTowerQuery = useExecutiveControlTower(
-    undefined,
-    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
-  );
-  const marginReportQuery = useOwnerMarginProtectionReport(
-    undefined,
-    (isOpsDirector || isOwner) && Boolean(user?.organization_id),
-  );
 
-  const recommendations =
-    branchCommandQuery.data?.panels.forecast.recommendations ?? EMPTY_LIST;
-  const preparedTotal = Number(
-    branchCommandQuery.data?.panels.real_time.prepared_total ?? 0,
-  );
-  const soldTotal = Number(branchCommandQuery.data?.panels.real_time.sold_total ?? 0);
-  const remainingTotal = Number(
-    branchCommandQuery.data?.panels.real_time.remaining_total ?? 0,
-  );
-  const atRiskCount = Number(
-    branchCommandQuery.data?.panels.real_time.at_risk_count ?? 0,
-  );
-  const planTotal = recommendations.reduce(
-    (sum, recommendation) =>
-      sum + Number(recommendation.recommended_quantity ?? 0),
-    0,
-  );
-  const planAccuracyPct = planTotal > 0 ? (preparedTotal / planTotal) * 100 : 0;
-  const progressRatio = planTotal > 0 ? preparedTotal / planTotal : 0;
-  const efficiencyScore = Math.max(
-    0,
-    100 - Math.abs(planAccuracyPct - 100) * 0.6 - atRiskCount * 3,
-  );
-  const overproductionQty = Math.max(0, preparedTotal - soldTotal);
-  const underproductionQty = Math.max(0, soldTotal - preparedTotal);
+  const branchDay = branchDayQuery.data;
+  const liveItems = branchDay?.prep_plan_items ?? EMPTY_LIST;
+
+  const enrichedItems = useMemo<LiveItem[]>(() => {
+    return liveItems.map((item) => {
+      const monitor = item.live_monitor ?? {};
+      const riskEngine = monitor.risk_engine;
+      const sold = Number(monitor.sold_today ?? 0);
+      const forecast = Number(
+        item.forecast_qty ??
+          item.forecast_context?.predicted_quantity_needed ??
+          item.final_quantity ??
+          item.suggested_quantity ??
+          0,
+      );
+      const planned = Number(
+        monitor.planned_qty ?? item.final_quantity ?? item.suggested_quantity ?? 0,
+      );
+      const remaining = Number(
+        monitor.remaining_qty ?? Math.max(0, planned - sold),
+      );
+      const prepNowQty = Number(
+        monitor.should_prepare_more_qty ?? monitor.suggested_additional_qty ?? 0,
+      );
+      return {
+        id: item.id,
+        title: item.product_title,
+        unit: item.unit,
+        forecast,
+        planned,
+        prepared: Number(monitor.total_prepared_qty ?? 0),
+        sold,
+        remaining,
+        prepNowQty,
+        runoutMinutes: riskEngine?.runout_minutes ?? null,
+        stockoutRisk: riskEngine?.stockout_risk ?? "LOW",
+        wasteRisk: riskEngine?.waste_risk ?? "LOW",
+        trendPct: Number(monitor.trend_vs_forecast_pct ?? 0),
+        alertLabel: monitor.alert?.message ?? monitor.signal ?? null,
+        startBatchNow: Boolean(riskEngine?.start_new_batch_now),
+        avgDemandLastHour: riskEngine?.avg_demand_last_hour ?? null,
+      };
+    });
+  }, [liveItems]);
+
+  const totals = useMemo(() => {
+    let totalSold = 0;
+    let totalRemaining = 0;
+    let totalPrepared = 0;
+    let totalPlanned = 0;
+    let trendSum = 0;
+    let trendCount = 0;
+    let demandLastHour = 0;
+    let demandCount = 0;
+    let prepNowCount = 0;
+    let stockoutCount = 0;
+
+    for (const item of enrichedItems) {
+      totalSold += item.sold;
+      totalRemaining += item.remaining;
+      totalPrepared += item.prepared;
+      totalPlanned += item.planned;
+      if (!Number.isNaN(item.trendPct)) {
+        trendSum += item.trendPct;
+        trendCount += 1;
+      }
+      if (item.avgDemandLastHour !== null && !Number.isNaN(item.avgDemandLastHour)) {
+        demandLastHour += item.avgDemandLastHour;
+        demandCount += 1;
+      }
+      if (item.prepNowQty > 0 || item.startBatchNow) {
+        prepNowCount += 1;
+      }
+      if (item.stockoutRisk === "HIGH") {
+        stockoutCount += 1;
+      }
+    }
+
+    return {
+      totalSold,
+      totalRemaining,
+      totalPrepared,
+      totalPlanned,
+      avgTrend: trendCount ? trendSum / trendCount : 0,
+      trendCount,
+      totalDemandLastHour: demandLastHour,
+      demandCount,
+      prepNowCount,
+      stockoutCount,
+    };
+  }, [enrichedItems]);
+
+  const prepNowItems = useMemo(() => {
+    return [...enrichedItems]
+      .filter(
+        (item) =>
+          item.prepNowQty > 0 ||
+          item.startBatchNow ||
+          item.stockoutRisk === "HIGH" ||
+          (item.runoutMinutes !== null && item.runoutMinutes <= 45),
+      )
+      .sort((a, b) => {
+        const riskDelta = riskRank(a.stockoutRisk) - riskRank(b.stockoutRisk);
+        if (riskDelta !== 0) return riskDelta;
+        const runoutA = a.runoutMinutes ?? Number.POSITIVE_INFINITY;
+        const runoutB = b.runoutMinutes ?? Number.POSITIVE_INFINITY;
+        if (runoutA !== runoutB) return runoutA - runoutB;
+        return b.prepNowQty - a.prepNowQty;
+      })
+      .slice(0, 6);
+  }, [enrichedItems]);
+
+  const velocityRows = useMemo(() => {
+    return [...enrichedItems]
+      .sort((a, b) => {
+        if (b.sold !== a.sold) return b.sold - a.sold;
+        return b.forecast - a.forecast;
+      })
+      .slice(0, 10);
+  }, [enrichedItems]);
+
+  const stockAlerts = useMemo(() => {
+    return enrichedItems
+      .map((item) => {
+        const runout = item.runoutMinutes;
+        const stockoutRisk =
+          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 45);
+        const highDemand = item.trendPct >= 15;
+        if (!stockoutRisk && !highDemand) return null;
+
+        const severity =
+          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 30)
+            ? "HIGH"
+            : "MEDIUM";
+        const title = stockoutRisk ? "Stock risk alert" : "High demand detected";
+        const message = stockoutRisk
+          ? `Only ${formatQuantity(item.remaining, item.unit)} remaining`
+          : `Selling ${Math.round(item.trendPct)}% faster than forecast`;
+        const detail = stockoutRisk
+          ? runout !== null
+            ? `Estimated depletion in ${formatMinutes(runout)}`
+            : "Estimated depletion soon"
+          : `Forecast ${formatQuantity(item.forecast, item.unit)} · Sold ${formatQuantity(item.sold, item.unit)}`;
+        let action = "Check line now";
+        if (item.prepNowQty > 0) {
+          action = `Prep +${formatQuantity(item.prepNowQty, item.unit)}`;
+        } else if (item.startBatchNow) {
+          action = "Start new batch now";
+        }
+
+        return {
+          id: item.id,
+          item: item.title,
+          severity,
+          title,
+          message,
+          detail,
+          action,
+          runoutMinutes: runout,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .sort((a, b) => {
+        const severityRank = a.severity === "HIGH" ? 0 : 1;
+        const severityRankB = b.severity === "HIGH" ? 0 : 1;
+        if (severityRank !== severityRankB) return severityRank - severityRankB;
+        const runoutA = a.runoutMinutes ?? Number.POSITIVE_INFINITY;
+        const runoutB = b.runoutMinutes ?? Number.POSITIVE_INFINITY;
+        return runoutA - runoutB;
+      })
+      .slice(0, 6);
+  }, [enrichedItems]);
+
+  const prepQueueItems = useMemo(() => {
+    const priorityRank = (label: string) =>
+      label === "High" ? 0 : label === "Medium" ? 1 : 2;
+    return [...enrichedItems]
+      .sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+        if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
+        return b.prepNowQty - a.prepNowQty;
+      })
+      .slice(0, 8);
+  }, [enrichedItems]);
+
+  const wasteSignals = useMemo(() => {
+    return enrichedItems
+      .filter((item) => item.wasteRisk === "HIGH" || item.trendPct <= -12)
+      .sort((a, b) => a.trendPct - b.trendPct)
+      .slice(0, 6);
+  }, [enrichedItems]);
+
+  const productionCards = useMemo(() => {
+    return [...enrichedItems]
+      .sort((a, b) => b.sold - a.sold)
+      .slice(0, 6);
+  }, [enrichedItems]);
 
   const [selectedItemId, setSelectedItemId] = useState("");
   const [batchQuantity, setBatchQuantity] = useState("");
   const [batchNotes, setBatchNotes] = useState("");
   const [wasteReason, setWasteReason] = useState("NONE");
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
-  const [completedRows, setCompletedRows] = useState<Record<string, boolean>>({});
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [logError, setLogError] = useState<string | null>(null);
 
-  const selectedItem = recommendations.find((item) => item.item_id === selectedItemId);
+  const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
 
-  const submitLocalLog = (type: LocalLog["type"], itemTitle: string, unit: string) => {
+  useEffect(() => {
+    if (branchDayQuery.data) {
+      setLastSync(new Date());
+    }
+  }, [branchDayQuery.data]);
+
+  useEffect(() => {
+    if (!activeBranchId) return;
+    const interval = setInterval(() => {
+      branchDayQuery.refetch();
+      salesValidationQuery.refetch();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activeBranchId, branchDayQuery, salesValidationQuery]);
+
+  const submitLocalLog = async (type: LocalLog["type"]) => {
     const quantity = Number(batchQuantity || 0);
-    if (!itemTitle || quantity <= 0) return;
+    if (!selectedItem || quantity <= 0 || createProductionLogMutation.isPending) return;
+    const normalizedQty = isDiscreteUnit(selectedItem.unit)
+      ? Math.round(quantity)
+      : quantity;
+    if (normalizedQty <= 0) return;
 
-    const notePrefix = wasteReason !== "NONE" ? `Waste reason: ${wasteReason}. ` : "";
+    const noteParts: string[] = [];
+    if (type === "WASTE" && wasteReason !== "NONE") {
+      noteParts.push(`Waste reason: ${wasteReason}.`);
+    }
+    if (batchNotes.trim()) {
+      noteParts.push(batchNotes.trim());
+    }
+    const reason = noteParts.join(" ").slice(0, 120);
+
+    const logId = crypto.randomUUID();
+    setLogError(null);
     setLocalLogs((prev) => [
       {
-        id: crypto.randomUUID(),
+        id: logId,
         type,
-        itemTitle,
-        quantity,
-        unit,
-        notes: `${notePrefix}${batchNotes}`.trim(),
+        itemTitle: selectedItem.title,
+        quantity: normalizedQty,
+        unit: selectedItem.unit,
+        notes: reason,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        status: "pending",
       },
       ...prev,
     ]);
@@ -176,158 +443,327 @@ export default function ProductionPage() {
     setBatchQuantity("");
     setBatchNotes("");
     setWasteReason("NONE");
+
+    try {
+      await createProductionLogMutation.mutateAsync({
+        prep_plan_item_id: selectedItem.id,
+        quantity_produced: type === "BATCH" ? normalizedQty : 0,
+        waste_quantity: type === "WASTE" ? normalizedQty : 0,
+        event_type: "additional",
+        reason,
+      });
+      branchDayQuery.refetch();
+      setLocalLogs((prev) =>
+        prev.map((entry) =>
+          entry.id === logId ? { ...entry, status: "sent" } : entry,
+        ),
+      );
+    } catch (error) {
+      setLocalLogs((prev) =>
+        prev.map((entry) =>
+          entry.id === logId ? { ...entry, status: "failed" } : entry,
+        ),
+      );
+      setLogError("Unable to log production. Please retry.");
+    }
   };
 
-  const productionRows = recommendations.map((item, index) => {
-    const target = Number(item.recommended_quantity ?? 0);
-    const currentProduced = Math.max(
-      0,
-      Math.round(target * Math.min(1.4, Math.max(0, progressRatio))),
+  const status = branchDay?.status ?? "--";
+  const statusTone =
+    status === "LIVE"
+      ? "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]"
+      : status === "MORNING"
+        ? "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
+        : "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+
+  const timeOpen = status === "LIVE" ? formatDurationFrom(branchDay?.created_at) : "--";
+  const timeOpenMs =
+    status === "LIVE" && branchDay?.created_at
+      ? Date.now() - new Date(branchDay.created_at).getTime()
+      : 0;
+  const timeOpenHours = timeOpenMs > 0 ? timeOpenMs / 3600000 : 0;
+  const salesPerHour = timeOpenHours > 0 ? totals.totalSold / timeOpenHours : 0;
+
+  if (!canViewProduction) {
+    return (
+      <WorkspaceShell
+        eyebrow="Production"
+        title="Production"
+        description="Live kitchen operations are restricted to service roles."
+        insight=""
+      >
+        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+          <p className="text-[13px] text-[#8E8E93]">
+            Production command center is limited to chef, line cook, supervisor, branch
+            manager, and ops monitoring roles.
+          </p>
+        </section>
+      </WorkspaceShell>
     );
-    const variance = currentProduced - target;
-    const deadline = `${String(6 + Math.floor((index * 45) / 60)).padStart(2, "0")}:${String((index * 45) % 60).padStart(2, "0")}`;
-
-    const alerts: string[] = [];
-    if (variance > Math.max(2, target * 0.1)) alerts.push("Overproduction");
-    if (variance < -Math.max(2, target * 0.1)) alerts.push("Underproduction");
-    if (remainingTotal <= 20 && index < 2) alerts.push("Ingredient shortage");
-
-    return {
-      ...item,
-      target,
-      currentProduced,
-      variance,
-      deadline,
-      alerts,
-      isComplete: Boolean(completedRows[item.item_id]),
-    };
-  });
-
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
-  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
+  }
 
   return (
     <WorkspaceShell
       eyebrow="Production"
       title="Production"
-      description="Overview shows current production state. Command actions are for intervention and correction."
-      insight="Data quality compounds when production logging discipline is consistent across shifts."
+      description="Live kitchen operations. Keep it fast, clear, and action-first."
+      insight=""
     >
-      <section className="mb-8 border-b border-[#2A2A2E] pb-6">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-            Branch Context
-          </label>
-          <select
-            value={activeBranchId}
-            onChange={(event) => setSelectedBranchId(event.target.value)}
-            className="h-10 min-w-[240px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
-          >
-            {!branchOptions.length ? <option value="">No branches available</option> : null}
-            {branchOptions.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-          {activeBranch ? (
-            <p className="text-[12px] text-[#8E8E93]">
-              Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
+      <section className="mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+              Branch Context
+            </label>
+            <select
+              value={activeBranchId}
+              onChange={(event) => setSelectedBranchId(event.target.value)}
+              className="h-10 min-w-[220px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
+            >
+              {!branchOptions.length ? <option value="">No branches available</option> : null}
+              {branchOptions.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+            {activeBranch ? (
+              <p className="text-[12px] text-[#8E8E93]">
+                Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
+              </p>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-4 text-[12px] text-[#8E8E93]">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  status === "LIVE" ? "bg-[#5DD39E]" : "bg-[#5C5C66]"
+                }`}
+              />
+              {status === "LIVE" ? "Live feed" : "Live feed paused"}
+            </span>
+            <span>Last sync {formatShortTime(lastSync)}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-8 rounded-[18px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+              Live Service
             </p>
+            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
+              {activeBranch?.name ?? "Select a branch"}
+            </p>
+          </div>
+          <span
+            className={`rounded-full border px-4 py-1 text-[12px] font-semibold tracking-[0.2em] ${statusTone}`}
+          >
+            {status}
+          </span>
+        </div>
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">{timeOpen}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+              {Math.round(totals.totalSold).toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+              {Math.round(totals.totalRemaining).toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+              {totals.prepNowCount}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+              {totals.stockoutCount}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
+            <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">
+              {salesPerHour > 0 ? salesPerHour.toFixed(1) : "--"}
+            </p>
+          </div>
+        </div>
+
+        {salesValidationQuery.data?.missing_sales_detected ? (
+          <div className="mt-5 rounded-[12px] border border-[#3A2D1F] bg-[#1C1610] px-4 py-3 text-[12px] text-[#E0B86B]">
+            Sales feed is missing entries for some items. Verify POS sync or use manual
+            entry.
+          </div>
+        ) : null}
+      </section>
+
+      <section className="mb-8 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">
+              Immediate actions for the line.
+            </p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
+        </div>
+        <div className="mt-4 space-y-3">
+          {prepNowItems.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+            >
+              <div>
+                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
+                <p className="mt-1 text-[12px] text-[#8E8E93]">
+                  Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-[16px] font-semibold text-[#E0B86B]">
+                  {item.prepNowQty > 0
+                    ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                    : "Check"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    const suggestedQty =
+                      item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
+                    setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
+                  }}
+                  className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
+                >
+                  Queue batch
+                </button>
+              </div>
+            </div>
+          ))}
+          {!prepNowItems.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
           ) : null}
         </div>
       </section>
 
-      {isStaffOperator ? (
-        <>
-          <section className="border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Today&apos;s Plan
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[920px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Target</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Deadline</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Current</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Variance</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Alert Flags</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productionRows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#2A2A2E] align-top">
-                      <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.item_title}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.target, row.unit)}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.deadline}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.currentProduced, row.unit)}</td>
-                      <td className={`px-2 py-3 text-[12px] ${row.variance > 0 ? "text-[#C48B2A]" : row.variance < 0 ? "text-[#C44949]" : "text-[#3F8F68]"}`}>
-                        {formatSignedQuantity(row.variance, row.unit)}
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
+        <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
+              <p className="mt-1 text-[14px] text-[#C7C7CC]">
+                Actual demand vs forecast.
+              </p>
+            </div>
+            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead className="border-b border-[#2A2A2E]">
+                <tr>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {velocityRows.map((item) => {
+                  const trendLabel = getTrendLabel(item.trendPct);
+                  return (
+                    <tr key={item.id} className="border-b border-[#2A2A2E]">
+                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.forecast, item.unit)}
                       </td>
-                      <td className="px-2 py-3 text-[11px] text-[#8E8E93]">
-                        {row.alerts.length ? row.alerts.join(" · ") : "None"}
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.sold, item.unit)}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatQuantity(item.remaining, item.unit)}
                       </td>
                       <td className="px-2 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setCompletedRows((prev) => ({
-                                ...prev,
-                                [row.item_id]: !prev[row.item_id],
-                              }))
-                            }
-                            className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#F5F5F7]"
-                          >
-                            {row.isComplete ? "Re-open" : "Mark complete"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedItemId(row.item_id);
-                              setWasteReason("EXPIRED");
-                              setBatchQuantity(String(Math.max(1, Math.floor(row.target * 0.08))));
-                            }}
-                            className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#C48B2A]"
-                          >
-                            Report waste
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedItemId(row.item_id);
-                              setBatchNotes("Issue flagged for manager review.");
-                            }}
-                            className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#C44949]"
-                          >
-                            Flag issue
-                          </button>
-                        </div>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                        >
+                          {trendLabel}
+                        </span>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!velocityRows.length ? (
+              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+            ) : null}
+          </div>
+        </article>
 
-          <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Batch Log Interface
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div className="space-y-6">
+          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Immediate depletion risk.</p>
+            <div className="mt-4 space-y-3">
+              {stockAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
+                        alert.severity === "HIGH"
+                          ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
+                          : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
+                      }`}
+                    >
+                      {alert.severity}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    {alert.title}
+                  </p>
+                  <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
+                  <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
+                  <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                    Suggested action: {alert.action}
+                  </p>
+                </div>
+              ))}
+              {!stockAlerts.length ? (
+                <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Log batches and waste in real time.</p>
+
+            <div className="mt-4 grid grid-cols-1 gap-3">
               <select
                 value={selectedItemId}
                 onChange={(event) => setSelectedItemId(event.target.value)}
-                className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               >
                 <option value="">Select item</option>
-                {recommendations.map((item) => (
-                  <option key={item.item_id} value={item.item_id}>
-                    {item.item_title}
+                {enrichedItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
                   </option>
                 ))}
               </select>
@@ -335,12 +771,12 @@ export default function ProductionPage() {
                 value={batchQuantity}
                 onChange={(event) => setBatchQuantity(event.target.value)}
                 placeholder="Quantity"
-                className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               />
               <select
                 value={wasteReason}
                 onChange={(event) => setWasteReason(event.target.value)}
-                className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               >
                 <option value="NONE">Waste reason (optional)</option>
                 <option value="EXPIRED">Expired</option>
@@ -350,298 +786,214 @@ export default function ProductionPage() {
               <input
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
-                placeholder="Optional notes"
-                className="h-9 rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                placeholder="Notes"
+                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => submitLocalLog("BATCH", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
-                className="h-8 rounded-[8px] bg-[#A8821F] px-3 text-[12px] font-medium text-[#141416]"
+                onClick={() => submitLocalLog("BATCH")}
+                disabled={!selectedItem || createProductionLogMutation.isPending}
+                className="h-10 rounded-[10px] bg-[#E0B86B] px-4 text-[12px] font-semibold text-[#141416] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Log batch
+                {createProductionLogMutation.isPending ? "Logging..." : "Log batch"}
               </button>
               <button
                 type="button"
-                onClick={() => submitLocalLog("WASTE", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
-                className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#C48B2A]"
+                onClick={() => submitLocalLog("WASTE")}
+                disabled={!selectedItem || createProductionLogMutation.isPending}
+                className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E0B86B] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Report waste
               </button>
-              <button
-                type="button"
-                onClick={() => submitLocalLog("ISSUE", selectedItem?.item_title ?? "", selectedItem?.unit ?? "PCS")}
-                className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#C44949]"
-              >
-                Flag issue
-              </button>
             </div>
+            {logError ? (
+              <p className="mt-3 text-[12px] text-[#E07070]">{logError}</p>
+            ) : null}
 
             <div className="mt-4 space-y-2">
-              {localLogs.slice(0, 6).map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between border-b border-[#2A2A2E] pb-1.5 text-[12px]">
-                  <p className="text-[#C7C7CC]">
-                    {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
-                  </p>
-                  <p className="text-[#8E8E93]">{entry.timestamp}</p>
+              {localLogs.slice(0, 4).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between border-b border-[#2A2A2E] pb-2 text-[12px]"
+                >
+                  <div>
+                    <p className="text-[#C7C7CC]">
+                      {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
+                    </p>
+                    {entry.notes ? (
+                      <p className="mt-1 text-[11px] text-[#8E8E93]">{entry.notes}</p>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#8E8E93]">{entry.timestamp}</p>
+                    <p
+                      className={`text-[11px] ${
+                        entry.status === "failed"
+                          ? "text-[#E07070]"
+                          : entry.status === "pending"
+                            ? "text-[#E0B86B]"
+                            : "text-[#5DD39E]"
+                      }`}
+                    >
+                      {entry.status === "pending"
+                        ? "Sending"
+                        : entry.status === "failed"
+                          ? "Failed"
+                          : "Sent"}
+                    </p>
+                  </div>
                 </div>
               ))}
               {!localLogs.length ? (
-                <p className="text-[12px] text-[#8E8E93]">No local logs yet in this session.</p>
+                <p className="text-[12px] text-[#8E8E93]">No logs yet.</p>
               ) : null}
             </div>
-          </section>
+          </article>
+        </div>
+      </section>
 
-          <section className="mt-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Real-Time Plan Accuracy
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Produced vs planned</p>
-                <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{planAccuracyPct.toFixed(1)}%</p>
-              </article>
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining quantity</p>
-                <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{remainingTotal.toLocaleString()}</p>
-              </article>
-              <article>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Alert flags</p>
-                <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{atRiskCount}</p>
-              </article>
-            </div>
-            <div className="mt-3 space-y-1.5 text-[12px] text-[#C7C7CC]">
-              {salesValidationQuery.data?.missing_sales_detected ? (
-                <p className="text-[#C48B2A]">Sales feed has missing entries for some items.</p>
-              ) : null}
-              {remainingTotal <= 20 ? (
-                <p className="text-[#C44949]">Ingredient shortage risk is elevated for next prep cycle.</p>
-              ) : null}
-              {!salesValidationQuery.data?.missing_sales_detected && remainingTotal > 20 ? (
-                <p className="text-[#3F8F68]">No active overproduction/underproduction critical flags.</p>
-              ) : null}
-            </div>
-          </section>
-        </>
-      ) : isBranchManager ? (
-        <>
-          <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-3">
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Plan vs Actual</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{planAccuracyPct.toFixed(1)}%</p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Overproduction Cost</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">${(overproductionQty * 1.8).toFixed(0)}</p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Efficiency Score</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{efficiencyScore.toFixed(1)}</p>
-            </article>
-          </section>
-
-          <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Plan vs Actual Summary
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[920px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Target</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Current</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Variance</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste by item</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast alignment</th>
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">What needs to be prepared next.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead className="border-b border-[#2A2A2E]">
+              <tr>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep needed</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prepQueueItems.map((item) => {
+                const priority = getPriority(item);
+                return (
+                  <tr key={item.id} className="border-b border-[#2A2A2E]">
+                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                      {formatQuantity(item.remaining, item.unit)}
+                    </td>
+                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                      {item.prepNowQty > 0
+                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                        : "0"}
+                    </td>
+                    <td className="px-2 py-3">
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
+                      >
+                        {priority}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {productionRows.map((row) => {
-                    const wasteByItem = Math.max(0, row.variance) * 1.2;
-                    const forecastAlignment = row.target > 0
-                      ? Math.max(0, 100 - (Math.abs(row.variance) / row.target) * 100)
-                      : 100;
-                    return (
-                      <tr key={row.id} className="border-b border-[#2A2A2E]">
-                        <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.item_title}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.target, row.unit)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatQuantity(row.currentProduced, row.unit)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{formatSignedQuantity(row.variance, row.unit)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C48B2A]">${wasteByItem.toFixed(0)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#3F8F68]">{forecastAlignment.toFixed(1)}%</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                );
+              })}
+            </tbody>
+          </table>
+          {!prepQueueItems.length ? (
+            <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
+          ) : null}
+        </div>
+      </section>
 
-          <section className="mt-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Manager Actions</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button className="h-8 rounded-[8px] bg-[#A8821F] px-3 text-[12px] font-medium text-[#141416]">Adjust plan</button>
-              <button className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#F5F5F7]">Investigate item</button>
-              <button className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#F5F5F7]">Compare days</button>
-              <button className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#F5F5F7]">Approve adjustments</button>
-            </div>
-            <div className="mt-3 text-[12px] text-[#8E8E93]">
-              Underproduction impact estimate: ${(underproductionQty * 2.4).toFixed(0)}
-            </div>
-          </section>
-        </>
-      ) : isOpsDirector ? (
-        <>
-          <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Branch count</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{branchGrid.length}</p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Avg plan accuracy</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {branchGrid.length
-                  ? (
-                      branchGrid.reduce(
-                        (sum, branch) =>
-                          sum +
-                          (Number(branch.prepared ?? 0) > 0
-                            ? (Number(branch.sold ?? 0) / Number(branch.prepared ?? 0)) * 100
-                            : 100),
-                        0,
-                      ) / branchGrid.length
-                    ).toFixed(1)
-                  : "0.0"}
-                %
-              </p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast deviation trend</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {Number(controlTowerQuery.data?.summary?.forecast_accuracy_rolling_7d ?? 0).toFixed(1)}%
-              </p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Outlier branches</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {
-                  branchGrid.filter(
-                    (branch) => Number(branch.waste_pct ?? 0) >= 5 || branch.compliance_badge === "RED",
-                  ).length
-                }
-              </p>
-            </article>
-          </section>
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Demand is slowing. Adjust prep.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
+        </div>
+        <div className="mt-4 space-y-3">
+          {wasteSignals.map((item) => {
+            const expectedDemandRemaining = Math.max(0, item.forecast - item.sold);
+            const overage = Math.max(0, Math.round(item.remaining - expectedDemandRemaining));
+            return (
+              <div
+                key={item.id}
+                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+              >
+                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
+                <p className="mt-1 text-[12px] text-[#E0B86B]">
+                  Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
+                </p>
+                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                  Suggested action: Slow production.
+                </p>
+              </div>
+            );
+          })}
+          {!wasteSignals.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
+          ) : null}
+        </div>
+      </section>
 
-          <section className="mt-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Branch Production Comparison
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[980px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Efficiency</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Plan accuracy</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste value</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast deviation</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Outlier</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {branchGrid.map((branch) => {
-                    const prepared = Number(branch.prepared ?? 0);
-                    const sold = Number(branch.sold ?? 0);
-                    const planAccuracy = prepared > 0 ? (sold / prepared) * 100 : 100;
-                    const efficiency = Math.max(
-                      0,
-                      100 - Number(branch.waste_pct ?? 0) - Number(branch.surplus_pct ?? 0) * 0.5,
-                    );
-                    const branchWaste = marginBranches.find(
-                      (item) => item.branch_id === branch.branch_id,
-                    );
-                    const deviation = Math.abs(100 - planAccuracy);
-                    const isOutlier = Number(branch.waste_pct ?? 0) >= 5 || deviation >= 20;
-
-                    return (
-                      <tr key={branch.branch_id} className="border-b border-[#2A2A2E]">
-                        <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{branch.branch_name}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{efficiency.toFixed(1)}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{planAccuracy.toFixed(1)}%</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">${Number(branchWaste?.total_waste_cost ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                        <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{deviation.toFixed(1)}%</td>
-                        <td className={`px-2 py-3 text-[11px] ${isOutlier ? "text-[#C44949]" : "text-[#3F8F68]"}`}>
-                          {isOutlier ? "Outlier detected" : "Normal"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      ) : isOwner ? (
-        <>
-          <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Production health</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {Math.max(0, 100 - Number(controlTowerQuery.data?.summary?.waste_risk_pct ?? 0)).toFixed(1)}
-              </p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast accuracy 7d</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {Number(controlTowerQuery.data?.summary?.forecast_accuracy_rolling_7d ?? 0).toFixed(1)}%
-              </p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Branches at risk</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                {branchGrid.filter((branch) => Number(branch.waste_pct ?? 0) >= 5).length}
-              </p>
-            </article>
-            <article>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Total waste value</p>
-              <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-                ${Number(marginReportQuery.data?.summary?.total_waste_cost ?? "0").toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-            </article>
-          </section>
-
-          <section className="mt-8">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">High-Level Production Health</p>
-            <div className="mt-3 space-y-2">
-              {branchGrid.slice(0, 5).map((branch) => (
-                <div key={branch.branch_id} className="flex items-center justify-between border-b border-[#2A2A2E] pb-2">
-                  <p className="text-[13px] text-[#F5F5F7]">{branch.branch_name}</p>
-                  <p className="text-[12px] text-[#C7C7CC]">
-                    Waste {Number(branch.waste_pct ?? 0).toFixed(1)}% · Surplus {Number(branch.surplus_pct ?? 0).toFixed(1)}%
-                  </p>
+      <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
+            <p className="mt-1 text-[14px] text-[#C7C7CC]">Large cards for kitchen screens.</p>
+          </div>
+          <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {productionCards.map((item) => {
+            const trendLabel = getTrendLabel(item.trendPct);
+            return (
+              <div
+                key={item.id}
+                className="rounded-[14px] border border-[#2A2A2E] bg-[#101012] p-4"
+              >
+                <p className="text-[15px] text-[#F5F5F7]">{item.title}</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.forecast, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.sold, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {formatQuantity(item.remaining, item.unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
+                    <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                      {trendLabel}
+                    </p>
+                  </div>
                 </div>
-              ))}
-              {!branchGrid.length ? (
-                <p className="text-[12px] text-[#8E8E93]">Production branch summary will appear when branch telemetry is available.</p>
-              ) : null}
-            </div>
-            <p className="mt-4 inline-flex items-center gap-2 text-[12px] text-[#8E8E93]">
-              <WarningTriangle className="h-4 w-4 text-[#C48B2A]" />
-              Owner view is strategic only. Raw batch logs are hidden by design.
-            </p>
-          </section>
-        </>
-      ) : (
-        <section>
-          <p className="text-[13px] text-[#8E8E93]">
-            Production workspace is role-scoped. Your current role does not have production module access.
-          </p>
-        </section>
-      )}
+                {item.prepNowQty > 0 ? (
+                  <p className="mt-3 text-[12px] text-[#E0B86B]">
+                    Prep recommended: +{formatQuantity(item.prepNowQty, item.unit)}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+          {!productionCards.length ? (
+            <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
+          ) : null}
+        </div>
+      </section>
     </WorkspaceShell>
   );
 }
