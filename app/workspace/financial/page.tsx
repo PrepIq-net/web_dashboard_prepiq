@@ -8,6 +8,7 @@ import {
   NativeTable,
   useReactTable,
 } from "@/components/ui/native-table";
+import Link from "next/link";
 import { Calendar, Download } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
@@ -35,6 +36,8 @@ type FinancialBranchRow = {
   grossMarginDeltaPct?: number | null;
   marginPctDelta?: number | null;
 };
+
+type FinancialTab = "OVERVIEW" | "WASTE" | "STOCKOUT" | "BRANCHES";
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -72,6 +75,7 @@ export default function FinancialPage() {
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const financialQuery = useOrganizationFinancialOverview(
@@ -121,6 +125,8 @@ export default function FinancialPage() {
   }, [branches, financialData]);
 
   const summary = financialData?.summary;
+  const wasteAnalysis = financialData?.waste_analysis;
+  const stockoutImpact = financialData?.stockout_impact;
 
   const branchRows = useMemo<FinancialBranchRow[]>(() => {
     return (
@@ -283,9 +289,33 @@ export default function FinancialPage() {
             </button>
           </div>
         </div>
+        <div className="mt-6 pt-6 border-t border-surface-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "OVERVIEW", label: "Overview" },
+              { id: "WASTE", label: "Waste" },
+              { id: "STOCKOUT", label: "Stockouts" },
+              { id: "BRANCHES", label: "Branches" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as FinancialTab)}
+                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <section className="mt-8">
+      {activeTab === "OVERVIEW" ? (
+        <section className="mt-8">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
             Financial Overview
@@ -363,9 +393,156 @@ export default function FinancialPage() {
             </p>
           </article>
         </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="mt-10">
+      {activeTab === "WASTE" ? (
+        <section className="mt-10">
+          <div>
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Waste Cost Analysis
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                {timeframeLabel}
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Total Waste
+                </p>
+                <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
+                  {toCurrency(wasteAnalysis?.total_waste_cost ?? 0)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  {formatDelta(summary?.waste_cost_delta_pct)}
+                </p>
+              </article>
+
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Waste Rate
+                </p>
+                <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
+                  {toPercent(wasteAnalysis?.waste_rate_pct ?? 0)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  Share of revenue
+                </p>
+              </article>
+            </div>
+
+            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
+                Top Waste Items
+              </p>
+              <div className="space-y-3">
+                {(wasteAnalysis?.top_items ?? []).length ? (
+                  wasteAnalysis?.top_items.map((item) => (
+                    <Link
+                      key={item.item_id}
+                      href={`/workspace/sales-waste?item=${item.item_id}${
+                        financialData?.branch_id ? `&branch=${financialData.branch_id}` : ""
+                      }${financialData?.end_date ? `&date=${financialData.end_date}` : ""}`}
+                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3 transition-colors hover:border-brand-gold/50 hover:bg-surface-3"
+                    >
+                      <span className="text-sm font-medium text-text-secondary">
+                        {item.item_title}
+                      </span>
+                      <span className="text-sm font-semibold text-status-warning">
+                        {toCurrency(item.waste_cost)}
+                      </span>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-sm text-text-muted">No waste events recorded.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "STOCKOUT" ? (
+        <section className="mt-10">
+          <div>
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Stockout Revenue Loss
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                {timeframeLabel}
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Lost Revenue
+                </p>
+                <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
+                  {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  {formatDelta(stockoutImpact?.lost_revenue_delta_pct)}
+                </p>
+              </article>
+
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Stockout Events
+                </p>
+                <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
+                  {stockoutImpact?.stockout_events ?? 0}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  Service interruptions
+                </p>
+              </article>
+
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  Revenue Protected by PrepIQ
+                </p>
+                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                  {toCurrency(stockoutImpact?.revenue_protected ?? 0)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  {formatDelta(stockoutImpact?.revenue_protected_delta_pct)}
+                </p>
+              </article>
+            </div>
+
+            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
+                Top Stockouts
+              </p>
+              <div className="space-y-3">
+                {(stockoutImpact?.top_items ?? []).length ? (
+                  stockoutImpact?.top_items.map((item) => (
+                    <div
+                      key={item.item_id}
+                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3"
+                    >
+                      <span className="text-sm font-medium text-text-secondary">
+                        {item.item_title}
+                      </span>
+                      <span className="text-sm font-semibold text-status-critical">
+                        {toCurrency(item.lost_revenue)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-text-muted">No stockouts detected.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "BRANCHES" ? (
+        <section className="mt-10">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
             Branch Performance
@@ -388,7 +565,8 @@ export default function FinancialPage() {
             />
           </div>
         </div>
-      </section>
+        </section>
+      ) : null}
     </WorkspaceShell>
   );
 }

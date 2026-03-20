@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -63,6 +63,7 @@ function buildTrendSeries(base: number, periods: number, direction = 1) {
 
 export default function SalesWastePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
@@ -89,9 +90,19 @@ export default function SalesWastePage() {
     branchOptions[0] ??
     null;
 
-  const [targetDate, setTargetDate] = useState(new Date().toISOString().slice(0, 10));
-  const [selectedBranchId, setSelectedBranchId] = useState(defaultBranch?.id ?? "");
-  const [periodDays, setPeriodDays] = useState("30");
+  const queryBranchId = searchParams.get("branch") ?? "";
+  const queryDate = searchParams.get("date") ?? "";
+  const queryItemId = searchParams.get("item") ?? "";
+  const queryPeriod = searchParams.get("period") ?? "";
+
+  const [targetDate, setTargetDate] = useState(
+    queryDate || new Date().toISOString().slice(0, 10),
+  );
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    queryBranchId || (defaultBranch?.id ?? ""),
+  );
+  const [periodDays, setPeriodDays] = useState(queryPeriod || "30");
+  const [focusedItemId] = useState(queryItemId);
   const [flaggedRows, setFlaggedRows] = useState<Record<string, boolean>>({});
   const [wasteNotes, setWasteNotes] = useState<Record<string, string>>({});
 
@@ -147,7 +158,7 @@ export default function SalesWastePage() {
     : 1;
 
   const tableRows = useMemo<SalesWasteRow[]>(() => {
-    return recommendations.map((item, index) => {
+    const rows = recommendations.map((item, index) => {
       const seed = hashNumber(item.item_id);
       const forecasted = Number(item.recommended_quantity ?? 0);
       const varianceNudge = ((seed % 7) - 3) * 0.03;
@@ -172,7 +183,11 @@ export default function SalesWastePage() {
         marginImpact,
       };
     });
-  }, [recommendations, producedRatio, soldRatio]);
+    if (focusedItemId) {
+      return rows.filter((row) => row.itemId === focusedItemId);
+    }
+    return rows;
+  }, [recommendations, producedRatio, soldRatio, focusedItemId]);
 
   const totalForecasted = tableRows.reduce((sum, row) => sum + row.forecasted, 0);
   const totalProduced = tableRows.reduce((sum, row) => sum + row.produced, 0);

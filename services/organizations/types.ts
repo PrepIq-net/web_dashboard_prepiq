@@ -129,6 +129,31 @@ export const organizationFinancialOverviewSchema = z.object({
   branch_name: z.string().nullable(),
   summary: financialOverviewSummarySchema,
   branches: z.array(financialOverviewBranchSchema),
+  waste_analysis: z.object({
+    total_waste_cost: z.number(),
+    waste_rate_pct: z.number(),
+    top_items: z.array(
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        waste_cost: z.number(),
+      }),
+    ),
+  }),
+  stockout_impact: z.object({
+    lost_revenue: z.number(),
+    stockout_events: z.number(),
+    top_items: z.array(
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        lost_revenue: z.number(),
+      }),
+    ),
+    revenue_protected: z.number(),
+    lost_revenue_delta_pct: z.number().nullable().optional(),
+    revenue_protected_delta_pct: z.number().nullable().optional(),
+  }),
 });
 
 export type OrganizationFinancialOverview = z.infer<
