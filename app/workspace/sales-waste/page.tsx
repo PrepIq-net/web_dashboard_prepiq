@@ -244,7 +244,7 @@ function SalesWasteContent() {
         header: "Action",
         cell: (info) => (
           <Link
-            href={`/workspace/production?item=${info.row.original.item_id}&branch=${selectedBranchId}&date=${anchorDate}`}
+            href={`/workspace/sales-waste/item?item=${info.row.original.item_id}&branch=${selectedBranchId}&date=${anchorDate}&period=${period}`}
             className="inline-flex h-8 items-center rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-text-primary"
           >
             Drill In
@@ -252,7 +252,7 @@ function SalesWasteContent() {
         ),
       }),
     ],
-    [anchorDate, selectedBranchId],
+    [anchorDate, selectedBranchId, period],
   );
 
   const table = useReactTable({
