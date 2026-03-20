@@ -159,6 +159,12 @@ export const organizationFinancialOverviewSchema = z.object({
     waste_prevented: z.number(),
     stockouts_avoided: z.number(),
   }),
+  impact_report: z.object({
+    accuracy_pct: z.number(),
+    waste_reduced: z.number(),
+    stockouts_avoided: z.number(),
+    revenue_protected: z.number(),
+  }),
   item_profitability: z.array(
     z.object({
       item_id: z.string(),

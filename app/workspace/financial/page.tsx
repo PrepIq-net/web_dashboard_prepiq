@@ -162,6 +162,7 @@ export default function FinancialPage() {
   const wasteAnalysis = financialData?.waste_analysis;
   const stockoutImpact = financialData?.stockout_impact;
   const forecastImpact = financialData?.forecast_accuracy_impact;
+  const impactReport = financialData?.impact_report;
   const itemProfitability = financialData?.item_profitability ?? [];
   const costTrends = financialData?.cost_trends ?? [];
 
@@ -400,9 +401,55 @@ export default function FinancialPage() {
 
       {activeTab === "OVERVIEW" ? (
         <section className="mt-8">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Financial Overview
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            PrepIQ Impact Report
+          </p>
+          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+            {timeframeLabel}
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-10">
+          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+              Forecast Accuracy
+            </p>
+            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+              {toPercent(impactReport?.accuracy_pct ?? 0)}
+            </p>
+            <p className="mt-3 text-xs text-text-muted">Average accuracy</p>
+          </article>
+          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+              Waste Reduced
+            </p>
+            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+              {toCurrency(impactReport?.waste_reduced ?? 0)}
+            </p>
+            <p className="mt-3 text-xs text-text-muted">Period improvement</p>
+          </article>
+          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+              Stockouts Avoided
+            </p>
+            <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
+              {impactReport?.stockouts_avoided ?? 0}
+            </p>
+            <p className="mt-3 text-xs text-text-muted">Events prevented</p>
+          </article>
+          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+              Revenue Protected
+            </p>
+            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+              {toCurrency(impactReport?.revenue_protected ?? 0)}
+            </p>
+            <p className="mt-3 text-xs text-text-muted">Estimated impact</p>
+          </article>
+        </div>
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Financial Overview
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
               {timeframeLabel}
@@ -476,7 +523,7 @@ export default function FinancialPage() {
                   : "—"}
               </p>
             </article>
-          </div>
+        </div>
         </section>
       ) : null}
 
