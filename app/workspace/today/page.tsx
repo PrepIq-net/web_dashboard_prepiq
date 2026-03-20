@@ -1128,7 +1128,7 @@ function TodayWorkspacePageContent() {
       targetDate,
     });
     setCsvModalOpen(false);
-    router.push("/setup/sales/csv/map");
+    router.push("/workspace/today/csv-map");
   };
 
   useEffect(() => {

@@ -185,9 +185,8 @@ export default function ProductionPage() {
 
   const enrichedItems = useMemo<LiveItem[]>(() => {
     return liveItems.map((item) => {
-      const monitor = item.live_monitor ?? {};
-      const riskEngine = monitor.risk_engine;
-      const sold = Number(monitor.sold_today ?? 0);
+      const riskEngine = item.live_monitor?.risk_engine;
+      const sold = Number(item.live_monitor?.sold_today ?? 0);
       const forecast = Number(
         item.forecast_qty ??
           item.forecast_context?.predicted_quantity_needed ??
@@ -196,13 +195,18 @@ export default function ProductionPage() {
           0,
       );
       const planned = Number(
-        monitor.planned_qty ?? item.final_quantity ?? item.suggested_quantity ?? 0,
+        item.live_monitor?.planned_qty ??
+          item.final_quantity ??
+          item.suggested_quantity ??
+          0,
       );
       const remaining = Number(
-        monitor.remaining_qty ?? Math.max(0, planned - sold),
+        item.live_monitor?.remaining_qty ?? Math.max(0, planned - sold),
       );
       const prepNowQty = Number(
-        monitor.should_prepare_more_qty ?? monitor.suggested_additional_qty ?? 0,
+        item.live_monitor?.should_prepare_more_qty ??
+          item.live_monitor?.suggested_additional_qty ??
+          0,
       );
       return {
         id: item.id,
@@ -210,15 +214,16 @@ export default function ProductionPage() {
         unit: item.unit,
         forecast,
         planned,
-        prepared: Number(monitor.total_prepared_qty ?? 0),
+        prepared: Number(item.live_monitor?.total_prepared_qty ?? 0),
         sold,
         remaining,
         prepNowQty,
         runoutMinutes: riskEngine?.runout_minutes ?? null,
         stockoutRisk: riskEngine?.stockout_risk ?? "LOW",
         wasteRisk: riskEngine?.waste_risk ?? "LOW",
-        trendPct: Number(monitor.trend_vs_forecast_pct ?? 0),
-        alertLabel: monitor.alert?.message ?? monitor.signal ?? null,
+        trendPct: Number(item.live_monitor?.trend_vs_forecast_pct ?? 0),
+        alertLabel:
+          item.live_monitor?.alert?.message ?? item.live_monitor?.signal ?? null,
         startBatchNow: Boolean(riskEngine?.start_new_batch_now),
         avgDemandLastHour: riskEngine?.avg_demand_last_hour ?? null,
       };

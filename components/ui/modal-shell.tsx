@@ -79,7 +79,7 @@ export function ModalShell({
       role="presentation"
     >
       <div
-        className={`flex w-full flex-col ${maxWidthClassName} h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] min-h-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-2xl`}
+        className={`flex w-full flex-col ${maxWidthClassName} max-h-[calc(100vh-6rem)] min-h-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-2xl`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
