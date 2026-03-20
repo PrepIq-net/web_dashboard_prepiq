@@ -45,6 +45,7 @@ import {
   staffPersonalDashboardSchema,
   integrationsOverviewSchema,
   operationsProductionSnapshotSchema,
+  salesWasteReportSchema,
   advancedForecastResponseSchema,
   forecastScenariosResponseSchema,
   forecastConfidenceResponseSchema,
@@ -54,6 +55,7 @@ import {
   velocityUpdateResponseSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
+  type SalesWasteReport,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
   type BranchDayInitializePayload,
@@ -88,6 +90,7 @@ export type {
   ChefSkillScoreQuery,
   DataQualityReportQuery,
   VelocityUpdatePayload,
+  SalesWasteReport,
 };
 
 export type StaffPersonalDashboardQuery = {
@@ -144,6 +147,21 @@ export async function getOperationsProductionSnapshot(
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.operationsProduction(), params),
     operationsProductionSnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export type SalesWasteReportQuery = {
+  branch_id?: string;
+  period?: string;
+  target_date?: string;
+  item_id?: string;
+};
+
+export async function getSalesWasteReport(params: SalesWasteReportQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.operationsSalesWaste(), params),
+    salesWasteReportSchema,
     { method: "GET" },
   );
 }

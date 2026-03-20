@@ -22,6 +22,14 @@ type LocalLog = {
   status: "pending" | "sent" | "failed";
 };
 
+type WasteReason =
+  | "OVER_PREP"
+  | "DEMAND_FLUCTUATION"
+  | "CHEF_OVERRIDE"
+  | "INVENTORY_EXPIRY"
+  | "OTHER"
+  | "UNSPECIFIED";
+
 type LiveItem = {
   id: string;
   title: string;
@@ -120,10 +128,13 @@ export default function ProductionPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
+  const isOwner = role === "ORG_OWNER";
+  const isOrgAdmin = role === "ORG_ADMIN";
   const isStaffOperator = role === "STAFF_OPERATOR";
   const isBranchManager = role === "BRANCH_MANAGER" || role === "GM";
   const isOpsDirector = role === "OPS_DIRECTOR";
-  const canViewProduction = isStaffOperator || isBranchManager || isOpsDirector;
+  const canViewProduction =
+    isOwner || isOrgAdmin || isStaffOperator || isBranchManager || isOpsDirector;
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
@@ -387,7 +398,7 @@ export default function ProductionPage() {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [batchQuantity, setBatchQuantity] = useState("");
   const [batchNotes, setBatchNotes] = useState("");
-  const [wasteReason, setWasteReason] = useState("NONE");
+  const [wasteReason, setWasteReason] = useState<WasteReason>("UNSPECIFIED");
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
@@ -418,8 +429,18 @@ export default function ProductionPage() {
     if (normalizedQty <= 0) return;
 
     const noteParts: string[] = [];
-    if (type === "WASTE" && wasteReason !== "NONE") {
-      noteParts.push(`Waste reason: ${wasteReason}.`);
+    if (type === "WASTE" && wasteReason !== "UNSPECIFIED") {
+      const reasonLabel =
+        wasteReason === "OVER_PREP"
+          ? "Over-prep"
+          : wasteReason === "DEMAND_FLUCTUATION"
+            ? "Demand fluctuation"
+            : wasteReason === "CHEF_OVERRIDE"
+              ? "Chef override"
+              : wasteReason === "INVENTORY_EXPIRY"
+                ? "Inventory expiry"
+                : "Other";
+      noteParts.push(`Waste reason: ${reasonLabel}.`);
     }
     if (batchNotes.trim()) {
       noteParts.push(batchNotes.trim());
@@ -447,7 +468,7 @@ export default function ProductionPage() {
 
     setBatchQuantity("");
     setBatchNotes("");
-    setWasteReason("NONE");
+    setWasteReason("UNSPECIFIED");
 
     try {
       await createProductionLogMutation.mutateAsync({
@@ -455,6 +476,7 @@ export default function ProductionPage() {
         quantity_produced: type === "BATCH" ? normalizedQty : 0,
         waste_quantity: type === "WASTE" ? normalizedQty : 0,
         event_type: "additional",
+        waste_reason: type === "WASTE" ? wasteReason : undefined,
         reason,
       });
       branchDayQuery.refetch();
@@ -780,13 +802,15 @@ export default function ProductionPage() {
               />
               <select
                 value={wasteReason}
-                onChange={(event) => setWasteReason(event.target.value)}
+                onChange={(event) => setWasteReason(event.target.value as WasteReason)}
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               >
-                <option value="NONE">Waste reason (optional)</option>
-                <option value="EXPIRED">Expired</option>
-                <option value="DAMAGED">Damaged</option>
-                <option value="OVERPREP">Over-prep</option>
+                <option value="UNSPECIFIED">Waste reason (optional)</option>
+                <option value="OVER_PREP">Over-prep</option>
+                <option value="DEMAND_FLUCTUATION">Demand fluctuation</option>
+                <option value="CHEF_OVERRIDE">Chef override</option>
+                <option value="INVENTORY_EXPIRY">Inventory expiry</option>
+                <option value="OTHER">Other</option>
               </select>
               <input
                 value={batchNotes}
