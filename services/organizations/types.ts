@@ -154,6 +154,30 @@ export const organizationFinancialOverviewSchema = z.object({
     lost_revenue_delta_pct: z.number().nullable().optional(),
     revenue_protected_delta_pct: z.number().nullable().optional(),
   }),
+  forecast_accuracy_impact: z.object({
+    accuracy_pct: z.number(),
+    waste_prevented: z.number(),
+    stockouts_avoided: z.number(),
+  }),
+  item_profitability: z.array(
+    z.object({
+      item_id: z.string(),
+      item_title: z.string(),
+      revenue: z.number(),
+      food_cost: z.number(),
+      gross_margin: z.number(),
+      margin_pct: z.number(),
+    }),
+  ),
+  cost_trends: z.array(
+    z.object({
+      date: z.string(),
+      revenue: z.number(),
+      food_cost: z.number(),
+      waste_cost: z.number(),
+      margin: z.number(),
+    }),
+  ),
 });
 
 export type OrganizationFinancialOverview = z.infer<

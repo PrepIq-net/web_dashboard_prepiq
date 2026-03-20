@@ -37,7 +37,16 @@ type FinancialBranchRow = {
   marginPctDelta?: number | null;
 };
 
-type FinancialTab = "OVERVIEW" | "WASTE" | "STOCKOUT" | "BRANCHES";
+type FinancialTab =
+  | "OVERVIEW"
+  | "WASTE"
+  | "STOCKOUT"
+  | "ACCURACY"
+  | "PROFIT"
+  | "BRANCHES"
+  | "TRENDS";
+
+type ProfitSort = "REVENUE" | "MARGIN";
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -53,8 +62,25 @@ function formatDelta(value?: number | null, suffix = "%") {
   return `${sign}${value.toFixed(1)}${suffix} vs prior`;
 }
 
+function buildSparklinePoints(values: number[], width: number, height: number) {
+  if (!values.length) return "";
+  const maxVal = Math.max(...values, 0);
+  const minVal = Math.min(...values, 0);
+  const span = Math.max(1, maxVal - minVal);
+  const step = values.length > 1 ? width / (values.length - 1) : width;
+  return values
+    .map((value, index) => {
+      const x = index * step;
+      const y = height - ((value - minVal) / span) * (height - 10) - 5;
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
-  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
+    "\n",
+  );
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -71,11 +97,17 @@ export default function FinancialPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const canAccess = ["ORG_OWNER", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const canAccess = [
+    "ORG_OWNER",
+    "OPS_DIRECTOR",
+    "GM",
+    "BRANCH_MANAGER",
+  ].includes(role);
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
+  const [profitSort, setProfitSort] = useState<ProfitSort>("REVENUE");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const financialQuery = useOrganizationFinancialOverview(
@@ -118,20 +150,33 @@ export default function FinancialPage() {
       }));
     }
 
-    return financialData?.branches.map((branch) => ({
-      value: branch.branch_id,
-      label: branch.branch_name,
-    })) ?? [];
+    return (
+      financialData?.branches.map((branch) => ({
+        value: branch.branch_id,
+        label: branch.branch_name,
+      })) ?? []
+    );
   }, [branches, financialData]);
 
   const summary = financialData?.summary;
   const wasteAnalysis = financialData?.waste_analysis;
   const stockoutImpact = financialData?.stockout_impact;
+  const forecastImpact = financialData?.forecast_accuracy_impact;
+  const itemProfitability = financialData?.item_profitability ?? [];
+  const costTrends = financialData?.cost_trends ?? [];
+
+  const trendSeries = useMemo(() => {
+    return {
+      revenue: costTrends.map((row) => row.revenue),
+      waste: costTrends.map((row) => row.waste_cost),
+      food: costTrends.map((row) => row.food_cost),
+      margin: costTrends.map((row) => row.margin),
+      labels: costTrends.map((row) => row.date.slice(5)),
+    };
+  }, [costTrends]);
 
   const branchRows = useMemo<FinancialBranchRow[]>(() => {
-    return (
-      financialData?.branches ?? []
-    ).map((branch) => ({
+    return (financialData?.branches ?? []).map((branch) => ({
       id: branch.branch_id,
       branch: branch.branch_name,
       revenue: branch.revenue,
@@ -146,6 +191,35 @@ export default function FinancialPage() {
       marginPctDelta: branch.margin_pct_delta,
     }));
   }, [financialData]);
+
+  const topBranches = useMemo(() => {
+    return [...branchRows].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+  }, [branchRows]);
+
+  const sortedProfitability = useMemo(() => {
+    const rows = [...itemProfitability];
+    if (profitSort === "MARGIN") {
+      rows.sort((a, b) => b.margin_pct - a.margin_pct || b.revenue - a.revenue);
+    } else {
+      rows.sort((a, b) => b.revenue - a.revenue);
+    }
+    return rows.slice(0, 6);
+  }, [itemProfitability, profitSort]);
+
+  const exportTrendCsv = () => {
+    const rows = costTrends.map((row) => [
+      row.date,
+      row.revenue.toFixed(2),
+      row.food_cost.toFixed(2),
+      row.waste_cost.toFixed(2),
+      row.margin.toFixed(2),
+    ]);
+    downloadCsv(
+      `financial-trends-${timeframe}.csv`,
+      ["Date", "Revenue", "FoodCost", "WasteCost", "Margin"],
+      rows,
+    );
+  };
 
   const branchColumns = useMemo(
     () => [
@@ -226,7 +300,14 @@ export default function FinancialPage() {
 
     downloadCsv(
       `financial-overview-${timeframe}.csv`,
-      ["Branch", "Revenue", "FoodCost", "WasteCost", "GrossMargin", "MarginPct"],
+      [
+        "Branch",
+        "Revenue",
+        "FoodCost",
+        "WasteCost",
+        "GrossMargin",
+        "MarginPct",
+      ],
       rows,
     );
   };
@@ -295,7 +376,10 @@ export default function FinancialPage() {
               { id: "OVERVIEW", label: "Overview" },
               { id: "WASTE", label: "Waste" },
               { id: "STOCKOUT", label: "Stockouts" },
+              { id: "ACCURACY", label: "Forecast Impact" },
+              { id: "PROFIT", label: "Item Profitability" },
               { id: "BRANCHES", label: "Branches" },
+              { id: "TRENDS", label: "Trends" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -316,83 +400,83 @@ export default function FinancialPage() {
 
       {activeTab === "OVERVIEW" ? (
         <section className="mt-8">
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Financial Overview
-          </p>
-          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            {timeframeLabel}
-          </h3>
-          <p className="mt-1 text-sm text-text-muted">
-            {branchFilter === "ALL" || !financialData?.branch_name
-              ? "Organization-wide view"
-              : `Branch: ${financialData.branch_name}`}
-          </p>
-        </div>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Financial Overview
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              {timeframeLabel}
+            </h3>
+            <p className="mt-1 text-sm text-text-muted">
+              {branchFilter === "ALL" || !financialData?.branch_name
+                ? "Organization-wide view"
+                : `Branch: ${financialData.branch_name}`}
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Revenue
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(summary?.revenue ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">
-              {formatDelta(summary?.revenue_delta_pct)}
-            </p>
-          </article>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Revenue
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(summary?.revenue ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {formatDelta(summary?.revenue_delta_pct)}
+              </p>
+            </article>
 
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Food Cost
-            </p>
-            <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-              {toCurrency(summary?.food_cost ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">
-              {formatDelta(summary?.food_cost_delta_pct)}
-            </p>
-          </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Food Cost
+              </p>
+              <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
+                {toCurrency(summary?.food_cost ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {formatDelta(summary?.food_cost_delta_pct)}
+              </p>
+            </article>
 
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Waste Cost
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
-              {toCurrency(summary?.waste_cost ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">
-              {formatDelta(summary?.waste_cost_delta_pct)}
-            </p>
-          </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Waste Cost
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
+                {toCurrency(summary?.waste_cost ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {formatDelta(summary?.waste_cost_delta_pct)}
+              </p>
+            </article>
 
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Gross Margin
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(summary?.gross_margin ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">
-              {formatDelta(summary?.gross_margin_delta_pct)}
-            </p>
-          </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Gross Margin
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(summary?.gross_margin ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {formatDelta(summary?.gross_margin_delta_pct)}
+              </p>
+            </article>
 
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Margin %
-            </p>
-            <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
-              {toPercent(summary?.margin_pct ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">
-              {summary?.margin_pct_delta != null
-                ? `${summary.margin_pct_delta >= 0 ? "+" : ""}${summary.margin_pct_delta.toFixed(1)} pp vs prior`
-                : "—"}
-            </p>
-          </article>
-        </div>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Margin %
+              </p>
+              <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
+                {toPercent(summary?.margin_pct ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                {summary?.margin_pct_delta != null
+                  ? `${summary.margin_pct_delta >= 0 ? "+" : ""}${summary.margin_pct_delta.toFixed(1)} pp vs prior`
+                  : "—"}
+              </p>
+            </article>
+          </div>
         </section>
       ) : null}
 
@@ -427,9 +511,7 @@ export default function FinancialPage() {
                 <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
                   {toPercent(wasteAnalysis?.waste_rate_pct ?? 0)}
                 </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  Share of revenue
-                </p>
+                <p className="mt-3 text-xs text-text-muted">Share of revenue</p>
               </article>
             </div>
 
@@ -443,7 +525,9 @@ export default function FinancialPage() {
                     <Link
                       key={item.item_id}
                       href={`/workspace/sales-waste?item=${item.item_id}${
-                        financialData?.branch_id ? `&branch=${financialData.branch_id}` : ""
+                        financialData?.branch_id
+                          ? `&branch=${financialData.branch_id}`
+                          : ""
                       }${financialData?.end_date ? `&date=${financialData.end_date}` : ""}`}
                       className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3 transition-colors hover:border-brand-gold/50 hover:bg-surface-3"
                     >
@@ -456,7 +540,9 @@ export default function FinancialPage() {
                     </Link>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted">No waste events recorded.</p>
+                  <p className="text-sm text-text-muted">
+                    No waste events recorded.
+                  </p>
                 )}
               </div>
             </div>
@@ -533,7 +619,9 @@ export default function FinancialPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted">No stockouts detected.</p>
+                  <p className="text-sm text-text-muted">
+                    No stockouts detected.
+                  </p>
                 )}
               </div>
             </div>
@@ -541,30 +629,279 @@ export default function FinancialPage() {
         </section>
       ) : null}
 
+      {activeTab === "ACCURACY" ? (
+        <section className="mt-10">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Forecast Accuracy Impact
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              {timeframeLabel}
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Current Accuracy
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toPercent(forecastImpact?.accuracy_pct ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                Average forecast accuracy
+              </p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Waste Prevented
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(forecastImpact?.waste_prevented ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                Improvement vs prior period
+              </p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Stockouts Avoided
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">
+                Avoided lost revenue
+              </p>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "PROFIT" ? (
+        <section className="mt-10">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Item Profitability
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Top Profit Drivers
+            </h3>
+          </div>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              { id: "REVENUE", label: "Top Revenue" },
+              { id: "MARGIN", label: "Top Margin %" },
+            ].map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setProfitSort(option.id as ProfitSort)}
+                className={`inline-flex h-9 items-center px-3 rounded-lg text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
+                  profitSort === option.id
+                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Item
+                    </th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Revenue
+                    </th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Food Cost
+                    </th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Margin
+                    </th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Margin %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4">
+                  {sortedProfitability.length ? (
+                    sortedProfitability.map((row) => (
+                      <tr
+                        key={row.item_id}
+                        className="transition-all duration-200 hover:bg-surface-3/50"
+                      >
+                        <td className="px-6 py-4 text-sm font-semibold text-text-primary">
+                          {row.item_title}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-text-secondary">
+                          {toCurrency(row.revenue)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-text-secondary">
+                          {toCurrency(row.food_cost)}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-status-success">
+                          {toCurrency(row.gross_margin)}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-brand-gold">
+                          {toPercent(row.margin_pct)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-6 text-sm text-text-muted"
+                      >
+                        No profitability data available for this period.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {activeTab === "BRANCHES" ? (
         <section className="mt-10">
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Branch Performance
-          </p>
-          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            Revenue, Cost, and Margin Breakdown
-          </h3>
-        </div>
-
-        <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <NativeTable
-              table={branchTable}
-              tableClassName="w-full min-w-[860px]"
-              headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-              bodyClassName="divide-y divide-surface-4"
-              headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-              bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-              cellClassName="px-6 py-4"
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+            {topBranches.map((branch) => (
+              <article
+                key={branch.id}
+                className="bg-surface-2 rounded-xl p-6 border border-surface-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  {branch.branch}
+                </p>
+                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                  {toCurrency(branch.revenue)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  Margin {toPercent(branch.marginPct)}
+                </p>
+              </article>
+            ))}
           </div>
-        </div>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Branch Performance
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Revenue, Cost, and Margin Breakdown
+            </h3>
+          </div>
+
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <NativeTable
+                table={branchTable}
+                tableClassName="w-full min-w-[860px]"
+                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                bodyClassName="divide-y divide-surface-4"
+                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                cellClassName="px-6 py-4"
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "TRENDS" ? (
+        <section className="mt-10">
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Cost Trends
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                Revenue, Waste, Food Cost, Margin
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={exportTrendCsv}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-3 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-text-primary transition-all duration-200 hover:bg-surface-4 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98]"
+              disabled={!costTrends.length}
+            >
+              <Download className="h-4 w-4" />
+              Download Trend CSV
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {[
+              {
+                label: "Revenue",
+                color: "text-status-success",
+                series: trendSeries.revenue,
+              },
+              {
+                label: "Food Cost",
+                color: "text-text-secondary",
+                series: trendSeries.food,
+              },
+              {
+                label: "Waste Cost",
+                color: "text-status-critical",
+                series: trendSeries.waste,
+              },
+              {
+                label: "Margin",
+                color: "text-brand-gold",
+                series: trendSeries.margin,
+              },
+            ].map((chart) => {
+              const points = buildSparklinePoints(chart.series, 520, 160);
+              return (
+                <div
+                  key={chart.label}
+                  className="rounded-xl border border-surface-4 bg-surface-2 p-5"
+                >
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                    {chart.label} Trend
+                  </p>
+                  {chart.series.length ? (
+                    <div className="mt-4">
+                      <svg viewBox="0 0 520 160" className="h-40 w-full">
+                        <polyline
+                          points={points}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                          className={chart.color}
+                        />
+                      </svg>
+                      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                        {trendSeries.labels.slice(-6).map((label, index) => (
+                          <div key={`${chart.label}-${label}-${index}`}>
+                            <p>{label}</p>
+                            <p className="font-semibold text-text-secondary">
+                              {toCurrency(
+                                chart.series[
+                                  Math.max(0, chart.series.length - 6 + index)
+                                ] ?? 0,
+                              )}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-text-muted">
+                      Not enough historical data yet.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </section>
       ) : null}
     </WorkspaceShell>
