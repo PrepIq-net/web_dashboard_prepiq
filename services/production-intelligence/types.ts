@@ -748,6 +748,16 @@ export const createProductionLogPayloadSchema = z.object({
   quantity_produced: z.number().min(0).optional(),
   waste_quantity: z.number().min(0).optional(),
   event_type: z.enum(["planned", "additional"]).optional(),
+  waste_reason: z
+    .enum([
+      "OVER_PREP",
+      "DEMAND_FLUCTUATION",
+      "CHEF_OVERRIDE",
+      "INVENTORY_EXPIRY",
+      "OTHER",
+      "UNSPECIFIED",
+    ])
+    .optional(),
   reason: z.string().max(120).optional(),
 });
 export type CreateProductionLogPayload = z.infer<

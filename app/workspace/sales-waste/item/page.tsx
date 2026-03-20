@@ -145,10 +145,35 @@ function SalesWasteItemContent() {
     const series = report?.item_trends ?? [];
     return {
       labels: series.map((row) => row.date.slice(5)),
+      sold: series.map((row) => row.sold),
       revenue: series.map((row) => row.revenue),
+      wasteUnits: series.map((row) => row.waste),
       wasteRate: series.map((row) => row.waste_rate_pct),
     };
   }, [report?.item_trends]);
+
+  const handleDownloadCsv = () => {
+    if (!report?.item_trends?.length) return;
+    const headers = ["date", "sold_units", "revenue", "waste_units", "waste_cost", "waste_rate_pct"];
+    const rows = report.item_trends.map((row) => [
+      row.date,
+      row.sold,
+      row.revenue,
+      row.waste,
+      row.waste_cost,
+      row.waste_rate_pct,
+    ]);
+    const csv = [headers, ...rows]
+      .map((line) => line.map((value) => `"${String(value)}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `item-trends-${queryItemId}-${anchorDate}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   const revenueShare =
     report?.totals?.revenue && itemRow
@@ -206,12 +231,21 @@ function SalesWasteItemContent() {
               Unit: {itemRow?.unit ?? "PCS"} · Revenue share: {toPercent(revenueShare)}
             </p>
           </div>
-          <Link
-            href={`/workspace/sales-waste?branch=${selectedBranchId}&date=${anchorDate}&period=${period}`}
-            className="inline-flex h-10 items-center rounded-lg border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary hover:text-text-primary"
-          >
-            Back to Sales &amp; Waste
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              className="inline-flex h-10 items-center rounded-lg border border-brand-gold/50 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold hover:text-brand-gold"
+            >
+              Download Item Trend CSV
+            </button>
+            <Link
+              href={`/workspace/sales-waste?branch=${selectedBranchId}&date=${anchorDate}&period=${period}`}
+              className="inline-flex h-10 items-center rounded-lg border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary hover:text-text-primary"
+            >
+              Back to Sales &amp; Waste
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4">
@@ -366,12 +400,26 @@ function SalesWasteItemContent() {
               label: "Revenue Trend",
               color: "text-status-success",
               series: itemTrendSeries.revenue,
+              format: "currency",
             },
             {
               label: "Waste Rate Trend",
               color: "text-status-critical",
               series: itemTrendSeries.wasteRate,
               suffix: "%",
+              format: "percent",
+            },
+            {
+              label: "Units Sold Trend",
+              color: "text-text-secondary",
+              series: itemTrendSeries.sold,
+              format: "number",
+            },
+            {
+              label: "Waste Units Trend",
+              color: "text-status-warning",
+              series: itemTrendSeries.wasteUnits,
+              format: "number",
             },
           ].map((chart) => {
             const points = buildSparklinePoints(chart.series, 520, 160);
@@ -399,7 +447,11 @@ function SalesWasteItemContent() {
                           <div key={`${chart.label}-${label}-${index}`}>
                             <p>{label}</p>
                             <p className="font-semibold text-text-secondary">
-                              {chart.suffix ? `${value.toFixed(1)}${chart.suffix}` : toCurrency(value)}
+                              {chart.format === "currency"
+                                ? toCurrency(value)
+                                : chart.format === "percent"
+                                  ? `${value.toFixed(1)}${chart.suffix ?? ""}`
+                                  : value.toFixed(0)}
                             </p>
                           </div>
                         );
