@@ -45,6 +45,21 @@ function formatQuantity(value: number, unit: string) {
   return `${value.toFixed(0)} ${unit}`;
 }
 
+function buildSparklinePoints(values: number[], width: number, height: number) {
+  if (!values.length) return "";
+  const maxVal = Math.max(...values, 0);
+  const minVal = Math.min(...values, 0);
+  const span = Math.max(1, maxVal - minVal);
+  const step = values.length > 1 ? width / (values.length - 1) : width;
+  return values
+    .map((value, index) => {
+      const x = index * step;
+      const y = height - ((value - minVal) / span) * (height - 10) - 5;
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
 function SalesWasteItemContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,6 +132,7 @@ function SalesWasteItemContent() {
     branch_id: selectedBranchId,
     period,
     target_date: anchorDate,
+    item_id: queryItemId || undefined,
   });
   const report = reportQuery.data;
 
@@ -125,8 +141,17 @@ function SalesWasteItemContent() {
     return report.items.find((row) => row.item_id === queryItemId) ?? null;
   }, [report?.items, queryItemId]);
 
+  const itemTrendSeries = useMemo(() => {
+    const series = report?.item_trends ?? [];
+    return {
+      labels: series.map((row) => row.date.slice(5)),
+      revenue: series.map((row) => row.revenue),
+      wasteRate: series.map((row) => row.waste_rate_pct),
+    };
+  }, [report?.item_trends]);
+
   const revenueShare =
-    report?.totals.revenue && itemRow
+    report?.totals?.revenue && itemRow
       ? Math.min(100, (itemRow.revenue / report.totals.revenue) * 100)
       : 0;
 
@@ -333,6 +358,62 @@ function SalesWasteItemContent() {
                 : "No stockout risk detected from under-prep."}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {[
+            {
+              label: "Revenue Trend",
+              color: "text-status-success",
+              series: itemTrendSeries.revenue,
+            },
+            {
+              label: "Waste Rate Trend",
+              color: "text-status-critical",
+              series: itemTrendSeries.wasteRate,
+              suffix: "%",
+            },
+          ].map((chart) => {
+            const points = buildSparklinePoints(chart.series, 520, 160);
+            return (
+              <div key={chart.label} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                  {chart.label}
+                </p>
+                {chart.series.length ? (
+                  <div className="mt-4">
+                    <svg viewBox="0 0 520 160" className="h-40 w-full">
+                      <polyline
+                        points={points}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                        className={chart.color}
+                      />
+                    </svg>
+                    <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                      {itemTrendSeries.labels.slice(-6).map((label, index) => {
+                        const value =
+                          chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0;
+                        return (
+                          <div key={`${chart.label}-${label}-${index}`}>
+                            <p>{label}</p>
+                            <p className="font-semibold text-text-secondary">
+                              {chart.suffix ? `${value.toFixed(1)}${chart.suffix}` : toCurrency(value)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-text-muted">
+                    Not enough historical data yet.
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
     </WorkspaceShell>

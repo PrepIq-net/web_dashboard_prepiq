@@ -1807,12 +1807,64 @@ export const salesWasteTrendSchema = z.object({
   margin: z.number(),
 });
 
+export const salesWasteItemTrendSchema = z.object({
+  date: z.string(),
+  sold: z.number(),
+  revenue: z.number(),
+  waste: z.number(),
+  waste_cost: z.number(),
+  waste_rate_pct: z.number(),
+});
+
+export const salesWasteForecastImpactSchema = z.object({
+  forecast_accuracy: z.number(),
+  waste_avoided: z.number(),
+  stockout_events: z.number(),
+  stockouts_prevented: z.number().nullable(),
+});
+
+export const salesWasteDriverSchema = z.object({
+  label: z.string(),
+  cost: z.number(),
+  pct: z.number(),
+});
+
+export const salesWasteDriversSummarySchema = z.object({
+  total_waste_cost: z.number(),
+  drivers: z.array(salesWasteDriverSchema),
+  data_note: z.string().optional(),
+});
+
+export const salesWasteOpportunityInsightSchema = z.object({
+  item_id: z.string().nullable().optional(),
+  item_title: z.string().nullable().optional(),
+  waste_rate_pct: z.number(),
+  suggested_action: z.string(),
+  potential_savings: z.number(),
+});
+
+export const salesWasteNetworkInsightSchema = z.object({
+  available: z.boolean(),
+  message: z.string().optional(),
+  avg_waste_rate_pct: z.number().optional(),
+  top_waste_items: z
+    .array(
+      z.object({
+        item_id: z.string().nullable(),
+        item_title: z.string().nullable(),
+        waste_cost: z.number(),
+      }),
+    )
+    .optional(),
+});
+
 export const salesWasteReportSchema = z.object({
   branch_id: z.string(),
   branch_name: z.string(),
   period: z.string(),
   period_start_date: z.string(),
   period_end_date: z.string(),
+  item_id: z.string().nullable().optional(),
   summaries: z.object({
     today: salesWastePeriodSummarySchema,
     week: salesWastePeriodSummarySchema,
@@ -1826,12 +1878,18 @@ export const salesWasteReportSchema = z.object({
     food_cost_ratio: z.number(),
     waste_cost: z.number(),
     waste_rate_pct: z.number(),
+    efficiency_ratio: z.number(),
     over_prep_qty: z.number(),
     under_prep_qty: z.number(),
     lost_revenue: z.number(),
   }),
   items: z.array(salesWasteItemRowSchema),
   trends: z.array(salesWasteTrendSchema),
+  item_trends: z.array(salesWasteItemTrendSchema),
+  forecast_impact: salesWasteForecastImpactSchema,
+  waste_drivers: salesWasteDriversSummarySchema,
+  opportunity_insights: z.array(salesWasteOpportunityInsightSchema),
+  network_insights: salesWasteNetworkInsightSchema.nullable(),
 });
 
 export type SalesWasteReport = z.infer<typeof salesWasteReportSchema>;

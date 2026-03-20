@@ -155,6 +155,7 @@ export type SalesWasteReportQuery = {
   branch_id?: string;
   period?: string;
   target_date?: string;
+  item_id?: string;
 };
 
 export async function getSalesWasteReport(params: SalesWasteReportQuery) {

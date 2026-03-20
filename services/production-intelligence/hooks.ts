@@ -214,6 +214,7 @@ export const productionIntelligenceQueryKeys = {
       params.branch_id ?? "",
       params.period ?? "",
       params.target_date ?? "",
+      params.item_id ?? "",
     ] as const,
   advancedForecast: (params?: AdvancedForecastPayload) =>
     [
