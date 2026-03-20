@@ -828,14 +828,13 @@ function TodayWorkspacePageContent() {
   const startLiveService = () => {
     if (!branchDay?.id) return;
     if (!isPlanLocked) return;
+    setConfirmAction(null);
     updateBranchDayStatusMutation.mutate(
       {
         branchDayId: branchDay.id,
         payload: { status: "LIVE" },
       },
-      {
-        onSuccess: () => setConfirmAction(null),
-      },
+      {},
     );
   };
 
@@ -846,14 +845,13 @@ function TodayWorkspacePageContent() {
 
   const closeServiceDay = () => {
     if (!branchDay?.id) return;
+    setConfirmAction(null);
     updateBranchDayStatusMutation.mutate(
       {
         branchDayId: branchDay.id,
         payload: { status: "CLOSED" },
       },
-      {
-        onSuccess: () => setConfirmAction(null),
-      },
+      {},
     );
   };
 
