@@ -1903,3 +1903,105 @@ export const salesWasteReportSchema = z.object({
 });
 
 export type SalesWasteReport = z.infer<typeof salesWasteReportSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Risk Snapshot
+// ─────────────────────────────────────────────────────────────────────────────
+export const riskScoreBreakdownSchema = z.object({
+  demand_volatility: z.number(),
+  stock_risk: z.number(),
+  waste_risk: z.number(),
+  supply_risk: z.number(),
+});
+
+export const riskScoreSchema = z.object({
+  level: z.enum(["LOW", "MODERATE", "HIGH"]),
+  score: z.number(),
+  breakdown: riskScoreBreakdownSchema,
+});
+
+export const stockoutForecastItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  probability_pct: z.number(),
+  reasons: z.array(z.string()),
+  suggested_action: z.string(),
+});
+
+export const wasteRiskForecastItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  projected_excess: z.number(),
+  drivers: z.array(z.string()),
+  suggested_action: z.string(),
+});
+
+export const supplyRiskItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  unit: z.string(),
+  current_stock: z.number(),
+  expected_depletion_days: z.number(),
+  supplier_lead_time_days: z.number(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  suggested_action: z.string(),
+});
+
+export const supplyRiskSchema = z.object({
+  items: z.array(supplyRiskItemSchema),
+  data_note: z.string().optional(),
+});
+
+export const demandVolatilityItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  volatility_pct: z.number(),
+  forecast_confidence: z.string(),
+  recent_pattern: z.string(),
+});
+
+export const networkRiskAlertSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable().optional(),
+  locations_affected: z.number(),
+  avg_waste_rate_change_pct: z.number(),
+  suggested_action: z.string(),
+});
+
+export const networkRiskSchema = z.object({
+  available: z.boolean(),
+  message: z.string().optional(),
+  alerts: z.array(networkRiskAlertSchema).optional(),
+});
+
+export const operationalAlertSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  severity: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  detail: z.string(),
+  suggested_action: z.string(),
+});
+
+export const riskTrendPointSchema = z.object({
+  date: z.string(),
+  score: z.number(),
+});
+
+export const riskSnapshotSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  target_date: z.string(),
+  risk_score: riskScoreSchema,
+  stockout_forecast: z.array(stockoutForecastItemSchema),
+  waste_risk_forecast: z.array(wasteRiskForecastItemSchema),
+  supply_risk: supplyRiskSchema,
+  demand_volatility: z.array(demandVolatilityItemSchema),
+  network_risk: networkRiskSchema.nullable(),
+  operational_alerts: z.array(operationalAlertSchema),
+  risk_trend: z.array(riskTrendPointSchema),
+});
+
+export type RiskSnapshot = z.infer<typeof riskSnapshotSchema>;

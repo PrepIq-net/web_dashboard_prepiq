@@ -1,86 +1,112 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  useReactTable,
-  NativeTable,
-} from "@/components/ui/native-table";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { useCurrentUserProfile } from "@/services";
+import { Select } from "@/components/ui/select";
 import {
-  useExecutiveControlTower,
-  useOwnerMarginProtectionReport,
-} from "@/services/production-intelligence/hooks";
-
-type RiskCategory = {
-  key: "margin" | "compliance" | "inventory" | "tax" | "supplier";
-  label: string;
-  score: number;
-  trendDelta: number;
-};
-
-type HighImpactFlag = {
-  id: string;
-  title: string;
-  branch: string;
-  category: string;
-  impact: number;
-  severity: "HIGH" | "MEDIUM" | "LOW";
-};
-
-type BranchRiskRow = {
-  id: string;
-  branch: string;
-  composite: number;
-  margin: number;
-  compliance: number;
-  inventory: number;
-  tax: number;
-  supplier: number;
-};
+  useBranches,
+  useCurrentUserProfile,
+  useProductionIntelligenceAccessScope,
+  useRiskSnapshot,
+} from "@/services";
 
 const EMPTY_LIST: never[] = [];
-const branchRiskColumnHelper = createColumnHelper<BranchRiskRow>();
-const CORE_ROW_MODEL = getCoreRowModel();
 
-function clampScore(value: number) {
-  return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
-}
+type RiskTab =
+  | "OVERVIEW"
+  | "STOCKOUT"
+  | "WASTE"
+  | "SUPPLY"
+  | "VOLATILITY"
+  | "NETWORK"
+  | "ALERTS"
+  | "TREND";
 
-function toCurrency(value: number) {
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+function toPercent(value: number) {
+  return `${value.toFixed(1)}%`;
 }
 
 function riskTone(score: number) {
-  if (score >= 70) return "text-[#C44949]";
-  if (score >= 45) return "text-[#C48B2A]";
-  return "text-[#3F8F68]";
+  if (score >= 70) return "text-status-critical";
+  if (score >= 45) return "text-status-warning";
+  return "text-status-success";
 }
 
-function impactFromSeverity(severity?: string | null) {
-  if (severity === "HIGH") return 1500;
-  if (severity === "MEDIUM") return 700;
-  return 250;
+function buildSparklinePoints(values: number[], width: number, height: number) {
+  if (!values.length) return "";
+  const maxVal = Math.max(...values, 0);
+  const minVal = Math.min(...values, 0);
+  const span = Math.max(1, maxVal - minVal);
+  const step = values.length > 1 ? width / (values.length - 1) : width;
+  return values
+    .map((value, index) => {
+      const x = index * step;
+      const y = height - ((value - minVal) / span) * (height - 10) - 5;
+      return `${x},${y}`;
+    })
+    .join(" ");
 }
 
-export default function RiskPage() {
+function RiskPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: accessScope } = useProductionIntelligenceAccessScope();
+
   const role = user?.organization_role ?? "";
+  const canAccess = ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
-  const canAccess = ["OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN", "AUDITOR", "ACCOUNTANT"].includes(role);
-  const financialOnly = role === "AUDITOR" || role === "ACCOUNTANT";
+  const branchesQuery = useBranches(user?.organization_id ?? "");
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
+  const scopedBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
 
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
-  const marginReportQuery = useOwnerMarginProtectionReport(
-    undefined,
-    canAccess && Boolean(user?.organization_id),
+  const branchOptions = useMemo(() => {
+    if (canViewAllBranches) {
+      return branches;
+    }
+    if (accessibleBranches.length) {
+      if (!branches.length) {
+        return accessibleBranches;
+      }
+      return branches.filter((branch) => scopedBranchIds.has(branch.id));
+    }
+    return [];
+  }, [accessibleBranches, branches, canViewAllBranches, scopedBranchIds]);
+
+  const defaultBranch =
+    branchOptions.find((branch) => branch.id === accessScope?.default_branch_id) ??
+    branchOptions.find((branch) => branch.is_primary) ??
+    branchOptions[0] ??
+    null;
+
+  const queryBranchId = searchParams.get("branch") ?? "";
+  const queryDate = searchParams.get("date") ?? "";
+
+  const [activeTab, setActiveTab] = useState<RiskTab>("OVERVIEW");
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    queryBranchId || (defaultBranch?.id ?? ""),
+  );
+  const [anchorDate, setAnchorDate] = useState(
+    queryDate || new Date().toISOString().slice(0, 10),
   );
 
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  useEffect(() => {
+    if (!selectedBranchId && defaultBranch?.id) {
+      setSelectedBranchId(defaultBranch.id);
+    }
+  }, [defaultBranch?.id, selectedBranchId]);
+
+  useEffect(() => {
+    if (!branchOptions.length) return;
+    if (!selectedBranchId) return;
+    const isAllowed = branchOptions.some((branch) => branch.id === selectedBranchId);
+    if (!isAllowed && defaultBranch?.id) {
+      setSelectedBranchId(defaultBranch.id);
+    }
+  }, [branchOptions, defaultBranch?.id, selectedBranchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -88,321 +114,489 @@ export default function RiskPage() {
     }
   }, [isLoading, canAccess, router]);
 
-  const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
-  const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
-  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
-  const totalWasteCost = Number(marginReportQuery.data?.summary?.total_waste_cost ?? "0");
+  const riskQuery = useRiskSnapshot({
+    branch_id: selectedBranchId,
+    target_date: anchorDate,
+  });
 
-  const textSignals = useMemo(() => {
-    return alerts.map((alert) => ({
-      ...alert,
-      text: `${alert.type ?? ""} ${alert.title ?? ""} ${alert.context ?? ""}`.toLowerCase(),
-    }));
-  }, [alerts]);
-
-  const supplierAlertCount = textSignals.filter((alert) => alert.text.includes("supplier") || alert.text.includes("purchase") || alert.text.includes("cost")).length;
-  const inventoryAlertCount = textSignals.filter((alert) => alert.text.includes("stock") || alert.text.includes("inventory")).length;
-  const complianceAlertCount = textSignals.filter((alert) => alert.text.includes("compliance") || alert.text.includes("policy")).length;
-  const taxAlertCount = textSignals.filter((alert) => alert.text.includes("tax") || alert.text.includes("filing")).length;
-
-  const categoryRows = useMemo<RiskCategory[]>(() => {
-    const avgWastePct = branchGrid.length
-      ? branchGrid.reduce((sum, branch) => sum + Number(branch.waste_pct ?? 0), 0) / branchGrid.length
-      : 0;
-    const avgMarginDeviationAbs = marginBranches.length
-      ? marginBranches.reduce((sum, branch) => sum + Math.abs(Number(branch.margin_deviation_pct ?? 0)), 0) /
-        marginBranches.length
-      : 0;
-
-    const margin = clampScore(avgMarginDeviationAbs * 10 + avgWastePct * 6 + Math.min(20, totalWasteCost / 450));
-    const compliance = clampScore(complianceAlertCount * 16 + alerts.filter((a) => a.severity === "HIGH").length * 8);
-    const inventory = clampScore(inventoryAlertCount * 18 + avgWastePct * 5);
-    const tax = clampScore(taxAlertCount * 20 + Math.min(30, totalWasteCost / 900));
-    const supplier = clampScore(supplierAlertCount * 17 + Math.min(25, avgMarginDeviationAbs * 4));
-
-    const rows: RiskCategory[] = [
-      { key: "margin", label: "Margin Risk", score: margin, trendDelta: Math.max(-8, 4 - avgWastePct * 0.9) },
-      { key: "compliance", label: "Compliance Risk", score: compliance, trendDelta: compliance >= 50 ? 5.2 : -2.4 },
-      { key: "inventory", label: "Inventory Risk", score: inventory, trendDelta: inventory >= 50 ? 4.1 : -1.8 },
-      { key: "tax", label: "Tax Risk", score: tax, trendDelta: tax >= 50 ? 3.6 : -1.2 },
-      { key: "supplier", label: "Supplier Risk", score: supplier, trendDelta: supplier >= 50 ? 4.7 : -0.9 },
-    ];
-
-    return financialOnly ? rows.filter((row) => row.key === "margin" || row.key === "tax" || row.key === "supplier") : rows;
-  }, [
-    branchGrid,
-    marginBranches,
-    alerts,
-    totalWasteCost,
-    complianceAlertCount,
-    inventoryAlertCount,
-    taxAlertCount,
-    supplierAlertCount,
-    financialOnly,
-  ]);
-
-  const filteredCategoryRows = useMemo(() => {
-    if (categoryFilter === "ALL") return categoryRows;
-    return categoryRows.filter((row) => row.key === categoryFilter);
-  }, [categoryRows, categoryFilter]);
-
-  const highImpactFlags = useMemo<HighImpactFlag[]>(() => {
-    const fromAlerts: HighImpactFlag[] = alerts.map((alert, index) => ({
-      id: `flag-${alert.id}`,
-      title: alert.title || alert.type || "Risk signal",
-      branch: alert.branch_name,
-      category: (() => {
-        const text = `${alert.type ?? ""} ${alert.title ?? ""} ${alert.context ?? ""}`.toLowerCase();
-        if (text.includes("tax")) return "Tax";
-        if (text.includes("supplier") || text.includes("purchase")) return "Supplier";
-        if (text.includes("stock") || text.includes("inventory")) return "Inventory";
-        if (text.includes("compliance")) return "Compliance";
-        return "Margin";
-      })(),
-      impact: impactFromSeverity(alert.severity) + (alerts.length - index) * 120,
-      severity: alert.severity === "HIGH" ? "HIGH" : alert.severity === "MEDIUM" ? "MEDIUM" : "LOW",
-    }));
-
-    const marginDriven: HighImpactFlag[] = marginBranches
-      .filter((branch) => Number(branch.margin_deviation_pct ?? 0) < -1)
-      .map((branch) => ({
-        id: `flag-margin-${branch.branch_id}`,
-        title: `Margin deviation ${Math.abs(Number(branch.margin_deviation_pct ?? 0)).toFixed(1)}%`,
-        branch: branch.branch_name,
-        category: "Margin",
-        impact: Math.round(Number(branch.total_waste_cost ?? "0") * 0.3),
-        severity: Number(branch.margin_deviation_pct ?? 0) <= -4 ? "HIGH" : "MEDIUM",
-      }));
-
-    const merged = [...fromAlerts, ...marginDriven]
-      .sort((a, b) => b.impact - a.impact)
-      .slice(0, financialOnly ? 8 : 10);
-
-    return financialOnly
-      ? merged.filter((flag) => flag.category === "Margin" || flag.category === "Tax" || flag.category === "Supplier")
-      : merged;
-  }, [alerts, marginBranches, financialOnly]);
-
-  const branchRows = useMemo<BranchRiskRow[]>(() => {
-    return branchGrid.map((branch) => {
-      const marginData = marginBranches.find((entry) => entry.branch_id === branch.branch_id);
-      const wastePct = Number(branch.waste_pct ?? 0);
-      const surplusPct = Number(branch.surplus_pct ?? 0);
-      const marginDeviation = Math.abs(Number(marginData?.margin_deviation_pct ?? 0));
-      const branchWasteCost = Number(marginData?.total_waste_cost ?? "0");
-
-      const margin = clampScore(marginDeviation * 12 + wastePct * 6 + Math.min(25, branchWasteCost / 300));
-      const inventory = clampScore(wastePct * 13 + surplusPct * 9);
-      const compliance = clampScore((branch.compliance_badge === "RED" ? 62 : branch.compliance_badge === "YELLOW" ? 38 : 18) + surplusPct * 4);
-      const tax = clampScore(margin * 0.35 + Math.min(45, branchWasteCost / 500));
-      const supplier = clampScore(marginDeviation * 8 + inventory * 0.24);
-
-      const composite = financialOnly
-        ? clampScore(margin * 0.5 + tax * 0.25 + supplier * 0.25)
-        : clampScore(margin * 0.3 + compliance * 0.2 + inventory * 0.2 + tax * 0.15 + supplier * 0.15);
-
-      return {
-        id: branch.branch_id,
-        branch: branch.branch_name,
-        composite,
-        margin,
-        compliance,
-        inventory,
-        tax,
-        supplier,
-      };
-    });
-  }, [branchGrid, marginBranches, financialOnly]);
-
-  const compositeRisk = categoryRows.length
-    ? categoryRows.reduce((sum, row) => sum + row.score, 0) / categoryRows.length
-    : 0;
+  const risk = riskQuery.data;
+  const breakdown = risk?.risk_score.breakdown;
 
   const trendSeries = useMemo(() => {
-    return [
-      clampScore(compositeRisk + 6),
-      clampScore(compositeRisk + 2),
-      clampScore(compositeRisk - 3),
-      clampScore(compositeRisk),
-    ];
-  }, [compositeRisk]);
-
-  const branchColumns = useMemo(() => {
-    if (financialOnly) {
-      return [
-        branchRiskColumnHelper.accessor("branch", {
-          header: "Branch",
-          cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
-        }),
-        branchRiskColumnHelper.accessor("composite", {
-          header: "Composite",
-          cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-        }),
-        branchRiskColumnHelper.accessor("margin", {
-          header: "Margin",
-          cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-        }),
-        branchRiskColumnHelper.accessor("tax", {
-          header: "Tax",
-          cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-        }),
-        branchRiskColumnHelper.accessor("supplier", {
-          header: "Supplier",
-          cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-        }),
-      ];
-    }
-
-    return [
-      branchRiskColumnHelper.accessor("branch", {
-        header: "Branch",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
-      }),
-      branchRiskColumnHelper.accessor("composite", {
-        header: "Composite",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-      branchRiskColumnHelper.accessor("margin", {
-        header: "Margin",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-      branchRiskColumnHelper.accessor("compliance", {
-        header: "Compliance",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-      branchRiskColumnHelper.accessor("inventory", {
-        header: "Inventory",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-      branchRiskColumnHelper.accessor("tax", {
-        header: "Tax",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-      branchRiskColumnHelper.accessor("supplier", {
-        header: "Supplier",
-        cell: (info) => <span className={`text-[12px] ${riskTone(info.getValue())}`}>{info.getValue().toFixed(0)}</span>,
-      }),
-    ];
-  }, [financialOnly]);
-
-  const branchTable = useReactTable({
-    data: branchRows,
-    columns: branchColumns,
-    getCoreRowModel: CORE_ROW_MODEL,
-  });
+    const points = risk?.risk_trend ?? [];
+    return {
+      labels: points.map((row) => row.date.slice(5)),
+      scores: points.map((row) => row.score),
+    };
+  }, [risk?.risk_trend]);
 
   return (
     <WorkspaceShell
       eyebrow="Risk"
-      title="Systemic Risk Intelligence"
-      description="Integrated risk view across margin, compliance, inventory, tax, and supplier exposure, prioritized by branch impact."
-      insight="Risk clarity improves when category scores, high-impact flags, and branch exposure are reviewed in one control surface."
+      title="Operational Risk"
+      description="Early warning signals for service disruption, waste, and supply risk."
+      insight="See what could go wrong before service starts."
     >
-      <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-3">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Composite Risk</p>
-          <p className={`mt-1 font-display text-[30px] ${riskTone(compositeRisk)}`}>{compositeRisk.toFixed(0)}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">High Impact Flags</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{highImpactFlags.length}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Estimated Exposure</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-            {toCurrency(highImpactFlags.reduce((sum, flag) => sum + flag.impact, 0))}
-          </p>
-        </article>
-      </section>
-
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Risk Categories</p>
-            <p className="mt-1 text-[13px] text-[#8E8E93]">Score and directional trend by risk domain.</p>
-          </div>
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className="h-10 w-full rounded-[8px] border border-[#2E2E33] bg-[#19191C] px-3 text-[12px] text-[#F5F5F7] md:w-[220px]"
-          >
-            <option value="ALL">All categories</option>
-            {categoryRows.map((category) => (
-              <option key={category.key} value={category.key}>
-                {category.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {filteredCategoryRows.map((category) => (
-            <article key={category.key} className="flex items-center justify-between border-b border-[#232327] py-2.5">
-              <div>
-                <p className="text-[13px] text-[#F5F5F7]">{category.label}</p>
-                <p className="text-[11px] text-[#8E8E93]">Trend {category.trendDelta > 0 ? "+" : ""}{category.trendDelta.toFixed(1)} pts</p>
-              </div>
-              <p className={`font-display text-[24px] ${riskTone(category.score)}`}>{category.score.toFixed(0)}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Risk Trend</p>
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          {trendSeries.map((point, index) => (
-            <div key={`trend-${index}`} className="border-b border-[#232327] pb-2">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">W-{trendSeries.length - index}</p>
-              <p className={`mt-1 font-display text-[22px] ${riskTone(point)}`}>{point.toFixed(0)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">High-Impact Flags</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[920px]">
-            <thead className="border-b border-[#2A2A2E]">
-              <tr>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Flag</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Category</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Severity</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Impact</th>
-              </tr>
-            </thead>
-            <tbody>
-              {highImpactFlags.map((flag) => (
-                <tr key={flag.id} className="border-b border-[#232327]">
-                  <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{flag.title}</td>
-                  <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{flag.branch}</td>
-                  <td className="px-2 py-3 text-[12px] text-[#8E8E93]">{flag.category}</td>
-                  <td className={`px-2 py-3 text-[11px] ${flag.severity === "HIGH" ? "text-[#C44949]" : flag.severity === "MEDIUM" ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
-                    {flag.severity}
-                  </td>
-                  <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{toCurrency(flag.impact)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch-Level Breakdown</p>
-        <div className="mt-3 overflow-x-auto">
-          <NativeTable
-            table={branchTable}
-            tableClassName="w-full min-w-[980px]"
-            headerClassName="border-b border-[#2A2A2E]"
-            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-            bodyRowClassName="border-b border-[#232327]"
-            cellClassName="px-2 py-3"
+      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <Select
+            label="Branch"
+            options={branchOptions.map((branch) => ({
+              value: branch.id,
+              label: branch.name,
+            }))}
+            value={selectedBranchId}
+            onChange={setSelectedBranchId}
           />
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              value={anchorDate}
+              onChange={(event) => setAnchorDate(event.target.value)}
+              className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 text-sm text-text-secondary"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Scope
+            </label>
+            <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
+              {risk ? `${risk.branch_name} · ${risk.target_date}` : "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-surface-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "OVERVIEW", label: "Overview" },
+              { id: "STOCKOUT", label: "Stockout Risk" },
+              { id: "WASTE", label: "Waste Risk" },
+              { id: "SUPPLY", label: "Supply Risk" },
+              { id: "VOLATILITY", label: "Demand Volatility" },
+              { id: "NETWORK", label: "Network Signals" },
+              { id: "ALERTS", label: "Operational Alerts" },
+              { id: "TREND", label: "Risk Trend" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as RiskTab)}
+                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
+
+      {activeTab === "OVERVIEW" ? (
+        <section className="space-y-8">
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Daily Operational Risk Score
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-text-muted">Kitchen Risk Level</p>
+                <p className={`mt-1 text-3xl font-semibold ${riskTone(risk?.risk_score.score ?? 0)}`}>
+                  {risk?.risk_score.level ?? "—"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-text-muted">Score</p>
+                <p className="mt-1 text-3xl font-semibold text-text-primary">
+                  {risk?.risk_score.score ?? 0} / 100
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Demand volatility</p>
+                <p className="mt-2 text-xl font-semibold text-text-primary">
+                  {toPercent(breakdown?.demand_volatility ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Stock risk</p>
+                <p className="mt-2 text-xl font-semibold text-text-primary">
+                  {toPercent(breakdown?.stock_risk ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Waste risk</p>
+                <p className="mt-2 text-xl font-semibold text-text-primary">
+                  {toPercent(breakdown?.waste_risk ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Supply risk</p>
+                <p className="mt-2 text-xl font-semibold text-text-primary">
+                  {toPercent(breakdown?.supply_risk ?? 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Risk Calculation Signals
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Demand signals</p>
+                <p>Forecast confidence · Demand volatility · Trend velocity</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Inventory signals</p>
+                <p>Remaining stock · Depletion rate</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Supply signals</p>
+                <p>Supplier lead time · Stock buffer</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Operational signals</p>
+                <p>Waste rate · Stockout history · Chef overrides</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "STOCKOUT" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Stockout Risk Forecast
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Next Service Risk Signals
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.stockout_forecast ?? []).length ? (
+              risk?.stockout_forecast.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        item.risk === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : item.risk === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {item.risk}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Probability: <span className="font-semibold text-text-primary">{toPercent(item.probability_pct)}</span>
+                  </p>
+                  <ul className="mt-3 space-y-1 text-sm text-text-muted">
+                    {item.reasons.map((reason, index) => (
+                      <li key={`${item.item_id}-reason-${index}`}>• {reason}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {item.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No elevated stockout risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "WASTE" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Waste Risk Forecast
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Over-prep Loss Signals
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.waste_risk_forecast ?? []).length ? (
+              risk?.waste_risk_forecast.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        item.risk === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : item.risk === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {item.risk}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Projected excess:{" "}
+                    <span className="font-semibold text-text-primary">
+                      {item.projected_excess}
+                    </span>
+                  </p>
+                  <ul className="mt-3 space-y-1 text-sm text-text-muted">
+                    {item.drivers.map((reason, index) => (
+                      <li key={`${item.item_id}-driver-${index}`}>• {reason}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {item.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No elevated waste risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "SUPPLY" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Supply Risk
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Procurement Early Warnings
+            </h3>
+            {risk?.supply_risk?.data_note ? (
+              <p className="mt-2 text-sm text-text-muted">{risk.supply_risk.data_note}</p>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.supply_risk?.items ?? []).length ? (
+              risk?.supply_risk.items.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        item.risk === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : item.risk === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {item.risk}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-text-secondary">
+                    <p>Current stock: {item.current_stock} {item.unit}</p>
+                    <p>Expected depletion: {item.expected_depletion_days} days</p>
+                    <p>Supplier lead time: {item.supplier_lead_time_days} days</p>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {item.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No supply risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "VOLATILITY" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Demand Volatility Risk
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Forecasting Uncertainty Signals
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.demand_volatility ?? []).length ? (
+              risk?.demand_volatility.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span className="text-xs font-semibold text-text-muted">
+                      Confidence: {item.forecast_confidence}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Volatility: <span className="font-semibold text-text-primary">{toPercent(item.volatility_pct)}</span>
+                  </p>
+                  <p className="mt-3 text-sm text-text-muted">{item.recent_pattern}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No high demand volatility detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "NETWORK" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Network Risk Signals
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Cross-location Risk Alerts
+            </h3>
+          </div>
+          {risk?.network_risk?.available ? (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {(risk.network_risk.alerts ?? []).length ? (
+                risk.network_risk.alerts?.map((alert) => (
+                  <div key={alert.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                    <p className="text-lg font-semibold text-text-primary">{alert.item_title ?? "Item"}</p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Waste increasing across {alert.locations_affected} locations.
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Average waste change: <span className="font-semibold text-text-primary">{toPercent(alert.avg_waste_rate_change_pct)}</span>
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-text-primary">
+                      Suggested action: {alert.suggested_action}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                  {risk.network_risk.message ?? "No network risk spikes detected."}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+              {risk?.network_risk?.message ?? "Network insights require multiple active branches."}
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {activeTab === "ALERTS" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Operational Alerts
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Active Risk Inbox
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {(risk?.operational_alerts ?? []).length ? (
+              risk?.operational_alerts.map((alert) => (
+                <div key={alert.id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-lg font-semibold text-text-primary">{alert.title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        alert.severity === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : alert.severity === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {alert.severity}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-text-muted">{alert.detail}</p>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {alert.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No active operational alerts right now.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "TREND" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Risk Trend
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Risks Increasing Over Time
+            </h3>
+          </div>
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+            {trendSeries.scores.length ? (
+              <div>
+                <svg viewBox="0 0 520 160" className="h-40 w-full">
+                  <polyline
+                    points={buildSparklinePoints(trendSeries.scores, 520, 160)}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    className="text-brand-gold"
+                  />
+                </svg>
+                <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                  {trendSeries.labels.slice(-6).map((label, index) => (
+                    <div key={`${label}-${index}`}>
+                      <p>{label}</p>
+                      <p className="font-semibold text-text-secondary">
+                        {(trendSeries.scores[Math.max(0, trendSeries.scores.length - 6 + index)] ?? 0).toFixed(0)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted">Not enough risk trend data yet.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
     </WorkspaceShell>
+  );
+}
+
+export default function RiskPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-6 py-8 text-sm text-text-muted">
+          Loading risk intelligence…
+        </div>
+      }
+    >
+      <RiskPageContent />
+    </Suspense>
   );
 }

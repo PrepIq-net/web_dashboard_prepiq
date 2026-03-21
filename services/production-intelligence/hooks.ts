@@ -28,6 +28,7 @@ import {
   getStaffAccountability,
   getIntegrationsOverview,
   getOperationsProductionSnapshot,
+  getRiskSnapshot,
   getSalesWasteReport,
   retryIntegrationsSync,
   startSquareOAuth,
@@ -62,6 +63,7 @@ import {
   type StaffAccountabilityQuery,
   type IntegrationsOverviewQuery,
   type OperationsProductionQuery,
+  type RiskSnapshotQuery,
   type SalesWasteReportQuery,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
@@ -204,6 +206,13 @@ export const productionIntelligenceQueryKeys = {
     [
       ...productionIntelligenceQueryKeys.root,
       "operations-production",
+      params.branch_id ?? "",
+      params.target_date ?? "",
+    ] as const,
+  operationsRisk: (params: RiskSnapshotQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "operations-risk",
       params.branch_id ?? "",
       params.target_date ?? "",
     ] as const,
@@ -617,6 +626,14 @@ export function useOperationsProduction(params: OperationsProductionQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsProduction(params),
     queryFn: () => getOperationsProductionSnapshot(params),
     enabled: Boolean(params.branch_id || params.target_date),
+  });
+}
+
+export function useRiskSnapshot(params: RiskSnapshotQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.operationsRisk(params),
+    queryFn: () => getRiskSnapshot(params),
+    enabled: Boolean(params.branch_id),
   });
 }
 
