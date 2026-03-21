@@ -47,6 +47,7 @@ import {
   operationsProductionSnapshotSchema,
   salesWasteReportSchema,
   riskSnapshotSchema,
+  operationsHistorySnapshotSchema,
   advancedForecastResponseSchema,
   forecastScenariosResponseSchema,
   forecastConfidenceResponseSchema,
@@ -82,6 +83,7 @@ import {
   type DataQualityReportQuery,
   type VelocityUpdatePayload,
   type RiskSnapshot,
+  type OperationsHistorySnapshot,
 } from "@/services/production-intelligence/types";
 
 export type {
@@ -94,6 +96,7 @@ export type {
   VelocityUpdatePayload,
   SalesWasteReport,
   RiskSnapshot,
+  OperationsHistorySnapshot,
 };
 
 export type StaffPersonalDashboardQuery = {
@@ -163,6 +166,22 @@ export async function getRiskSnapshot(params: RiskSnapshotQuery) {
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.operationsRisk(), params),
     riskSnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export type OperationsHistoryQuery = {
+  branch_id?: string;
+  target_date?: string;
+  window_days?: number;
+};
+
+export async function getOperationsHistorySnapshot(
+  params: OperationsHistoryQuery,
+) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.operationsHistory(), params),
+    operationsHistorySnapshotSchema,
     { method: "GET" },
   );
 }
