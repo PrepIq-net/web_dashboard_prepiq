@@ -62,7 +62,11 @@ export function LocationPicker({
     if (initLock.current) return;
     initLock.current = true;
 
+    let cancelled = false;
+
     import("leaflet").then((L) => {
+      if (cancelled || !mapRef.current) return;
+
       // Fix default icon paths broken by webpack
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -115,9 +119,11 @@ export function LocationPicker({
     });
 
     return () => {
+      cancelled = true;
       leafletMap.current?.remove();
       leafletMap.current = null;
       markerRef.current = null;
+      initLock.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
