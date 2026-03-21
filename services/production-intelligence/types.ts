@@ -1903,3 +1903,44 @@ export const salesWasteReportSchema = z.object({
 });
 
 export type SalesWasteReport = z.infer<typeof salesWasteReportSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Risk Snapshot
+// ─────────────────────────────────────────────────────────────────────────────
+export const riskScoreBreakdownSchema = z.object({
+  demand_volatility: z.number(),
+  stock_risk: z.number(),
+  waste_risk: z.number(),
+  supply_risk: z.number(),
+});
+
+export const riskScoreSchema = z.object({
+  level: z.enum(["LOW", "MODERATE", "HIGH"]),
+  score: z.number(),
+  breakdown: riskScoreBreakdownSchema,
+});
+
+export const stockoutForecastItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  probability_pct: z.number(),
+  reasons: z.array(z.string()),
+  suggested_action: z.string(),
+});
+
+export const riskTrendPointSchema = z.object({
+  date: z.string(),
+  score: z.number(),
+});
+
+export const riskSnapshotSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  target_date: z.string(),
+  risk_score: riskScoreSchema,
+  stockout_forecast: z.array(stockoutForecastItemSchema),
+  risk_trend: z.array(riskTrendPointSchema),
+});
+
+export type RiskSnapshot = z.infer<typeof riskSnapshotSchema>;

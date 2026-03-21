@@ -58,11 +58,6 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Brain className="h-4 w-4" />,
           },
           {
-            label: "Risk",
-            href: "/workspace/risk",
-            icon: <Settings className="h-4 w-4" />,
-          },
-          {
             label: "Billing",
             href: "/workspace/billing",
             icon: <Folder className="h-4 w-4" />,
