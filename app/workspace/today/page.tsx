@@ -1494,8 +1494,9 @@ function TodayWorkspacePageContent() {
       description="Review today's prep targets, adjust quantities, and start service when you're ready."
       insight="The more you accept or override suggestions each morning, the smarter the recommendations get over time."
     >
-      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Slim context bar — no heavy card */}
+      <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
+        <div className="flex-1 min-w-[180px] max-w-xs">
           <Select
             label="Branch"
             leadingIcon={<Shop className="h-4 w-4" />}
@@ -1510,82 +1511,93 @@ function TodayWorkspacePageContent() {
               noBranchContext ? "No branches available" : "Select branch"
             }
           />
+        </div>
 
+        <div className="flex-1 min-w-[160px] max-w-xs">
           <OperationalCalendar
             label="Date"
             value={targetDate}
             onChange={setTargetDate}
           />
-
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Status
-            </label>
-            <div className="flex items-center h-12 px-4 rounded-button bg-surface-3 border border-border-default">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    loading
-                      ? "bg-text-muted animate-pulse"
-                      : noBranchContext
-                        ? "bg-status-critical"
-                        : branchDay?.status === "LIVE"
-                          ? "bg-status-success animate-pulse"
-                          : branchDay
-                            ? "bg-status-success"
-                            : "bg-status-warning"
-                  }`}
-                />
-                <p className="text-sm font-medium text-text-primary">
-                  {statusLabel}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
-        {todayQuery.isError ? (
-          <div className="mt-4 rounded-lg border border-status-warning/40 bg-status-warning/10 px-4 py-3 text-xs text-status-warning">
-            <p className="font-semibold">Day data not available.</p>
-            <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
-            {canInitializeDay && safeBranchId ? (
-              <button
-                type="button"
-                onClick={() =>
-                  initializeMutation.mutate({
-                    branch_id: safeBranchId,
-                    date: targetDate,
-                  })
-                }
-                className="mt-2 inline-flex h-8 items-center rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10"
-              >
-                Initialize Day
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+
+        <div className="flex items-center gap-2 pb-1">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              loading
+                ? "bg-text-muted animate-pulse"
+                : noBranchContext
+                  ? "bg-status-critical"
+                  : branchDay?.status === "LIVE"
+                    ? "bg-status-success animate-pulse"
+                    : branchDay
+                      ? "bg-status-success"
+                      : "bg-status-warning"
+            }`}
+          />
+          <p className="text-sm text-text-muted">{statusLabel}</p>
+        </div>
+      </div>
+
+      {todayQuery.isError ? (
+        <div className="mb-6 rounded-lg border-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
+          <p className="font-semibold">Day data not available.</p>
+          <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+          {canInitializeDay && safeBranchId ? (
+            <button
+              type="button"
+              onClick={() =>
+                initializeMutation.mutate({
+                  branch_id: safeBranchId,
+                  date: targetDate,
+                })
+              }
+              className="mt-2 inline-flex h-8 items-center rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10"
+            >
+              Initialize Day
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {noBranchContext ? (
-        <section className="mt-8">
-          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
-              <Shop className="h-6 w-6 text-status-warning" />
-            </div>
-            <p className="text-sm text-text-secondary max-w-md mx-auto">
-              No branch context is available for this account yet. Assign this
-              user to at least one active branch, then refresh this page.
-            </p>
+        <div className="mt-8 py-16 text-center">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
+            <Shop className="h-6 w-6 text-status-warning" />
           </div>
-        </section>
+          <p className="text-sm text-text-secondary max-w-md mx-auto">
+            No branch context is available for this account yet. Assign this
+            user to at least one active branch, then refresh this page.
+          </p>
+        </div>
       ) : null}
 
       {isMorning && branchDay ? (
         <>
-          <section className="mb-10 border-b border-surface-4/70 pb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Today&apos;s Outlook
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {/* ── Outlook banner — collapsible, secondary context ── */}
+          <details className="mb-8 group">
+            <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-4 bg-surface-2 px-5 py-4 list-none hover:border-surface-4/80 transition-colors">
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Today&apos;s outlook</p>
+                  <p className="mt-0.5 text-sm font-medium text-text-primary">
+                    {demandDeltaPct <= -2
+                      ? `Quieter than usual · ${toPercent(demandDeltaPct)} expected demand`
+                      : demandDeltaPct >= 2
+                        ? `Busier than usual · ${toPercent(demandDeltaPct)} expected demand`
+                        : "About normal today"}
+                    {" · "}
+                    <span className={prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}>
+                      {prepConfidenceRiskLabel === "Low" ? "Plan looks solid" : prepConfidenceRiskLabel === "Medium" ? "Review flagged items" : "Elevated risk — check alerts"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs text-text-muted group-open:hidden">Show details ↓</span>
+              <span className="text-xs text-text-muted hidden group-open:inline">Hide ↑</span>
+            </summary>
+
+            <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2 px-1">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
                 <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
                   How busy will it be?
@@ -1739,10 +1751,56 @@ function TodayWorkspacePageContent() {
                 </div>
               </article>
             </div>
-          </section>
+          </details>
 
+          {/* ── Risk alerts — shown above the table when present ── */}
+          {morningRiskAlerts.length > 0 && !isPlanLocked ? (
+            <div className="mb-6 space-y-2">
+              {morningRiskAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
+                    alert.severity === "HIGH"
+                      ? "border-status-critical bg-status-critical/8"
+                      : "border-status-warning bg-status-warning/8"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${alert.severity === "HIGH" ? "text-status-critical" : "text-status-warning"}`}>
+                      {alert.itemName} ·{" "}
+                      {alert.riskType === "STOCKOUT" ? "May run out" : alert.riskType === "WASTE" ? "Risk of waste" : "Margin at risk"}
+                    </p>
+                    <p className="mt-0.5 text-sm text-text-secondary">
+                      {alert.riskType === "STOCKOUT"
+                        ? "You might run out before service ends at your current plan."
+                        : alert.riskType === "WASTE"
+                          ? "You may cook more than you can sell today."
+                          : "Your current plan could affect today's margin."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onPlannedChange(alert.id, String(alert.suggestedFixQty), alert.unit);
+                      acceptSuggestion(alert.id, alert.suggestedFixQty, alert.unit);
+                    }}
+                    disabled={isPlanLocked}
+                    className={`shrink-0 inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+                      alert.severity === "HIGH"
+                        ? "border-status-critical/40 bg-status-critical/10 text-status-critical hover:bg-status-critical/20"
+                        : "border-status-warning/40 bg-status-warning/10 text-status-warning hover:bg-status-warning/20"
+                    }`}
+                  >
+                    Fix → {formatQuantity(alert.suggestedFixQty, alert.unit)}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {/* ── Prep table — the main event ── */}
           <section className="mb-11">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                   Prep Plan
@@ -1750,103 +1808,68 @@ function TodayWorkspacePageContent() {
                 <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
                   What to cook today
                 </h3>
-                <p className="text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Adjust quantities if needed, then accept or keep your own number.
-                </p>
+                {/* Inline stats — no cards */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-secondary">
+                  <span>
+                    <span className="font-semibold text-text-primary">{section2Rows.length}</span>
+                    {" "}of {forecastRowsByDemand.length} items
+                  </span>
+                  {(branchDay.morning_overview?.projected_margin_total ?? 0) > 0 ? (
+                    <span>
+                      Projected margin:{" "}
+                      <span className="font-semibold text-status-success">
+                        {formatCurrency(branchDay.morning_overview?.projected_margin_total ?? 0)}
+                      </span>
+                    </span>
+                  ) : null}
+                  {branchDay.morning_overview?.chef_accuracy_score?.available ? (
+                    <span>
+                      Your accuracy:{" "}
+                      <span className="font-semibold text-text-primary">
+                        {branchDay.morning_overview.chef_accuracy_score.chef_forecast_accuracy_pct.toFixed(1)}%
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              {/* Primary CTAs — prominent, right-aligned */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setImportantItemsOnly((prev) => !prev)}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary transition-all duration-200 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                  className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
                 >
-                  {importantItemsOnly
-                    ? "Show: priority items"
-                    : "Show: all items"}
+                  {importantItemsOnly ? "Priority items" : "All items"}
+                </button>
+                <button
+                  type="button"
+                  onClick={lockPlan}
+                  disabled={isPlanLocked || lockPlanMutation.isPending}
+                  className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-status-success/60 hover:text-status-success active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPlanLocked ? "Plan locked ✓" : lockPlanMutation.isPending ? "Locking..." : "Lock plan"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("START_LIVE")}
+                  disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
+                  className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {updateBranchDayStatusMutation.isPending ? "Starting..." : "Start service →"}
                 </button>
               </div>
             </div>
+            {!isPlanLocked ? (
+              <p className="mb-4 text-xs text-text-muted">Lock the plan first, then start service.</p>
+            ) : branchDay?.plan_lock?.locked_at ? (
+              <p className="mb-4 text-xs text-status-success">
+                Locked at{" "}
+                {new Date(branchDay.plan_lock.locked_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                {branchDay.plan_lock.locked_by?.name ? ` by ${branchDay.plan_lock.locked_by.name}` : ""}.
+              </p>
+            ) : null}
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                  Items shown
-                </p>
-                <p className="mt-1 text-xl font-semibold text-text-primary">
-                  {section2Rows.length}
-                  <span className="ml-2 text-sm font-medium text-text-muted">
-                    of {forecastRowsByDemand.length}
-                  </span>
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  Highest demand, flagged, and uncertain items first.
-                </p>
-              </article>
-              <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">
-                  Chef Forecast Accuracy
-                </p>
-                {branchDay.morning_overview?.chef_accuracy_score?.available ? (
-                  <>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">
-                      Last{" "}
-                      {
-                        branchDay.morning_overview.chef_accuracy_score
-                          .window_days
-                      }{" "}
-                      days:{" "}
-                      {branchDay.morning_overview.chef_accuracy_score.chef_forecast_accuracy_pct.toFixed(
-                        1,
-                      )}
-                      %
-                    </p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Better than AI:{" "}
-                      <span
-                        className={
-                          branchDay.morning_overview.chef_accuracy_score
-                            .better_than_ai_pct >= 0
-                            ? "text-status-success font-semibold"
-                            : "text-status-critical font-semibold"
-                        }
-                      >
-                        {branchDay.morning_overview.chef_accuracy_score
-                          .better_than_ai_pct >= 0
-                          ? "+"
-                          : ""}
-                        {branchDay.morning_overview.chef_accuracy_score.better_than_ai_pct.toFixed(
-                          1,
-                        )}
-                        %
-                      </span>
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Build 30-day history to unlock chef-vs-AI accuracy
-                    benchmarking.
-                  </p>
-                )}
-              </article>
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                  Projected Margin
-                </p>
-                <p className="mt-1 text-xl font-semibold text-status-success">
-                  {formatCurrency(
-                    branchDay.morning_overview?.projected_margin_total ?? 0,
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  Estimated prep cost:{" "}
-                  {formatCurrency(
-                    branchDay.morning_overview?.estimated_total_prep_cost ?? 0,
-                  )}
-                </p>
-              </article>
-            </div>
-
-            <div className="mt-5 lg:hidden space-y-3">
+            <div className="mt-2 lg:hidden space-y-3">
               {section2Rows.map(
                 ({ item, riskScore, planned, variance, impact }) => {
                   const plannedQty = planned ?? item.suggested_quantity;
@@ -2319,372 +2342,94 @@ function TodayWorkspacePageContent() {
             </div>
           </section>
 
-          <section className="mb-11">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Things to watch
-            </p>
-            <div className="mt-3 space-y-3">
-              {morningRiskAlerts.length ? (
-                morningRiskAlerts.map((alert) => (
-                  <article
-                    key={alert.id}
-                    className={`rounded-xl border px-4 py-3 shadow-sm ${
-                      alert.severity === "HIGH"
-                        ? "border-status-critical/40 bg-status-critical/10"
-                        : "border-status-warning/40 bg-status-warning/10"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary sm:text-[15px]">
-                          {alert.itemName}
-                        </p>
-                        <p
-                          className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                            alert.severity === "HIGH"
-                              ? "bg-status-critical/20 text-status-critical"
-                              : "bg-status-warning/20 text-status-warning"
-                          }`}
-                        >
-                          {alert.riskType === "STOCKOUT"
-                            ? "May run out"
-                            : alert.riskType === "WASTE"
-                              ? "Risk of waste"
-                              : "Margin at risk"}{" "}
-                          · {alert.severity === "HIGH" ? "Urgent" : alert.severity === "MEDIUM" ? "Watch" : "Monitor"}
-                        </p>
-                      </div>
-                      <span
-                        className={`mt-0.5 h-2.5 w-2.5 rounded-full ${
-                          alert.severity === "HIGH"
-                            ? "bg-status-critical"
-                            : "bg-status-warning"
-                        }`}
-                      />
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                      {alert.riskType === "STOCKOUT"
-                        ? "You might run out before service ends based on your current plan."
-                        : alert.riskType === "WASTE"
-                          ? "You may cook more than you can sell today."
-                          : "Your current plan could affect today's margin."}
-                    </p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                        <p className="text-text-muted">Running out risk</p>
-                        <p className="mt-1 font-semibold text-text-primary">
-                          {alert.riskMetrics.stockoutRiskPct.toFixed(1)}%
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                        <p className="text-text-muted">Waste risk</p>
-                        <p className="mt-1 font-semibold text-text-primary">
-                          {alert.riskMetrics.wasteRiskPct.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
-                      <p className="font-semibold text-text-primary">
-                        Why we&apos;re flagging this
-                      </p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4">
-                        {alert.drivers.map((driver) => (
-                          <li key={`${alert.id}-${driver}`}>{driver}</li>
-                        ))}
-                      </ul>
-                      <p className="mt-1">
-                        Difference from suggestion:{" "}
-                        <span className="font-semibold text-text-primary">
-                          {alert.varianceLabel}
-                        </span>
-                        {" · "}Safety buffer:{" "}
-                        <span className="font-semibold text-text-primary">
-                          {alert.bufferLabel}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
-                      <p className="font-semibold text-text-primary">
-                        Money at stake
-                      </p>
-                      {alert.hasPricing ? (
-                        <div className="mt-1 space-y-1">
-                          {alert.financials?.revenueIfSold != null ? (
-                            <p>
-                              If sold out:{" "}
-                              <span className="font-semibold text-text-primary">
-                                {formatCurrency(alert.financials.revenueIfSold)}
-                              </span>{" "}
-                              revenue
-                              {alert.financials.marginIfSold != null
-                                ? ` · ${formatCurrency(
-                                    alert.financials.marginIfSold,
-                                  )} margin`
-                                : ""}
-                            </p>
-                          ) : null}
-                          {alert.financials?.wasteIfAll != null ? (
-                            <p>
-                              If wasted:{" "}
-                              <span className="font-semibold text-text-primary">
-                                {formatCurrency(alert.financials.wasteIfAll)}
-                              </span>{" "}
-                              in food cost.
-                            </p>
-                          ) : null}
-                          {alert.financials?.lostMarginIfStockout != null &&
-                          alert.financials.shortfallQty > 0 ? (
-                            <p>
-                              Stockout exposure:{" "}
-                              {formatQuantity(
-                                alert.financials.shortfallQty,
-                                alert.financials.unit,
-                              )}{" "}
-                              short{" "}
-                              <span className="font-semibold text-text-primary">
-                                {formatCurrency(
-                                  alert.financials.lostMarginIfStockout,
-                                )}
-                              </span>{" "}
-                              margin.
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <p className="mt-1">
-                          Pricing data is missing. Add selling price and cost to
-                          unlock revenue and waste estimates.
-                        </p>
-                      )}
-                    </div>
-                    {alert.impact?.impact_simulation_triggered ? (
-                      <p className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
-                        Suggested quantity:{" "}
-                        <span className="font-semibold text-text-primary">
-                          {Math.round(
-                            alert.impact.impact_simulation.suggested_qty,
-                          )}
-                        </span>
-                        {" · "}Estimated margin saved{" "}
-                        <span className="font-semibold text-status-success">
-                          {formatCurrency(
-                            Math.max(
-                              0,
-                              alert.impact.impact_simulation.margin_savings,
-                            ),
-                          )}
-                        </span>
-                      </p>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const fixQty = alert.suggestedFixQty;
-                          onPlannedChange(alert.id, String(fixQty), alert.unit);
-                          acceptSuggestion(alert.id, fixQty, alert.unit);
-                        }}
-                        disabled={isPlanLocked}
-                        className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/10 px-4 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Fix it →{" "}
-                        {formatQuantity(alert.suggestedFixQty, alert.unit)}
-                      </button>
-                      <span className="text-[11px] text-text-muted">
-                        {alert.riskType === "STOCKOUT"
-                          ? "Adds a safety buffer to avoid running out"
-                          : alert.riskType === "WASTE"
-                            ? "Reduces the amount to avoid leftover waste"
-                            : "Aligns with the recommended quantity"}
-                      </span>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <div className="rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3 text-sm text-status-success">
-                  All items look balanced for today. No urgent changes needed.
-                </div>
-              )}
-            </div>
-          </section>
+          {/* ── Collapsed footer: network intelligence + decision summary ── */}
+          <details className="mt-8 mb-4">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
+              More context ↓ (network signals, decision summary)
+            </summary>
 
-          <section className="mb-11">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              What other kitchens are seeing
-            </p>
-            <article className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-              <h4 className="font-display text-xl font-semibold text-text-primary">
-                Trends from similar branches
-              </h4>
-              {networkLearnings.length ? (
-                <div className="mt-3 space-y-2">
-                  {networkLearnings.map((learning) => (
-                    <div
-                      key={`${learning.label}-${learning.detail}`}
-                      className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3"
-                    >
-                      <p className="text-sm font-semibold text-text-primary">
-                        {learning.label}
-                      </p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        {learning.detail}
-                        {typeof learning.confidence === "number"
-                          ? ` Reliability: ${percent(learning.confidence)}.`
-                          : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-text-secondary">
-                  Nothing notable from other branches this morning.
-                </p>
-              )}
-              <div className="mt-4 rounded-lg border border-status-warning/35 bg-status-warning/10 px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                  Suggested action
-                </p>
-                <p className="mt-1 text-sm text-text-primary">
-                  {networkSuggestedAction}
-                </p>
-              </div>
-            </article>
-          </section>
-
-          <section className="mt-8">
-            <div className="space-y-6">
+            <div className="mt-4 space-y-6">
+              {/* Network intelligence */}
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Ready to start service?
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+                  What other kitchens are seeing
                 </p>
-                <h3 className="mt-2 font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  Your prep decisions
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Lock the plan when you&apos;re happy, then start service.
-                </p>
+                {networkLearnings.length ? (
+                  <div className="space-y-2">
+                    {networkLearnings.map((learning) => (
+                      <div
+                        key={`${learning.label}-${learning.detail}`}
+                        className="flex items-start gap-3 py-2 border-b border-surface-4/50 last:border-0"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-text-primary">{learning.label}</p>
+                          <p className="mt-0.5 text-xs text-text-secondary">
+                            {learning.detail}
+                            {typeof learning.confidence === "number" ? ` Reliability: ${percent(learning.confidence)}.` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-muted">Nothing notable from other branches this morning.</p>
+                )}
+                {networkSuggestedAction ? (
+                  <p className="mt-3 text-sm text-text-secondary">
+                    <span className="font-medium text-text-primary">Suggested: </span>
+                    {networkSuggestedAction}
+                  </p>
+                ) : null}
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Items reviewed
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-text-primary">
-                    {decisionSummary.reviewed}
-                  </p>
-                </article>
-                <article className="rounded-xl border border-status-success/40 bg-status-success/10 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-status-success">
-                    Used suggestion
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-status-success">
-                    {decisionSummary.accepted}
-                  </p>
-                </article>
-                <article className="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                    Your own number
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-status-warning">
-                    {decisionSummary.overridden}
-                  </p>
-                </article>
-                <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Waste exposure
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-text-primary">
-                    {decisionSummary.projectedWaste.toFixed(1)}%
-                  </p>
-                </article>
-                <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Forecast impact
-                  </p>
-                  <p
-                    className={`mt-1 text-lg font-semibold ${decisionSummary.accuracyImpact >= 0 ? "text-status-success" : "text-status-critical"}`}
-                  >
-                    {decisionSummary.accuracyImpact >= 0 ? "+" : ""}
-                    {decisionSummary.accuracyImpact.toFixed(1)}%
-                  </p>
-                </article>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <button
-                  type="button"
-                  onClick={lockPlan}
-                  disabled={isPlanLocked || lockPlanMutation.isPending}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-status-success/45 px-5 text-sm font-semibold text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
-                  {isPlanLocked
-                    ? "Plan locked ✓"
-                    : lockPlanMutation.isPending
-                      ? "Locking..."
-                      : "Lock plan"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmAction("START_LIVE")}
-                  disabled={
-                    updateBranchDayStatusMutation.isPending || !isPlanLocked
-                  }
-                  className="inline-flex h-11 w-full items-center justify-center rounded-full border border-brand-gold/45 px-5 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
-                  {updateBranchDayStatusMutation.isPending
-                    ? "Starting service..."
-                    : "Start service"}
-                </button>
-              </div>
-              {!isPlanLocked ? (
-                <p className="text-xs text-status-warning">
-                  Lock the plan first before starting service.
+              {/* Decision summary */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+                  Your decisions so far
                 </p>
-              ) : branchDay?.plan_lock?.locked_at ? (
-                <p className="text-xs text-status-success">
-                  Locked at{" "}
-                  {new Date(branchDay.plan_lock.locked_at).toLocaleTimeString(
-                    "en-US",
-                    { hour: "2-digit", minute: "2-digit" },
-                  )}
-                  {branchDay.plan_lock.locked_by?.name
-                    ? ` by ${branchDay.plan_lock.locked_by.name}`
-                    : ""}
-                  .
-                </p>
-              ) : null}
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-secondary">
+                  <span>Reviewed: <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span></span>
+                  <span>Used suggestion: <span className="font-semibold text-status-success">{decisionSummary.accepted}</span></span>
+                  <span>Your own number: <span className="font-semibold text-status-warning">{decisionSummary.overridden}</span></span>
+                  <span>Waste exposure: <span className="font-semibold text-text-primary">{decisionSummary.projectedWaste.toFixed(1)}%</span></span>
+                  <span>
+                    Forecast impact:{" "}
+                    <span className={`font-semibold ${decisionSummary.accuracyImpact >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                      {decisionSummary.accuracyImpact >= 0 ? "+" : ""}{decisionSummary.accuracyImpact.toFixed(1)}%
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
-          </section>
+          </details>
         </>
       ) : null}
 
       {isLive && branchDay ? (
-        <section className="mt-12">
-          <div className="mb-6 flex items-center justify-between gap-4">
+        <section className="mt-8">
+          {/* Live header — title + secondary actions */}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success">
+                <span className="mr-2 inline-block h-2 w-2 rounded-full bg-status-success animate-pulse" />
                 Service is live
               </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              <h3 className="mt-1 font-display text-2xl font-semibold text-text-primary">
                 Kitchen monitor
               </h3>
-              <p className="mt-1 text-sm text-text-secondary">
-                We&apos;ll only interrupt you when something needs attention.
-              </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setQuietMode((prev) => !prev)}
-                className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary hover:border-brand-gold hover:text-brand-gold"
+                className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
               >
                 {quietMode ? "Show all items" : "Critical only"}
               </button>
               <button
                 type="button"
                 onClick={() => setCsvModalOpen(true)}
-                className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary hover:border-brand-gold hover:text-brand-gold"
+                className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
               >
                 CSV Import
               </button>
@@ -2692,11 +2437,9 @@ function TodayWorkspacePageContent() {
                 type="button"
                 onClick={() => setConfirmAction("CLOSE_DAY")}
                 disabled={updateBranchDayStatusMutation.isPending}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-status-critical/45 px-6 text-sm font-semibold text-status-critical transition-all duration-200 hover:border-status-critical hover:bg-status-critical/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-critical/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {updateBranchDayStatusMutation.isPending
-                  ? "Closing..."
-                  : "Close Day"}
+                {updateBranchDayStatusMutation.isPending ? "Closing..." : "Close day"}
               </button>
             </div>
           </div>
@@ -2821,69 +2564,36 @@ function TodayWorkspacePageContent() {
           </ModalShell>
 
           {liveSmartAlerts.length ? (
-            <div className="mb-4 space-y-2">
+            <div className="mb-6 space-y-2">
               {liveSmartAlerts.map((alert) => (
                 <article
                   key={alert.id}
-                  className={`rounded-xl border px-4 py-3 ${
+                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
                     alert.type === "SALES_SPIKE"
-                      ? "border-brand-gold/45 bg-brand-gold/10"
-                      : "border-status-critical/40 bg-status-critical/10"
+                      ? "border-brand-gold bg-brand-gold/8"
+                      : "border-status-critical bg-status-critical/8"
                   }`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-primary">
-                    {alert.type === "SALES_SPIKE"
-                      ? "Demand Surge"
-                      : alert.title}
-                  </p>
-                  <p className="mt-1 text-sm text-text-primary">
-                    <span className="font-semibold">
-                      {alert.product_title}:
-                    </span>{" "}
-                    {alert.message}
-                  </p>
-                  {alert.type === "STOCKOUT_RISK" ? (
-                    <div className="mt-1 space-y-1 text-xs text-text-secondary">
-                      <p>
-                        Remaining: {String(alert.details.remaining)}{" "}
-                        {String(alert.details.unit)} · Projected demand:{" "}
-                        {String(alert.details.projected_demand)}{" "}
-                        {String(alert.details.unit)}
-                      </p>
-                      {typeof alert.details.runout_minutes === "number" ? (
-                        <p>
-                          May run out in{" "}
-                          {Math.round(Number(alert.details.runout_minutes))}{" "}
-                          minutes · Prep time{" "}
-                          {Number(alert.details.prep_time_minutes || 0).toFixed(
-                            0,
-                          )}{" "}
-                          minutes
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {alert.type === "WASTE_RISK" ? (
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Prepared: {String(alert.details.prepared)}{" "}
-                      {String(alert.details.unit)} · Projected sold:{" "}
-                      {String(alert.details.projected_sold)}{" "}
-                      {String(alert.details.unit)} · Potential waste:{" "}
-                      {String(alert.details.potential_waste)}{" "}
-                      {String(alert.details.unit)}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${alert.type === "SALES_SPIKE" ? "text-brand-gold" : "text-status-critical"}`}>
+                      {alert.product_title} · {alert.type === "SALES_SPIKE" ? "Demand surge" : alert.type === "STOCKOUT_RISK" ? "Running low" : "Waste risk"}
                     </p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-text-secondary">
-                    Suggested action: {alert.suggested_action}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="mt-0.5 text-sm text-text-primary">{alert.message}</p>
+                    {alert.type === "STOCKOUT_RISK" && typeof alert.details.runout_minutes === "number" ? (
+                      <p className="mt-0.5 text-xs text-text-muted">
+                        May run out in {Math.round(Number(alert.details.runout_minutes))} min · Prep time {Number(alert.details.prep_time_minutes || 0).toFixed(0)} min
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-text-secondary">{alert.suggested_action}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
                     {alert.type === "STOCKOUT_RISK" ? (
                       <button
                         type="button"
                         onClick={() => handlePrepareMoreAlert(alert)}
-                        className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success hover:bg-status-success/10"
+                        className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/10 px-3 text-xs font-semibold text-status-success hover:bg-status-success/20"
                       >
-                        Cook more now
+                        Cook more
                       </button>
                     ) : null}
                     <button
@@ -2894,7 +2604,7 @@ function TodayWorkspacePageContent() {
                           type: alert.type,
                         })
                       }
-                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
+                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted hover:bg-surface-3"
                     >
                       Dismiss
                     </button>
@@ -2903,43 +2613,32 @@ function TodayWorkspacePageContent() {
               ))}
             </div>
           ) : (
-            <div className="mb-4 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
-              <p className="text-sm text-status-success">
-                All clear — no urgent issues right now.
-              </p>
+            <div className="mb-6 flex items-center gap-2 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
+              <span className="h-2 w-2 rounded-full bg-status-success" />
+              <p className="text-sm text-status-success">All clear — no urgent issues right now.</p>
             </div>
           )}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <article className="rounded-xl border border-status-success/40 bg-status-success/10 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-status-success">
-                On track
+          {/* ── Hero stats — large, scannable ── */}
+          <div className="mb-8 grid grid-cols-3 gap-px bg-surface-4/40 rounded-xl overflow-hidden">
+            <div className="bg-[#141416] px-6 py-6 text-center">
+              <p className="font-display text-4xl font-semibold text-status-success">
+                {Math.max(liveRows.length - stockoutWatchCount - overproductionWatchCount, 0)}
               </p>
-              <p className="mt-1 text-lg font-semibold text-status-success">
-                {Math.max(
-                  liveRows.length -
-                    stockoutWatchCount -
-                    overproductionWatchCount,
-                  0,
-                )}
-              </p>
-            </article>
-            <article className="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                Keep an eye on
-              </p>
-              <p className="mt-1 text-lg font-semibold text-status-warning">
+              <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-status-success/70">On track</p>
+            </div>
+            <div className="bg-[#141416] px-6 py-6 text-center">
+              <p className="font-display text-4xl font-semibold text-status-warning">
                 {overproductionWatchCount}
               </p>
-            </article>
-            <article className="rounded-xl border border-status-critical/40 bg-status-critical/10 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-status-critical">
-                Needs action
-              </p>
-              <p className="mt-1 text-lg font-semibold text-status-critical">
+              <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-status-warning/70">Keep an eye on</p>
+            </div>
+            <div className="bg-[#141416] px-6 py-6 text-center">
+              <p className={`font-display text-4xl font-semibold ${stockoutWatchCount > 0 ? "text-status-critical" : "text-text-muted"}`}>
                 {stockoutWatchCount}
               </p>
-            </article>
+              <p className={`mt-2 text-xs font-medium uppercase tracking-[0.12em] ${stockoutWatchCount > 0 ? "text-status-critical/70" : "text-text-muted"}`}>Needs action</p>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -3000,58 +2699,51 @@ function TodayWorkspacePageContent() {
                 return (
                   <article
                     key={item.id}
-                    className={`rounded-xl border px-4 py-4 ${isRisk ? "border-status-critical/30 bg-status-critical/5" : isWatch ? "border-status-warning/20 bg-surface-2" : "border-surface-4 bg-surface-2"}`}
+                    className={`rounded-xl border px-5 py-5 ${isRisk ? "border-status-critical/40 bg-status-critical/5" : isWatch ? "border-status-warning/30 bg-surface-2" : "border-surface-4/60 bg-surface-2"}`}
                   >
-                    {/* Urgency headline — promoted above stats when critical */}
-                    {isRisk && runoutMin !== null ? (
-                      <div className="mb-3 flex items-center gap-2 rounded-lg border border-status-critical/40 bg-status-critical/15 px-3 py-2">
-                        <span className="h-2 w-2 rounded-full bg-status-critical animate-pulse" />
+                    {/* Urgency banner — only when critical */}
+                    {isRisk ? (
+                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-status-critical/40 bg-status-critical/15 px-3 py-2">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-status-critical animate-pulse" />
                         <p className="text-sm font-semibold text-status-critical">
-                          {startBatchNow
-                            ? `Start ${item.product_title} batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
-                            : `${item.product_title} may run out in ${runoutMin} min`}
+                          {runoutMin !== null
+                            ? startBatchNow
+                              ? `Start a batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
+                              : `May run out in ${runoutMin} min`
+                            : "Demand is outpacing stock — cook more now"}
                         </p>
                       </div>
                     ) : null}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-text-primary">
-                          {item.product_title}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
-                          <span>
-                            Prepared:{" "}
-                            {formatQuantity(planned + additional, item.unit)}
-                          </span>
+
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Left: item name + secondary stats */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-semibold text-text-primary">{item.product_title}</p>
+                        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-muted">
+                          <span>Prepared: {formatQuantity(planned + additional, item.unit)}</span>
                           <span>Sold: {formatQuantity(sold, item.unit)}</span>
-                          <span className="text-text-primary font-medium">
-                            Remaining: {formatQuantity(remaining, item.unit)}
-                          </span>
+                          {runoutMin !== null && !isRisk ? (
+                            <span>Runout ~{runoutMin} min</span>
+                          ) : null}
                         </div>
-                        {runoutMin !== null && !isRisk ? (
-                          <p className="mt-1 text-xs text-text-muted">
-                            Runout in ~{runoutMin} min · Prep time {prepTimeMin}{" "}
-                            min
-                          </p>
-                        ) : null}
                       </div>
-                      <div>
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${toneClass}`}
-                        >
+
+                      {/* Right: remaining quantity — the focal point */}
+                      <div className="text-right shrink-0">
+                        <p className={`font-display text-3xl font-semibold ${isRisk ? "text-status-critical" : isWatch ? "text-status-warning" : "text-text-primary"}`}>
+                          {formatQuantity(remaining, item.unit)}
+                        </p>
+                        <p className="mt-0.5 text-xs text-text-muted">remaining</p>
+                        <span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
                           {statusLabel}
                         </span>
                       </div>
                     </div>
 
-                    {/* Micro-action: proactive instruction for non-safe items */}
+                    {/* Micro-action */}
                     {microAction ? (
-                      <div
-                        className={`mt-3 flex items-center justify-between rounded-lg border px-3 py-2 ${isRisk ? "border-status-critical/30 bg-status-critical/10" : "border-status-warning/30 bg-status-warning/10"}`}
-                      >
-                        <p
-                          className={`text-xs font-medium ${isRisk ? "text-status-critical" : "text-status-warning"}`}
-                        >
+                      <div className={`mt-4 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${isRisk ? "border-status-critical/30 bg-status-critical/10" : "border-status-warning/30 bg-status-warning/10"}`}>
+                        <p className={`text-xs font-medium ${isRisk ? "text-status-critical" : "text-status-warning"}`}>
                           {microAction}
                         </p>
                         {isRisk && suggestedAdditional > 0 ? (
@@ -3060,22 +2752,13 @@ function TodayWorkspacePageContent() {
                             onClick={() =>
                               logProduction(
                                 item.id,
-                                Math.max(
-                                  1,
-                                  isDiscreteUnit(item.unit)
-                                    ? Math.round(suggestedAdditional)
-                                    : suggestedAdditional,
-                                ),
+                                Math.max(1, isDiscreteUnit(item.unit) ? Math.round(suggestedAdditional) : suggestedAdditional),
                                 "Demand spike",
                               )
                             }
-                            className="ml-3 inline-flex h-7 shrink-0 items-center rounded-full border border-status-success/40 bg-status-success/10 px-3 text-[11px] font-semibold text-status-success hover:bg-status-success/20 active:scale-[0.98]"
+                            className="shrink-0 inline-flex h-8 items-center rounded-full bg-status-success/15 border border-status-success/40 px-3 text-xs font-semibold text-status-success hover:bg-status-success/25 active:scale-[0.98]"
                           >
-                            Prepare +
-                            {formatQuantity(
-                              Math.max(1, suggestedAdditional),
-                              item.unit,
-                            )}
+                            Prepare +{formatQuantity(Math.max(1, suggestedAdditional), item.unit)}
                           </button>
                         ) : null}
                       </div>
@@ -3134,13 +2817,11 @@ function TodayWorkspacePageContent() {
       ) : null}
 
       {isClosed && branchDay ? (
-        <section className="mt-12">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Day Complete
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Performance Review
+        <section className="mt-8">
+          <div className="mb-8 border-b border-surface-4/60 pb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Day complete</p>
+            <h3 className="mt-1 font-display text-2xl font-semibold text-text-primary">
+              How did today go?
             </h3>
           </div>
 
@@ -3435,15 +3116,15 @@ function TodayWorkspacePageContent() {
               </section>
 
               <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  2. Key Insights
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Key insights
                 </p>
-                <div className="mt-4 space-y-3 rounded-xl border border-surface-4 bg-surface-2 p-5">
+                <div className="mt-3 space-y-2">
                   {branchDay.review_phase.key_insights.insights.map(
                     (insight, index) => (
                       <p
                         key={`${index}-${insight}`}
-                        className="text-sm text-text-secondary"
+                        className="text-sm text-text-secondary border-b border-surface-4/40 pb-2 last:border-0"
                       >
                         {index + 1}. {insight}
                       </p>
@@ -3807,13 +3488,11 @@ function TodayWorkspacePageContent() {
               </section>
             </div>
           ) : (
-            <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-gold/20 mb-4">
-                <div className="h-6 w-6 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+            <div className="py-12 text-center">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/20 mb-3">
+                <div className="h-5 w-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
               </div>
-              <p className="text-sm text-text-muted">
-                Review summary is being prepared...
-              </p>
+              <p className="text-sm text-text-muted">Review summary is being prepared...</p>
             </div>
           )}
         </section>
@@ -3823,38 +3502,25 @@ function TodayWorkspacePageContent() {
       branchDay.status !== "MORNING" &&
       branchDay.status !== "LIVE" &&
       branchDay.status !== "CLOSED" ? (
-        <section className="mt-8">
-          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-gold/20 mb-4">
-              <Calendar className="h-6 w-6 text-brand-gold" />
-            </div>
-            <p className="text-sm text-text-secondary">
-              This screen is currently optimized for Morning Mode. Current
-              status is{" "}
-              <span className="font-semibold text-text-primary">
-                {branchDay.status}
-              </span>
-              .
-            </p>
-          </div>
-        </section>
+        <div className="mt-8 py-12 text-center">
+          <Calendar className="mx-auto h-8 w-8 text-text-muted mb-3" />
+          <p className="text-sm text-text-secondary">
+            Status is{" "}
+            <span className="font-semibold text-text-primary">{branchDay.status}</span>.
+          </p>
+        </div>
       ) : null}
 
       {!loading &&
       branchDay &&
       branchDay.status === "MORNING" &&
       branchDay.prep_plan_items.length === 0 ? (
-        <section className="mt-8">
-          <div className="bg-surface-2 rounded-xl p-8 border border-surface-4 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
-              <Calendar className="h-6 w-6 text-status-warning" />
-            </div>
-            <p className="text-sm text-text-secondary">
-              Morning mode is initialized, but there are no active prep items
-              for this branch yet.
-            </p>
-          </div>
-        </section>
+        <div className="mt-8 py-12 text-center">
+          <Calendar className="mx-auto h-8 w-8 text-status-warning mb-3" />
+          <p className="text-sm text-text-secondary">
+            Morning mode is initialized, but there are no active prep items for this branch yet.
+          </p>
+        </div>
       ) : null}
 
       <ModalShell
