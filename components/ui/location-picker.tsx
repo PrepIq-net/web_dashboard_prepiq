@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MapPin, MapsArrow, Xmark } from "iconoir-react";
+import { toast } from "react-hot-toast";
 
 type LatLng = { lat: number; lng: number };
 
@@ -41,12 +42,12 @@ export function LocationPicker({
   const [locating, setLocating] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [geoError, setGeoError] = useState("");
 
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const initLock = useRef(false);
 
   const debouncedQuery = useDebounce(query, 420);
 
@@ -58,15 +59,8 @@ export function LocationPicker({
   // ── Init Leaflet map (client-only) ──────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
-    // Guard against StrictMode double-invoke: if the container already has a
-    // Leaflet instance attached, tear it down before re-initialising.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((mapRef.current as any)._leaflet_id != null) {
-      leafletMap.current?.remove();
-      leafletMap.current = null;
-      markerRef.current = null;
-    }
-    if (leafletMap.current) return;
+    if (initLock.current) return;
+    initLock.current = true;
 
     import("leaflet").then((L) => {
       // Fix default icon paths broken by webpack
@@ -226,11 +220,10 @@ export function LocationPicker({
 
   function useCurrentLocation() {
     if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported by your browser.");
+      toast.error("Geolocation is not supported by your browser.");
       return;
     }
     setLocating(true);
-    setGeoError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
@@ -244,13 +237,16 @@ export function LocationPicker({
       },
       (err) => {
         setLocating(false);
-        setGeoError(
+        toast.error(
           err.code === 1
             ? "Location access denied. Allow it in your browser settings."
             : "Could not get your location. Try searching instead.",
+          { duration: 5000 },
         );
       },
-      { timeout: 10000, maximumAge: 60000 },
+      // No timeout — let the browser permission dialog take as long as needed.
+      // maximumAge allows reusing a recent cached fix.
+      { maximumAge: 60000 },
     );
   }
 
@@ -339,10 +335,6 @@ export function LocationPicker({
           </div>
         )}
       </div>
-
-      {geoError && (
-        <p className="text-xs text-[#C44949]">{geoError}</p>
-      )}
 
       {/* Map */}
       <div className="relative overflow-hidden rounded-[10px] border border-[#2E2E33]">
