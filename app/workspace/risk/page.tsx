@@ -19,6 +19,8 @@ type RiskTab =
   | "WASTE"
   | "SUPPLY"
   | "VOLATILITY"
+  | "NETWORK"
+  | "ALERTS"
   | "TREND";
 
 function toPercent(value: number) {
@@ -175,6 +177,8 @@ function RiskPageContent() {
               { id: "WASTE", label: "Waste Risk" },
               { id: "SUPPLY", label: "Supply Risk" },
               { id: "VOLATILITY", label: "Demand Volatility" },
+              { id: "NETWORK", label: "Network Signals" },
+              { id: "ALERTS", label: "Operational Alerts" },
               { id: "TREND", label: "Risk Trend" },
             ].map((tab) => (
               <button
@@ -238,6 +242,30 @@ function RiskPageContent() {
                 <p className="mt-2 text-xl font-semibold text-text-primary">
                   {toPercent(breakdown?.supply_risk ?? 0)}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Risk Calculation Signals
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Demand signals</p>
+                <p>Forecast confidence · Demand volatility · Trend velocity</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Inventory signals</p>
+                <p>Remaining stock · Depletion rate</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Supply signals</p>
+                <p>Supplier lead time · Stock buffer</p>
+              </div>
+              <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary">Operational signals</p>
+                <p>Waste rate · Stockout history · Chef overrides</p>
               </div>
             </div>
           </div>
@@ -426,6 +454,90 @@ function RiskPageContent() {
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
                 No high demand volatility detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "NETWORK" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Network Risk Signals
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Cross-location Risk Alerts
+            </h3>
+          </div>
+          {risk?.network_risk?.available ? (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {(risk.network_risk.alerts ?? []).length ? (
+                risk.network_risk.alerts?.map((alert) => (
+                  <div key={alert.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                    <p className="text-lg font-semibold text-text-primary">{alert.item_title ?? "Item"}</p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Waste increasing across {alert.locations_affected} locations.
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Average waste change: <span className="font-semibold text-text-primary">{toPercent(alert.avg_waste_rate_change_pct)}</span>
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-text-primary">
+                      Suggested action: {alert.suggested_action}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                  {risk.network_risk.message ?? "No network risk spikes detected."}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+              {risk?.network_risk?.message ?? "Network insights require multiple active branches."}
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {activeTab === "ALERTS" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Operational Alerts
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Active Risk Inbox
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {(risk?.operational_alerts ?? []).length ? (
+              risk?.operational_alerts.map((alert) => (
+                <div key={alert.id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-lg font-semibold text-text-primary">{alert.title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        alert.severity === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : alert.severity === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {alert.severity}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-text-muted">{alert.detail}</p>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {alert.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No active operational alerts right now.
               </div>
             )}
           </div>

@@ -1962,6 +1962,29 @@ export const demandVolatilityItemSchema = z.object({
   recent_pattern: z.string(),
 });
 
+export const networkRiskAlertSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable().optional(),
+  locations_affected: z.number(),
+  avg_waste_rate_change_pct: z.number(),
+  suggested_action: z.string(),
+});
+
+export const networkRiskSchema = z.object({
+  available: z.boolean(),
+  message: z.string().optional(),
+  alerts: z.array(networkRiskAlertSchema).optional(),
+});
+
+export const operationalAlertSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  severity: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  detail: z.string(),
+  suggested_action: z.string(),
+});
+
 export const riskTrendPointSchema = z.object({
   date: z.string(),
   score: z.number(),
@@ -1976,6 +1999,8 @@ export const riskSnapshotSchema = z.object({
   waste_risk_forecast: z.array(wasteRiskForecastItemSchema),
   supply_risk: supplyRiskSchema,
   demand_volatility: z.array(demandVolatilityItemSchema),
+  network_risk: networkRiskSchema.nullable(),
+  operational_alerts: z.array(operationalAlertSchema),
   risk_trend: z.array(riskTrendPointSchema),
 });
 
