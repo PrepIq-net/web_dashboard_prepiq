@@ -2005,3 +2005,64 @@ export const riskSnapshotSchema = z.object({
 });
 
 export type RiskSnapshot = z.infer<typeof riskSnapshotSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// History Snapshot
+// ─────────────────────────────────────────────────────────────────────────────
+export const historyTimelineEntrySchema = z.object({
+  date: z.string(),
+  status: z.enum(["MORNING", "LIVE", "CLOSED"]),
+  forecast_accuracy: z.number(),
+  waste_cost: z.number(),
+  stockout_count: z.number(),
+  revenue: z.number(),
+  has_snapshot: z.boolean(),
+});
+
+export const historySummarySchema = z.object({
+  date: z.string(),
+  status: z.enum(["MORNING", "LIVE", "CLOSED"]),
+  forecast_accuracy: z.number(),
+  waste_cost: z.number(),
+  stockout_count: z.number(),
+  revenue: z.number(),
+  prep_items_planned: z.number(),
+  lost_revenue_estimate: z.number(),
+});
+
+export const historyItemRowSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  unit: z.string(),
+  planned_qty: z.number(),
+  additional_qty: z.number(),
+  actual_sales: z.number(),
+  waste_qty: z.number(),
+  stockout_flag: z.boolean(),
+  revenue: z.number(),
+  waste_cost: z.number(),
+  lost_revenue_estimate: z.number(),
+  forecast_qty: z.number(),
+  forecast_error: z.number(),
+});
+
+export const historyExceptionsSchema = z.object({
+  top_waste_items: z.array(historyItemRowSchema),
+  top_stockout_items: z.array(historyItemRowSchema),
+});
+
+export const operationsHistorySnapshotSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  anchor_date: z.string(),
+  window_days: z.number(),
+  timeline: z.array(historyTimelineEntrySchema),
+  summary: historySummarySchema.nullable(),
+  items: z.array(historyItemRowSchema),
+  exceptions: historyExceptionsSchema,
+  data_note: z.string().nullable().optional(),
+});
+
+export type OperationsHistorySnapshot = z.infer<
+  typeof operationsHistorySnapshotSchema
+>;

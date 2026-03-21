@@ -29,6 +29,7 @@ import {
   getIntegrationsOverview,
   getOperationsProductionSnapshot,
   getRiskSnapshot,
+  getOperationsHistorySnapshot,
   getSalesWasteReport,
   retryIntegrationsSync,
   startSquareOAuth,
@@ -64,6 +65,7 @@ import {
   type IntegrationsOverviewQuery,
   type OperationsProductionQuery,
   type RiskSnapshotQuery,
+  type OperationsHistoryQuery,
   type SalesWasteReportQuery,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
@@ -215,6 +217,14 @@ export const productionIntelligenceQueryKeys = {
       "operations-risk",
       params.branch_id ?? "",
       params.target_date ?? "",
+    ] as const,
+  operationsHistory: (params: OperationsHistoryQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "operations-history",
+      params.branch_id ?? "",
+      params.target_date ?? "",
+      params.window_days ?? "",
     ] as const,
   salesWasteReport: (params: SalesWasteReportQuery) =>
     [
@@ -633,6 +643,14 @@ export function useRiskSnapshot(params: RiskSnapshotQuery) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.operationsRisk(params),
     queryFn: () => getRiskSnapshot(params),
+    enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useOperationsHistorySnapshot(params: OperationsHistoryQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.operationsHistory(params),
+    queryFn: () => getOperationsHistorySnapshot(params),
     enabled: Boolean(params.branch_id),
   });
 }

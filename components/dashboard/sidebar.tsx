@@ -89,6 +89,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Brain className="h-4 w-4" />,
           },
           {
+            label: "History",
+            href: "/workspace/history",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
             label: "Inventory",
             href: "/workspace/inventory",
             icon: <Clock className="h-4 w-4" />,
@@ -123,6 +128,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             label: "Production",
             href: "/workspace/production",
             icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "History",
+            href: "/workspace/history",
+            icon: <Clock className="h-4 w-4" />,
           },
           {
             label: "Purchasing",
@@ -197,6 +207,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Brain className="h-4 w-4" />,
           },
           {
+            label: "History",
+            href: "/workspace/history",
+            icon: <Clock className="h-4 w-4" />,
+          },
+          {
             label: "Inventory",
             href: "/workspace/inventory",
             icon: <Clock className="h-4 w-4" />,
@@ -252,6 +267,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             label: "Production",
             href: "/workspace/production",
             icon: <Brain className="h-4 w-4" />,
+          },
+          {
+            label: "History",
+            href: "/workspace/history",
+            icon: <Clock className="h-4 w-4" />,
           },
           {
             label: "Inventory",
