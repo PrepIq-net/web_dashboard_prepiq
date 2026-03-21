@@ -1597,159 +1597,104 @@ function TodayWorkspacePageContent() {
               <span className="text-xs text-text-muted hidden group-open:inline">Hide ↑</span>
             </summary>
 
-            <div className="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2 px-1">
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
-                <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  How busy will it be?
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Today looks{" "}
-                  <span className="font-semibold text-text-primary">
-                    {demandDeltaPct <= -2
-                      ? "quieter than usual"
-                      : demandDeltaPct >= 2
-                        ? "busier than usual"
-                        : "about normal"}
-                  </span>
-                  .
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Expected demand{" "}
-                  <span
-                    className={
-                      demandDeltaPct >= 0
-                        ? "font-semibold text-status-success"
-                        : "font-semibold text-status-critical"
-                    }
-                  >
-                    {toPercent(demandDeltaPct)}
-                  </span>{" "}
-                  vs a typical{" "}
-                  <span className="font-semibold text-text-primary">
-                    {branchDay.demand_signal.typical_day_label ??
-                      new Date(branchDay.date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                      })}
-                  </span>
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  How sure are we?{" "}
-                  <span className="font-semibold text-text-primary">
-                    {branchDay.demand_signal.confidence_label ??
-                      confidenceLabel(
-                        branchDay.demand_signal.forecast_confidence,
-                      )}
-                  </span>{" "}
-                  <span className="text-text-muted">
-                    ({percent(branchDay.demand_signal.forecast_confidence)})
-                  </span>
-                </p>
+            {/* Single merged card — demand + reliability side by side, tight */}
+            <div className="mt-2 px-1">
+              <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-surface-4/60">
 
-                <div className="mt-4 space-y-2">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    What&apos;s driving this
-                  </p>
-                  {demandSignals.slice(0, 4).map((signal) => (
-                    <div
-                      key={signal.key}
-                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-2"
-                    >
-                      <p className="text-sm text-text-secondary">
-                        {signal.label}
-                      </p>
-                      <p
-                        className={
-                          signalToneClasses(
-                            signal.direction,
-                            signal.value_pct,
-                          ).split(" ")[0]
-                        }
-                      >
-                        {signal.direction === "neutral"
-                          ? "No change"
-                          : toPercent(signal.value_pct)}
-                      </p>
+                  {/* Left — how busy */}
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">How busy will it be?</p>
+                    <div className="mt-1.5 flex items-baseline gap-2">
+                      <span className={`font-display text-xl font-semibold ${demandDeltaPct >= 2 ? "text-status-success" : demandDeltaPct <= -2 ? "text-status-warning" : "text-text-primary"}`}>
+                        {toPercent(demandDeltaPct)}
+                      </span>
+                      <span className="text-xs text-text-muted">
+                        {demandDeltaPct <= -2 ? "quieter than usual" : demandDeltaPct >= 2 ? "busier than usual" : "about normal"}
+                      </span>
                     </div>
-                  ))}
-                </div>
 
-                <div className="mt-4 rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Demand level
-                  </p>
-                  <div className="mt-2 relative h-2 rounded-full bg-surface-4">
-                    <div
-                      className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-brand-gold bg-brand-gold"
-                      style={{ left: `calc(${demandMeterPosition}% - 8px)` }}
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-text-muted">
-                    <span>Quiet</span>
-                    <span>Normal</span>
-                    <span>Busy</span>
-                  </div>
-                </div>
+                    {/* Slim demand meter */}
+                    <div className="mt-2 relative h-1 rounded-full bg-surface-4">
+                      <div
+                        className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-brand-gold"
+                        style={{ left: `calc(${demandMeterPosition}% - 5px)` }}
+                      />
+                    </div>
+                    <div className="mt-0.5 flex justify-between text-[9px] text-text-muted/70">
+                      <span>Quiet</span><span>Normal</span><span>Busy</span>
+                    </div>
 
-                {outlookActionSentence ? (
-                  <div className="mt-4 rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">
-                      Suggested approach
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-text-primary">
-                      {outlookActionSentence}
-                    </p>
-                  </div>
-                ) : null}
-              </article>
+                    {/* Signal chips */}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {demandSignals.slice(0, 4).map((signal) => (
+                        <span
+                          key={signal.key}
+                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                        >
+                          {signal.label}
+                          <span className="font-semibold">
+                            {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
 
-              <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-5 py-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Plan reliability
-                </p>
-                <p className="mt-2 font-display text-2xl font-semibold text-text-primary sm:text-3xl">
-                  {percent(prepConfidenceGauge)}
-                </p>
-                <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-surface-3">
-                  <div
-                    className="h-full rounded-full bg-brand-gold"
-                    style={{ width: percent(prepConfidenceGauge) }}
-                  />
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Overall risk is{" "}
-                  <span
-                    className={
-                      prepConfidenceRiskLabel === "Low"
-                        ? "font-semibold text-status-success"
-                        : prepConfidenceRiskLabel === "Medium"
-                          ? "font-semibold text-status-warning"
-                          : "font-semibold text-status-critical"
-                    }
-                  >
-                    {prepConfidenceRiskLabel === "Low"
-                      ? "low — you're in good shape"
-                      : prepConfidenceRiskLabel === "Medium"
-                        ? "moderate — review flagged items"
-                        : "elevated — check the alerts below"}
-                  </span>
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-text-secondary">
-                  <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                    Items needing attention:{" "}
-                    <span className="font-semibold text-text-primary">
-                      {branchDay.morning_overview?.high_risk_items ??
-                        branchDay.demand_signal.high_risk_items ??
-                        0}
-                    </span>
+                    {outlookActionSentence ? (
+                      <p className="mt-2 text-[11px] text-text-secondary border-t border-surface-4/40 pt-2">
+                        <span className="font-semibold text-brand-gold">→ </span>
+                        {outlookActionSentence}
+                      </p>
+                    ) : null}
                   </div>
-                  <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                    Items tracked:{" "}
-                    <span className="font-semibold text-text-primary">
-                      {branchDay.demand_signal.tracked_items ?? rows.length}
-                    </span>
+
+                  {/* Right — plan reliability */}
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">Plan reliability</p>
+                    <div className="mt-1.5 flex items-baseline gap-2">
+                      <span className="font-display text-xl font-semibold text-text-primary">{percent(prepConfidenceGauge)}</span>
+                      <span className={`text-xs font-medium ${prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}`}>
+                        {prepConfidenceRiskLabel === "Low" ? "Good shape" : prepConfidenceRiskLabel === "Medium" ? "Review items" : "Check alerts"}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-4">
+                      <div
+                        className={`h-full rounded-full transition-all ${prepConfidenceRiskLabel === "Low" ? "bg-status-success" : prepConfidenceRiskLabel === "Medium" ? "bg-status-warning" : "bg-status-critical"}`}
+                        style={{ width: percent(prepConfidenceGauge) }}
+                      />
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                      <div>
+                        <p className="text-text-muted">Needs attention</p>
+                        <p className="font-semibold text-text-primary">
+                          {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0} items
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-muted">Tracked</p>
+                        <p className="font-semibold text-text-primary">
+                          {branchDay.demand_signal.tracked_items ?? rows.length} items
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-muted">Forecast confidence</p>
+                        <p className="font-semibold text-text-primary">
+                          {branchDay.demand_signal.confidence_label ?? confidenceLabel(branchDay.demand_signal.forecast_confidence)}
+                          {" "}
+                          <span className="font-normal text-text-muted">({percent(branchDay.demand_signal.forecast_confidence)})</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-muted">vs typical {branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString("en-US", { weekday: "short" })}</p>
+                        <p className={`font-semibold ${demandDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                          {toPercent(demandDeltaPct)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </article>
+              </div>
             </div>
           </details>
 
@@ -2929,79 +2874,60 @@ function TodayWorkspacePageContent() {
                   </article>
                 </div>
 
-                <div className="mt-6 rounded-xl border border-surface-4 bg-surface-2 p-5">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Graph #1 - Demand vs Production
-                  </p>
-                  <div className="mt-4 space-y-4">
+                <div className="mt-5">
+                  {/* Demand vs Production — compact grouped bars */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-text-primary">Demand vs Production</p>
+                    <div className="flex items-center gap-3 text-[11px] text-text-muted">
+                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-brand-gold/60" />Planned</span>
+                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-status-warning/70" />Produced</span>
+                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-status-success/70" />Sold</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
                     {branchDay.review_phase.daily_outcome.demand_vs_production
                       .slice(0, 6)
                       .map((row) => {
-                        const maxValue = Math.max(
-                          row.planned_production,
-                          row.actual_production,
-                          row.actual_sales,
-                          1,
-                        );
+                        const maxValue = Math.max(row.planned_production, row.actual_production, row.actual_sales, 1);
+                        const sellThrough = row.actual_production > 0 ? Math.round((row.actual_sales / row.actual_production) * 100) : 0;
+                        const hasWaste = row.actual_production > row.actual_sales;
                         return (
-                          <div key={row.item_id} className="space-y-2">
-                            <p className="text-sm font-medium text-text-primary">
-                              {row.item_title}
-                            </p>
-                            <div className="space-y-1.5">
-                              <div>
-                                <div className="mb-1 flex justify-between text-xs text-text-muted">
-                                  <span>Planned Production</span>
-                                  <span>
-                                    {formatQuantity(
-                                      row.planned_production,
-                                      row.unit,
-                                    )}
+                          <div key={row.item_id} className="group">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-text-primary">{row.item_title}</p>
+                              <div className="flex items-center gap-2 text-[11px]">
+                                <span className={`font-semibold ${sellThrough >= 90 ? "text-status-success" : sellThrough >= 70 ? "text-status-warning" : "text-status-critical"}`}>
+                                  {sellThrough}% sold
+                                </span>
+                                {hasWaste ? (
+                                  <span className="text-status-critical">
+                                    {formatQuantity(row.actual_production - row.actual_sales, row.unit)} waste
                                   </span>
-                                </div>
-                                <div className="h-2 rounded bg-surface-4">
-                                  <div
-                                    className="h-2 rounded bg-brand-gold/70"
-                                    style={{
-                                      width: `${(row.planned_production / maxValue) * 100}%`,
-                                    }}
-                                  />
-                                </div>
+                                ) : null}
                               </div>
-                              <div>
-                                <div className="mb-1 flex justify-between text-xs text-text-muted">
-                                  <span>Actual Production</span>
-                                  <span>
-                                    {formatQuantity(
-                                      row.actual_production,
-                                      row.unit,
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="h-2 rounded bg-surface-4">
-                                  <div
-                                    className="h-2 rounded bg-status-warning/70"
-                                    style={{
-                                      width: `${(row.actual_production / maxValue) * 100}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <div className="mb-1 flex justify-between text-xs text-text-muted">
-                                  <span>Actual Sales</span>
-                                  <span>
-                                    {formatQuantity(row.actual_sales, row.unit)}
-                                  </span>
-                                </div>
-                                <div className="h-2 rounded bg-surface-4">
-                                  <div
-                                    className="h-2 rounded bg-status-success/70"
-                                    style={{
-                                      width: `${(row.actual_sales / maxValue) * 100}%`,
-                                    }}
-                                  />
-                                </div>
+                            </div>
+                            {/* Stacked bar — all three on same track */}
+                            <div className="relative h-5 rounded bg-surface-4 overflow-hidden">
+                              {/* Planned */}
+                              <div
+                                className="absolute inset-y-0 left-0 rounded bg-brand-gold/25"
+                                style={{ width: `${(row.planned_production / maxValue) * 100}%` }}
+                              />
+                              {/* Produced */}
+                              <div
+                                className="absolute inset-y-0 left-0 rounded bg-status-warning/50"
+                                style={{ width: `${(row.actual_production / maxValue) * 100}%` }}
+                              />
+                              {/* Sold */}
+                              <div
+                                className="absolute inset-y-0 left-0 rounded bg-status-success/70"
+                                style={{ width: `${(row.actual_sales / maxValue) * 100}%` }}
+                              />
+                              {/* Values overlay */}
+                              <div className="absolute inset-0 flex items-center px-2 gap-3 text-[10px] font-medium text-white/80">
+                                <span>{formatQuantity(row.planned_production, row.unit)}</span>
+                                <span>→ {formatQuantity(row.actual_production, row.unit)}</span>
+                                <span>→ {formatQuantity(row.actual_sales, row.unit)}</span>
                               </div>
                             </div>
                           </div>
@@ -3199,292 +3125,195 @@ function TodayWorkspacePageContent() {
                 </div>
               </section>
 
+              {/* ── 4. Learning Signals — what today taught the system ── */}
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  4. Learning Signals
+                  4. What today taught the system
                 </p>
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Signal Rows
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals
-                        .ml_learning_signals?.rows ?? 0}
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Chef Overrides
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals
-                        .ml_learning_signals?.chef_override_rows ?? 0}
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Waste Rows
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-critical">
-                      {branchDay.review_phase.learning_signals
-                        .ml_learning_signals?.waste_rows ?? 0}
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Stockout Rows
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-warning">
-                      {branchDay.review_phase.learning_signals
-                        .ml_learning_signals?.stockout_rows ?? 0}
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Chef Beats AI
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-success">
-                      {branchDay.review_phase.learning_signals
-                        .ml_learning_signals?.chef_outperformed_forecast_rows ??
-                        0}
-                    </p>
-                  </article>
+
+                {/* Block 1 — plain-English data counters */}
+                <div className="mt-4 grid grid-cols-2 gap-0 sm:grid-cols-4 border-y border-surface-4/60">
+                  {[
+                    {
+                      label: "Data points collected",
+                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.rows ?? 0,
+                      sub: "items tracked today",
+                      color: "text-text-primary",
+                    },
+                    {
+                      label: "Your overrides",
+                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.chef_override_rows ?? 0,
+                      sub: "times you changed the plan",
+                      color: "text-text-primary",
+                    },
+                    {
+                      label: "Waste events",
+                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.waste_rows ?? 0,
+                      sub: "items with leftover",
+                      color: (branchDay.review_phase.learning_signals.ml_learning_signals?.waste_rows ?? 0) > 0 ? "text-status-critical" : "text-status-success",
+                    },
+                    {
+                      label: "Stockout events",
+                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.stockout_rows ?? 0,
+                      sub: "items that ran out",
+                      color: (branchDay.review_phase.learning_signals.ml_learning_signals?.stockout_rows ?? 0) > 0 ? "text-status-warning" : "text-status-success",
+                    },
+                  ].map((stat) => (
+                    <div key={stat.label} className="px-4 py-4 border-r border-surface-4/60 last:border-r-0">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{stat.label}</p>
+                      <p className={`mt-1 font-display text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">{stat.sub}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Chef Adjustment Rate
+                {/* Block 2 — you vs the forecast */}
+                <div className="mt-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">You vs the forecast</p>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="border-b sm:border-b-0 sm:border-r border-surface-4/60 pb-3 sm:pb-0 sm:pr-4">
+                      <p className="text-xs text-text-muted">How often you adjusted</p>
+                      <p className="mt-1 font-display text-2xl font-semibold text-text-primary">
+                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustment_rate.toFixed(1)}%
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">of items you changed from the suggestion</p>
+                    </div>
+                    <div className="border-b sm:border-b-0 sm:border-r border-surface-4/60 pb-3 sm:pb-0 sm:pr-4">
+                      <p className="text-xs text-text-muted">Your accuracy</p>
+                      <p className={`mt-1 font-display text-2xl font-semibold ${branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score >= 75 ? "text-status-success" : branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score >= 55 ? "text-status-warning" : "text-status-critical"}`}>
+                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score.toFixed(1)}%
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">how close your plan was to actual demand</p>
+                    </div>
+                    <div className="pb-3 sm:pb-0 sm:pl-0">
+                      <p className="text-xs text-text-muted">When you beat the AI</p>
+                      <p className="mt-1 font-display text-2xl font-semibold text-status-success">
+                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustments_improved_outcome_rate.toFixed(1)}%
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">of your overrides led to a better outcome</p>
+                    </div>
+                  </div>
+
+                  {/* Chef beats AI highlight */}
+                  {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 0 ? (
+                    <p className="mt-3 text-sm text-status-success border-t border-surface-4/40 pt-3">
+                      You outperformed the forecast on{" "}
+                      <span className="font-semibold">
+                        {branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows}
+                      </span>{" "}
+                      {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) === 1 ? "item" : "items"} today — your instincts are being factored into future suggestions.
                     </p>
-                    <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustment_rate.toFixed(
-                        1,
-                      )}
-                      %
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Chef Accuracy Score
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-text-primary">
-                      {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score.toFixed(
-                        1,
-                      )}
-                      %
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Adjustments Improved Outcome
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-success">
-                      {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustments_improved_outcome_rate.toFixed(
-                        1,
-                      )}
-                      %
-                    </p>
-                  </article>
+                  ) : null}
                 </div>
 
-                {branchDay.review_phase.learning_signals.revenue_loss_signals
-                  .length ? (
-                  <div className="mt-4 rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Revenue Loss Signals (Stockouts)
-                    </p>
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="w-full min-w-[860px]">
+                {/* Block 3 — revenue lost to stockouts */}
+                {branchDay.review_phase.learning_signals.revenue_loss_signals.length ? (
+                  <div className="mt-6">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Revenue lost to stockouts</p>
+                    <div className="mt-2 overflow-x-auto border-y border-surface-4/60">
+                      <table className="w-full min-w-[560px]">
                         <thead>
                           <tr className="border-b border-surface-4/70">
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Item
-                            </th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Stockout Time
-                            </th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Sales Velocity/Hr
-                            </th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Remaining Hours
-                            </th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Estimated Lost Sales
-                            </th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                              Estimated Lost Revenue
-                            </th>
+                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Item</th>
+                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Ran out at</th>
+                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Pace/hr</th>
+                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Est. lost sales</th>
+                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Est. lost revenue</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-4/55">
-                          {branchDay.review_phase.learning_signals.revenue_loss_signals.map(
-                            (row) => (
-                              <tr key={`${row.item_id}-${row.stockout_time}`}>
-                                <td className="px-3 py-2 text-sm text-text-primary">
-                                  {row.item_title}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-text-secondary">
-                                  {new Date(
-                                    row.stockout_time,
-                                  ).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-text-secondary">
-                                  {row.sales_velocity_per_hour.toFixed(2)}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-text-secondary">
-                                  {row.remaining_service_time_hours.toFixed(2)}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-text-secondary">
-                                  {row.estimated_lost_sales.toFixed(2)}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-status-critical">
-                                  {formatCurrency(row.estimated_lost_revenue)}
-                                </td>
-                              </tr>
-                            ),
-                          )}
+                          {branchDay.review_phase.learning_signals.revenue_loss_signals.map((row) => (
+                            <tr key={`${row.item_id}-${row.stockout_time}`}>
+                              <td className="px-3 py-2 text-sm text-text-primary">{row.item_title}</td>
+                              <td className="px-3 py-2 text-sm text-text-secondary">
+                                {new Date(row.stockout_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-text-secondary">{row.sales_velocity_per_hour.toFixed(1)}</td>
+                              <td className="px-3 py-2 text-sm text-text-secondary">{row.estimated_lost_sales.toFixed(1)}</td>
+                              <td className="px-3 py-2 text-sm font-semibold text-status-critical">{formatCurrency(row.estimated_lost_revenue)}</td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
                   </div>
                 ) : null}
 
-                <details className="mt-4 rounded-xl border border-surface-4 bg-surface-2 p-5">
-                  <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    ML Training Rows (Hidden By Default)
+                {/* Block 4 — raw training data, collapsed */}
+                <details className="mt-4 group">
+                  <summary className="cursor-pointer flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
+                    <span className="group-open:hidden">▶</span>
+                    <span className="hidden group-open:inline">▼</span>
+                    Raw training data
                   </summary>
-                  <div className="mt-3 overflow-x-auto">
+                  <div className="mt-3 overflow-x-auto border-t border-surface-4/60 pt-3">
                     <table className="w-full min-w-[1080px]">
                       <thead>
                         <tr className="border-b border-surface-4/70">
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Item
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Forecast
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Chef Plan
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Additional
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Actual Sales
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Waste
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Stockout
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Forecast Error
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Chef Adjustment
-                          </th>
-                          <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                            Outcome
-                          </th>
+                          {["Item","Forecast","Chef Plan","Additional","Actual Sales","Waste","Stockout","Forecast Error","Chef Adjustment","Outcome"].map((h) => (
+                            <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">{h}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-4/55">
-                        {branchDay.review_phase.learning_signals.training_rows.map(
-                          (row) => (
-                            <tr key={row.item_id}>
-                              <td className="px-3 py-2 text-sm text-text-primary">
-                                {row.item_title}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {formatQuantity(row.forecast_qty, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {formatQuantity(row.chef_planned_qty, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {formatQuantity(row.additional_qty, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {formatQuantity(row.actual_sales, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-status-critical">
-                                {formatQuantity(row.waste, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {row.stockouts ? "Yes" : "No"}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {formatQuantity(row.forecast_error, row.unit)}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {signedQuantity(row.chef_adjustment, row.unit)}
-                              </td>
-                              <td
-                                className={`px-3 py-2 text-sm ${row.service_outcome === "IMPROVED_BY_CHEF" ? "text-status-success" : "text-status-warning"}`}
-                              >
-                                {row.service_outcome === "IMPROVED_BY_CHEF"
-                                  ? "Chef better"
-                                  : "Forecast better"}
-                              </td>
-                            </tr>
-                          ),
-                        )}
+                        {branchDay.review_phase.learning_signals.training_rows.map((row) => (
+                          <tr key={row.item_id}>
+                            <td className="px-3 py-2 text-sm text-text-primary">{row.item_title}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.forecast_qty, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.additional_qty, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.actual_sales, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-status-critical">{formatQuantity(row.waste, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{row.stockouts ? "Yes" : "No"}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.forecast_error, row.unit)}</td>
+                            <td className="px-3 py-2 text-sm text-text-secondary">{signedQuantity(row.chef_adjustment, row.unit)}</td>
+                            <td className={`px-3 py-2 text-sm ${row.service_outcome === "IMPROVED_BY_CHEF" ? "text-status-success" : "text-status-warning"}`}>
+                              {row.service_outcome === "IMPROVED_BY_CHEF" ? "Chef better" : "Forecast better"}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
                 </details>
-
-                <div className="mt-4 rounded-xl border border-surface-4 bg-surface-2 p-5">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Tomorrow Focus
-                  </p>
-                  <ul className="mt-3 space-y-2">
-                    {branchDay.review_phase.learning_signals.tomorrow_actions.map(
-                      (action) => (
-                        <li
-                          key={action}
-                          className="text-sm text-text-secondary"
-                        >
-                          - {action}
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </div>
               </section>
 
-              <section>
+              {/* ── 5. What tomorrow looks like ── */}
+              <section className="border-t border-surface-4/60 pt-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Tomorrow's Early Signal
+                  5. What tomorrow looks like
                 </p>
-                <article className="mt-4 rounded-xl border border-brand-gold/30 bg-brand-gold/10 p-5">
+
+                {/* Tomorrow focus actions */}
+                {branchDay.review_phase.learning_signals.tomorrow_actions.length ? (
+                  <ul className="mt-4 space-y-2">
+                    {branchDay.review_phase.learning_signals.tomorrow_actions.map((action) => (
+                      <li key={action} className="flex items-start gap-2 text-sm text-text-secondary">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gold" />
+                        {action}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {/* Tomorrow early signal */}
+                <div className="mt-4 rounded-xl border border-brand-gold/30 bg-brand-gold/8 px-5 py-4">
                   <p className="text-sm font-semibold text-text-primary">
                     {branchDay.review_phase.tomorrow_early_signal.message}
                   </p>
-                  <p className="mt-2 text-xs text-text-muted">
-                    Target day:{" "}
+                  <p className="mt-1.5 text-xs text-text-muted">
                     {branchDay.review_phase.tomorrow_early_signal.target_date}
-                    {" · "}
-                    Demand change:{" "}
-                    {branchDay.review_phase.tomorrow_early_signal
-                      .expected_demand_change_pct >= 0
-                      ? "+"
-                      : ""}
-                    {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct.toFixed(
-                      1,
-                    )}
-                    %
                     {branchDay.review_phase.tomorrow_early_signal.weekday
                       ? ` · ${branchDay.review_phase.tomorrow_early_signal.weekday}`
                       : ""}
+                    {" · "}
+                    Demand change:{" "}
+                    <span className={branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct >= 0 ? "text-status-success font-semibold" : "text-status-critical font-semibold"}>
+                      {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct >= 0 ? "+" : ""}
+                      {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct.toFixed(1)}%
+                    </span>
                   </p>
-                </article>
+                </div>
               </section>
             </div>
           ) : (
