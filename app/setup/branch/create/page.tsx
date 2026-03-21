@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { LocationPicker } from "@/components/ui/location-picker";
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC — Coordinated Universal Time" },
@@ -49,13 +50,55 @@ type DaySchedule = {
 };
 
 const INITIAL_SCHEDULE: DaySchedule[] = [
-  { day: "MONDAY", label: "Mon", isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-  { day: "TUESDAY", label: "Tue", isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-  { day: "WEDNESDAY", label: "Wed", isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-  { day: "THURSDAY", label: "Thu", isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-  { day: "FRIDAY", label: "Fri", isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-  { day: "SATURDAY", label: "Sat", isOpen: false, opensAt: "08:00", closesAt: "18:00" },
-  { day: "SUNDAY", label: "Sun", isOpen: false, opensAt: "08:00", closesAt: "18:00" },
+  {
+    day: "MONDAY",
+    label: "Mon",
+    isOpen: true,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "TUESDAY",
+    label: "Tue",
+    isOpen: true,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "WEDNESDAY",
+    label: "Wed",
+    isOpen: true,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "THURSDAY",
+    label: "Thu",
+    isOpen: true,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "FRIDAY",
+    label: "Fri",
+    isOpen: true,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "SATURDAY",
+    label: "Sat",
+    isOpen: false,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
+  {
+    day: "SUNDAY",
+    label: "Sun",
+    isOpen: false,
+    opensAt: "08:00",
+    closesAt: "18:00",
+  },
 ];
 
 export default function CreateBranchPage() {
@@ -75,20 +118,24 @@ export default function CreateBranchPage() {
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [schedule, setSchedule] = useState<DaySchedule[]>(INITIAL_SCHEDULE);
   const [submitError, setSubmitError] = useState("");
   const [showUpgradeCta, setShowUpgradeCta] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [touchedDays, setTouchedDays] = useState<Record<OperatingDay, boolean>>({
-    MONDAY: false,
-    TUESDAY: false,
-    WEDNESDAY: false,
-    THURSDAY: false,
-    FRIDAY: false,
-    SATURDAY: false,
-    SUNDAY: false,
-  });
+  const [touchedDays, setTouchedDays] = useState<Record<OperatingDay, boolean>>(
+    {
+      MONDAY: false,
+      TUESDAY: false,
+      WEDNESDAY: false,
+      THURSDAY: false,
+      FRIDAY: false,
+      SATURDAY: false,
+      SUNDAY: false,
+    },
+  );
 
   useEffect(() => {
     if (createBranch.isSuccess) {
@@ -110,11 +157,13 @@ export default function CreateBranchPage() {
     }
     for (const day of openDays) {
       if (!day.opensAt || !day.closesAt) {
-        e[`day_${day.day}`] = `${day.label}: opening and closing times are required.`;
+        e[`day_${day.day}`] =
+          `${day.label}: opening and closing times are required.`;
         continue;
       }
       if (day.opensAt >= day.closesAt) {
-        e[`day_${day.day}`] = `${day.label}: opening time must be earlier than closing time.`;
+        e[`day_${day.day}`] =
+          `${day.label}: opening time must be earlier than closing time.`;
       }
     }
     return e;
@@ -123,7 +172,8 @@ export default function CreateBranchPage() {
   const isValid = Object.keys(errors).length === 0;
 
   const shouldShowFieldError = (field: string) => submitted || touched[field];
-  const shouldShowDayError = (day: OperatingDay) => submitted || touchedDays[day];
+  const shouldShowDayError = (day: OperatingDay) =>
+    submitted || touchedDays[day];
 
   function markTouched(field: string) {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -143,11 +193,7 @@ export default function CreateBranchPage() {
     markTouched("operating_hours");
     markDayTouched(dayKey);
     setSchedule((prev) =>
-      prev.map((d) =>
-        d.day === dayKey
-          ? { ...d, isOpen: !d.isOpen }
-          : d,
-      ),
+      prev.map((d) => (d.day === dayKey ? { ...d, isOpen: !d.isOpen } : d)),
     );
   }
 
@@ -162,7 +208,10 @@ export default function CreateBranchPage() {
     );
   }
 
-  function setTimeForAllOpenDays(target: "opensAt" | "closesAt", value: string) {
+  function setTimeForAllOpenDays(
+    target: "opensAt" | "closesAt",
+    value: string,
+  ) {
     markTouched("operating_hours");
     setSchedule((prev) =>
       prev.map((d) => (d.isOpen ? { ...d, [target]: value } : d)),
@@ -215,6 +264,8 @@ export default function CreateBranchPage() {
         ...(code.trim() ? { code: code.trim() } : {}),
         ...(phone.trim() ? { phone: phone.trim() } : {}),
         ...(email.trim() ? { email: email.trim() } : {}),
+        ...(latitude ? { latitude: parseFloat(latitude) } : {}),
+        ...(longitude ? { longitude: parseFloat(longitude) } : {}),
       };
 
       await createBranch.mutateAsync(payload);
@@ -268,7 +319,8 @@ export default function CreateBranchPage() {
           Create your first branch
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-10">
-          Define your branch profile and operating schedule. You can update this later.
+          Define your branch profile and operating schedule. You can update this
+          later.
         </p>
 
         {isOrgsLoading && (
@@ -322,6 +374,7 @@ export default function CreateBranchPage() {
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
+              {/* Address — manual text field, also auto-filled by LocationPicker */}
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
                 Address
               </label>
@@ -336,6 +389,23 @@ export default function CreateBranchPage() {
               {shouldShowFieldError("address") && errors.address ? (
                 <p className="text-xs text-[#C44949]">{errors.address}</p>
               ) : null}
+            </div>
+
+            {/* Location picker — replaces raw lat/lng inputs */}
+            <div className="md:col-span-2">
+              <LocationPicker
+                latitude={latitude}
+                longitude={longitude}
+                address={address}
+                onLocationChange={(lat, lng, resolvedAddress) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                  if (resolvedAddress) {
+                    setAddress(resolvedAddress);
+                    markTouched("address");
+                  }
+                }}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -412,10 +482,18 @@ export default function CreateBranchPage() {
 
             <div className="rounded-[10px] border border-[#2E2E33] overflow-hidden">
               <div className="hidden md:grid md:grid-cols-[120px_1fr_1fr_90px] md:gap-3 md:border-b md:border-[#232327] md:bg-[#18181A] md:px-3 md:py-2">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Day</p>
-                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Opens</p>
-                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Closes</p>
-                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93] text-right">Status</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Day
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Opens
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Closes
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93] text-right">
+                  Status
+                </p>
               </div>
               {schedule.map((day) => {
                 const dayError = errors[`day_${day.day}`];
@@ -437,7 +515,9 @@ export default function CreateBranchPage() {
                     </button>
 
                     <div className="space-y-1 md:space-y-0">
-                      <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">Opens</label>
+                      <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Opens
+                      </label>
                       <input
                         type="time"
                         value={day.opensAt}
@@ -453,7 +533,9 @@ export default function CreateBranchPage() {
                       />
                     </div>
                     <div className="space-y-1 md:space-y-0">
-                      <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">Closes</label>
+                      <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                        Closes
+                      </label>
                       <input
                         type="time"
                         value={day.closesAt}
@@ -469,20 +551,25 @@ export default function CreateBranchPage() {
                       />
                     </div>
                     <div className="flex items-center justify-start md:justify-end">
-                      <span className={`text-xs ${day.isOpen ? "text-[#3F8F68]" : "text-[#8E8E93]"}`}>
+                      <span
+                        className={`text-xs ${day.isOpen ? "text-[#3F8F68]" : "text-[#8E8E93]"}`}
+                      >
                         {day.isOpen ? "Open" : "Closed"}
                       </span>
                     </div>
-                    
+
                     {shouldShowDayError(day.day) && dayError ? (
-                      <p className="md:col-span-4 text-xs text-[#C44949]">{dayError}</p>
+                      <p className="md:col-span-4 text-xs text-[#C44949]">
+                        {dayError}
+                      </p>
                     ) : null}
                   </div>
                 );
               })}
             </div>
 
-            {shouldShowFieldError("operating_hours") && errors.operating_hours ? (
+            {shouldShowFieldError("operating_hours") &&
+            errors.operating_hours ? (
               <p className="text-xs text-[#C44949]">{errors.operating_hours}</p>
             ) : null}
           </section>
@@ -513,7 +600,9 @@ export default function CreateBranchPage() {
 
           <button
             type="submit"
-            disabled={createBranch.isPending || isOrgsLoading || !!orgsError || !orgId}
+            disabled={
+              createBranch.isPending || isOrgsLoading || !!orgsError || !orgId
+            }
             className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-50 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
           >
             {createBranch.isPending ? (
