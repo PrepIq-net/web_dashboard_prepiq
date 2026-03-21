@@ -13,7 +13,13 @@ import {
 
 const EMPTY_LIST: never[] = [];
 
-type RiskTab = "OVERVIEW" | "STOCKOUT" | "TREND";
+type RiskTab =
+  | "OVERVIEW"
+  | "STOCKOUT"
+  | "WASTE"
+  | "SUPPLY"
+  | "VOLATILITY"
+  | "TREND";
 
 function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
@@ -165,7 +171,10 @@ function RiskPageContent() {
           <div className="flex flex-wrap gap-2">
             {[
               { id: "OVERVIEW", label: "Overview" },
-              { id: "STOCKOUT", label: "Stockout Forecast" },
+              { id: "STOCKOUT", label: "Stockout Risk" },
+              { id: "WASTE", label: "Waste Risk" },
+              { id: "SUPPLY", label: "Supply Risk" },
+              { id: "VOLATILITY", label: "Demand Volatility" },
               { id: "TREND", label: "Risk Trend" },
             ].map((tab) => (
               <button
@@ -279,6 +288,144 @@ function RiskPageContent() {
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
                 No elevated stockout risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "WASTE" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Waste Risk Forecast
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Over-prep Loss Signals
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.waste_risk_forecast ?? []).length ? (
+              risk?.waste_risk_forecast.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        item.risk === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : item.risk === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {item.risk}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Projected excess:{" "}
+                    <span className="font-semibold text-text-primary">
+                      {item.projected_excess}
+                    </span>
+                  </p>
+                  <ul className="mt-3 space-y-1 text-sm text-text-muted">
+                    {item.drivers.map((reason, index) => (
+                      <li key={`${item.item_id}-driver-${index}`}>• {reason}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {item.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No elevated waste risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "SUPPLY" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Supply Risk
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Procurement Early Warnings
+            </h3>
+            {risk?.supply_risk?.data_note ? (
+              <p className="mt-2 text-sm text-text-muted">{risk.supply_risk.data_note}</p>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.supply_risk?.items ?? []).length ? (
+              risk?.supply_risk.items.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                        item.risk === "HIGH"
+                          ? "border-status-critical/40 text-status-critical"
+                          : item.risk === "MEDIUM"
+                            ? "border-status-warning/40 text-status-warning"
+                            : "border-status-success/40 text-status-success"
+                      }`}
+                    >
+                      {item.risk}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-text-secondary">
+                    <p>Current stock: {item.current_stock} {item.unit}</p>
+                    <p>Expected depletion: {item.expected_depletion_days} days</p>
+                    <p>Supplier lead time: {item.supplier_lead_time_days} days</p>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    Suggested action: {item.suggested_action}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No supply risks detected for the selected date.
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "VOLATILITY" ? (
+        <section>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Demand Volatility Risk
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Forecasting Uncertainty Signals
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {(risk?.demand_volatility ?? []).length ? (
+              risk?.demand_volatility.map((item) => (
+                <div key={item.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
+                    <span className="text-xs font-semibold text-text-muted">
+                      Confidence: {item.forecast_confidence}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Volatility: <span className="font-semibold text-text-primary">{toPercent(item.volatility_pct)}</span>
+                  </p>
+                  <p className="mt-3 text-sm text-text-muted">{item.recent_pattern}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
+                No high demand volatility detected for the selected date.
               </div>
             )}
           </div>

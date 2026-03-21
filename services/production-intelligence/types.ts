@@ -1929,6 +1929,39 @@ export const stockoutForecastItemSchema = z.object({
   suggested_action: z.string(),
 });
 
+export const wasteRiskForecastItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  projected_excess: z.number(),
+  drivers: z.array(z.string()),
+  suggested_action: z.string(),
+});
+
+export const supplyRiskItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  unit: z.string(),
+  current_stock: z.number(),
+  expected_depletion_days: z.number(),
+  supplier_lead_time_days: z.number(),
+  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  suggested_action: z.string(),
+});
+
+export const supplyRiskSchema = z.object({
+  items: z.array(supplyRiskItemSchema),
+  data_note: z.string().optional(),
+});
+
+export const demandVolatilityItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  volatility_pct: z.number(),
+  forecast_confidence: z.string(),
+  recent_pattern: z.string(),
+});
+
 export const riskTrendPointSchema = z.object({
   date: z.string(),
   score: z.number(),
@@ -1940,6 +1973,9 @@ export const riskSnapshotSchema = z.object({
   target_date: z.string(),
   risk_score: riskScoreSchema,
   stockout_forecast: z.array(stockoutForecastItemSchema),
+  waste_risk_forecast: z.array(wasteRiskForecastItemSchema),
+  supply_risk: supplyRiskSchema,
+  demand_volatility: z.array(demandVolatilityItemSchema),
   risk_trend: z.array(riskTrendPointSchema),
 });
 

@@ -135,6 +135,11 @@ function getNavSectionsByRole(role?: string | null): NavSection[] {
             icon: <Folder className="h-4 w-4" />,
           },
           {
+            label: "Risk",
+            href: "/workspace/risk",
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
             label: "Financial",
             href: "/workspace/financial",
             icon: <Folder className="h-4 w-4" />,
