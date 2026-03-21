@@ -1156,14 +1156,18 @@ function TodayWorkspacePageContent() {
     initializeMutation.isPending;
   const noBranchContext = !loading && !branchOptions.length;
   const statusLabel = loading
-    ? "Loading day context..."
+    ? "Loading..."
     : noBranchContext
-      ? "Status: NO_BRANCH_CONTEXT"
-      : branchDay
-        ? `Status: ${branchDay.status}`
-        : branchId
-          ? "Status: NOT_INITIALIZED"
-          : "Status: SELECT_BRANCH";
+      ? "No branch assigned"
+      : branchDay?.status === "MORNING"
+        ? "Planning mode"
+        : branchDay?.status === "LIVE"
+          ? "Service is live"
+          : branchDay?.status === "CLOSED"
+            ? "Day closed"
+            : branchId
+              ? "Setting up..."
+              : "Select a branch";
   const todayQueryErrorMessage = useMemo(() => {
     if (!todayQuery.isError) return "";
     const err = todayQuery.error as {
@@ -1486,9 +1490,9 @@ function TodayWorkspacePageContent() {
   return (
     <WorkspaceShell
       eyebrow="Today"
-      title="Today"
-      description="Morning planning mode with demand signal, recommendation acceptance, and deviation capture before live service starts."
-      insight="Deviation tracking compounds forecast quality when planned vs suggested decisions are consistently captured each morning."
+      title="Today's Kitchen"
+      description="Review today's prep targets, adjust quantities, and start service when you're ready."
+      insight="The more you accept or override suggestions each morning, the smarter the recommendations get over time."
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -1525,9 +1529,11 @@ function TodayWorkspacePageContent() {
                       ? "bg-text-muted animate-pulse"
                       : noBranchContext
                         ? "bg-status-critical"
-                        : branchDay
-                          ? "bg-status-success"
-                          : "bg-status-warning"
+                        : branchDay?.status === "LIVE"
+                          ? "bg-status-success animate-pulse"
+                          : branchDay
+                            ? "bg-status-success"
+                            : "bg-status-warning"
                   }`}
                 />
                 <p className="text-sm font-medium text-text-primary">
@@ -1577,23 +1583,23 @@ function TodayWorkspacePageContent() {
         <>
           <section className="mb-10 border-b border-surface-4/70 pb-8">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              1. Service Outlook
+              Today&apos;s Outlook
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
                 <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  Service Outlook
+                  How busy will it be?
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Today looks{" "}
                   <span className="font-semibold text-text-primary">
                     {demandDeltaPct <= -2
-                      ? "slower"
+                      ? "quieter than usual"
                       : demandDeltaPct >= 2
-                        ? "busier"
-                        : "steady"}
-                  </span>{" "}
-                  than usual.
+                        ? "busier than usual"
+                        : "about normal"}
+                  </span>
+                  .
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
                   Expected demand{" "}
@@ -1606,7 +1612,7 @@ function TodayWorkspacePageContent() {
                   >
                     {toPercent(demandDeltaPct)}
                   </span>{" "}
-                  vs typical{" "}
+                  vs a typical{" "}
                   <span className="font-semibold text-text-primary">
                     {branchDay.demand_signal.typical_day_label ??
                       new Date(branchDay.date).toLocaleDateString("en-US", {
@@ -1615,7 +1621,7 @@ function TodayWorkspacePageContent() {
                   </span>
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Confidence{" "}
+                  How sure are we?{" "}
                   <span className="font-semibold text-text-primary">
                     {branchDay.demand_signal.confidence_label ??
                       confidenceLabel(
@@ -1629,7 +1635,7 @@ function TodayWorkspacePageContent() {
 
                 <div className="mt-4 space-y-2">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Drivers
+                    What&apos;s driving this
                   </p>
                   {demandSignals.slice(0, 4).map((signal) => (
                     <div
@@ -1648,7 +1654,7 @@ function TodayWorkspacePageContent() {
                         }
                       >
                         {signal.direction === "neutral"
-                          ? "Neutral"
+                          ? "No change"
                           : toPercent(signal.value_pct)}
                       </p>
                     </div>
@@ -1657,7 +1663,7 @@ function TodayWorkspacePageContent() {
 
                 <div className="mt-4 rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Demand Meter
+                    Demand level
                   </p>
                   <div className="mt-2 relative h-2 rounded-full bg-surface-4">
                     <div
@@ -1666,16 +1672,16 @@ function TodayWorkspacePageContent() {
                     />
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-text-muted">
-                    <span>Low</span>
+                    <span>Quiet</span>
                     <span>Normal</span>
-                    <span>High</span>
+                    <span>Busy</span>
                   </div>
                 </div>
 
                 {outlookActionSentence ? (
                   <div className="mt-4 rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-3 py-3">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">
-                      Recommended Action
+                      Suggested approach
                     </p>
                     <p className="mt-1 text-sm font-medium text-text-primary">
                       {outlookActionSentence}
@@ -1686,7 +1692,7 @@ function TodayWorkspacePageContent() {
 
               <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-5 py-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Today&apos;s Plan Confidence
+                  Plan reliability
                 </p>
                 <p className="mt-2 font-display text-2xl font-semibold text-text-primary sm:text-3xl">
                   {percent(prepConfidenceGauge)}
@@ -1698,7 +1704,7 @@ function TodayWorkspacePageContent() {
                   />
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Risk level{" "}
+                  Overall risk is{" "}
                   <span
                     className={
                       prepConfidenceRiskLabel === "Low"
@@ -1708,12 +1714,16 @@ function TodayWorkspacePageContent() {
                           : "font-semibold text-status-critical"
                     }
                   >
-                    {prepConfidenceRiskLabel}
+                    {prepConfidenceRiskLabel === "Low"
+                      ? "low — you're in good shape"
+                      : prepConfidenceRiskLabel === "Medium"
+                        ? "moderate — review flagged items"
+                        : "elevated — check the alerts below"}
                   </span>
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-text-secondary">
                   <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                    High-risk items:{" "}
+                    Items needing attention:{" "}
                     <span className="font-semibold text-text-primary">
                       {branchDay.morning_overview?.high_risk_items ??
                         branchDay.demand_signal.high_risk_items ??
@@ -1721,7 +1731,7 @@ function TodayWorkspacePageContent() {
                     </span>
                   </div>
                   <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                    Tracked items:{" "}
+                    Items tracked:{" "}
                     <span className="font-semibold text-text-primary">
                       {branchDay.demand_signal.tracked_items ?? rows.length}
                     </span>
@@ -1735,14 +1745,13 @@ function TodayWorkspacePageContent() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  2. Prep Plan
+                  Prep Plan
                 </p>
                 <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  Today&apos;s Prep Plan
+                  What to cook today
                 </h3>
                 <p className="text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Edit quantity, accept suggestion, or keep your override.
-                  Expand rows only when you need the why.
+                  Adjust quantities if needed, then accept or keep your own number.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1752,8 +1761,8 @@ function TodayWorkspacePageContent() {
                   className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary transition-all duration-200 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                 >
                   {importantItemsOnly
-                    ? "Important items only: ON"
-                    : "Important items only: OFF"}
+                    ? "Show: priority items"
+                    : "Show: all items"}
                 </button>
               </div>
             </div>
@@ -1761,7 +1770,7 @@ function TodayWorkspacePageContent() {
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                  Rows In Focus
+                  Items shown
                 </p>
                 <p className="mt-1 text-xl font-semibold text-text-primary">
                   {section2Rows.length}
@@ -1770,7 +1779,7 @@ function TodayWorkspacePageContent() {
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-text-secondary">
-                  Showing top demand, high risk, and low-confidence items first.
+                  Highest demand, flagged, and uncertain items first.
                 </p>
               </article>
               <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-4">
@@ -1917,10 +1926,11 @@ function TodayWorkspacePageContent() {
                         </div>
                       </div>
                       <p className="mt-2 text-xs text-text-muted">
-                        Variance:{" "}
-                        {variance == null
-                          ? "-"
-                          : signedQuantity(variance, item.unit)}
+                        {variance == null || variance === 0
+                          ? "Matches suggestion"
+                          : variance > 0
+                            ? `${signedQuantity(variance, item.unit)} above suggestion`
+                            : `${signedQuantity(variance, item.unit)} below suggestion`}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <button
@@ -1935,7 +1945,7 @@ function TodayWorkspacePageContent() {
                           disabled={isPlanLocked}
                           className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                         >
-                          Accept
+                          Use suggestion
                         </button>
                         <button
                           type="button"
@@ -1945,14 +1955,14 @@ function TodayWorkspacePageContent() {
                           disabled={isPlanLocked}
                           className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                         >
-                          Override
+                          Keep my number
                         </button>
                         <button
                           type="button"
                           onClick={() => openAdvancedModal(item)}
                           className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-medium text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                         >
-                          Advanced IQ
+                          Deep dive
                         </button>
                       </div>
                       {actionErrorByItem[item.id] ? (
@@ -2062,22 +2072,22 @@ function TodayWorkspacePageContent() {
                       Item
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Suggested Prep
+                      Cook this much
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Expected Orders
+                      Expected orders
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Confidence
+                      How sure
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
                       Risk
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Your Plan
+                      Your quantity
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Action
+                      Decision
                     </th>
                   </tr>
                 </thead>
@@ -2157,10 +2167,11 @@ function TodayWorkspacePageContent() {
                               </span>
                             </div>
                             <p className="mt-1 text-xs text-text-muted">
-                              Variance:{" "}
-                              {variance == null
-                                ? "-"
-                                : signedQuantity(variance, item.unit)}
+                              {variance == null || variance === 0
+                                ? "Matches suggestion"
+                                : variance > 0
+                                  ? `${signedQuantity(variance, item.unit)} above`
+                                  : `${signedQuantity(variance, item.unit)} below`}
                             </p>
                             <details className="mt-1">
                               <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
@@ -2259,7 +2270,7 @@ function TodayWorkspacePageContent() {
                                 disabled={isPlanLocked}
                                 className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                               >
-                                Accept
+                                Use suggestion
                               </button>
                               <button
                                 type="button"
@@ -2269,14 +2280,14 @@ function TodayWorkspacePageContent() {
                                 disabled={isPlanLocked}
                                 className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                               >
-                                Override
+                                Keep mine
                               </button>
                               <button
                                 type="button"
                                 onClick={() => openAdvancedModal(item)}
                                 className="inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                               >
-                                Advanced IQ
+                                Deep dive
                               </button>
                             </div>
                             {actionErrorByItem[item.id] ? (
@@ -2310,7 +2321,7 @@ function TodayWorkspacePageContent() {
 
           <section className="mb-11">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              3. Risk Alerts
+              Things to watch
             </p>
             <div className="mt-3 space-y-3">
               {morningRiskAlerts.length ? (
@@ -2335,7 +2346,12 @@ function TodayWorkspacePageContent() {
                               : "bg-status-warning/20 text-status-warning"
                           }`}
                         >
-                          {alert.title} · {alert.severity}
+                          {alert.riskType === "STOCKOUT"
+                            ? "May run out"
+                            : alert.riskType === "WASTE"
+                              ? "Risk of waste"
+                              : "Margin at risk"}{" "}
+                          · {alert.severity === "HIGH" ? "Urgent" : alert.severity === "MEDIUM" ? "Watch" : "Monitor"}
                         </p>
                       </div>
                       <span
@@ -2347,11 +2363,15 @@ function TodayWorkspacePageContent() {
                       />
                     </div>
                     <p className="mt-2 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                      {alert.detail}
+                      {alert.riskType === "STOCKOUT"
+                        ? "You might run out before service ends based on your current plan."
+                        : alert.riskType === "WASTE"
+                          ? "You may cook more than you can sell today."
+                          : "Your current plan could affect today's margin."}
                     </p>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                        <p className="text-text-muted">Stockout risk</p>
+                        <p className="text-text-muted">Running out risk</p>
                         <p className="mt-1 font-semibold text-text-primary">
                           {alert.riskMetrics.stockoutRiskPct.toFixed(1)}%
                         </p>
@@ -2365,7 +2385,7 @@ function TodayWorkspacePageContent() {
                     </div>
                     <div className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
                       <p className="font-semibold text-text-primary">
-                        Why this alert
+                        Why we&apos;re flagging this
                       </p>
                       <ul className="mt-1 list-disc space-y-1 pl-4">
                         {alert.drivers.map((driver) => (
@@ -2373,11 +2393,11 @@ function TodayWorkspacePageContent() {
                         ))}
                       </ul>
                       <p className="mt-1">
-                        Variance now:{" "}
+                        Difference from suggestion:{" "}
                         <span className="font-semibold text-text-primary">
                           {alert.varianceLabel}
                         </span>
-                        {" · "}Suggested buffer:{" "}
+                        {" · "}Safety buffer:{" "}
                         <span className="font-semibold text-text-primary">
                           {alert.bufferLabel}
                         </span>
@@ -2385,7 +2405,7 @@ function TodayWorkspacePageContent() {
                     </div>
                     <div className="mt-2 rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2 text-xs text-text-secondary">
                       <p className="font-semibold text-text-primary">
-                        Financial impact
+                        Money at stake
                       </p>
                       {alert.hasPricing ? (
                         <div className="mt-1 space-y-1">
@@ -2467,23 +2487,22 @@ function TodayWorkspacePageContent() {
                         disabled={isPlanLocked}
                         className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/10 px-4 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Apply Fix →{" "}
+                        Fix it →{" "}
                         {formatQuantity(alert.suggestedFixQty, alert.unit)}
                       </button>
                       <span className="text-[11px] text-text-muted">
                         {alert.riskType === "STOCKOUT"
-                          ? "Adds protective buffer to prevent stockout"
+                          ? "Adds a safety buffer to avoid running out"
                           : alert.riskType === "WASTE"
-                            ? "Reduces overproduction exposure"
-                            : "Aligns plan with AI baseline"}
+                            ? "Reduces the amount to avoid leftover waste"
+                            : "Aligns with the recommended quantity"}
                       </span>
                     </div>
                   </article>
                 ))
               ) : (
                 <div className="rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3 text-sm text-status-success">
-                  No major prep risk right now. Current plan is balanced for
-                  service.
+                  All items look balanced for today. No urgent changes needed.
                 </div>
               )}
             </div>
@@ -2491,11 +2510,11 @@ function TodayWorkspacePageContent() {
 
           <section className="mb-11">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              4. Kitchen Intelligence Network
+              What other kitchens are seeing
             </p>
             <article className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
               <h4 className="font-display text-xl font-semibold text-text-primary">
-                What Other Kitchens Are Seeing
+                Trends from similar branches
               </h4>
               {networkLearnings.length ? (
                 <div className="mt-3 space-y-2">
@@ -2510,7 +2529,7 @@ function TodayWorkspacePageContent() {
                       <p className="mt-1 text-xs text-text-secondary">
                         {learning.detail}
                         {typeof learning.confidence === "number"
-                          ? ` Confidence ${percent(learning.confidence)}.`
+                          ? ` Reliability: ${percent(learning.confidence)}.`
                           : ""}
                       </p>
                     </div>
@@ -2518,12 +2537,12 @@ function TodayWorkspacePageContent() {
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-text-secondary">
-                  No strong cross-location pattern to apply this morning.
+                  Nothing notable from other branches this morning.
                 </p>
               )}
               <div className="mt-4 rounded-lg border border-status-warning/35 bg-status-warning/10 px-3 py-3">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                  Suggested Network Action
+                  Suggested action
                 </p>
                 <p className="mt-1 text-sm text-text-primary">
                   {networkSuggestedAction}
@@ -2536,14 +2555,13 @@ function TodayWorkspacePageContent() {
             <div className="space-y-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  5. Confirm Plan
+                  Ready to start service?
                 </p>
                 <h3 className="mt-2 font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  Chef Decision Summary
+                  Your prep decisions
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-text-secondary sm:text-[15px]">
-                  Finalize your prep decisions, lock the plan, then start
-                  service.
+                  Lock the plan when you&apos;re happy, then start service.
                 </p>
               </div>
 
@@ -2558,7 +2576,7 @@ function TodayWorkspacePageContent() {
                 </article>
                 <article className="rounded-xl border border-status-success/40 bg-status-success/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-status-success">
-                    Accepted
+                    Used suggestion
                   </p>
                   <p className="mt-1 text-lg font-semibold text-status-success">
                     {decisionSummary.accepted}
@@ -2566,7 +2584,7 @@ function TodayWorkspacePageContent() {
                 </article>
                 <article className="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                    Overrides
+                    Your own number
                   </p>
                   <p className="mt-1 text-lg font-semibold text-status-warning">
                     {decisionSummary.overridden}
@@ -2574,7 +2592,7 @@ function TodayWorkspacePageContent() {
                 </article>
                 <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Projected waste
+                    Waste exposure
                   </p>
                   <p className="mt-1 text-lg font-semibold text-text-primary">
                     {decisionSummary.projectedWaste.toFixed(1)}%
@@ -2582,7 +2600,7 @@ function TodayWorkspacePageContent() {
                 </article>
                 <article className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    Accuracy impact
+                    Forecast impact
                   </p>
                   <p
                     className={`mt-1 text-lg font-semibold ${decisionSummary.accuracyImpact >= 0 ? "text-status-success" : "text-status-critical"}`}
@@ -2601,10 +2619,10 @@ function TodayWorkspacePageContent() {
                   className="inline-flex h-11 w-full items-center justify-center rounded-full border border-status-success/45 px-5 text-sm font-semibold text-status-success transition-all duration-200 hover:border-status-success hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {isPlanLocked
-                    ? "Plan Locked"
+                    ? "Plan locked ✓"
                     : lockPlanMutation.isPending
-                      ? "Locking plan..."
-                      : "Lock Plan"}
+                      ? "Locking..."
+                      : "Lock plan"}
                 </button>
                 <button
                   type="button"
@@ -2616,16 +2634,16 @@ function TodayWorkspacePageContent() {
                 >
                   {updateBranchDayStatusMutation.isPending
                     ? "Starting service..."
-                    : "Lock Plan & Start Service"}
+                    : "Start service"}
                 </button>
               </div>
               {!isPlanLocked ? (
                 <p className="text-xs text-status-warning">
-                  Lock the plan first to enable service start.
+                  Lock the plan first before starting service.
                 </p>
               ) : branchDay?.plan_lock?.locked_at ? (
                 <p className="text-xs text-status-success">
-                  Plan locked at{" "}
+                  Locked at{" "}
                   {new Date(branchDay.plan_lock.locked_at).toLocaleTimeString(
                     "en-US",
                     { hour: "2-digit", minute: "2-digit" },
@@ -2646,14 +2664,13 @@ function TodayWorkspacePageContent() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Live Service
+                Service is live
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Kitchen Radar
+                Kitchen monitor
               </h3>
               <p className="mt-1 text-sm text-text-secondary">
-                Passive monitoring during service. Only critical alerts
-                interrupt.
+                We&apos;ll only interrupt you when something needs attention.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -2662,7 +2679,7 @@ function TodayWorkspacePageContent() {
                 onClick={() => setQuietMode((prev) => !prev)}
                 className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary hover:border-brand-gold hover:text-brand-gold"
               >
-                Quiet Mode: {quietMode ? "On" : "Off"}
+                {quietMode ? "Show all items" : "Critical only"}
               </button>
               <button
                 type="button"
@@ -2866,7 +2883,7 @@ function TodayWorkspacePageContent() {
                         onClick={() => handlePrepareMoreAlert(alert)}
                         className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success hover:bg-status-success/10"
                       >
-                        Prepare More
+                        Cook more now
                       </button>
                     ) : null}
                     <button
@@ -2879,7 +2896,7 @@ function TodayWorkspacePageContent() {
                       }
                       className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
                     >
-                      Ignore
+                      Dismiss
                     </button>
                   </div>
                 </article>
@@ -2888,7 +2905,7 @@ function TodayWorkspacePageContent() {
           ) : (
             <div className="mb-4 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
               <p className="text-sm text-status-success">
-                No critical live interruptions right now.
+                All clear — no urgent issues right now.
               </p>
             </div>
           )}
@@ -2896,7 +2913,7 @@ function TodayWorkspacePageContent() {
           <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <article className="rounded-xl border border-status-success/40 bg-status-success/10 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-status-success">
-                Safe
+                On track
               </p>
               <p className="mt-1 text-lg font-semibold text-status-success">
                 {Math.max(
@@ -2909,7 +2926,7 @@ function TodayWorkspacePageContent() {
             </article>
             <article className="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-status-warning">
-                Watch
+                Keep an eye on
               </p>
               <p className="mt-1 text-lg font-semibold text-status-warning">
                 {overproductionWatchCount}
@@ -2917,7 +2934,7 @@ function TodayWorkspacePageContent() {
             </article>
             <article className="rounded-xl border border-status-critical/40 bg-status-critical/10 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-status-critical">
-                Risk
+                Needs action
               </p>
               <p className="mt-1 text-lg font-semibold text-status-critical">
                 {stockoutWatchCount}
@@ -2943,10 +2960,10 @@ function TodayWorkspacePageContent() {
                     ? "border-status-warning/40 bg-status-warning/10 text-status-warning"
                     : "border-status-success/40 bg-status-success/10 text-status-success";
                 const statusLabel = isRisk
-                  ? "Risk"
+                  ? "Needs attention"
                   : isWatch
                     ? "Watch"
-                    : "Safe";
+                    : "On track";
                 const runoutMin =
                   typeof monitor?.risk_engine?.runout_minutes === "number"
                     ? Math.round(monitor.risk_engine.runout_minutes)
@@ -2970,14 +2987,14 @@ function TodayWorkspacePageContent() {
                 let microAction: string | null = null;
                 if (isRisk && runoutMin !== null) {
                   microAction = startBatchNow
-                    ? `Start new batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
-                    : `Prepare +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} now — projected stockout in ${runoutMin} min`;
+                    ? `Start a new batch now — you'll run out in ${runoutMin} min and prep takes ${prepTimeMin} min`
+                    : `Cook +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} now — may run out in ${runoutMin} min`;
                 } else if (isRisk) {
-                  microAction = `Prepare more now — demand exceeding current stock`;
+                  microAction = `Cook more now — demand is outpacing your current stock`;
                 } else if (isWatch && wasteRisk === "HIGH") {
-                  microAction = `Slow pace — no additional batch needed. Consider promotion.`;
+                  microAction = `Hold off on more batches — sales are slower than expected.`;
                 } else if (isWatch && stockoutRisk === "MEDIUM") {
-                  microAction = `Monitor closely — may need +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} before peak`;
+                  microAction = `Keep an eye on this — you may need +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} before the rush`;
                 }
 
                 return (
@@ -2992,7 +3009,7 @@ function TodayWorkspacePageContent() {
                         <p className="text-sm font-semibold text-status-critical">
                           {startBatchNow
                             ? `Start ${item.product_title} batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
-                            : `${item.product_title} runs out in ${runoutMin} min`}
+                            : `${item.product_title} may run out in ${runoutMin} min`}
                         </p>
                       </div>
                     ) : null}
