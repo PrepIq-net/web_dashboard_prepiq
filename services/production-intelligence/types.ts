@@ -76,6 +76,18 @@ export const prepPlanItemSchema = z.object({
     forecast_engine_input: z.record(z.string(), z.unknown()).optional(),
     forecast_engine_output: z.record(z.string(), z.unknown()).optional(),
     reasoning: z.array(z.string()),
+    applied_signals: z.record(z.string(), z.object({
+      modifier: z.number(),
+      source: z.string().optional(),
+      special_event_flag: z.boolean().optional(),
+      condition: z.string().optional(),
+      temp_bucket: z.string().optional(),
+      is_rain: z.boolean().optional(),
+      estimated_staff_count: z.number().nullable().optional(),
+      capacity_pct: z.number().nullable().optional(),
+      delivery_ratio: z.number().nullable().optional(),
+      multiplier: z.number().optional(),
+    })).optional(),
   }),
   live_monitor: z
     .object({

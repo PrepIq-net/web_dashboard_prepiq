@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
+import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
@@ -1955,12 +1956,42 @@ function TodayWorkspacePageContent() {
                         <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
                           Why this quantity?
                         </summary>
-                        <div className="mt-1 space-y-1 text-[11px] text-text-secondary">
-                          {item.forecast_context.reasoning.map((line) => (
-                            <p key={`mobile-${item.id}-${line}`}>{line}</p>
-                          ))}
+                        <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
+                          {/* Plain reasoning */}
+                          <div className="space-y-0.5">
+                            {item.forecast_context.reasoning.map((line) => (
+                              <p key={`mobile-${item.id}-${line}`}>{line}</p>
+                            ))}
+                          </div>
+
+                          {/* Signal breakdown — what influenced this forecast */}
+                          {item.forecast_context.applied_signals ? (
+                            <div className="pt-2 border-t border-surface-4/40">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
+                                Signals that shaped this forecast
+                              </p>
+                              <div className="space-y-1">
+                                {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
+                                  const modifier = signal?.modifier ?? 0;
+                                  if (Math.abs(modifier) < 0.005) return null;
+                                  const direction = modifier > 0 ? "↑" : "↓";
+                                  const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
+                                  const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
+                                  const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
+                                  return (
+                                    <div key={key} className="flex items-center justify-between text-[11px]">
+                                      <span className="text-text-secondary">{label}</span>
+                                      <span className={`font-semibold ${tone}`}>{impact}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Financial impact */}
                           {impact ? (
-                            <p>
+                            <p className="pt-2 border-t border-surface-4/40">
                               Margin impact estimate:{" "}
                               <span
                                 className={
@@ -1976,7 +2007,7 @@ function TodayWorkspacePageContent() {
                             </p>
                           ) : null}
                           {hasPricing ? (
-                            <>
+                            <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
                               {financials.revenueIfSold != null ? (
                                 <p>
                                   If sold out:{" "}
@@ -2017,9 +2048,9 @@ function TodayWorkspacePageContent() {
                                   margin.
                                 </p>
                               ) : null}
-                            </>
+                            </div>
                           ) : (
-                            <p>
+                            <p className="pt-2 border-t border-surface-4/40">
                               Pricing data is missing. Add selling price and
                               cost to unlock revenue and waste estimates.
                             </p>
@@ -2145,12 +2176,42 @@ function TodayWorkspacePageContent() {
                               <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
                                 Why this quantity?
                               </summary>
-                              <div className="mt-1 space-y-1 text-[11px] text-text-secondary">
-                                {item.forecast_context.reasoning.map((line) => (
-                                  <p key={`${item.id}-${line}`}>{line}</p>
-                                ))}
+                              <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
+                                {/* Plain reasoning */}
+                                <div className="space-y-0.5">
+                                  {item.forecast_context.reasoning.map((line) => (
+                                    <p key={`${item.id}-${line}`}>{line}</p>
+                                  ))}
+                                </div>
+
+                                {/* Signal breakdown — what influenced this forecast */}
+                                {item.forecast_context.applied_signals ? (
+                                  <div className="pt-2 border-t border-surface-4/40">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
+                                      Signals that shaped this forecast
+                                    </p>
+                                    <div className="space-y-1">
+                                      {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
+                                        const modifier = signal?.modifier ?? 0;
+                                        if (Math.abs(modifier) < 0.005) return null;
+                                        const direction = modifier > 0 ? "↑" : "↓";
+                                        const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
+                                        const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
+                                        const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
+                                        return (
+                                          <div key={key} className="flex items-center justify-between text-[11px]">
+                                            <span className="text-text-secondary">{label}</span>
+                                            <span className={`font-semibold ${tone}`}>{impact}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {/* Financial impact */}
                                 {impact ? (
-                                  <p>
+                                  <p className="pt-2 border-t border-surface-4/40">
                                     Margin impact estimate:{" "}
                                     <span
                                       className={
@@ -2166,7 +2227,7 @@ function TodayWorkspacePageContent() {
                                   </p>
                                 ) : null}
                                 {hasPricing ? (
-                                  <>
+                                  <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
                                     {financials.revenueIfSold != null ? (
                                       <p>
                                         If sold out:{" "}
@@ -2213,12 +2274,11 @@ function TodayWorkspacePageContent() {
                                         margin.
                                       </p>
                                     ) : null}
-                                  </>
+                                  </div>
                                 ) : (
-                                  <p>
-                                    Pricing data is missing. Add selling price
-                                    and cost to unlock revenue and waste
-                                    estimates.
+                                  <p className="pt-2 border-t border-surface-4/40">
+                                    Pricing data is missing. Add selling price and
+                                    cost to unlock revenue and waste estimates.
                                   </p>
                                 )}
                               </div>
@@ -3357,11 +3417,11 @@ function TodayWorkspacePageContent() {
         onClose={() => setAdvancedModalOpen(false)}
         title={
           selectedPrepItem?.product_title
-            ? `Advanced Forecast · ${selectedPrepItem.product_title}`
-            : "Advanced Forecast Intelligence"
+            ? `Deep Dive · ${selectedPrepItem.product_title}`
+            : "Forecast Deep Dive"
         }
-        description="Details on forecast drivers, reliability, and recent performance for this item."
-        maxWidthClassName="max-w-5xl"
+        description="Understand what's driving this forecast and what actions to take."
+        maxWidthClassName="max-w-6xl"
         footer={
           <>
             <button
@@ -3393,267 +3453,29 @@ function TodayWorkspacePageContent() {
           </>
         }
       >
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr]">
-          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                  Recommended Prep
-                </p>
-                <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
-                  {advancedForecast?.ensemble_forecast != null
-                    ? formatQuantity(
-                        advancedForecast.ensemble_forecast,
-                        selectedPrepItem?.unit ?? "PCS",
-                      )
-                    : "—"}
-                </p>
-                <p className="mt-2 text-xs text-text-secondary">
-                  Risk-adjusted target:{" "}
-                  <span className="font-semibold text-text-primary">
-                    {advancedForecast?.loss_optimized_qty != null
-                      ? formatQuantity(
-                          advancedForecast.loss_optimized_qty,
-                          selectedPrepItem?.unit ?? "PCS",
-                        )
-                      : "—"}
-                  </span>
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-4 bg-surface-3/50 px-3 py-3 text-right">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Forecast Confidence
-                </p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {advancedForecast?.confidence != null
-                    ? percent(advancedForecast.confidence)
-                    : "—"}
-                </p>
-                <p className="text-xs text-text-secondary">
-                  {advancedForecast?.confidence_label ?? "—"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Forecast Confidence
-                </p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {advancedForecast?.confidence != null
-                    ? percent(advancedForecast.confidence)
-                    : "—"}
-                </p>
-                <p className="text-xs text-text-muted">
-                  {confidenceNarrative(advancedForecast?.confidence)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Model Consensus
-                </p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {advancedForecast?.model_agreement != null
-                    ? percent(advancedForecast.model_agreement)
-                    : "—"}
-                </p>
-                <p className="text-xs text-text-muted">
-                  {agreementNarrative(advancedForecast?.model_agreement)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Chef Signal
-                </p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {advancedForecast?.chef_recommendation ?? "—"}
-                </p>
-                <p className="text-xs text-text-muted">
-                  Chef influence{" "}
-                  {advancedForecast?.chef_weight != null
-                    ? percent(advancedForecast.chef_weight)
-                    : "—"}{" "}
-                  of the final number.
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Data Issues
-                </p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {(advancedForecast?.quality_issues ?? []).length || "None"}
-                </p>
-                <p className="text-xs text-text-muted">
-                  {(advancedForecast?.quality_issues ?? []).length
-                    ? (advancedForecast?.quality_issues ?? [])
-                        .slice(0, 2)
-                        .join(", ")
-                    : "No data flags reducing reliability."}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <ScenarioBarChart
-                baseValue={advancedForecast?.ensemble_forecast ?? null}
-                scenarios={advancedForecast?.scenarios ?? []}
-                unitLabel={selectedPrepItem?.unit ?? "PCS"}
-              />
-            </div>
-          </article>
-
-          <div className="space-y-4">
-            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Data Health Check
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-text-primary">
-                {dataQuality?.overall_quality_score != null
-                  ? `${dataQuality.overall_quality_score.toFixed(0)}%`
-                  : "—"}
-              </p>
-              <p className="text-sm text-text-secondary">
-                {dataQuality?.quality_label ?? "No quality score yet."}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">
-                {dataQuality?.recommendation ??
-                  "We’ll flag missing or unusual data when it appears."}
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Recent Forecast Performance
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    Accuracy
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">
-                    {forecastMetrics?.forecast_accuracy != null
-                      ? `${forecastMetrics.forecast_accuracy.toFixed(1)}%`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    Avg Error (MAPE)
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">
-                    {forecastMetrics?.mape != null
-                      ? `${forecastMetrics.mape.toFixed(1)}%`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    Stockout Exposure
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">
-                    {forecastMetrics?.stockout_rate != null
-                      ? `${forecastMetrics.stockout_rate.toFixed(1)}%`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                    Waste Exposure
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">
-                    {forecastMetrics?.waste_rate != null
-                      ? `${forecastMetrics.waste_rate.toFixed(1)}%`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-text-muted">
-                Based on the last 60 days for this item.
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Live Sales Pace
-              </p>
-              <p className="mt-2 text-sm text-text-secondary">
-                We compare the last hour of sales to today’s plan and suggest
-                the next action.
-              </p>
-              {branchDay?.status === "LIVE" ? (
-                <p className="mt-1 text-xs text-text-muted">
-                  Auto-checks every 3 minutes during live service.
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-text-muted">
-                  Start live service to enable auto-checks.
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!safeBranchId || !selectedItemId) return;
-                  velocityMutation.mutate({
-                    branch_id: safeBranchId,
-                    item_id: selectedItemId,
-                    window_minutes: 60,
-                  });
-                }}
-                className="mt-3 inline-flex h-9 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-3"
-                disabled={velocityMutation.isPending}
-              >
-                {velocityMutation.isPending ? "Updating..." : "Update pace now"}
-              </button>
-              {velocitySnapshot?.comparison ? (
-                <div className="mt-3 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3 text-xs text-text-secondary">
-                  <p
-                    className={`font-semibold ${velocityStatusTone(velocitySnapshot.comparison.status)}`}
-                  >
-                    {velocitySnapshot.comparison.status === "HIGH_DEMAND"
-                      ? "Selling faster than plan"
-                      : velocitySnapshot.comparison.status === "LOW_DEMAND"
-                        ? "Selling slower than plan"
-                        : "On pace with plan"}
-                  </p>
-                  <p className="mt-1">
-                    {velocitySummary(velocitySnapshot.comparison)}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-text-muted">
-                    <span>
-                      Sales pace:{" "}
-                      {velocitySnapshot.comparison.actual_velocity_per_hour?.toFixed(
-                        1,
-                      ) ?? "—"}
-                      /hr
-                    </span>
-                    <span>
-                      Plan pace:{" "}
-                      {velocitySnapshot.comparison.forecast_velocity_per_hour?.toFixed(
-                        1,
-                      ) ?? "—"}
-                      /hr
-                    </span>
-                    {velocityLastUpdated ? (
-                      <span>
-                        Updated{" "}
-                        {velocityLastUpdated.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-              {!velocitySnapshot?.comparison ? (
-                <p className="mt-3 text-xs text-text-muted">
-                  {velocitySummary()}
-                </p>
-              ) : null}
-            </article>
-          </div>
-        </div>
+        <AdvancedForecastModalContent
+          advancedForecast={advancedForecast}
+          forecastMetrics={forecastMetrics}
+          dataQuality={dataQuality}
+          velocitySnapshot={velocitySnapshot}
+          velocityLastUpdated={velocityLastUpdated}
+          velocityMutation={velocityMutation}
+          branchDay={branchDay}
+          selectedPrepItem={selectedPrepItem}
+          safeBranchId={safeBranchId}
+          selectedItemId={selectedItemId}
+          targetDate={targetDate}
+          isPlanLocked={isPlanLocked}
+          onAcceptAction={(recommendedQty) => {
+            if (recommendedQty && selectedPrepItem) {
+              onPlannedChange(selectedPrepItem.id, String(recommendedQty), selectedPrepItem.unit);
+              acceptSuggestion(selectedPrepItem.id, recommendedQty, selectedPrepItem.unit);
+              setAdvancedModalOpen(false);
+            }
+          }}
+          onPlannedChange={onPlannedChange}
+          acceptSuggestion={acceptSuggestion}
+        />
       </ModalShell>
 
       <ConfirmActionModal
