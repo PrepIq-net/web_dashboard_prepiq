@@ -74,7 +74,7 @@ export async function getRecipes(menuItemId: string) {
 
 export async function createRecipe(
   menuItemId: string,
-  data: { ingredient_id: string; quantity: number }
+  data: { ingredient: string; quantity: number; unit: string; waste_factor?: number }
 ) {
   return apiClientWithSchema(
     inventoryEndpoints.recipes.create(menuItemId),

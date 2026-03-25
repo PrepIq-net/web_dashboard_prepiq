@@ -101,7 +101,7 @@ export function useRecipes(menuItemId: string, enabled = true) {
 export function useCreateRecipe(menuItemId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { ingredient_id: string; quantity: number }) =>
+    mutationFn: (data: { ingredient: string; quantity: number; unit: string; waste_factor?: number }) =>
       createRecipe(menuItemId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({

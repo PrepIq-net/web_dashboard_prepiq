@@ -144,8 +144,10 @@ function RecipeBuilderContent() {
 
     try {
       await createRecipeMutation.mutateAsync({
-        ingredient_id: line.ingredient.id,
+        ingredient: line.ingredient.id,
         quantity: qty,
+        unit: line.ingredient.unit,
+        waste_factor: parseFloat(line.waste_factor) / 100 || 0,
       });
       setPendingLines((prev) => prev.filter((l) => l.key !== key));
     } catch {
@@ -571,7 +573,7 @@ function IngredientPicker({
 }: {
   ingredients: Ingredient[];
   search: string;
-  searchRef: React.RefObject<HTMLInputElement>;
+  searchRef: React.RefObject<HTMLInputElement | null>;
   onSearch: (v: string) => void;
   onSelect: (i: Ingredient) => void;
   onClose: () => void;

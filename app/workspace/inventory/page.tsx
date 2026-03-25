@@ -349,57 +349,6 @@ function RecipesTab({
 }) {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
 
-  const columns = useMemo(
-    () => [
-      menuItemColumnHelper.accessor("name", {
-        header: "Menu Item",
-        cell: (info) => (
-          <button
-            type="button"
-            onClick={() => setSelectedMenuItemId(info.row.original.id)}
-            className="text-sm font-semibold text-text-primary hover:text-brand-gold transition-colors text-left"
-          >
-            {info.getValue()}
-          </button>
-        ),
-      }),
-      menuItemColumnHelper.accessor("category", {
-        header: "Category",
-        cell: (info) => (
-          <span className="text-sm text-text-secondary">{info.getValue() || "—"}</span>
-        ),
-      }),
-      menuItemColumnHelper.accessor("is_active", {
-        header: "Status",
-        cell: (info) => (
-          <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-            info.getValue()
-              ? "bg-status-success/10 text-status-success border border-status-success/20"
-              : "bg-surface-3 text-text-muted border border-surface-4"
-          }`}>
-            {info.getValue() ? "Active" : "Inactive"}
-          </span>
-        ),
-      }),
-      menuItemColumnHelper.display({
-        id: "action",
-        header: "",
-        cell: (info) => (
-          <Link
-            href={`/workspace/inventory/recipes/${info.row.original.id}?name=${encodeURIComponent(info.row.original.name)}&branch=${branchId}&org=${orgId}`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
-          >
-            Build Recipe
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        ),
-      }),
-    ],
-    [branchId, orgId],
-  );
-
-  const table = useReactTable({ data: menuItems, columns, getCoreRowModel: CORE_ROW_MODEL });
-
   if (isLoading) return <LoadingState label="Loading menu items..." />;
   if (!menuItems.length) return <EmptyState label="No menu items found." hint="Menu items are branch-specific. Add items to this branch to build recipes." />;
 
@@ -413,19 +362,52 @@ function RecipesTab({
         </div>
         <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
-            <NativeTable
-              table={table}
-              tableClassName="w-full min-w-[480px]"
-              headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-              bodyClassName="divide-y divide-surface-4"
-              headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-              bodyRowClassName={(row) =>
-                `transition-all duration-200 hover:bg-surface-3/50 ${
-                  selectedMenuItemId === row.original.id ? "bg-brand-gold/5 border-l-2 border-l-brand-gold" : ""
-                }`
-              }
-              cellClassName="px-6 py-4"
-            />
+            <table className="w-full min-w-[480px]">
+              <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                <tr>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Menu Item</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Category</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Status</th>
+                  <th className="px-6 py-4" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-4">
+                {menuItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelectedMenuItemId(item.id)}
+                    className={`cursor-pointer transition-all duration-200 hover:bg-surface-3/50 ${
+                      selectedMenuItemId === item.id ? "bg-brand-gold/5 border-l-2 border-l-brand-gold" : ""
+                    }`}
+                  >
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-semibold text-text-primary">{item.name}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-text-secondary">{item.category || "—"}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                        item.is_active
+                          ? "bg-status-success/10 text-status-success border border-status-success/20"
+                          : "bg-surface-3 text-text-muted border border-surface-4"
+                      }`}>
+                        {item.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <Link
+                        href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
+                      >
+                        Build Recipe
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
