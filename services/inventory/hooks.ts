@@ -10,9 +10,9 @@ import {
   getPrepBatches,
   createIngredient,
   updateIngredient,
+  calculateIngredientDemand,
   type IngredientPayload,
 } from "./service";
-
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
@@ -31,6 +31,8 @@ export const inventoryQueryKeys = {
     [...inventoryQueryKeys.all, "wasteAnalytics", branchId] as const,
   prepBatches: (branchId: string) =>
     [...inventoryQueryKeys.all, "prepBatches", branchId] as const,
+  ingredientDemand: (branchId: string, date: string) =>
+    [...inventoryQueryKeys.all, "ingredientDemand", branchId, date] as const,
 };
 
 // ============================================================================
@@ -154,5 +156,15 @@ export function usePrepBatches(branchId: string, enabled = true) {
     queryFn: () => getPrepBatches(branchId),
     enabled: enabled && Boolean(branchId),
     select: (data) => data.results,
+  });
+}
+
+// ============================================================================
+// HOOKS - INGREDIENT DEMAND
+// ============================================================================
+
+export function useIngredientDemand(branchId: string, date: string, enabled = true) {
+  return useMutation({
+    mutationFn: () => calculateIngredientDemand(branchId, date),
   });
 }

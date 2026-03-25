@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
-import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
+import { IngredientRequirements } from "@/components/dashboard/today/ingredient-requirements";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
@@ -2345,6 +2345,15 @@ function TodayWorkspacePageContent() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          {/* ── Ingredient Requirements — on-demand calculation ── */}
+          <section className="mt-8 mb-4">
+            <IngredientRequirements
+              branchId={safeBranchId}
+              targetDate={targetDate}
+              orgId={user?.organization_id ?? ""}
+            />
           </section>
 
           {/* ── Collapsed footer: network intelligence + decision summary ── */}

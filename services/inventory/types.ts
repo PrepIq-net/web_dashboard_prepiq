@@ -142,3 +142,19 @@ export type Recipe = z.infer<typeof recipeSchema>;
 export type PrepBatch = z.infer<typeof prepBatchSchema>;
 export type WasteEvent = z.infer<typeof wasteEventSchema>;
 export type WasteAnalytics = z.infer<typeof wasteAnalyticsSchema>;
+
+// Ingredient demand (from /api/inventory/demand/calculate/)
+export const ingredientDemandSchema = z.object({
+  date: z.string(),
+  branch_id: z.string(),
+  ingredients: z.array(
+    z.object({
+      ingredient_id: z.string(),
+      ingredient_name: z.string(),
+      predicted_usage: z.string(),
+      unit: z.string(),
+    })
+  ),
+  items_with_no_recipe: z.array(z.string()),
+});
+export type IngredientDemand = z.infer<typeof ingredientDemandSchema>;

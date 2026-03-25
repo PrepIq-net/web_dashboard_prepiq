@@ -9,6 +9,7 @@ import {
   wasteEventsResponseSchema,
   wasteAnalyticsSchema,
   prepBatchesResponseSchema,
+  ingredientDemandSchema,
 } from "./types";
 
 export type IngredientPayload = {
@@ -121,5 +122,17 @@ export async function getPrepBatches(branchId: string) {
     inventoryEndpoints.prepBatches.list(branchId),
     prepBatchesResponseSchema,
     { method: "GET" }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS - INGREDIENT DEMAND
+// ============================================================================
+
+export async function calculateIngredientDemand(branchId: string, date: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.demand.calculate,
+    ingredientDemandSchema,
+    { method: "POST", body: { branch_id: branchId, date } }
   );
 }
