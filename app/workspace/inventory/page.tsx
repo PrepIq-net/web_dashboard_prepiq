@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, EditPencil } from "iconoir-react";
+import { Plus, EditPencil, ArrowRight } from "iconoir-react";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -169,7 +170,7 @@ export default function InventoryPage() {
       {/* Tab Content */}
       <section>
         {activeTab === "ingredients" && <IngredientsTab ingredients={ingredients} isLoading={ingredientsQuery.isLoading} organizationId={user?.organization_id ?? ""} />}
-        {activeTab === "recipes" && <RecipesTab menuItems={menuItems} ingredients={ingredients} isLoading={menuItemsQuery.isLoading} />}
+        {activeTab === "recipes" && <RecipesTab menuItems={menuItems} ingredients={ingredients} isLoading={menuItemsQuery.isLoading} branchId={branchId} orgId={user?.organization_id ?? ""} />}
         {activeTab === "waste" && <WasteTab wasteAnalytics={wasteAnalytics} isLoading={wasteAnalyticsQuery.isLoading} />}
         {activeTab === "signals" && <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />}
       </section>
@@ -337,10 +338,14 @@ function RecipesTab({
   menuItems,
   ingredients,
   isLoading,
+  branchId,
+  orgId,
 }: {
   menuItems: MenuItem[];
   ingredients: Ingredient[];
   isLoading: boolean;
+  branchId: string;
+  orgId: string;
 }) {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
 
@@ -380,17 +385,17 @@ function RecipesTab({
         id: "action",
         header: "",
         cell: (info) => (
-          <button
-            type="button"
-            onClick={() => setSelectedMenuItemId(info.row.original.id)}
-            className="inline-flex h-8 items-center rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
+          <Link
+            href={`/workspace/inventory/recipes/${info.row.original.id}?name=${encodeURIComponent(info.row.original.name)}&branch=${branchId}&org=${orgId}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
           >
-            View Recipe
-          </button>
+            Build Recipe
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         ),
       }),
     ],
-    [],
+    [branchId, orgId],
   );
 
   const table = useReactTable({ data: menuItems, columns, getCoreRowModel: CORE_ROW_MODEL });
@@ -404,7 +409,7 @@ function RecipesTab({
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Menu Items</p>
           <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Branch menu</h3>
-          <p className="mt-1 text-sm text-text-muted">Select an item to view its recipe.</p>
+          <p className="mt-1 text-sm text-text-muted">Click "Build Recipe" to define ingredients for each dish.</p>
         </div>
         <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
@@ -427,10 +432,16 @@ function RecipesTab({
 
       <div>
         {selectedMenuItemId ? (
-          <RecipeDetail menuItemId={selectedMenuItemId} ingredients={ingredients} menuItems={menuItems} />
+          <RecipeDetail
+            menuItemId={selectedMenuItemId}
+            ingredients={ingredients}
+            menuItems={menuItems}
+            branchId={branchId}
+            orgId={orgId}
+          />
         ) : (
           <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 flex items-center justify-center h-full min-h-[200px]">
-            <p className="text-sm text-text-muted text-center">Select a menu item to view its recipe</p>
+            <p className="text-sm text-text-muted text-center">Select a menu item to preview its recipe</p>
           </div>
         )}
       </div>
@@ -442,10 +453,14 @@ function RecipeDetail({
   menuItemId,
   ingredients,
   menuItems,
+  branchId,
+  orgId,
 }: {
   menuItemId: string;
   ingredients: Ingredient[];
   menuItems: MenuItem[];
+  branchId: string;
+  orgId: string;
 }) {
   const recipesQuery = useRecipes(menuItemId, true);
   const recipes = recipesQuery.data ?? EMPTY_LIST;
@@ -453,17 +468,35 @@ function RecipeDetail({
 
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Recipe</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-          {menuItem?.name ?? "—"}
-        </h3>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Recipe Preview</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+            {menuItem?.name ?? "—"}
+          </h3>
+        </div>
+        <Link
+          href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold/20 border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/30"
+        >
+          Edit
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
       <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
         {recipesQuery.isLoading ? (
           <div className="p-6 text-sm text-text-muted">Loading recipe...</div>
         ) : recipes.length === 0 ? (
-          <div className="p-6 text-sm text-text-muted">No recipe lines yet.</div>
+          <div className="p-6 text-center">
+            <p className="text-sm text-text-muted">No recipe lines yet.</p>
+            <Link
+              href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
+              className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Build Recipe
+            </Link>
+          </div>
         ) : (
           <div className="divide-y divide-surface-4">
             {recipes.map((recipe) => (
