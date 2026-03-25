@@ -1839,13 +1839,23 @@ function TodayWorkspacePageContent() {
                       className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-text-primary">
-                            {item.product_title}
-                          </p>
-                          <p className="mt-1 text-xs text-text-muted">
-                            {popularityLabel(forecastRankById[item.id] ?? 999)}
-                          </p>
+                        <div className="flex items-start gap-3">
+                          {item.product_image_url && (
+                            <img
+                              src={item.product_image_url}
+                              alt={item.product_title}
+                              className="h-12 w-12 rounded-lg object-cover border border-surface-4 shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-text-primary">
+                              {item.product_title}
+                            </p>
+                            <p className="mt-1 text-xs text-text-muted">
+                              {popularityLabel(forecastRankById[item.id] ?? 999)}
+                            </p>
+                          </div>
                         </div>
                         <span
                           className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${riskTone(riskScore)}`}
@@ -2112,14 +2122,26 @@ function TodayWorkspacePageContent() {
                           className="align-top hover:bg-surface-3/30"
                         >
                           <td className="px-4 py-4">
-                            <p className="text-sm font-semibold text-text-primary">
-                              {item.product_title}
-                            </p>
-                            <p className="mt-1 text-xs text-text-muted">
-                              {popularityLabel(
-                                forecastRankById[item.id] ?? 999,
+                            <div className="flex items-center gap-3">
+                              {item.product_image_url && (
+                                <img
+                                  src={item.product_image_url}
+                                  alt={item.product_title}
+                                  className="h-10 w-10 rounded-lg object-cover border border-surface-4 shrink-0"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                />
                               )}
-                            </p>
+                              <div>
+                                <p className="text-sm font-semibold text-text-primary">
+                                  {item.product_title}
+                                </p>
+                                <p className="mt-1 text-xs text-text-muted">
+                                  {popularityLabel(
+                                    forecastRankById[item.id] ?? 999,
+                                  )}
+                                </p>
+                              </div>
+                            </div>
                           </td>
                           <td className="px-4 py-4 text-sm font-semibold text-text-primary">
                             {formatQuantity(item.suggested_quantity, item.unit)}

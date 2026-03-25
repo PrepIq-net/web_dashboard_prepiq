@@ -3,6 +3,7 @@ import { inventoryEndpoints } from "./endpoints";
 import {
   ingredientSchema,
   ingredientsResponseSchema,
+  menuItemSchema,
   menuItemsResponseSchema,
   recipesResponseSchema,
   recipeSchema,
@@ -10,6 +11,7 @@ import {
   wasteAnalyticsSchema,
   prepBatchesResponseSchema,
   ingredientDemandSchema,
+  autoGenerateRecipeResponseSchema,
 } from "./types";
 
 export type IngredientPayload = {
@@ -58,6 +60,42 @@ export async function getMenuItems(branchId: string) {
     inventoryEndpoints.menuItems.list(branchId),
     menuItemsResponseSchema,
     { method: "GET" }
+  );
+}
+
+export type MenuItemPayload = {
+  name: string;
+  category?: string;
+  image_url?: string;
+  instructions?: string;
+  is_active?: boolean;
+};
+
+export async function createMenuItem(branchId: string, data: MenuItemPayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.create(branchId),
+    menuItemSchema,
+    { method: "POST", body: data }
+  );
+}
+
+export async function updateMenuItem(branchId: string, menuItemId: string, data: Partial<MenuItemPayload>) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.update(branchId, menuItemId),
+    menuItemSchema,
+    { method: "PATCH", body: data }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS - RECIPE INTELLIGENCE
+// ============================================================================
+
+export async function autoGenerateRecipe(menuItemId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.recipeIntelligence.autoGenerate(menuItemId),
+    autoGenerateRecipeResponseSchema,
+    { method: "POST" }
   );
 }
 

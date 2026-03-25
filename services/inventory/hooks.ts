@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getIngredients,
   getMenuItems,
+  createMenuItem,
+  updateMenuItem,
   getRecipes,
   createRecipe,
   deleteRecipe,
@@ -11,7 +13,9 @@ import {
   createIngredient,
   updateIngredient,
   calculateIngredientDemand,
+  autoGenerateRecipe,
   type IngredientPayload,
+  type MenuItemPayload,
 } from "./service";
 // ============================================================================
 // QUERY KEYS
@@ -84,6 +88,37 @@ export function useMenuItems(branchId: string, enabled = true) {
     queryFn: () => getMenuItems(branchId),
     enabled: enabled && Boolean(branchId),
     select: (data) => data.results,
+  });
+}
+
+export function useCreateMenuItem(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MenuItemPayload) => createMenuItem(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.menuItems(branchId),
+      });
+    },
+  });
+}
+
+export function useUpdateMenuItem(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<MenuItemPayload> }) =>
+      updateMenuItem(branchId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.menuItems(branchId),
+      });
+    },
+  });
+}
+
+export function useAutoGenerateRecipe() {
+  return useMutation({
+    mutationFn: (menuItemId: string) => autoGenerateRecipe(menuItemId),
   });
 }
 

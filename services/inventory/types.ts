@@ -25,6 +25,8 @@ export const menuItemSchema = z.object({
   catalog_item_title: z.string().nullable().optional(),
   name: z.string(),
   category: z.string(),
+  image_url: z.string().optional(),
+  instructions: z.string().optional(),
   is_active: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -142,6 +144,19 @@ export type Recipe = z.infer<typeof recipeSchema>;
 export type PrepBatch = z.infer<typeof prepBatchSchema>;
 export type WasteEvent = z.infer<typeof wasteEventSchema>;
 export type WasteAnalytics = z.infer<typeof wasteAnalyticsSchema>;
+
+// Auto-generate recipe response
+export const autoGenerateRecipeResponseSchema = z.object({
+  detail: z.string(),
+  results: z.object({
+    status: z.string(),
+    source: z.string().optional(),
+    ingredients_mapped: z.number().optional(),
+    reason: z.string().optional(),
+  }),
+  menu_item: menuItemSchema.optional(),
+});
+export type AutoGenerateRecipeResponse = z.infer<typeof autoGenerateRecipeResponseSchema>;
 
 // Ingredient demand (from /api/inventory/demand/calculate/)
 export const ingredientDemandSchema = z.object({

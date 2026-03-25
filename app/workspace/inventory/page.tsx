@@ -25,6 +25,7 @@ import {
   useRecipes,
 } from "@/services/inventory/hooks";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
+import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
 
 const EMPTY_LIST: never[] = [];
@@ -348,86 +349,131 @@ function RecipesTab({
   orgId: string;
 }) {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<MenuItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   if (isLoading) return <LoadingState label="Loading menu items..." />;
   if (!menuItems.length) return <EmptyState label="No menu items found." hint="Menu items are branch-specific. Add items to this branch to build recipes." />;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Menu Items</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Branch menu</h3>
-          <p className="mt-1 text-sm text-text-muted">Click "Build Recipe" to define ingredients for each dish.</p>
-        </div>
-        <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
-              <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                <tr>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Menu Item</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Category</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Status</th>
-                  <th className="px-6 py-4" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-4">
-                {menuItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => setSelectedMenuItemId(item.id)}
-                    className={`cursor-pointer transition-all duration-200 hover:bg-surface-3/50 ${
-                      selectedMenuItemId === item.id ? "bg-brand-gold/5 border-l-2 border-l-brand-gold" : ""
-                    }`}
-                  >
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-text-primary">{item.name}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-text-secondary">{item.category || "—"}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-                        item.is_active
-                          ? "bg-status-success/10 text-status-success border border-status-success/20"
-                          : "bg-surface-3 text-text-muted border border-surface-4"
-                      }`}>
-                        {item.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <Link
-                        href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
-                      >
-                        Build Recipe
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Menu Items</p>
+              <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Branch menu</h3>
+              <p className="mt-1 text-sm text-text-muted">Click "Build Recipe" to define ingredients for each dish.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEditTarget(null); setModalOpen(true); }}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              Add Item
+            </button>
           </div>
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px]">
+                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Menu Item</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Category</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Status</th>
+                    <th className="px-6 py-4" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4">
+                  {menuItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelectedMenuItemId(item.id)}
+                      className={`cursor-pointer transition-all duration-200 hover:bg-surface-3/50 ${
+                        selectedMenuItemId === item.id ? "bg-brand-gold/5 border-l-2 border-l-brand-gold" : ""
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="h-9 w-9 rounded-lg object-cover border border-surface-4 shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          ) : (
+                            <div className="h-9 w-9 rounded-lg bg-surface-3 border border-surface-4 shrink-0 flex items-center justify-center text-[10px] text-text-muted font-semibold">
+                              {item.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-sm font-semibold text-text-primary">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-text-secondary">{item.category || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                          item.is_active
+                            ? "bg-status-success/10 text-status-success border border-status-success/20"
+                            : "bg-surface-3 text-text-muted border border-surface-4"
+                        }`}>
+                          {item.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setEditTarget(item); setModalOpen(true); }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+                            aria-label={`Edit ${item.name}`}
+                          >
+                            <EditPencil className="h-4 w-4" />
+                          </button>
+                          <Link
+                            href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
+                          >
+                            Build Recipe
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          {selectedMenuItemId ? (
+            <RecipeDetail
+              menuItemId={selectedMenuItemId}
+              ingredients={ingredients}
+              menuItems={menuItems}
+              branchId={branchId}
+              orgId={orgId}
+            />
+          ) : (
+            <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 flex items-center justify-center h-full min-h-[200px]">
+              <p className="text-sm text-text-muted text-center">Select a menu item to preview its recipe</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div>
-        {selectedMenuItemId ? (
-          <RecipeDetail
-            menuItemId={selectedMenuItemId}
-            ingredients={ingredients}
-            menuItems={menuItems}
-            branchId={branchId}
-            orgId={orgId}
-          />
-        ) : (
-          <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 flex items-center justify-center h-full min-h-[200px]">
-            <p className="text-sm text-text-muted text-center">Select a menu item to preview its recipe</p>
-          </div>
-        )}
-      </div>
-    </div>
+      <MenuItemModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        branchId={branchId}
+        menuItem={editTarget}
+      />
+    </>
   );
 }
 
@@ -465,6 +511,19 @@ function RecipeDetail({
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
+
+      {/* Item image */}
+      {menuItem?.image_url && (
+        <div className="mb-4 overflow-hidden rounded-xl border border-surface-4 bg-surface-3 h-40">
+          <img
+            src={menuItem.image_url}
+            alt={menuItem.name}
+            className="h-full w-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+          />
+        </div>
+      )}
+
       <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
         {recipesQuery.isLoading ? (
           <div className="p-6 text-sm text-text-muted">Loading recipe...</div>

@@ -50,4 +50,10 @@ export const inventoryEndpoints = {
     events: (branchId: string) => `/api/inventory/branches/${branchId}/waste-events/`,
     analytics: (branchId: string) => `/api/inventory/branches/${branchId}/waste-analytics/`,
   },
+
+  // Recipe Intelligence
+  recipeIntelligence: {
+    autoGenerate: (menuItemId: string) =>
+      `/api/inventory/menu-items/${menuItemId}/auto-generate-recipe/`,
+  },
 } as const;
