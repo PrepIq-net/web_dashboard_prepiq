@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
-import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
+import { IngredientRequirements } from "@/components/dashboard/today/ingredient-requirements";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
@@ -37,6 +37,7 @@ import {
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
+import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -1926,13 +1927,12 @@ function TodayWorkspacePageContent() {
                         >
                           Keep my number
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => openAdvancedModal(item)}
-                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-medium text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                        <Link
+                          href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
+                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
                         >
                           Deep dive
-                        </button>
+                        </Link>
                       </div>
                       {actionErrorByItem[item.id] ? (
                         <p className="mt-2 text-xs text-status-critical">
@@ -1943,8 +1943,7 @@ function TodayWorkspacePageContent() {
                           className={`mt-2 text-xs ${
                             backendDecisionFeedback(item)?.tone === "success"
                               ? "text-status-success"
-                              : backendDecisionFeedback(item)?.tone ===
-                                  "warning"
+                              : backendDecisionFeedback(item)?.tone === "warning"
                                 ? "text-status-warning"
                                 : "text-status-critical"
                           }`}
@@ -2310,13 +2309,12 @@ function TodayWorkspacePageContent() {
                               >
                                 Keep mine
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => openAdvancedModal(item)}
-                                className="inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                              <Link
+                                href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
+                                className="inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
                               >
                                 Deep dive
-                              </button>
+                              </Link>
                             </div>
                             {actionErrorByItem[item.id] ? (
                               <p className="mt-1 text-xs text-status-critical">
@@ -2345,6 +2343,15 @@ function TodayWorkspacePageContent() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          {/* ── Ingredient Requirements — on-demand calculation ── */}
+          <section className="mt-8 mb-4">
+            <IngredientRequirements
+              branchId={safeBranchId}
+              targetDate={targetDate}
+              orgId={user?.organization_id ?? ""}
+            />
           </section>
 
           {/* ── Collapsed footer: network intelligence + decision summary ── */}
@@ -3411,72 +3418,6 @@ function TodayWorkspacePageContent() {
           </p>
         </div>
       ) : null}
-
-      <ModalShell
-        open={advancedModalOpen}
-        onClose={() => setAdvancedModalOpen(false)}
-        title={
-          selectedPrepItem?.product_title
-            ? `Deep Dive · ${selectedPrepItem.product_title}`
-            : "Forecast Deep Dive"
-        }
-        description="Understand what's driving this forecast and what actions to take."
-        maxWidthClassName="max-w-6xl"
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setAdvancedModalOpen(false)}
-              className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-3"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                advancedForecastQuery.refetch();
-                metricsQuery.refetch();
-                dataQualityQuery.refetch();
-              }}
-              className="inline-flex h-10 items-center rounded-full border border-surface-4 bg-surface-3 px-4 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 active:scale-[0.98]"
-            >
-              Refresh
-            </button>
-            {safeBranchId && selectedItemId ? (
-              <Link
-                href={`/workspace/forecast-intelligence/${selectedItemId}?branch_id=${safeBranchId}&date=${targetDate}`}
-                className="inline-flex h-10 items-center rounded-full border border-brand-gold/45 px-4 text-sm font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
-              >
-                Open drill-down
-              </Link>
-            ) : null}
-          </>
-        }
-      >
-        <AdvancedForecastModalContent
-          advancedForecast={advancedForecast}
-          forecastMetrics={forecastMetrics}
-          dataQuality={dataQuality}
-          velocitySnapshot={velocitySnapshot}
-          velocityLastUpdated={velocityLastUpdated}
-          velocityMutation={velocityMutation}
-          branchDay={branchDay}
-          selectedPrepItem={selectedPrepItem}
-          safeBranchId={safeBranchId}
-          selectedItemId={selectedItemId}
-          targetDate={targetDate}
-          isPlanLocked={isPlanLocked}
-          onAcceptAction={(recommendedQty) => {
-            if (recommendedQty && selectedPrepItem) {
-              onPlannedChange(selectedPrepItem.id, String(recommendedQty), selectedPrepItem.unit);
-              acceptSuggestion(selectedPrepItem.id, recommendedQty, selectedPrepItem.unit);
-              setAdvancedModalOpen(false);
-            }
-          }}
-          onPlannedChange={onPlannedChange}
-          acceptSuggestion={acceptSuggestion}
-        />
-      </ModalShell>
 
       <ConfirmActionModal
         open={confirmAction === "START_LIVE"}
