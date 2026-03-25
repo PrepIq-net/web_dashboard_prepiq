@@ -8,6 +8,8 @@ import {
   UserPlus,
   Check,
   NavArrowDown,
+  Database,
+  Eye,
 } from "iconoir-react";
 
 const ROLE_OPTIONS = [
@@ -28,8 +30,11 @@ const ROLE_OPTIONS = [
   },
 ];
 
+type SalesAccessAnswer = "yes" | "no" | null;
+
 export default function StaffInvitePage() {
   const router = useRouter();
+  const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("CHEF");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,58 +43,126 @@ export default function StaffInvitePage() {
     e.preventDefault();
     if (!email.trim() || !email.includes("@")) return;
     setIsSubmitting(true);
+    // TODO: wire to useCreateInvite hook
     setTimeout(() => {
       router.push("/setup/pricing");
-    }, 1000);
+    }, 900);
   }
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.value === role);
 
+  // Step 1 — ask if they have someone who handles sales data
+  if (salesAccess === null) {
+    return (
+      <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
+        <div className="w-full max-w-lg">
+          <div className="flex items-center gap-2 mb-10">
+            <UserPlus className="h-4 w-4 text-[#A8821F]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
+              Step 5 — Team
+            </span>
+          </div>
+
+          <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
+            Does someone else handle your sales data?
+          </h1>
+          <p className="text-[16px] leading-[24px] text-[#8E8E93] mb-10 max-w-sm">
+            If a team member manages your POS or exports, they can connect it directly — no need to share credentials.
+          </p>
+
+          <div className="space-y-3 mb-8">
+            <button
+              type="button"
+              onClick={() => setSalesAccess("yes")}
+              className="w-full text-left rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
+            >
+              <div className="flex items-start gap-4">
+                <span className="mt-0.5 shrink-0 text-[#5A5A60] group-hover:text-[#A8821F] transition-colors">
+                  <Database className="h-5 w-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
+                    Yes — invite them to connect sales data
+                  </p>
+                  <p className="text-[13px] leading-[20px] text-[#8E8E93]">
+                    They'll get access to connect the POS or upload CSV exports.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSalesAccess("no")}
+              className="w-full text-left rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
+            >
+              <div className="flex items-start gap-4">
+                <span className="mt-0.5 shrink-0 text-[#5A5A60] group-hover:text-[#A8821F] transition-colors">
+                  <Eye className="h-5 w-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
+                    No — I handle it myself
+                  </p>
+                  <p className="text-[13px] leading-[20px] text-[#8E8E93]">
+                    Invite your kitchen lead instead so they can log prep and waste from day one.
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push("/setup/pricing")}
+            className="w-full text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
+          >
+            Skip — go to pricing
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2 — invite form (same for both paths, role differs)
+  const defaultRole = salesAccess === "yes" ? "MANAGER" : "CHEF";
+  const headline =
+    salesAccess === "yes"
+      ? "Invite your data manager."
+      : "Invite your kitchen lead.";
+  const subtext =
+    salesAccess === "yes"
+      ? "They'll be able to connect your POS or upload sales exports directly."
+      : "The forecast is ready. Invite the person who runs the kitchen so they can log production and track waste from day one.";
+
   return (
     <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
-
-        {/* Step badge */}
-        <div className="flex items-center gap-2 mb-10">
-          <UserPlus className="h-4 w-4 text-[#A8821F]" />
+        <div className="flex items-center gap-4 mb-10">
+          <button
+            onClick={() => setSalesAccess(null)}
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
+          >
+            ← Back
+          </button>
+          <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
             Step 5 — Team
           </span>
         </div>
 
         <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
-          Invite your kitchen lead.
+          {headline}
         </h1>
         <p className="text-[16px] leading-[24px] text-[#8E8E93] mb-10 max-w-sm">
-          The forecast is ready. Invite the person who runs the kitchen so they
-          can log production and track waste from day one.
+          {subtext}
         </p>
 
-        {/* Why now callout */}
-        <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-5 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] mb-4">
-            Why add them now?
-          </p>
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#A8821F] shrink-0 mt-[7px]" />
-              <p className="text-[14px] leading-[22px] text-[#C7C7CC]">
-                They can view tomorrow&apos;s prep targets immediately.
-              </p>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#A8821F] shrink-0 mt-[7px]" />
-              <p className="text-[14px] leading-[22px] text-[#C7C7CC]">
-                Their waste logs build the forecasting engine&apos;s accuracy over time.
-              </p>
-            </li>
-          </ul>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSendInvite} className="space-y-5">
-
-          {/* Email */}
+        <form
+          onSubmit={handleSendInvite}
+          className="space-y-5"
+          key={salesAccess}
+        >
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
               Email Address
@@ -102,21 +175,24 @@ export default function StaffInvitePage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="lead@yourrestaurant.com"
+                placeholder={
+                  salesAccess === "yes"
+                    ? "manager@yourrestaurant.com"
+                    : "lead@yourrestaurant.com"
+                }
                 className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] pl-10 pr-4 text-[14px] text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
                 required
               />
             </div>
           </div>
 
-          {/* Role select */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
               Role
             </label>
             <div className="relative">
               <select
-                value={role}
+                value={role || defaultRole}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
               >
@@ -137,7 +213,6 @@ export default function StaffInvitePage() {
             )}
           </div>
 
-          {/* Submit */}
           <div className="pt-2 space-y-3">
             <button
               type="submit"
@@ -163,7 +238,6 @@ export default function StaffInvitePage() {
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );

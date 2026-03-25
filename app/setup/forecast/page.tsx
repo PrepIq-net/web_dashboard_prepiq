@@ -72,13 +72,21 @@ export default function AutoForecastPage() {
           <p className="text-[14px] leading-[22px] text-[#8E8E93] mb-6">
             Connect a POS or upload CSV sales data, then retry.
           </p>
-          <button
-            onClick={() => router.push("/setup/sales")}
-            className="h-11 px-6 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] text-[#141416] text-sm font-semibold inline-flex items-center gap-2 transition-colors"
-          >
-            Go to Sales Setup
-            <ArrowRight className="h-4 w-4" />
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => router.push("/setup/sales")}
+              className="h-11 px-6 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] text-[#141416] text-sm font-semibold inline-flex items-center gap-2 transition-colors"
+            >
+              Add Sales Data
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => router.push("/setup/staff")}
+              className="h-11 px-6 rounded-[8px] border border-[#2E2E33] bg-transparent hover:bg-[#232327] text-[#C7C7CC] text-sm font-medium inline-flex items-center gap-2 transition-colors"
+            >
+              Continue Anyway
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -256,10 +264,10 @@ export default function AutoForecastPage() {
             </button>
 
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/setup/pricing")}
               className="w-full sm:w-auto h-12 px-8 border border-[#2E2E33] bg-transparent hover:bg-[#232327] text-[#C7C7CC] text-sm font-medium rounded-[8px] inline-flex items-center justify-center gap-2 transition-colors duration-150"
             >
-              Skip to Dashboard
+              Skip to Pricing
               <FastArrowRight className="h-4 w-4" />
             </button>
           </div>

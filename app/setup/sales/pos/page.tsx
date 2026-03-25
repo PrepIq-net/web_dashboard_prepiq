@@ -237,7 +237,7 @@ export default function POSSelectionPage() {
         </button>
 
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/setup/forecast")}
           className="w-full mt-3 text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
         >
           Skip for now
