@@ -208,7 +208,8 @@ export default function CSVMappingPage() {
             : `Import complete: ${created + updated} rows processed.`,
         );
         setIsTransitioningAfterImport(true);
-        router.push(returnPath || "/workspace/today");
+        // In setup flow (no returnPath), go to items confirmation; otherwise return to caller
+        router.push(returnPath || "/setup/items");
         setTimeout(() => clearSession(), 400);
         return;
       }

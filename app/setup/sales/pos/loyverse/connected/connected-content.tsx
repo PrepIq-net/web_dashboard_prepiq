@@ -108,7 +108,7 @@ export default function LoyverseConnectedContent() {
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => router.push("/setup/sales/forecast")}
+              onClick={() => router.push("/setup/items")}
               className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] text-sm font-semibold rounded-[8px] inline-flex items-center justify-center gap-2 transition-colors"
             >
               <ArrowRight className="h-4 w-4" />

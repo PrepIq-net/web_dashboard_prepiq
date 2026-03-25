@@ -23,7 +23,7 @@ export default function SalesSetupPage() {
     if (!selected) return;
     if (selected === "pos") router.push("/setup/sales/pos");
     if (selected === "csv") router.push("/setup/sales/csv");
-    if (selected === "skip") router.push("/");
+    if (selected === "skip") router.push("/setup/forecast");
   }
 
   return (
@@ -110,7 +110,7 @@ export default function SalesSetupPage() {
           disabled={!selected}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
-          {selected === "skip" ? "Continue to dashboard" : "Continue"}
+          {selected === "skip" ? "Skip — show me the forecast anyway" : "Continue"}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

@@ -72,7 +72,7 @@ export function SquareConnectedContent() {
       <div className="flex flex-col gap-3">
         {isConnected ? (
           <button
-            onClick={() => router.push("/setup/forecast")}
+            onClick={() => router.push("/setup/items")}
             className="w-full h-11 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors"
           >
             See forecast
