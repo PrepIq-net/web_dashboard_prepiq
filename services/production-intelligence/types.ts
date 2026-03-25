@@ -43,6 +43,7 @@ export const prepPlanItemSchema = z.object({
   id: z.string().uuid(),
   product_id: z.string().uuid(),
   product_title: z.string(),
+  product_image_url: z.string().nullable().optional(),
   suggested_quantity: z.number(),
   forecast_qty: z.number().optional(),
   forecast_confidence: z.number().optional(),
