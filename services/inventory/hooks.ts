@@ -8,6 +8,9 @@ import {
   getWasteEvents,
   getWasteAnalytics,
   getPrepBatches,
+  createIngredient,
+  updateIngredient,
+  type IngredientPayload,
 } from "./service";
 
 // ============================================================================
@@ -40,6 +43,32 @@ export function useIngredients(organizationId: string, enabled = true) {
     queryFn: () => getIngredients(organizationId),
     enabled: enabled && Boolean(organizationId),
     select: (data) => data.results,
+  });
+}
+
+export function useCreateIngredient(organizationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<IngredientPayload, "organization_id">) =>
+      createIngredient({ ...data, organization_id: organizationId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.ingredients(organizationId),
+      });
+    },
+  });
+}
+
+export function useUpdateIngredient(organizationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<IngredientPayload> }) =>
+      updateIngredient(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.ingredients(organizationId),
+      });
+    },
   });
 }
 

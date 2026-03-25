@@ -1,6 +1,7 @@
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { inventoryEndpoints } from "./endpoints";
 import {
+  ingredientSchema,
   ingredientsResponseSchema,
   menuItemsResponseSchema,
   recipesResponseSchema,
@@ -9,6 +10,16 @@ import {
   wasteAnalyticsSchema,
   prepBatchesResponseSchema,
 } from "./types";
+
+export type IngredientPayload = {
+  organization_id: string;
+  name: string;
+  category: string;
+  unit: string;
+  shelf_life_days?: number | null;
+  is_perishable: boolean;
+};
+
 // ============================================================================
 // SERVICE FUNCTIONS - INGREDIENTS
 // ============================================================================
@@ -18,6 +29,22 @@ export async function getIngredients(organizationId: string) {
     inventoryEndpoints.ingredients.list(organizationId),
     ingredientsResponseSchema,
     { method: "GET" }
+  );
+}
+
+export async function createIngredient(data: IngredientPayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredients.create,
+    ingredientSchema,
+    { method: "POST", body: data }
+  );
+}
+
+export async function updateIngredient(ingredientId: string, data: Partial<IngredientPayload>) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredients.update(ingredientId),
+    ingredientSchema,
+    { method: "PATCH", body: data }
   );
 }
 

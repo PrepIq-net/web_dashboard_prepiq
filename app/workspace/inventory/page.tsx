@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, EditPencil } from "iconoir-react";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -22,6 +23,7 @@ import {
   usePrepBatches,
   useRecipes,
 } from "@/services/inventory/hooks";
+import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
 
 const EMPTY_LIST: never[] = [];
@@ -166,7 +168,7 @@ export default function InventoryPage() {
 
       {/* Tab Content */}
       <section>
-        {activeTab === "ingredients" && <IngredientsTab ingredients={ingredients} isLoading={ingredientsQuery.isLoading} />}
+        {activeTab === "ingredients" && <IngredientsTab ingredients={ingredients} isLoading={ingredientsQuery.isLoading} organizationId={user?.organization_id ?? ""} />}
         {activeTab === "recipes" && <RecipesTab menuItems={menuItems} ingredients={ingredients} isLoading={menuItemsQuery.isLoading} />}
         {activeTab === "waste" && <WasteTab wasteAnalytics={wasteAnalytics} isLoading={wasteAnalyticsQuery.isLoading} />}
         {activeTab === "signals" && <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />}
@@ -179,7 +181,28 @@ export default function InventoryPage() {
 // TAB 1: INGREDIENTS
 // ============================================================================
 
-function IngredientsTab({ ingredients, isLoading }: { ingredients: Ingredient[]; isLoading: boolean }) {
+function IngredientsTab({
+  ingredients,
+  isLoading,
+  organizationId,
+}: {
+  ingredients: Ingredient[];
+  isLoading: boolean;
+  organizationId: string;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Ingredient | null>(null);
+
+  function openCreate() {
+    setEditTarget(null);
+    setModalOpen(true);
+  }
+
+  function openEdit(ingredient: Ingredient) {
+    setEditTarget(ingredient);
+    setModalOpen(true);
+  }
+
   const columns = useMemo(
     () => [
       ingredientColumnHelper.accessor("name", {
@@ -225,40 +248,84 @@ function IngredientsTab({ ingredients, isLoading }: { ingredients: Ingredient[];
           </span>
         ),
       }),
+      ingredientColumnHelper.display({
+        id: "actions",
+        header: "",
+        cell: (info) => (
+          <button
+            type="button"
+            onClick={() => openEdit(info.row.original)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            aria-label={`Edit ${info.row.original.name}`}
+          >
+            <EditPencil className="h-4 w-4" />
+          </button>
+        ),
+      }),
     ],
     [],
   );
 
   const table = useReactTable({ data: ingredients, columns, getCoreRowModel: CORE_ROW_MODEL });
 
-  if (isLoading) return <LoadingState label="Loading ingredients..." />;
-  if (!ingredients.length) return <EmptyState label="No ingredients found." hint="Run the seed command or add ingredients to get started." />;
-
   return (
-    <div>
-      <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Ingredient Catalog</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-          Org-wide ingredient master
-        </h3>
-        <p className="mt-1 text-sm text-text-muted">
-          Shared across all branches. Perishable items need daily tracking.
-        </p>
-      </div>
-      <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
-          <NativeTable
-            table={table}
-            tableClassName="w-full min-w-[640px]"
-            headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-            bodyClassName="divide-y divide-surface-4"
-            headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-            bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-            cellClassName="px-6 py-4"
-          />
+    <>
+      <div>
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Ingredient Catalog</p>
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Org-wide ingredient master</h3>
+            <p className="mt-1 text-sm text-text-muted">Shared across all branches. Perishable items need daily tracking.</p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Add Ingredient
+          </button>
         </div>
+
+        {isLoading ? (
+          <LoadingState label="Loading ingredients..." />
+        ) : ingredients.length === 0 ? (
+          <div className="bg-surface-2 rounded-xl border border-surface-4 p-12 text-center">
+            <p className="text-sm text-text-secondary">No ingredients yet.</p>
+            <p className="mt-1 text-xs text-text-muted">Add your first ingredient to start building recipes.</p>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              Add First Ingredient
+            </button>
+          </div>
+        ) : (
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <NativeTable
+                table={table}
+                tableClassName="w-full min-w-[640px]"
+                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                bodyClassName="divide-y divide-surface-4"
+                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                cellClassName="px-6 py-4"
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      <IngredientModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        organizationId={organizationId}
+        ingredient={editTarget}
+      />
+    </>
   );
 }
 
