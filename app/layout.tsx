@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { inter, satoshi } from "@/lib/fonts";
 import { Providers } from "@/app/providers";
 import "./globals.css";
+
+function resolveHtmlLang(acceptLanguage: string | null): string {
+  const supported = new Set(["en", "fr"]);
+  const preferred = (acceptLanguage ?? "")
+    .split(",")
+    .map((p) => p.split(";")[0].trim().slice(0, 2).toLowerCase())
+    .find((l) => supported.has(l));
+  return preferred ?? "en";
+}
 
 export const metadata: Metadata = {
   title: {
@@ -48,13 +58,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const lang = resolveHtmlLang(headersList.get("accept-language"));
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <body
         className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}
       >
