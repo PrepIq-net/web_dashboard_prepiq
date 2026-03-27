@@ -1688,7 +1688,7 @@ function TodayWorkspacePageContent() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-text-muted">vs typical {branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString("en-US", { weekday: "short" })}</p>
+                        <p className="text-text-muted">{t("today.outlook.vsTypical", { day: branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString(t("common.language") === "fr" ? "fr-FR" : "en-US", { weekday: "short" }) })}</p>
                         <p className={`font-semibold ${demandDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}>
                           {toPercent(demandDeltaPct)}
                         </p>

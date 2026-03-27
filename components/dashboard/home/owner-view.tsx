@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WarningTriangle, Shop, ArrowUpRight, Brain, StatsUpSquare, StatsDownSquare } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface AlertItem {
   id: string;
@@ -44,6 +45,7 @@ export function OwnerView({
   topAlerts,
   hasError,
 }: OwnerViewProps) {
+  const { t } = useTranslation();
   const today = new Date().toISOString().slice(0, 10);
   const maxRevenue = Math.max(
     ...branchRankingSummary.map((b) => Number(b.revenue ?? 0)),
@@ -61,13 +63,13 @@ export function OwnerView({
         <div className="flex items-start justify-between gap-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-              Executive Dashboard
+              {t("dashboard.home.executiveDashboard")}
             </p>
             <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
-              Business Health
+              {t("dashboard.home.businessHealth")}
             </h1>
             <p className="mt-4 max-w-2xl text-base text-text-secondary leading-relaxed">
-              Strategic overview of financial performance, operational efficiency, and risk exposure across all locations.
+              {t("dashboard.home.strategicOverview")}
             </p>
           </div>
           <div className="mt-1 shrink-0 inline-flex items-center gap-3 bg-surface-2 rounded-xl px-4 py-3 border border-surface-4">
@@ -75,16 +77,16 @@ export function OwnerView({
               htmlFor="owner-period"
               className="text-xs font-medium uppercase tracking-[0.12em] text-text-muted"
             >
-              Analysis Period
+              {t("dashboard.home.analysisPeriod")}
             </label>
             <select
               id="owner-period"
               className="h-9 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary font-medium focus:border-brand-gold focus:outline-none transition-colors"
               defaultValue="30d"
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
+              <option value="7d">{t("dashboard.home.last7Days")}</option>
+              <option value="30d">{t("dashboard.home.last30Days")}</option>
+              <option value="90d">{t("dashboard.home.last90Days")}</option>
             </select>
           </div>
         </div>
@@ -95,7 +97,7 @@ export function OwnerView({
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 hover:border-surface-4/80 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Revenue Trend
+              {t("dashboard.home.revenueTrend")}
             </p>
             <div className={`w-2 h-2 rounded-full ${isPositiveTrend ? 'bg-status-success' : 'bg-status-warning'}`}></div>
           </div>
@@ -110,7 +112,7 @@ export function OwnerView({
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted mb-1">Today's Revenue</p>
+            <p className="text-xs text-text-muted mb-1">{t("dashboard.home.yesterday")} {t("dashboard.home.totalRevenue").split(' ')[2]}</p>
             <p className="text-lg font-semibold text-text-secondary">
               ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </p>
@@ -120,7 +122,7 @@ export function OwnerView({
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 hover:border-surface-4/80 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Gross Margin
+              {t("dashboard.home.grossMargin")}
             </p>
             <div className={`w-2 h-2 rounded-full ${isHealthyMargin ? 'bg-status-success' : 'bg-status-warning'}`}></div>
           </div>
@@ -136,9 +138,9 @@ export function OwnerView({
             />
           </div>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted mb-1">Waste Impact</p>
+            <p className="text-xs text-text-muted mb-1">{t("dashboard.home.wasteImpact")}</p>
             <p className="text-sm font-medium text-text-secondary">
-              {wasteAsRevenuePct.toFixed(2)}% of revenue
+              {wasteAsRevenuePct.toFixed(2)}% {t("dashboard.home.ofRevenue")}
             </p>
           </div>
         </article>
@@ -146,7 +148,7 @@ export function OwnerView({
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 hover:border-surface-4/80 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              EBITDA Proxy
+              {t("dashboard.home.ebitdaProxy")}
             </p>
             <div className="w-2 h-2 rounded-full bg-brand-gold"></div>
           </div>
@@ -155,7 +157,7 @@ export function OwnerView({
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
             <p className="text-xs text-text-muted">
-              Calculated from revenue minus waste and surplus pressure
+              {t("dashboard.home.ebitdaDescription")}
             </p>
           </div>
         </article>
@@ -163,7 +165,7 @@ export function OwnerView({
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 hover:border-surface-4/80 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Risk Index
+              {t("dashboard.home.riskIndex")}
             </p>
             <div className={`w-2 h-2 rounded-full ${isLowRisk ? 'bg-status-success' : riskIndexScore >= 60 ? 'bg-status-warning' : 'bg-status-critical'}`}></div>
           </div>
@@ -183,7 +185,7 @@ export function OwnerView({
           </div>
           <div className="mt-4 pt-4 border-t border-surface-4">
             <p className="text-xs text-text-muted">
-              {isLowRisk ? 'Healthy' : riskIndexScore >= 60 ? 'Monitor' : 'Action Required'}
+              {isLowRisk ? t("dashboard.home.healthy") : riskIndexScore >= 60 ? t("dashboard.home.monitor") : t("dashboard.home.actionRequired")}
             </p>
           </div>
         </article>
@@ -194,10 +196,10 @@ export function OwnerView({
         <article className="bg-surface-2 rounded-xl p-8 border border-surface-4">
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Operational Efficiency
+              {t("dashboard.home.operationalEfficiency")}
             </p>
             <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
-              Purchasing Score
+              {t("dashboard.home.purchasingScore")}
             </h3>
           </div>
           <div className="text-center py-6">
@@ -205,12 +207,12 @@ export function OwnerView({
               {purchasingEfficiencyScore.toFixed(1)}
             </p>
             <p className="mt-2 text-sm text-text-muted">
-              Out of 100
+              {t("dashboard.home.outOf100")}
             </p>
           </div>
           <div className="mt-6 pt-6 border-t border-surface-4">
             <p className="text-xs text-text-muted">
-              Score factors in supplier anomalies and margin leakage patterns
+              {t("dashboard.home.purchasingScoreDescription")}
             </p>
           </div>
         </article>
@@ -218,10 +220,10 @@ export function OwnerView({
         <article className="lg:col-span-2 bg-surface-2 rounded-xl p-8 border border-surface-4">
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Branch Performance
+              {t("dashboard.home.branchPerformance")}
             </p>
             <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
-              Revenue Ranking
+              {t("dashboard.home.revenueRanking")}
             </h3>
           </div>
           
@@ -256,10 +258,10 @@ export function OwnerView({
                           </p>
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-xs text-text-muted">
-                              Waste: {wastePct.toFixed(1)}%
+                              {t("dashboard.home.wasteCost").split(' ')[0]}: {wastePct.toFixed(1)}%
                             </span>
                             <span className="text-xs text-text-muted">
-                              Surplus: {Number(branch.surplus_pct ?? 0).toFixed(1)}%
+                              {t("dashboard.home.surplus")}: {Number(branch.surplus_pct ?? 0).toFixed(1)}%
                             </span>
                           </div>
                         </div>
@@ -272,7 +274,7 @@ export function OwnerView({
                         href={`/workspace/overview/branch/${branch.branch_id}?date=${today}`}
                         className="mt-2 inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
                       >
-                        View Today
+                        {t("dashboard.home.viewToday")}
                       </Link>
                     </div>
                   </div>
@@ -289,8 +291,8 @@ export function OwnerView({
               })
             ) : (
               <div className="text-center py-8">
-                <p className="text-text-muted">No branch ranking data available</p>
-                <p className="text-sm text-text-muted mt-1">Data will appear once operations begin</p>
+                <p className="text-text-muted">{t("dashboard.home.noBranchRankingData")}</p>
+                <p className="text-sm text-text-muted mt-1">{t("dashboard.home.dataWillAppear")}</p>
               </div>
             )}
           </div>
@@ -304,11 +306,11 @@ export function OwnerView({
             <div className="flex items-center gap-2 text-brand-gold mb-2">
               <Brain className="h-5 w-5" />
               <p className="text-xs font-semibold uppercase tracking-[0.14em]">
-                PrepIQ Intelligence
+                {t("dashboard.home.prepiqIntelligence")}
               </p>
             </div>
             <h3 className="font-display text-2xl font-semibold text-text-primary">
-              Strategic Insight
+              {t("dashboard.home.strategicInsight")}
             </h3>
           </div>
           
@@ -318,25 +320,25 @@ export function OwnerView({
                 {aiInsight}
               </p>
               <p className="mt-4 text-sm text-text-muted">
-                Generated from cross-branch operational signals, margin protection telemetry, and predictive analytics.
+                {t("dashboard.home.analyticsDescription")}
               </p>
             </div>
 
             <div className="lg:border-l lg:border-surface-4 lg:pl-8">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                Priority Alerts
+                {t("dashboard.home.priorityAlerts")}
               </p>
               <div className="space-y-3">
                 {topAlerts.slice(0, 3).map((alert) => (
                   <div key={alert.id} className="p-3 rounded-lg bg-surface-3 border border-surface-4">
-                    <p className="text-sm font-medium text-text-primary">{alert.title || "Alert"}</p>
+                    <p className="text-sm font-medium text-text-primary">{alert.title || t("common.warning")}</p>
                     <p className="text-xs text-text-muted mt-1">{alert.branch_name}</p>
                   </div>
                 ))}
                 {!topAlerts.length && (
                   <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/20">
-                    <p className="text-sm text-status-success">No active risk alerts</p>
-                    <p className="text-xs text-text-muted mt-1">All systems operating normally</p>
+                    <p className="text-sm text-status-success">{t("dashboard.home.noRiskAlerts")}</p>
+                    <p className="text-xs text-text-muted mt-1">{t("dashboard.home.allSystemsNormal")}</p>
                   </div>
                 )}
               </div>
@@ -349,9 +351,9 @@ export function OwnerView({
         <div className="mb-8 p-4 rounded-lg bg-status-warning/10 border-l-4 border-status-warning inline-flex items-center gap-3">
           <WarningTriangle className="h-5 w-5 text-status-warning flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-status-warning">Limited Data Access</p>
+            <p className="text-sm font-medium text-status-warning">{t("dashboard.home.limitedDataAccess")}</p>
             <p className="text-xs text-text-muted mt-1">
-              Some intelligence panels are unavailable for your current subscription tier
+              {t("dashboard.home.subscriptionRestricted")}
             </p>
           </div>
         </div>
@@ -361,13 +363,13 @@ export function OwnerView({
         <Link href="/setup/branch/create">
           <button className="h-11 rounded-lg bg-brand-gold hover:bg-brand-gold-hover active:bg-brand-gold-pressed text-background px-6 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.4)] active:scale-[0.98]">
             <Shop className="h-4 w-4" />
-            Add Branch
+            {t("dashboard.home.addBranch")}
             <ArrowUpRight className="h-4 w-4" />
           </button>
         </Link>
         <Link href="/workspace/branches">
           <button className="h-11 rounded-lg bg-surface-2 hover:bg-surface-3 border border-surface-4 text-text-primary px-6 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200">
-            View All Branches
+            {t("dashboard.home.viewAllBranches")}
           </button>
         </Link>
       </section>

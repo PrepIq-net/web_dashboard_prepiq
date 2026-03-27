@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
 import { useSessionGoogleLogin, useSessionLoginUser } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -48,6 +49,7 @@ export function LoginForm() {
 
   const loginMutation = useSessionLoginUser();
   const googleLoginMutation = useSessionGoogleLogin();
+  const { t } = useTranslation();
 
   const isBusy = useMemo(
     () => loginMutation.isPending || googleLoginMutation.isPending || isSessionSwitching,
@@ -63,9 +65,9 @@ export function LoginForm() {
     }
 
     if (verified === "1") {
-      toast.success("OTP verified. You can now sign in.");
+      toast.success(t("auth.otpVerified"));
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   useEffect(() => {
     let active = true;
@@ -139,7 +141,7 @@ export function LoginForm() {
               id_token: response.credential,
             });
             setIsSessionSwitching(true);
-            toast.success("Session switched, refreshing workspace…");
+            toast.success(t("auth.sessionSwitched"));
             router.replace("/");
             router.refresh();
           } catch (error) {
@@ -187,7 +189,7 @@ export function LoginForm() {
     try {
       await loginMutation.mutateAsync({ email, password });
       setIsSessionSwitching(true);
-      toast.success("Session switched, refreshing workspace…");
+      toast.success(t("auth.sessionSwitched"));
       router.replace("/");
       router.refresh();
     } catch (error) {
@@ -234,17 +236,17 @@ export function LoginForm() {
           <div className="flex items-center gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
             <p className="text-sm font-medium text-text-secondary">
-              Session switched, refreshing workspace…
+              {t("auth.sessionSwitched")}
             </p>
           </div>
         </div>
       ) : null}
       <div className="space-y-3 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-          Welcome Back.
+          {t("auth.welcomeBack")}
         </h1>
         <p className="text-lg text-text-secondary leading-relaxed">
-          Welcome back! Please enter your details to sign in.
+          {t("auth.loginSubtitle")}
         </p>
       </div>
 
@@ -257,9 +259,9 @@ export function LoginForm() {
 
         <div className="space-y-6">
           <Input
-            label="Email Address"
+            label={t("auth.email")}
             type="email"
-            placeholder="name@organization.com"
+            placeholder={t("auth.emailPlaceholder")}
             leadingIcon={<Mail />}
             autoComplete="email"
             value={email}
@@ -271,9 +273,9 @@ export function LoginForm() {
             className="text-lg"
           />
           <Input
-            label="Password"
+            label={t("auth.password")}
             type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder={t("auth.passwordPlaceholder")}
             leadingIcon={<Lock />}
             autoComplete="current-password"
             value={password}
@@ -285,7 +287,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
                 className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
               >
                 {showPassword ? <EyeClosed /> : <Eye />}
               </button>
@@ -299,13 +301,13 @@ export function LoginForm() {
               type="checkbox"
               className="h-4 w-4 rounded-[4px] border border-border-default bg-surface-2 accent-brand-gold cursor-pointer transition-colors group-hover:border-brand-gold/50"
             />
-            Remember me
+            {t("auth.rememberMe")}
           </label>
           <Link
             href="/forgot-password"
             className="text-sm font-medium text-brand-gold hover:text-brand-gold-hover transition-colors"
           >
-            Forgot password?
+            {t("auth.forgotPassword")}
           </Link>
         </div>
 
@@ -316,18 +318,18 @@ export function LoginForm() {
             disabled={isBusy}
             className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            {loginMutation.isPending ? "Authenticating..." : "Sign In"}
+            {loginMutation.isPending ? t("auth.authenticating") : t("auth.signIn")}
           </Button>
 
           {isUnverified && (
             <div className="rounded-card border border-brand-gold/20 bg-brand-gold/5 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <p className="text-xs leading-relaxed text-text-secondary text-center">
-                Your account isn&apos;t verified yet. To continue, please{" "}
+                {t("auth.unverifiedMessage")}{" "}
                 <Link
                   href={`/verify-otp?email=${encodeURIComponent(email)}`}
                   className="font-semibold text-brand-gold hover:underline"
                 >
-                  verify your email
+                  {t("auth.verifyEmail")}
                 </Link>
                 .
               </p>
@@ -337,7 +339,7 @@ export function LoginForm() {
           <div className="flex items-center gap-4 py-2">
             <div className="h-px flex-1 bg-border-default/50" />
             <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">
-              Or sign in with
+              {t("auth.orSignInWith")}
             </span>
             <div className="h-px flex-1 bg-border-default/50" />
           </div>
@@ -360,19 +362,19 @@ export function LoginForm() {
             disabled={isBusy || !googleClientId}
           >
             {googleLoginMutation.isPending
-              ? "Connecting..."
-              : "Continue with Google"}
+              ? t("common.loading")
+              : t("auth.continueWithGoogle")}
           </Button>
         </div>
       </form>
 
       <p className="text-center text-sm text-text-secondary pt-8">
-        New to the platform?{" "}
+        {t("auth.newToPlatform")}{" "}
         <Link
           href="/register"
           className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
         >
-          Create an account
+          {t("auth.createAccount")}
         </Link>
       </p>
     </div>
