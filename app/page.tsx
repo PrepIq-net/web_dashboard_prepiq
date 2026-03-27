@@ -26,8 +26,10 @@ import { OpsView } from "@/components/dashboard/home/ops-view";
 import { OwnerView } from "@/components/dashboard/home/owner-view";
 import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
 import { ChefView } from "@/components/dashboard/home/chef-view";
+import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
@@ -35,7 +37,7 @@ export default function Home() {
           <div className="flex flex-col items-center gap-4">
             <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
             <p className="text-sm font-medium text-text-muted animate-pulse">
-              Getting things ready…
+              {t("dashboard.home.gettingReady")}
             </p>
           </div>
         </main>
@@ -47,6 +49,7 @@ export default function Home() {
 }
 
 function HomeContent() {
+  const { t } = useTranslation();
   const { collapsed } = useSidebarState();
   const { data: user, isLoading } = useCurrentUserProfile();
   const router = useRouter();
@@ -185,7 +188,7 @@ function HomeContent() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
-            Getting things ready…
+            {t("dashboard.home.gettingReady")}
           </p>
         </div>
       </main>
@@ -198,7 +201,7 @@ function HomeContent() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
-            Checking branch setup…
+            {t("dashboard.home.checkingBranchSetup")}
           </p>
         </div>
       </main>
@@ -211,7 +214,7 @@ function HomeContent() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
-            Routing to today&apos;s production command…
+            {t("dashboard.home.routingToToday")}
           </p>
         </div>
       </main>
@@ -224,7 +227,7 @@ function HomeContent() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
-            Routing to branch setup…
+            {t("dashboard.home.routingToSetup")}
           </p>
         </div>
       </main>
@@ -546,14 +549,13 @@ function HomeContent() {
             ) : (
               <section className="py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Branch Workspace
+                  {t("dashboard.home.branchWorkspace")}
                 </p>
                 <h2 className="mt-3 font-display text-2xl font-semibold text-text-primary">
-                  Branch operational mode is active
+                  {t("dashboard.home.branchModeActive")}
                 </h2>
                 <p className="mt-2 text-sm text-text-secondary max-w-2xl">
-                  Your role is focused on branch execution. Organization-level
-                  overview is reserved for owners and operation admins.
+                  {t("dashboard.home.branchModeDescription")}
                 </p>
               </section>
             )}

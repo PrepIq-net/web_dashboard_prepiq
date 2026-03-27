@@ -1,4 +1,7 @@
+"use client";
+
 import { Brain } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface InsightFooterProps {
   insight: string;
@@ -7,8 +10,11 @@ interface InsightFooterProps {
 
 export function InsightFooter({
   insight,
-  label = "PrepIQ Intelligence",
+  label,
 }: InsightFooterProps) {
+  const { t } = useTranslation();
+  const displayLabel = label || t("dashboard.home.prepiqIntelligence");
+
   return (
     <section className="mt-16 pt-8 border-t border-surface-4">
       <div className="flex items-start gap-5">
@@ -18,7 +24,7 @@ export function InsightFooter({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              {label}
+              {displayLabel}
             </p>
             <span
               className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"
@@ -26,11 +32,10 @@ export function InsightFooter({
             />
           </div>
           <p className="text-lg leading-7 text-text-primary font-medium">
-            {insight}
+            {insight || t("dashboard.home.noCommandGenerated")}
           </p>
           <p className="mt-2 text-sm text-text-secondary">
-            Generated from real-time operational data and predictive analytics
-            across your organization.
+            {t("dashboard.home.analyticsDescription")}
           </p>
         </div>
       </div>

@@ -69,6 +69,7 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     // Propagate detected language so the backend LocaleMiddleware picks it up.
     headers.set("X-Language", detectedLanguage);
     headers.set("Accept-Language", detectedLanguage);
+    headers.set("X-PrepIQ-Language", detectedLanguage);
 
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
