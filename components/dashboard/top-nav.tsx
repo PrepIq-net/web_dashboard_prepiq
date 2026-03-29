@@ -15,7 +15,11 @@ import { useTranslation } from "@/lib/i18n";
 const TopNavComponent = memo(function DashboardTopNav() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
-  const notificationsQuery = useNotifications();
+  const notificationsQuery = useNotifications({
+    status: "UNREAD",
+    is_today: true,
+    limit: 10,
+  });
   const markAsReadMutation = useMarkNotificationsAsRead();
   const logoutMutation = useSessionLogoutUser();
   const router = useRouter();
@@ -125,29 +129,55 @@ const TopNavComponent = memo(function DashboardTopNav() {
                       {t("common.loading")}
                     </p>
                   ) : notifications.length ? (
-                    notifications.slice(0, 8).map((notification) => (
-                      <button
-                        key={notification.id}
-                        type="button"
-                        onClick={() =>
-                          markAsReadMutation.mutate({
-                            notification_ids: [notification.id],
-                          })
-                        }
-                        className="w-full border-b border-[#2A2A2E] px-0.5 py-2 text-left last:border-b-0"
-                      >
-                        <p className="text-[12px] text-[#F5F5F7]">
-                          {notification.title || t("common.info")}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-[#8E8E93]">
-                          {notification.body ||
-                            notification.message ||
-                            t("common.none")}
-                        </p>
-                      </button>
-                    ))
+                    <>
+                      {notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          onClick={() =>
+                            markAsReadMutation.mutate({
+                              notification_ids: [notification.id],
+                            })
+                          }
+                          className="group w-full border-b border-[#2A2A2E] px-1 py-2.5 text-left transition-colors hover:bg-[#232327] last:border-b-0"
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                                notification.escalation_level === "CRITICAL"
+                                  ? "bg-[#FF3B30]"
+                                  : notification.escalation_level === "WARNING"
+                                    ? "bg-[#FFCC00]"
+                                    : notification.escalation_level === "INFO"
+                                      ? "bg-[#34C759]"
+                                      : "bg-[#8E8E93]"
+                              }`}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-[12px] font-medium text-[#F5F5F7]">
+                                {notification.title || t("common.info")}
+                              </p>
+                              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#8E8E93] group-hover:text-[#C7C7CC]">
+                                {notification.body ||
+                                  notification.message ||
+                                  t("common.none")}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      <div className="pt-2">
+                        <Link
+                          href="/workspace/notifications"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="flex w-full items-center justify-center rounded-[6px] bg-[#232327] py-2 text-[11px] font-medium text-[#A8821F] transition-colors hover:bg-[#2A2A2E] hover:text-[#D2A53A]"
+                        >
+                          View all notifications
+                        </Link>
+                      </div>
+                    </>
                   ) : (
-                    <div className="space-y-2 py-2">
+                    <div className="space-y-2 py-4 text-center">
                       <p className="text-[12px] text-[#C7C7CC]">
                         {t("dashboard.topNav.noNotifications")}
                       </p>
@@ -214,7 +244,9 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     className="w-full rounded-[8px] px-2 py-2 text-left text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] inline-flex items-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
-                    {logoutMutation.isPending ? t("auth.signingOut") : t("common.logout")}
+                    {logoutMutation.isPending
+                      ? t("auth.signingOut")
+                      : t("common.logout")}
                   </button>
                 </div>
               </div>
