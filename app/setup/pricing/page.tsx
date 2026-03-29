@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  CoinsSwap,
-  ShieldCheck,
-  CheckCircle,
-} from "iconoir-react";
+import { ArrowRight, CoinsSwap, ShieldCheck, CheckCircle } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -53,7 +48,8 @@ function sortPlanOrder(plans: SubscriptionPlan[]) {
 }
 
 function pricingModelLabel(t: any, mode?: string) {
-  if (mode === "HYBRID_BASE_PLUS_CUSTOM") return t("setup.pricing.publishedCustom");
+  if (mode === "HYBRID_BASE_PLUS_CUSTOM")
+    return t("setup.pricing.publishedCustom");
   if (mode === "CUSTOM_ONLY") return t("setup.pricing.customQuote");
   return t("setup.pricing.publishedRates");
 }
@@ -67,7 +63,8 @@ function maxBranchesLabel(t: any, plan: SubscriptionPlan) {
 
 function planSubtitle(t: any, planType?: string) {
   if (planType === "CORE") return t("setup.pricing.dailyOps");
-  if (planType === "INTELLIGENCE") return t("setup.pricing.forecastingInsights");
+  if (planType === "INTELLIGENCE")
+    return t("setup.pricing.forecastingInsights");
   if (planType === "COMMAND") return t("setup.pricing.multiBranchCommand");
   return t("setup.pricing.operationalPlan");
 }
@@ -92,7 +89,8 @@ export default function PricingStepPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitError, setSubmitError] = useState("");
 
-  const currentSubscriptionError = currentSubscriptionQuery.error as ApiError | null;
+  const currentSubscriptionError =
+    currentSubscriptionQuery.error as ApiError | null;
   const hasNoActiveSubscription = currentSubscriptionError?.status === 404;
   const currentPlanType = hasNoActiveSubscription
     ? "CORE"
@@ -108,7 +106,8 @@ export default function PricingStepPage() {
   );
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
   const currentPlan = plans.find((plan) => plan.plan_type === currentPlanType);
-  const recommendedPlanType = plansQuery.data?.recommendation?.recommended_plan_type;
+  const recommendedPlanType =
+    plansQuery.data?.recommendation?.recommended_plan_type;
   const recommendationReason = plansQuery.data?.recommendation?.reason;
 
   useEffect(() => {
@@ -197,7 +196,9 @@ export default function PricingStepPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">{t("setup.pricing.activePlan")}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                {t("setup.pricing.activePlan")}
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
                 {currentPlan?.name ?? "Core"}
               </p>
@@ -208,16 +209,22 @@ export default function PricingStepPage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">{t("setup.pricing.branchCoverage")}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                {t("setup.pricing.branchCoverage")}
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
-                {currentPlan ? maxBranchesLabel(t, currentPlan) : t("setup.pricing.oneBranch")}
+                {currentPlan
+                  ? maxBranchesLabel(t, currentPlan)
+                  : t("setup.pricing.oneBranch")}
               </p>
               <p className="text-[13px] text-text-secondary mt-1">
                 {t("setup.pricing.branchLimitsDesc")}
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">{t("setup.pricing.billingModel")}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                {t("setup.pricing.billingModel")}
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
                 {pricingModelLabel(t, currentPlan?.pricing_model)}
               </p>
@@ -231,7 +238,9 @@ export default function PricingStepPage() {
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
                 {t("setup.pricing.recommendationLogic")}
               </p>
-              <p className="text-[13px] text-text-secondary">{recommendationReason}</p>
+              <p className="text-[13px] text-text-secondary">
+                {recommendationReason}
+              </p>
             </div>
           ) : null}
         </section>
@@ -240,7 +249,9 @@ export default function PricingStepPage() {
           <div className="rounded-card border border-border-default bg-surface-2 p-8">
             <div className="flex items-center justify-center gap-3 text-text-secondary">
               <Spinner size="lg" />
-              <span className="text-[14px]">{t("setup.pricing.loadingPlans")}</span>
+              <span className="text-[14px]">
+                {t("setup.pricing.loadingPlans")}
+              </span>
             </div>
           </div>
         ) : plansQuery.isError ? (
@@ -320,36 +331,52 @@ export default function PricingStepPage() {
                     <div className="flex items-end gap-2">
                       <p className="font-display text-[44px] leading-[44px] text-text-primary">
                         {isHybridOrCustom
-                          ? t("setup.pricing.fromPrice", { price: monthlyPrice })
+                          ? t("setup.pricing.fromPrice", {
+                              price: monthlyPrice,
+                            })
                           : monthlyPrice}
                       </p>
                       <p className="text-[14px] text-text-muted pb-1">
                         {t("setup.pricing.perMonth")}
                       </p>
                     </div>
-                    <p className="text-[13px] text-text-muted mt-2">{t("setup.pricing.yearlyPrice", { amount: yearlyPrice })}</p>
+                    <p className="text-[13px] text-text-muted mt-2">
+                      {t("setup.pricing.yearlyPrice", { amount: yearlyPrice })}
+                    </p>
 
                     {plan.plan_type === "CORE" ? (
-                      <p className="text-[13px] text-status-success mt-2">{t("setup.pricing.trialIncluded")}</p>
+                      <p className="text-[13px] text-status-success mt-2">
+                        {t("setup.pricing.trialIncluded")}
+                      </p>
                     ) : null}
 
                     {isHybridOrCustom ? (
                       <p className="text-[13px] text-status-warning mt-2">
                         {quoteThreshold
-                          ? t("setup.pricing.quoteRequired", { count: quoteThreshold })
+                          ? t("setup.pricing.quoteRequired", {
+                              count: quoteThreshold,
+                            })
                           : t("setup.pricing.quoteAvailable")}
                       </p>
                     ) : null}
                   </div>
 
                   <div className="mb-6">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-2">{t("setup.pricing.capacity")}</p>
-                    <p className="text-[15px] text-text-primary">{maxBranchesLabel(t, plan)}</p>
-                    <p className="text-[12px] text-text-muted mt-1">{pricingModelLabel(t, pricingMode)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-2">
+                      {t("setup.pricing.capacity")}
+                    </p>
+                    <p className="text-[15px] text-text-primary">
+                      {maxBranchesLabel(t, plan)}
+                    </p>
+                    <p className="text-[12px] text-text-muted mt-1">
+                      {pricingModelLabel(t, pricingMode)}
+                    </p>
                   </div>
 
                   <div className="mb-7 flex-1">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-3">{t("setup.pricing.whatsIncluded")}</p>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-3">
+                      {t("setup.pricing.whatsIncluded")}
+                    </p>
                     {features.length ? (
                       <ul className="space-y-3">
                         {features.map((feature) => (
@@ -363,15 +390,23 @@ export default function PricingStepPage() {
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-[14px] text-text-muted">{t("setup.pricing.featureDetailsUpdating")}</p>
+                      <p className="text-[14px] text-text-muted">
+                        {t("setup.pricing.featureDetailsUpdating")}
+                      </p>
                     )}
                   </div>
 
                   <Button
                     variant={isCurrent ? "primary" : "secondary"}
                     fullWidth
-                    leftIcon={isCurrent ? <CheckCircle className="h-4 w-4" /> : undefined}
-                    onClick={() => (isCurrent ? handleContinueCurrent() : handleUpgrade(plan))}
+                    leftIcon={
+                      isCurrent ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : undefined
+                    }
+                    onClick={() =>
+                      isCurrent ? handleContinueCurrent() : handleUpgrade(plan)
+                    }
                   >
                     <span className="inline-flex items-center gap-2">
                       {cta}
@@ -466,7 +501,10 @@ export default function PricingStepPage() {
                 label={t("setup.pricing.paymentMethod")}
                 options={[
                   { value: "CARD", label: t("setup.pricing.cardStripe") },
-                  { value: "MOBILE_MONEY", label: t("setup.pricing.mobileMoney") },
+                  {
+                    value: "MOBILE_MONEY",
+                    label: t("setup.pricing.mobileMoney"),
+                  },
                 ]}
                 value={paymentMethod}
                 onChange={(value) => {
