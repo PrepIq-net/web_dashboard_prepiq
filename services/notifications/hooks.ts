@@ -10,16 +10,34 @@ import type { MarkNotificationsPayload } from "@/services/notifications/types";
 
 export const notificationQueryKeys = {
   root: ["notifications"] as const,
-  list: (params?: { status?: string; domain?: string }) =>
+  list: (params?: {
+    status?: string;
+    domain?: string;
+    urgency?: string;
+    escalation?: string;
+    is_today?: boolean;
+    limit?: number;
+  }) =>
     [
       ...notificationQueryKeys.root,
       "list",
       params?.status ?? "",
       params?.domain ?? "",
+      params?.urgency ?? "",
+      params?.escalation ?? "",
+      params?.is_today ? "today" : "",
+      params?.limit?.toString() ?? "",
     ] as const,
 };
 
-export function useNotifications(params?: { status?: string; domain?: string }) {
+export function useNotifications(params?: {
+  status?: string;
+  domain?: string;
+  urgency?: string;
+  escalation?: string;
+  is_today?: boolean;
+  limit?: number;
+}) {
   return useQuery({
     queryKey: notificationQueryKeys.list(params),
     queryFn: () => getNotifications(params),
