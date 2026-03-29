@@ -535,9 +535,9 @@ export default function PricingStepPage() {
               <Button
                 fullWidth
                 onClick={handleCheckout}
-                disabled={checkoutMutation.isLoading}
+                disabled={checkoutMutation.isPending}
               >
-                {checkoutMutation.isLoading
+                {checkoutMutation.isPending
                   ? "Starting checkout..."
                   : "Proceed to payment"}
               </Button>
