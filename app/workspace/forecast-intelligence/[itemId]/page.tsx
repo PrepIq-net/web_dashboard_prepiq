@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
+import { useTranslation } from "@/lib/i18n";
 import {
   useAdvancedForecast,
   useBranchDayToday,
@@ -56,6 +57,7 @@ function formatQuantity(value: number, unit: string) {
 }
 
 function ForecastIntelligenceContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useParams<{ itemId: string }>();
   const searchParams = useSearchParams();
@@ -176,13 +178,13 @@ function ForecastIntelligenceContent() {
   if (!branchId || !itemId) {
     return (
       <WorkspaceShell
-        eyebrow="Forecast Intelligence"
-        title="Missing Context"
-        description="Select a branch and item to view the forecast intelligence drill-down."
-        insight="This page expects a branch_id and item_id."
+        eyebrow={t("workspace.forecastIntelligence.eyebrow")}
+        title={t("workspace.forecastIntelligence.missingContext")}
+        description={t("workspace.forecastIntelligence.missingContextDesc")}
+        insight={t("workspace.forecastIntelligence.missingContextInsight")}
       >
         <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5 text-sm text-text-secondary">
-          Provide a valid `branch_id` and `item_id` in the URL.
+          {t("workspace.forecastIntelligence.provideValidIds")}
         </section>
       </WorkspaceShell>
     );
@@ -190,10 +192,16 @@ function ForecastIntelligenceContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Forecast Intelligence"
-      title={item?.product_title ?? "Item Forecast Drill-Down"}
-      description="Deep visibility into ensemble forecast logic, scenario impacts, and live demand velocity."
-      insight="Use this view to validate model confidence, data quality, and chef alignment before acting."
+      eyebrow={t("workspace.forecastIntelligence.eyebrow")}
+      title={
+        item?.product_title
+          ? t("workspace.forecastIntelligence.title", {
+              item: item.product_title,
+            })
+          : t("workspace.forecastIntelligence.eyebrow")
+      }
+      description={t("workspace.forecastIntelligence.description")}
+      insight={t("workspace.forecastIntelligence.insight")}
     >
       <section className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
@@ -202,7 +210,7 @@ function ForecastIntelligenceContent() {
             className="inline-flex h-9 items-center gap-1 rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-secondary hover:border-brand-gold hover:text-brand-gold"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Today
+            {t("workspace.forecastIntelligence.backToToday")}
           </Link>
           <span className="text-xs text-text-muted">{branchName}</span>
         </div>
@@ -220,12 +228,12 @@ function ForecastIntelligenceContent() {
       <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr]">
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Ensemble Summary
+            {t("workspace.forecastIntelligence.ensembleSummary")}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
               <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Ensemble Forecast
+                {t("workspace.forecastIntelligence.ensembleForecast")}
               </p>
               <p className="mt-1 text-lg font-semibold text-text-primary">
                 {advancedQuery.data?.ensemble_forecast != null
@@ -235,7 +243,7 @@ function ForecastIntelligenceContent() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
               <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Loss-Optimized
+                {t("workspace.forecastIntelligence.lossOptimized")}
               </p>
               <p className="mt-1 text-lg font-semibold text-text-primary">
                 {advancedQuery.data?.loss_optimized_qty != null
@@ -245,7 +253,7 @@ function ForecastIntelligenceContent() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
               <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Confidence
+                {t("workspace.forecastIntelligence.confidence")}
               </p>
               <p className="mt-1 text-lg font-semibold text-text-primary">
                 {advancedQuery.data?.confidence != null
@@ -259,7 +267,7 @@ function ForecastIntelligenceContent() {
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3 text-sm text-text-secondary">
               <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Model Agreement
+                {t("workspace.forecastIntelligence.modelAgreement")}
               </p>
               <p className="mt-1 font-semibold text-text-primary">
                 {advancedQuery.data?.model_agreement != null
@@ -267,21 +275,23 @@ function ForecastIntelligenceContent() {
                   : "—"}
               </p>
               <p className="mt-1 text-xs text-text-muted">
-                Higher agreement means lower forecast variance across models.
+                {t("workspace.forecastIntelligence.modelAgreementDesc")}
               </p>
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3 text-sm text-text-secondary">
               <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                Chef Signal
+                {t("workspace.forecastIntelligence.chefSignal")}
               </p>
               <p className="mt-1 font-semibold text-text-primary">
                 {advancedQuery.data?.chef_recommendation ?? "—"}
               </p>
               <p className="mt-1 text-xs text-text-muted">
-                Chef weight{" "}
-                {advancedQuery.data?.chef_weight != null
-                  ? percent(advancedQuery.data.chef_weight)
-                  : "—"}
+                {t("workspace.forecastIntelligence.chefWeight", {
+                  percent:
+                    advancedQuery.data?.chef_weight != null
+                      ? percent(advancedQuery.data.chef_weight)
+                      : "—",
+                })}
               </p>
             </div>
           </div>
@@ -298,12 +308,12 @@ function ForecastIntelligenceContent() {
         <div className="space-y-4">
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Performance Metrics
+              {t("workspace.forecastIntelligence.performanceMetrics")}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Accuracy
+                  {t("workspace.forecastIntelligence.accuracy")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {metricsQuery.data?.forecast_accuracy != null
@@ -313,7 +323,7 @@ function ForecastIntelligenceContent() {
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  MAPE
+                  {t("workspace.forecastIntelligence.mape")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {metricsQuery.data?.mape != null
@@ -323,7 +333,7 @@ function ForecastIntelligenceContent() {
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Stockout
+                  {t("workspace.forecastIntelligence.stockout")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {metricsQuery.data?.stockout_rate != null
@@ -333,7 +343,7 @@ function ForecastIntelligenceContent() {
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                  Waste
+                  {t("workspace.forecastIntelligence.waste")}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {metricsQuery.data?.waste_rate != null
@@ -346,7 +356,7 @@ function ForecastIntelligenceContent() {
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Data Quality Gate
+              {t("workspace.forecastIntelligence.dataQualityGate")}
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {dataQualityQuery.data?.overall_quality_score != null
@@ -354,17 +364,18 @@ function ForecastIntelligenceContent() {
                 : "—"}
             </p>
             <p className="text-sm text-text-secondary">
-              {dataQualityQuery.data?.quality_label ?? "No quality score yet."}
+              {dataQualityQuery.data?.quality_label ??
+                t("workspace.forecastIntelligence.noQualityScore")}
             </p>
             <p className="mt-2 text-xs text-text-muted">
               {dataQualityQuery.data?.recommendation ??
-                "Quality checks will appear once data is available."}
+                t("workspace.forecastIntelligence.qualityChecksHint")}
             </p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Chef Skill Signal
+              {t("workspace.forecastIntelligence.chefSkillSignal")}
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {chefSkillQuery.data?.overall_skill_score != null
@@ -372,7 +383,8 @@ function ForecastIntelligenceContent() {
                 : "—"}
             </p>
             <p className="text-sm text-text-secondary">
-              {chefSkillQuery.data?.recommendation ?? "No chef signal yet."}
+              {chefSkillQuery.data?.recommendation ??
+                t("workspace.forecastIntelligence.noChefSignal")}
             </p>
           </article>
         </div>
@@ -382,12 +394,12 @@ function ForecastIntelligenceContent() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Real-Time Velocity Feed
+              {t("workspace.forecastIntelligence.realTimeVelocityFeed")}
             </p>
             <p className="text-sm text-text-secondary">
-              Live demand velocity vs forecast, refreshed every{" "}
-              {VELOCITY_POLL_INTERVAL_MINUTES} minutes while this tab is
-              visible.
+              {t("workspace.forecastIntelligence.velocityFeedDesc", {
+                minutes: VELOCITY_POLL_INTERVAL_MINUTES,
+              })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -396,7 +408,9 @@ function ForecastIntelligenceContent() {
               onClick={() => setPollingEnabled((prev) => !prev)}
               className="inline-flex h-9 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-primary transition-all duration-200 hover:bg-surface-3"
             >
-              {pollingEnabled ? "Pause feed" : "Resume feed"}
+              {pollingEnabled
+                ? t("workspace.forecastIntelligence.pauseFeed")
+                : t("workspace.forecastIntelligence.resumeFeed")}
             </button>
             <button
               type="button"
@@ -404,7 +418,9 @@ function ForecastIntelligenceContent() {
               className="inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-all duration-200 hover:bg-brand-gold/10"
               disabled={velocityMutation.isPending}
             >
-              {velocityMutation.isPending ? "Updating..." : "Refresh now"}
+              {velocityMutation.isPending
+                ? t("workspace.forecastIntelligence.updating")
+                : t("workspace.forecastIntelligence.refreshNow")}
             </button>
           </div>
         </div>
@@ -427,27 +443,31 @@ function ForecastIntelligenceContent() {
                   </p>
                 </div>
                 <p className="mt-2">
-                  Velocity ratio{" "}
-                  <span className="font-semibold text-text-primary">
-                    {entry.comparison?.velocity_ratio != null
-                      ? entry.comparison.velocity_ratio.toFixed(2)
-                      : "—"}
-                  </span>
-                  {" · "}Last window{" "}
-                  {entry.sales_velocity?.time_span_minutes != null
-                    ? `${entry.sales_velocity.time_span_minutes.toFixed(0)}m`
-                    : "—"}
+                  {t("workspace.forecastIntelligence.velocityRatio", {
+                    ratio:
+                      entry.comparison?.velocity_ratio != null
+                        ? entry.comparison.velocity_ratio.toFixed(2)
+                        : "—",
+                  })}
+                  {" · "}
+                  {t("workspace.forecastIntelligence.lastWindow", {
+                    minutes:
+                      entry.sales_velocity?.time_span_minutes != null
+                        ? entry.sales_velocity.time_span_minutes.toFixed(0)
+                        : "—",
+                  })}
                 </p>
                 <p className="mt-2 text-[11px] text-text-muted">
                   {entry.comparison?.recommendation ??
-                    "Monitoring velocity feed."}
+                    t("workspace.forecastIntelligence.monitoringVelocity")}
                 </p>
               </article>
             ))
           ) : (
             <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-6 text-xs text-text-muted">
-              No velocity snapshots yet. The feed updates every{" "}
-              {VELOCITY_POLL_INTERVAL_MINUTES} minutes.
+              {t("workspace.forecastIntelligence.noVelocitySnapshots", {
+                minutes: VELOCITY_POLL_INTERVAL_MINUTES,
+              })}
             </div>
           )}
         </div>

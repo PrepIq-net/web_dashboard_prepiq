@@ -21,6 +21,7 @@ import {
   useMarkChatThreadAsRead 
 } from "@/services";
 import type { UserProfile } from "@/services/users/types";
+import { useTranslation } from "@/lib/i18n";
 
 interface ChatMessageAreaProps {
   threadId: string;
@@ -29,6 +30,7 @@ interface ChatMessageAreaProps {
 }
 
 export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProps) {
+  const { t } = useTranslation();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -131,7 +133,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 rounded-full border-2 border-brand-gold border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-sm text-text-muted">Loading conversation...</p>
+          <p className="text-sm text-text-muted">{t("workspace.chat.area.loading")}</p>
         </div>
       </div>
     );
@@ -144,8 +146,8 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-critical/20 mb-4">
             <Xmark className="h-6 w-6 text-status-critical" />
           </div>
-          <p className="text-sm text-text-secondary mb-2">Conversation not found</p>
-          <p className="text-xs text-text-muted">This conversation may have been deleted or you don't have access to it.</p>
+          <p className="text-sm text-text-secondary mb-2">{t("workspace.chat.area.notFound")}</p>
+          <p className="text-xs text-text-muted">{t("workspace.chat.area.notFoundDetail")}</p>
         </div>
       </div>
     );
@@ -176,8 +178,8 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-3 mb-4">
                 <User className="h-6 w-6 text-text-muted" />
               </div>
-              <p className="text-sm text-text-secondary mb-2">No messages yet</p>
-              <p className="text-xs text-text-muted">Start the conversation by sending a message below.</p>
+              <p className="text-sm text-text-secondary mb-2">{t("workspace.chat.area.noMessages")}</p>
+              <p className="text-xs text-text-muted">{t("workspace.chat.area.startPrompt")}</p>
             </div>
           </div>
         ) : (
@@ -244,7 +246,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
         <ChatMessageInput
           onSend={handleSendMessage}
           disabled={createMessageMutation.isPending}
-          placeholder={`Message ${thread.display_title}...`}
+          placeholder={t("workspace.chat.area.placeholder")}
         />
       </div>
     </div>

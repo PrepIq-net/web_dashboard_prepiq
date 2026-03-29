@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -94,35 +95,46 @@ function riskRank(value: LiveItem["stockoutRisk"]) {
   return 2;
 }
 
-function getTrendLabel(value: number) {
-  if (value >= 12) return "High";
-  if (value <= -12) return "Slow";
-  return "Normal";
+function getTrendLabel(value: number, t: (key: string) => string) {
+  if (value >= 12) return t("dashboard.home.busy");
+  if (value <= -12) return t("dashboard.home.quiet");
+  return t("workspace.today.outlook.normal");
 }
 
-function getTrendTone(label: string) {
-  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
-  if (label === "Slow") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+function getTrendTone(label: string, t: (key: string) => string) {
+  if (label === t("dashboard.home.busy"))
+    return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === t("dashboard.home.quiet"))
+    return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
   return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
 }
 
-function getPriority(item: LiveItem) {
-  if (item.stockoutRisk === "HIGH" || (item.runoutMinutes !== null && item.runoutMinutes <= 30)) {
-    return "High";
+function getPriority(item: LiveItem, t: (key: string) => string) {
+  if (
+    item.stockoutRisk === "HIGH" ||
+    (item.runoutMinutes !== null && item.runoutMinutes <= 30)
+  ) {
+    return t("dashboard.home.highPriority");
   }
-  if (item.prepNowQty > 0 || (item.runoutMinutes !== null && item.runoutMinutes <= 60)) {
-    return "Medium";
+  if (
+    item.prepNowQty > 0 ||
+    (item.runoutMinutes !== null && item.runoutMinutes <= 60)
+  ) {
+    return t("dashboard.home.medPriority");
   }
-  return "Low";
+  return t("dashboard.home.lowRisk");
 }
 
-function getPriorityTone(label: string) {
-  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
-  if (label === "Medium") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
+function getPriorityTone(label: string, t: (key: string) => string) {
+  if (label === t("dashboard.home.highPriority"))
+    return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
+  if (label === t("dashboard.home.medPriority"))
+    return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
   return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
 }
 
 export default function ProductionPage() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -330,20 +342,33 @@ export default function ProductionPage() {
           item.stockoutRisk === "HIGH" || (runout !== null && runout <= 30)
             ? "HIGH"
             : "MEDIUM";
-        const title = stockoutRisk ? "Stock risk alert" : "High demand detected";
+        const title = stockoutRisk
+          ? t("workspace.production.alerts.stockRisk")
+          : t("workspace.production.alerts.highDemand");
         const message = stockoutRisk
-          ? `Only ${formatQuantity(item.remaining, item.unit)} remaining`
-          : `Selling ${Math.round(item.trendPct)}% faster than forecast`;
+          ? t("workspace.production.alerts.remainingDesc", {
+              quantity: formatQuantity(item.remaining, item.unit),
+            })
+          : t("workspace.production.alerts.sellingFaster", {
+              percent: Math.round(item.trendPct),
+            });
         const detail = stockoutRisk
           ? runout !== null
-            ? `Estimated depletion in ${formatMinutes(runout)}`
-            : "Estimated depletion soon"
-          : `Forecast ${formatQuantity(item.forecast, item.unit)} · Sold ${formatQuantity(item.sold, item.unit)}`;
-        let action = "Check line now";
+            ? t("workspace.production.alerts.depletionIn", {
+                time: formatMinutes(runout),
+              })
+            : t("workspace.production.alerts.depletionSoon")
+          : t("workspace.production.alerts.forecastSold", {
+              forecast: formatQuantity(item.forecast, item.unit),
+              sold: formatQuantity(item.sold, item.unit),
+            });
+        let action = t("workspace.production.alerts.checkLine");
         if (item.prepNowQty > 0) {
-          action = `Prep +${formatQuantity(item.prepNowQty, item.unit)}`;
+          action = t("workspace.production.alerts.prepMore", {
+            quantity: formatQuantity(item.prepNowQty, item.unit),
+          });
         } else if (item.startBatchNow) {
-          action = "Start new batch now";
+          action = t("workspace.production.alerts.startBatch");
         }
 
         return {
@@ -370,17 +395,21 @@ export default function ProductionPage() {
   }, [enrichedItems]);
 
   const prepQueueItems = useMemo(() => {
-    const priorityRank = (label: string) =>
-      label === "High" ? 0 : label === "Medium" ? 1 : 2;
+    const priorityRank = (label: string) => {
+      if (label === t("dashboard.home.highPriority")) return 0;
+      if (label === t("dashboard.home.medPriority")) return 1;
+      return 2;
+    };
     return [...enrichedItems]
       .sort((a, b) => {
-        const priorityA = getPriority(a);
-        const priorityB = getPriority(b);
-        if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
+        const priorityA = getPriority(a, t);
+        const priorityB = getPriority(b, t);
+        if (priorityA !== priorityB)
+          return priorityRank(priorityA) - priorityRank(priorityB);
         return b.prepNowQty - a.prepNowQty;
       })
       .slice(0, 8);
-  }, [enrichedItems]);
+  }, [enrichedItems, t]);
 
   const wasteSignals = useMemo(() => {
     return enrichedItems
@@ -414,13 +443,13 @@ export default function ProductionPage() {
   const [activeTab, setActiveTab] = useState<ProductionTab>("SERVICE");
 
   const sectionTabs: { id: ProductionTab; label: string }[] = [
-    { id: "SERVICE", label: "Service" },
-    { id: "ACTIONS", label: "Prep Actions" },
-    { id: "VELOCITY", label: "Velocity" },
-    { id: "ALERTS", label: "Stock Alerts" },
-    { id: "QUEUE", label: "Prep Queue" },
-    { id: "WASTE", label: "Waste Signals" },
-    { id: "CARDS", label: "Cards" },
+    { id: "SERVICE", label: t("workspace.production.tabs.service") },
+    { id: "ACTIONS", label: t("workspace.production.tabs.actions") },
+    { id: "VELOCITY", label: t("workspace.production.tabs.velocity") },
+    { id: "ALERTS", label: t("workspace.production.tabs.alerts") },
+    { id: "QUEUE", label: t("workspace.production.tabs.queue") },
+    { id: "WASTE", label: t("workspace.production.tabs.waste") },
+    { id: "CARDS", label: t("workspace.production.tabs.cards") },
   ];
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
@@ -452,15 +481,15 @@ export default function ProductionPage() {
     if (type === "WASTE" && wasteReason !== "UNSPECIFIED") {
       const reasonLabel =
         wasteReason === "OVER_PREP"
-          ? "Over-prep"
+          ? t("workspace.production.actions.overprep")
           : wasteReason === "DEMAND_FLUCTUATION"
-            ? "Demand fluctuation"
+            ? t("workspace.production.actions.demandFluctuation")
             : wasteReason === "CHEF_OVERRIDE"
-              ? "Chef override"
+              ? t("workspace.production.actions.chefOverride")
               : wasteReason === "INVENTORY_EXPIRY"
-                ? "Inventory expiry"
-                : "Other";
-      noteParts.push(`Waste reason: ${reasonLabel}.`);
+                ? t("workspace.production.actions.inventoryExpiry")
+                : t("workspace.production.actions.other");
+      noteParts.push(`${t("workspace.production.actions.wasteReason")}: ${reasonLabel}.`);
     }
     if (batchNotes.trim()) {
       noteParts.push(batchNotes.trim());
@@ -511,7 +540,7 @@ export default function ProductionPage() {
           entry.id === logId ? { ...entry, status: "failed" } : entry,
         ),
       );
-      setLogError("Unable to log production. Please retry.");
+      setLogError(t("setup.common.error"));
     }
   };
 
@@ -534,15 +563,14 @@ export default function ProductionPage() {
   if (!canViewProduction) {
     return (
       <WorkspaceShell
-        eyebrow="Production"
-        title="Production"
-        description="Live kitchen operations are restricted to service roles."
+        eyebrow={t("workspace.production.eyebrow")}
+        title={t("workspace.production.title")}
+        description={t("workspace.production.restrictedDesc")}
         insight=""
       >
         <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
           <p className="text-[13px] text-[#8E8E93]">
-            Production command center is limited to chef, line cook, supervisor, branch
-            manager, and ops monitoring roles.
+            {t("workspace.production.restrictedDetail")}
           </p>
         </section>
       </WorkspaceShell>
@@ -551,23 +579,25 @@ export default function ProductionPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Production"
-      title="Production"
-      description="Live kitchen operations. Keep it fast, clear, and action-first."
+      eyebrow={t("workspace.production.eyebrow")}
+      title={t("workspace.production.title")}
+      description={t("workspace.production.description")}
       insight=""
     >
       <section className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Branch Context
+              {t("workspace.production.branchContext")}
             </label>
             <select
               value={activeBranchId}
               onChange={(event) => setSelectedBranchId(event.target.value)}
               className="h-11 min-w-[240px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[14px] text-[#F5F5F7]"
             >
-              {!branchOptions.length ? <option value="">No branches available</option> : null}
+              {!branchOptions.length ? (
+                <option value="">{t("workspace.common.noBranches")}</option>
+              ) : null}
               {branchOptions.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
@@ -576,7 +606,7 @@ export default function ProductionPage() {
             </select>
             {activeBranch ? (
               <p className="text-[13px] text-[#8E8E93]">
-                Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
+                {t("financial.branchView", { name: activeBranch.name })}
               </p>
             ) : null}
           </div>
@@ -587,9 +617,9 @@ export default function ProductionPage() {
                   status === "LIVE" ? "bg-[#5DD39E]" : "bg-[#5C5C66]"
                 }`}
               />
-              {status === "LIVE" ? "Live feed" : "Live feed paused"}
+              {status === "LIVE" ? t("workspace.production.liveFeed") : t("workspace.production.liveFeedPaused")}
             </span>
-            <span>Last sync {formatShortTime(lastSync)}</span>
+            <span>{t("workspace.production.lastSync", { time: formatShortTime(lastSync) })}</span>
           </div>
         </div>
       </section>
@@ -618,10 +648,10 @@ export default function ProductionPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Live Service
+              {t("workspace.today.status.live")}
             </p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {activeBranch?.name ?? "Select a branch"}
+              {activeBranch?.name ?? t("workspace.common.selectBranch")}
             </p>
           </div>
           <span
@@ -632,35 +662,35 @@ export default function ProductionPage() {
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.timeOpen")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{timeOpen}</p>
           </div>
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.ordersProcessed")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {Math.round(totals.totalSold).toLocaleString()}
             </p>
           </div>
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.itemsRemaining")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {Math.round(totals.totalRemaining).toLocaleString()}
             </p>
           </div>
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.prepNow")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {totals.prepNowCount}
             </p>
           </div>
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.atRisk")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {totals.stockoutCount}
             </p>
           </div>
           <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
+            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">{t("workspace.production.service.salesPerHour")}</p>
             <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
               {salesPerHour > 0 ? salesPerHour.toFixed(1) : "--"}
             </p>
@@ -669,8 +699,7 @@ export default function ProductionPage() {
 
         {salesValidationQuery.data?.missing_sales_detected ? (
           <div className="mt-5 rounded-[12px] border border-[#3A2D1F] bg-[#1C1610] px-4 py-3 text-[12px] text-[#E0B86B]">
-            Sales feed is missing entries for some items. Verify POS sync or use manual
-            entry.
+            {t("workspace.production.service.missingSales")}
           </div>
         ) : null}
       </section>
@@ -681,12 +710,12 @@ export default function ProductionPage() {
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
+                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.service.prepNow")}</p>
                 <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
-                  Immediate actions for the line.
+                  {t("workspace.production.actions.immediateActions")}
                 </p>
               </div>
-              <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
+              <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.actions.activeAlerts", { count: prepNowItems.length })}</p>
             </div>
             <div className="mt-4 space-y-3">
               {prepNowItems.map((item) => (
@@ -697,14 +726,14 @@ export default function ProductionPage() {
                   <div>
                     <p className="text-[16px] font-semibold text-[#F5F5F7]">{item.title}</p>
                     <p className="mt-1 text-[13px] text-[#8E8E93]">
-                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
+                      {t("workspace.production.velocity.remaining")} {formatQuantity(item.remaining, item.unit)} · {t("workspace.today.live.mayRunOut", { minutes: formatMinutes(item.runoutMinutes) })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-[18px] font-semibold text-[#E0B86B]">
                       {item.prepNowQty > 0
                         ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                        : "Check"}
+                        : t("workspace.production.actions.check")}
                     </p>
                     <button
                       type="button"
@@ -716,20 +745,20 @@ export default function ProductionPage() {
                       }}
                       className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
                     >
-                      Queue batch
+                      {t("workspace.production.actions.queueBatch")}
                     </button>
                   </div>
                 </div>
               ))}
               {!prepNowItems.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
+                <p className="text-[13px] text-[#8E8E93]">{t("workspace.production.actions.noActions")}</p>
               ) : null}
             </div>
           </article>
 
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Log batches and waste in real time.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.actions.quickLog")}</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">{t("workspace.production.actions.quickLogDesc")}</p>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <select
@@ -737,7 +766,7 @@ export default function ProductionPage() {
                 onChange={(event) => setSelectedItemId(event.target.value)}
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               >
-                <option value="">Select item</option>
+                <option value="">{t("workspace.production.actions.selectItem")}</option>
                 {enrichedItems.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.title}
@@ -747,7 +776,7 @@ export default function ProductionPage() {
               <input
                 value={batchQuantity}
                 onChange={(event) => setBatchQuantity(event.target.value)}
-                placeholder="Quantity"
+                placeholder={t("workspace.production.actions.quantity")}
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               />
               <select
@@ -755,17 +784,17 @@ export default function ProductionPage() {
                 onChange={(event) => setWasteReason(event.target.value as WasteReason)}
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               >
-                <option value="UNSPECIFIED">Waste reason (optional)</option>
-                <option value="OVER_PREP">Over-prep</option>
-                <option value="DEMAND_FLUCTUATION">Demand fluctuation</option>
-                <option value="CHEF_OVERRIDE">Chef override</option>
-                <option value="INVENTORY_EXPIRY">Inventory expiry</option>
-                <option value="OTHER">Other</option>
+                <option value="UNSPECIFIED">{t("workspace.production.actions.wasteReason")}</option>
+                <option value="OVER_PREP">{t("workspace.production.actions.overprep")}</option>
+                <option value="DEMAND_FLUCTUATION">{t("workspace.production.actions.demandFluctuation")}</option>
+                <option value="CHEF_OVERRIDE">{t("workspace.production.actions.chefOverride")}</option>
+                <option value="INVENTORY_EXPIRY">{t("workspace.production.actions.inventoryExpiry")}</option>
+                <option value="OTHER">{t("workspace.production.actions.other")}</option>
               </select>
               <input
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
-                placeholder="Notes"
+                placeholder={t("workspace.production.actions.notes")}
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7] md:col-span-2"
               />
             </div>
@@ -777,7 +806,7 @@ export default function ProductionPage() {
                 disabled={!selectedItem || createProductionLogMutation.isPending}
                 className="h-10 rounded-[10px] bg-[#E0B86B] px-4 text-[12px] font-semibold text-[#141416] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {createProductionLogMutation.isPending ? "Logging..." : "Log batch"}
+                {createProductionLogMutation.isPending ? t("workspace.production.actions.logging") : t("workspace.production.actions.logBatch")}
               </button>
               <button
                 type="button"
@@ -785,7 +814,7 @@ export default function ProductionPage() {
                 disabled={!selectedItem || createProductionLogMutation.isPending}
                 className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E0B86B] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Report waste
+                {t("workspace.production.actions.reportWaste")}
               </button>
             </div>
             {logError ? (
@@ -800,7 +829,7 @@ export default function ProductionPage() {
                 >
                   <div>
                     <p className="text-[#C7C7CC]">
-                      {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
+                      {entry.type === "BATCH" ? t("workspace.production.actions.logBatch") : t("workspace.production.actions.reportWaste")} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
                     </p>
                     {entry.notes ? (
                       <p className="mt-1 text-[11px] text-[#8E8E93]">{entry.notes}</p>
@@ -818,16 +847,16 @@ export default function ProductionPage() {
                       }`}
                     >
                       {entry.status === "pending"
-                        ? "Sending"
+                        ? t("workspace.production.actions.sending")
                         : entry.status === "failed"
-                          ? "Failed"
-                          : "Sent"}
+                          ? t("workspace.production.actions.failed")
+                          : t("workspace.production.actions.sent")}
                     </p>
                   </div>
                 </div>
               ))}
               {!localLogs.length ? (
-                <p className="text-[12px] text-[#8E8E93]">No logs yet.</p>
+                <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.actions.noLogs")}</p>
               ) : null}
             </div>
           </article>
@@ -838,30 +867,37 @@ export default function ProductionPage() {
         <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
+              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.velocity.title")}</p>
               <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
-                Actual demand vs forecast.
+                {t("workspace.production.velocity.description")}
               </p>
             </div>
-            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+            <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.velocity.items", { count: velocityRows.length })}</p>
           </div>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead className="border-b border-[#2A2A2E]">
                 <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.item")}</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.velocity.forecast")}</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.sold")}</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.velocity.remaining")}</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    {t("workspace.production.velocity.trend")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {velocityRows.map((item) => {
-                  const trendLabel = getTrendLabel(item.trendPct);
+                  const trendLabel = getTrendLabel(item.trendPct, t);
                   return (
-                    <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
-                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                    <tr
+                      key={item.id}
+                      className="border-b border-[#2A2A2E] odd:bg-[#141418]"
+                    >
+                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">
+                        {item.title}
+                      </td>
                       <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                         {formatQuantity(item.forecast, item.unit)}
                       </td>
@@ -873,7 +909,7 @@ export default function ProductionPage() {
                       </td>
                       <td className="px-2 py-3">
                         <span
-                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel, t)}`}
                         >
                           {trendLabel}
                         </span>
@@ -884,7 +920,7 @@ export default function ProductionPage() {
               </tbody>
             </table>
             {!velocityRows.length ? (
-              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+              <p className="mt-4 text-[13px] text-[#8E8E93]">{t("workspace.production.velocity.noData")}</p>
             ) : null}
           </div>
         </section>
@@ -892,8 +928,8 @@ export default function ProductionPage() {
 
       {activeTab === "ALERTS" ? (
         <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
-          <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Immediate depletion risk.</p>
+          <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.alerts.title")}</p>
+          <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">{t("workspace.production.alerts.description")}</p>
           <div className="mt-4 space-y-3">
             {stockAlerts.map((alert) => (
               <div
@@ -918,12 +954,12 @@ export default function ProductionPage() {
                 <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
                 <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
                 <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: {alert.action}
+                  {t("workspace.today.context.suggested")} {alert.action}
                 </p>
               </div>
             ))}
             {!stockAlerts.length ? (
-              <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
+              <p className="text-[13px] text-[#8E8E93]">{t("workspace.production.alerts.noAlerts")}</p>
             ) : null}
           </div>
         </section>
@@ -933,27 +969,32 @@ export default function ProductionPage() {
         <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">What needs to be prepared next.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.title")}</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">{t("workspace.production.queue.description")}</p>
           </div>
-          <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
+          <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.queue.items", { count: prepQueueItems.length })}</p>
         </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead className="border-b border-[#2A2A2E]">
               <tr>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep needed</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Priority</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.item")}</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.remaining")}</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.prepNeeded")}</th>
+                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.queue.priority")}</th>
               </tr>
             </thead>
             <tbody>
               {prepQueueItems.map((item) => {
-                const priority = getPriority(item);
+                const priority = getPriority(item, t);
                 return (
-                  <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
-                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                  <tr
+                    key={item.id}
+                    className="border-b border-[#2A2A2E] odd:bg-[#141418]"
+                  >
+                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">
+                      {item.title}
+                    </td>
                     <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                       {formatQuantity(item.remaining, item.unit)}
                     </td>
@@ -964,7 +1005,7 @@ export default function ProductionPage() {
                     </td>
                     <td className="px-2 py-3">
                       <span
-                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
+                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority, t)}`}
                       >
                         {priority}
                       </span>
@@ -975,7 +1016,7 @@ export default function ProductionPage() {
             </tbody>
           </table>
           {!prepQueueItems.length ? (
-            <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
+            <p className="mt-4 text-[13px] text-[#8E8E93]">{t("workspace.production.queue.noItems")}</p>
           ) : null}
         </div>
         </section>
@@ -985,10 +1026,10 @@ export default function ProductionPage() {
         <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Demand is slowing. Adjust prep.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.waste.title")}</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">{t("workspace.production.waste.description")}</p>
           </div>
-          <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
+          <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.waste.alerts", { count: wasteSignals.length })}</p>
         </div>
         <div className="mt-4 space-y-3">
           {wasteSignals.map((item) => {
@@ -1001,16 +1042,16 @@ export default function ProductionPage() {
               >
                 <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
                 <p className="mt-1 text-[12px] text-[#E0B86B]">
-                  Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
+                  {t("workspace.production.waste.demandSlowing", { quantity: `${overage} ${item.unit}` })}
                 </p>
                 <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: Slow production.
+                  {t("workspace.production.waste.suggestedAction")}
                 </p>
               </div>
             );
           })}
           {!wasteSignals.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
+            <p className="text-[13px] text-[#8E8E93]">{t("workspace.production.waste.noAlerts")}</p>
           ) : null}
         </div>
         </section>
@@ -1020,14 +1061,14 @@ export default function ProductionPage() {
         <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Large cards for kitchen screens.</p>
+            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">{t("workspace.production.cards.title")}</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">{t("workspace.production.cards.description")}</p>
           </div>
-          <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
+          <p className="text-[12px] text-[#8E8E93]">{t("workspace.production.cards.items", { count: productionCards.length })}</p>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {productionCards.map((item) => {
-            const trendLabel = getTrendLabel(item.trendPct);
+            const trendLabel = getTrendLabel(item.trendPct, t);
             return (
               <div
                 key={item.id}
@@ -1036,40 +1077,48 @@ export default function ProductionPage() {
                 <p className="text-[15px] text-[#F5F5F7]">{item.title}</p>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      {t("workspace.production.cards.forecast")}
+                    </p>
+                    <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.forecast, item.unit)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      {t("workspace.today.closed.sold")}
+                    </p>
+                    <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.sold, item.unit)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      {t("workspace.production.cards.remaining")}
+                    </p>
+                    <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {formatQuantity(item.remaining, item.unit)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
+                      {t("workspace.production.cards.status")}
+                    </p>
+                    <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
                       {trendLabel}
                     </p>
                   </div>
                 </div>
                 {item.prepNowQty > 0 ? (
                   <p className="mt-3 text-[12px] text-[#E0B86B]">
-                    Prep recommended: +{formatQuantity(item.prepNowQty, item.unit)}
+                    {t("workspace.production.cards.prepRecommended", { quantity: formatQuantity(item.prepNowQty, item.unit) })}
                   </p>
                 ) : null}
               </div>
             );
           })}
           {!productionCards.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
+            <p className="text-[13px] text-[#8E8E93]">{t("workspace.production.cards.noCards")}</p>
           ) : null}
         </div>
         </section>

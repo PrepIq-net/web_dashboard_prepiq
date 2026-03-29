@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Page, NavArrowRight, HandCash, Sparks, WarningTriangle } from "iconoir-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useTranslation } from "@/lib/i18n";
 import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 import {
   useMenuItems,
@@ -11,13 +12,13 @@ import {
   useAutoGenerateRecipe,
 } from "@/services/inventory/hooks";
 
-const CATEGORIES = [
-  "Pastries",
-  "Beverages",
-  "Mains",
-  "Sides",
-  "Retail",
-  "Uncategorized",
+const CATEGORY_KEYS = [
+  "pastries",
+  "beverages",
+  "mains",
+  "sides",
+  "retail",
+  "uncategorized",
 ];
 
 interface DraftItem {
@@ -28,6 +29,7 @@ interface DraftItem {
 }
 
 export default function ItemConfirmationPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const scopeQuery = useProductionIntelligenceAccessScope();
 
@@ -85,7 +87,7 @@ export default function ItemConfirmationPage() {
 
       router.push("/setup/forecast");
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(t("setup.common.error"));
       setIsSubmitting(false);
       setRecipeProgress(null);
     }
@@ -106,15 +108,15 @@ export default function ItemConfirmationPage() {
       <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-[12px] border border-[#C44949]/50 bg-[#1C1C1F] p-6">
           <WarningTriangle className="h-5 w-5 text-[#C44949] mb-3" />
-          <p className="text-[14px] text-[#F5F5F7] font-semibold mb-1">No branch found</p>
+          <p className="text-[14px] text-[#F5F5F7] font-semibold mb-1">{t("setup.items.noBranchFound")}</p>
           <p className="text-[13px] text-[#8E8E93]">
-            Set up a branch first before confirming items.
+            {t("setup.items.noBranchFoundDesc")}
           </p>
           <button
             onClick={() => router.push("/setup/branch")}
             className="mt-4 h-10 px-5 bg-[#A8821F] hover:bg-[#B8962E] text-[#141416] text-sm font-semibold rounded-[8px] transition-colors"
           >
-            Set Up Branch
+            {t("setup.items.setUpBranch")}
           </button>
         </div>
       </div>
@@ -128,18 +130,19 @@ export default function ItemConfirmationPage() {
         <div className="flex items-center gap-2 mb-8">
           <Page className="h-4 w-4 text-[#A8821F]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 3 — Item Confirmation
+            {t("setup.common.step", { step: 3 })} — {t("setup.common.itemConfirmation")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-3">
-          {items.length > 0
-            ? `We detected ${items.length} item${items.length === 1 ? "" : "s"}.`
-            : "No items found yet."}
+          {items.length === 0
+            ? t("setup.items.titleNone")
+            : items.length === 1
+              ? t("setup.items.titleOne")
+              : t("setup.items.title", { count: items.length })}
         </h1>
         <p className="text-[14px] leading-[22px] text-[#8E8E93] max-w-2xl mb-8">
-          Review your menu items below. When you confirm, PrepIQ will automatically
-          generate ingredient recipes using our hybrid intelligence engine.
+          {t("setup.items.description")}
         </p>
 
         {/* Recipe generation progress */}
@@ -148,7 +151,7 @@ export default function ItemConfirmationPage() {
             <Sparks className="h-5 w-5 text-[#A8821F] shrink-0 animate-pulse" />
             <div className="flex-1">
               <p className="text-[13px] font-semibold text-[#F5F5F7]">
-                Generating recipes... {recipeProgress.done}/{recipeProgress.total}
+                {t("setup.items.generatingRecipes", { done: recipeProgress.done, total: recipeProgress.total })}
               </p>
               <div className="mt-2 h-1.5 bg-[#2E2E33] rounded-full overflow-hidden">
                 <div
@@ -172,13 +175,13 @@ export default function ItemConfirmationPage() {
           <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-8 text-center mb-8">
             <HandCash className="h-8 w-8 text-[#5A5A60] mx-auto mb-3" />
             <p className="text-[14px] text-[#8E8E93]">
-              No menu items have been imported yet. Connect a POS or upload a CSV to populate items.
+              {t("setup.items.noItemsImported")}
             </p>
             <button
               onClick={() => router.push("/setup/sales")}
               className="mt-4 h-10 px-5 bg-[#232327] hover:bg-[#2E2E33] border border-[#2E2E33] text-[#C7C7CC] text-sm font-medium rounded-[8px] transition-colors"
             >
-              Go to Sales Setup
+              {t("setup.items.goToSales")}
             </button>
           </div>
         ) : (
@@ -186,10 +189,10 @@ export default function ItemConfirmationPage() {
             {/* Header */}
             <div className="grid grid-cols-[2fr_1.5fr] gap-4 p-4 border-b border-[#2E2E33] bg-[#232327]">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-                Item Name
+                {t("setup.items.itemName")}
               </div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-                Category
+                {t("setup.items.category")}
               </div>
             </div>
             {/* Rows */}
@@ -205,13 +208,15 @@ export default function ItemConfirmationPage() {
                   <div>
                     <select
                       value={item.category}
-                      onChange={(e) => handleCategoryChange(item.id, e.target.value)}
+                      onChange={(e) =>
+                        handleCategoryChange(item.id, e.target.value)
+                      }
                       disabled={isSubmitting}
                       className="w-full h-9 bg-[#141416] border border-[#2E2E33] rounded-[6px] px-3 text-[13px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] appearance-none disabled:opacity-50"
                     >
-                      {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
+                      {CATEGORY_KEYS.map((key) => (
+                        <option key={key} value={key}>
+                          {t(`setup.items.categories.${key}`)}
                         </option>
                       ))}
                     </select>
@@ -229,7 +234,7 @@ export default function ItemConfirmationPage() {
             disabled={isSubmitting}
             className="text-[13px] text-[#5A5A60] hover:text-[#8E8E93] transition-colors font-medium disabled:opacity-40"
           >
-            Back
+            {t("setup.common.back")}
           </button>
 
           <button
@@ -241,12 +246,12 @@ export default function ItemConfirmationPage() {
               <>
                 <Spinner size="sm" color="#141416" />
                 {recipeProgress
-                  ? `Generating recipes ${recipeProgress.done}/${recipeProgress.total}...`
-                  : "Processing..."}
+                  ? t("setup.items.generatingRecipes", { done: recipeProgress.done, total: recipeProgress.total })
+                  : t("setup.common.processing")}
               </>
             ) : (
               <>
-                {items.length > 0 ? "Confirm & Generate Recipes" : "Continue"}
+                {items.length > 0 ? t("setup.items.confirmButton") : t("setup.common.continue")}
                 <NavArrowRight className="h-4 w-4" />
               </>
             )}

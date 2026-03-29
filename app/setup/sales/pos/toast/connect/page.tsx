@@ -14,8 +14,10 @@ import {
   useProductionIntelligenceAccessScope,
   useStartToastOAuth,
 } from "@/services/production-intelligence/hooks";
+import { useTranslation } from "@/lib/i18n";
 
 export default function ToastConnectPage() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const {
@@ -65,20 +67,19 @@ export default function ToastConnectPage() {
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors inline-flex items-center gap-1"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            {t("setup.sales.upload.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Toast Connect
+            {t("setup.common.step", { step: 2 })} — {t("setup.sales.connectPos")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Connect Toast POS
+          {t("setup.sales.upload.connect.toastTitle")}
         </h1>
         <p className="text-[14px] leading-[22px] text-[#8E8E93] mb-6">
-          Provide your Toast API credentials to authorize PrepIQ to read your
-          sales data.
+          {t("setup.sales.upload.connect.toastDesc")}
         </p>
 
         <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-5 mb-4">
@@ -86,17 +87,17 @@ export default function ToastConnectPage() {
             {/* Branch Selection */}
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
-                Branch
+                {t("common.branch")}
               </label>
 
               {scopeLoading ? (
                 <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
                   <Spinner size="sm" color="#8E8E93" />
-                  Loading accessible branches...
+                  {t("setup.sales.upload.loadingBranches")}
                 </div>
               ) : branches.length === 0 ? (
                 <div className="rounded-[8px] border border-[#C48B2A]/40 bg-[#C48B2A]/10 p-3 text-[13px] text-[#C7C7CC]">
-                  No accessible branches found for integration setup.
+                  {t("setup.sales.upload.connect.noBranches")}
                 </div>
               ) : (
                 <Select
@@ -107,7 +108,7 @@ export default function ToastConnectPage() {
                   }))}
                   value={selectedBranchId}
                   onChange={setBranchId}
-                  placeholder="Select branch to connect"
+                  placeholder={t("setup.sales.upload.connect.placeholder")}
                   className="space-y-0"
                 />
               )}
@@ -117,8 +118,7 @@ export default function ToastConnectPage() {
             <div className="flex items-start gap-2.5 pt-2">
               <InfoCircle className="h-4 w-4 text-[#3A6EA5] shrink-0 mt-0.5" />
               <p className="text-[13px] leading-[20px] text-[#C7C7CC]">
-                Get your API credentials from the Toast Developer Platform. You
-                need the Client ID and Client Secret.
+                {t("setup.sales.upload.connect.toastInfo")}
               </p>
             </div>
 
@@ -128,14 +128,14 @@ export default function ToastConnectPage() {
                 htmlFor="client-id"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2"
               >
-                Client ID
+                {t("setup.sales.upload.connect.clientId")}
               </label>
               <input
                 id="client-id"
                 type="text"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                placeholder="Enter your Toast Client ID"
+                placeholder={t("setup.sales.upload.connect.clientIdPlaceholder")}
                 className="w-full h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] px-3 text-[13px] text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] focus:ring-1 focus:ring-[#A8821F]/30 transition-colors"
               />
             </div>
@@ -146,7 +146,7 @@ export default function ToastConnectPage() {
                 htmlFor="client-secret"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2"
               >
-                Client Secret
+                {t("setup.sales.upload.connect.clientSecret")}
               </label>
               <div className="relative">
                 <input
@@ -154,7 +154,9 @@ export default function ToastConnectPage() {
                   type={showPassword ? "text" : "password"}
                   value={clientSecret}
                   onChange={(e) => setClientSecret(e.target.value)}
-                  placeholder="Enter your Toast Client Secret"
+                  placeholder={t(
+                    "setup.sales.upload.connect.clientSecretPlaceholder",
+                  )}
                   className="w-full h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] px-3 pr-10 text-[13px] text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] focus:ring-1 focus:ring-[#A8821F]/30 transition-colors"
                 />
                 <button
@@ -162,7 +164,7 @@ export default function ToastConnectPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A5A60] hover:text-[#8E8E93] text-sm"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 </button>
               </div>
             </div>
@@ -178,7 +180,7 @@ export default function ToastConnectPage() {
                   ? scopeError.message
                   : toastOAuth.error instanceof Error
                     ? toastOAuth.error.message
-                    : "Unable to connect Toast."}
+                    : t("setup.sales.upload.connect.toastError")}
               </p>
             </div>
           </div>
@@ -198,12 +200,12 @@ export default function ToastConnectPage() {
           {toastOAuth.isPending ? (
             <>
               <Spinner size="sm" color="#141416" />
-              Connecting to Toast...
+              {t("setup.sales.upload.connect.toastConnecting")}
             </>
           ) : (
             <>
               <ArrowRight className="h-4 w-4" />
-              Connect Toast
+              {t("setup.sales.upload.connect.toastCta")}
             </>
           )}
         </button>

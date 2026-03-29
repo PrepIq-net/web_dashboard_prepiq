@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   buildMappedCSV,
   parseCSVFile,
@@ -21,37 +22,14 @@ import {
 
 const REQUIRED_FIELDS: Array<{
   id: keyof CSVColumnMapping;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: "saleDate",
-    label: "Date",
-    description: "When the sale occurred (e.g., date, timestamp)",
-  },
-  {
-    id: "item",
-    label: "Item name or POS item id",
-    description: "Item title or provider item identifier from your export",
-  },
-  {
-    id: "quantity",
-    label: "Quantity sold",
-    description: "How many units (e.g., qty, amount)",
-  },
-];
+}> = [{ id: "saleDate" }, { id: "item" }, { id: "quantity" }];
 
 const OPTIONAL_FIELDS: Array<{
   id: keyof CSVColumnMapping;
-  label: string;
-  description: string;
-}> = [
-  { id: "revenue", label: "Revenue (optional)", description: "Total sale value for margin analysis." },
-  { id: "unit", label: "Unit (optional)", description: "PCS, KG, LTR, etc." },
-  { id: "externalRef", label: "External ref (optional)", description: "Order/receipt identifier for dedupe." },
-];
+}> = [{ id: "revenue" }, { id: "unit" }, { id: "externalRef" }];
 
 export default function LiveCSVMappingPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const file = useCSVUploadSessionStore((state) => state.file);
   const branchId = useCSVUploadSessionStore((state) => state.branchId);
@@ -86,7 +64,7 @@ export default function LiveCSVMappingPage() {
       const result = await parseCSVFile(file);
       const availableHeaders = result.headers.filter(Boolean);
       if (!availableHeaders.length) {
-        setMappingError("CSV has no header row.");
+        setMappingError(t("workspace.today.csvMap.csvNoHeader"));
         return;
       }
       setHeaders(availableHeaders);
@@ -106,9 +84,9 @@ export default function LiveCSVMappingPage() {
 
   const mappingSchema = z
     .object({
-      saleDate: z.string().min(1, "Sale date column is required."),
-      item: z.string().min(1, "Item column is required."),
-      quantity: z.string().min(1, "Quantity column is required."),
+      saleDate: z.string().min(1),
+      item: z.string().min(1),
+      quantity: z.string().min(1),
       revenue: z.string().optional(),
       unit: z.string().optional(),
       externalRef: z.string().optional(),
@@ -126,7 +104,7 @@ export default function LiveCSVMappingPage() {
       if (unique.size !== values.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each CSV column can only map to one field.",
+          message: t("setup.sales.csvMappingErrorUnique"), // Reusing existing key or better define new
         });
       }
       if (headers.length) {
@@ -136,7 +114,9 @@ export default function LiveCSVMappingPage() {
           if (!headerSet.has(value)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Column "${value}" is not in the CSV headers.`,
+              message: t("workspace.today.csvMap.columnNotInHeaders", {
+                column: value,
+              }),
               path: [key],
             });
           }
@@ -166,7 +146,10 @@ export default function LiveCSVMappingPage() {
 
     const validation = mappingSchema.safeParse(mapping);
     if (!validation.success) {
-      setMappingError(validation.error.issues[0]?.message ?? "Please fix mapping errors.");
+      setMappingError(
+        validation.error.issues[0]?.message ??
+          t("workspace.today.csvMap.fixMappingErrors"),
+      );
       return;
     }
 
@@ -184,7 +167,11 @@ export default function LiveCSVMappingPage() {
         preview_limit: 50,
       });
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "Failed to preview CSV.");
+      setMappingError(
+        error instanceof Error
+          ? error.message
+          : t("workspace.today.csvMap.failedPreview"),
+      );
     }
   }
 
@@ -204,8 +191,13 @@ export default function LiveCSVMappingPage() {
       if (created + updated > 0) {
         toast.success(
           failed > 0
-            ? `Imported ${created + updated} rows (${failed} failed).`
-            : `Import complete: ${created + updated} rows processed.`,
+            ? t("workspace.today.csvMap.importPartialSuccess", {
+                total: created + updated,
+                failed,
+              })
+            : t("workspace.today.csvMap.importSuccess", {
+                count: created + updated,
+              }),
         );
         setIsTransitioningAfterImport(true);
         router.push(returnPath || "/workspace/today");
@@ -213,11 +205,19 @@ export default function LiveCSVMappingPage() {
         return;
       }
 
-      toast.error("No rows were imported. Please check your mapping.");
-      setMappingError("No rows were imported. Please review mapping and try again.");
+      toast.error(t("workspace.today.csvMap.noRowsImported"));
+      setMappingError(t("workspace.today.csvMap.noRowsImported"));
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "Failed to import CSV.");
-      toast.error(error instanceof Error ? error.message : "Failed to import CSV.");
+      setMappingError(
+        error instanceof Error
+          ? error.message
+          : t("workspace.today.csvMap.failedImport"),
+      );
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("workspace.today.csvMap.failedImport"),
+      );
     }
   }
 
@@ -229,42 +229,43 @@ export default function LiveCSVMappingPage() {
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            ← {t("workspace.today.csvMap.back")}
           </button>
           <button
             onClick={() => router.push(returnPath || "/workspace/today")}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F] hover:text-[#D6A83A] transition-colors"
           >
-            Back to Live
+            {t("workspace.today.csvMap.backToLive")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Live Import — Map Columns
+            {t("workspace.today.csvMap.liveImport")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Match your columns
+          {t("workspace.today.csvMap.matchColumns")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          We found {headers.length} columns in your CSV. Map them once and push the
-          sales into live service.
+          {t("workspace.today.csvMap.foundColumns", { count: headers.length })}
         </p>
 
         <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-5 mb-8">
           <div className="grid grid-cols-2 gap-8 mb-4 px-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Required Data
+              {t("workspace.today.csvMap.requiredData")}
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Your CSV Column
+              {t("workspace.today.csvMap.yourCsvColumn")}
             </span>
           </div>
 
           <div className="space-y-4">
-            {REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).map((field) => {
-              const isRequired = REQUIRED_FIELDS.some((required) => required.id === field.id);
-              const isMapped = Boolean(mapping[field.id]);
+            {(REQUIRED_FIELDS as any[]).concat(OPTIONAL_FIELDS).map((field) => {
+              const isRequired = REQUIRED_FIELDS.some(
+                (required) => required.id === field.id,
+              );
+              const isMapped = Boolean(mapping[field.id as keyof CSVColumnMapping]);
               return (
                 <div
                   key={field.id}
@@ -280,19 +281,21 @@ export default function LiveCSVMappingPage() {
                     </div>
                     <div>
                       <p className="text-[13px] font-semibold text-[#F5F5F7]">
-                        {field.label}
+                        {t(`workspace.today.csvMap.fields.${field.id}.label`)}
                       </p>
                       <p className="text-[12px] text-[#5A5A60] mt-0.5">
-                        {field.description}
+                        {t(
+                          `workspace.today.csvMap.fields.${field.id}.description`,
+                        )}
                       </p>
                     </div>
                   </div>
 
                   <div>
                     <Select
-                      label="CSV Column"
+                      label={t("workspace.today.csvMap.yourCsvColumn")}
                       options={selectOptions}
-                      value={mapping[field.id] || ""}
+                      value={mapping[field.id as keyof CSVColumnMapping] || ""}
                       onChange={(value) => handleMapChange(field.id, value)}
                       className={`${
                         isRequired && !isMapped
@@ -314,7 +317,7 @@ export default function LiveCSVMappingPage() {
             onChange={(event) => setAutoCreateItems(event.target.checked)}
             className="accent-[#A8821F]"
           />
-          Auto-create missing items from CSV
+          {t("workspace.today.csvMap.autoCreateItems")}
         </label>
 
         {mappingError && (
@@ -326,15 +329,22 @@ export default function LiveCSVMappingPage() {
         {!!previewMutation.data && (
           <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-4 text-[13px] text-[#C7C7CC]">
             <p>
-              Preview: {previewMutation.data.valid_rows} valid, {" "}
-              {previewMutation.data.failed_rows} failed, {previewMutation.data.would_create} create, {" "}
-              {previewMutation.data.would_update} update.
+              {t("workspace.today.csvMap.previewLabel", {
+                valid: previewMutation.data.valid_rows,
+                failed: previewMutation.data.failed_rows,
+                create: previewMutation.data.would_create,
+                update: previewMutation.data.would_update,
+              })}
             </p>
             {!!previewMutation.data.warnings.length && (
-              <p className="text-[#C48B2A] mt-2">{previewMutation.data.warnings[0]}</p>
+              <p className="text-[#C48B2A] mt-2">
+                {previewMutation.data.warnings[0]}
+              </p>
             )}
             {!!previewMutation.data.errors.length && (
-              <p className="text-[#E7B4B4] mt-2">{previewMutation.data.errors[0]}</p>
+              <p className="text-[#E7B4B4] mt-2">
+                {previewMutation.data.errors[0]}
+              </p>
             )}
           </div>
         )}
@@ -343,16 +353,18 @@ export default function LiveCSVMappingPage() {
           onClick={() => {
             void handlePreview();
           }}
-          disabled={!isComplete || previewMutation.isPending || importMutation.isPending}
+          disabled={
+            !isComplete || previewMutation.isPending || importMutation.isPending
+          }
           className="w-full h-12 bg-[#232327] hover:bg-[#2B2B30] border border-[#2E2E33] disabled:opacity-40 disabled:cursor-not-allowed text-[#F5F5F7] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150 mb-3"
         >
           {previewMutation.isPending ? (
             <>
               <Spinner size="sm" color="#F5F5F7" />
-              Validating...
+              {t("workspace.today.csvMap.validating")}
             </>
           ) : (
-            "Validate Mapping"
+            t("workspace.today.csvMap.validateMapping")
           )}
         </button>
 
@@ -366,11 +378,11 @@ export default function LiveCSVMappingPage() {
           {importMutation.isPending ? (
             <>
               <Spinner size="sm" color="#141416" />
-              Importing...
+              {t("workspace.today.csvMap.importing")}
             </>
           ) : (
             <>
-              Import Sales Data
+              {t("workspace.today.csvMap.importSalesData")}
               <ArrowRight className="h-4 w-4" />
             </>
           )}

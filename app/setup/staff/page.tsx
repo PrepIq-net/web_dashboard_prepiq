@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 import {
   Mail,
   ArrowRight,
@@ -12,27 +13,28 @@ import {
   Eye,
 } from "iconoir-react";
 
-const ROLE_OPTIONS = [
+const ROLE_OPTIONS = (t: any) => [
   {
     value: "CHEF",
-    label: "Kitchen Lead",
-    description: "Full production access — logs prep, waste, and batch output.",
+    label: t("setup.staff.kitchenLead"),
+    description: t("setup.staff.kitchenLeadDesc"),
   },
   {
     value: "MANAGER",
-    label: "Manager",
-    description: "Branch-level oversight — views reports and manages staff.",
+    label: t("setup.staff.manager"),
+    description: t("setup.staff.managerDesc"),
   },
   {
     value: "STAFF",
-    label: "Staff",
-    description: "Read-only prep lists — sees daily targets, no editing.",
+    label: t("setup.staff.staff"),
+    description: t("setup.staff.staffDesc"),
   },
 ];
 
 type SalesAccessAnswer = "yes" | "no" | null;
 
 export default function StaffInvitePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
@@ -49,7 +51,7 @@ export default function StaffInvitePage() {
     }, 900);
   }
 
-  const selectedRole = ROLE_OPTIONS.find((r) => r.value === role);
+  const selectedRole = ROLE_OPTIONS(t).find((r) => r.value === role);
 
   // Step 1 — ask if they have someone who handles sales data
   if (salesAccess === null) {
@@ -59,15 +61,15 @@ export default function StaffInvitePage() {
           <div className="flex items-center gap-2 mb-10">
             <UserPlus className="h-4 w-4 text-[#A8821F]" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-              Step 5 — Team
+              {t("setup.common.step", { step: 5 })} — {t("setup.common.team")}
             </span>
           </div>
 
           <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
-            Does someone else handle your sales data?
+            {t("setup.staff.question")}
           </h1>
           <p className="text-[16px] leading-[24px] text-[#8E8E93] mb-10 max-w-sm">
-            If a team member manages your POS or exports, they can connect it directly — no need to share credentials.
+            {t("setup.staff.questionDesc")}
           </p>
 
           <div className="space-y-3 mb-8">
@@ -82,10 +84,10 @@ export default function StaffInvitePage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
-                    Yes — invite them to connect sales data
+                    {t("setup.staff.inviteDataTitle")}
                   </p>
                   <p className="text-[13px] leading-[20px] text-[#8E8E93]">
-                    They'll get access to connect the POS or upload CSV exports.
+                    {t("setup.staff.inviteDataDesc")}
                   </p>
                 </div>
               </div>
@@ -102,10 +104,10 @@ export default function StaffInvitePage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
-                    No — I handle it myself
+                    {t("setup.staff.handleMyselfTitle")}
                   </p>
                   <p className="text-[13px] leading-[20px] text-[#8E8E93]">
-                    Invite your kitchen lead instead so they can log prep and waste from day one.
+                    {t("setup.staff.handleMyselfDesc")}
                   </p>
                 </div>
               </div>
@@ -117,7 +119,7 @@ export default function StaffInvitePage() {
             onClick={() => router.push("/setup/pricing")}
             className="w-full text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
           >
-            Skip — go to pricing
+            {t("setup.staff.skipToPricing")}
           </button>
         </div>
       </div>
@@ -128,12 +130,12 @@ export default function StaffInvitePage() {
   const defaultRole = salesAccess === "yes" ? "MANAGER" : "CHEF";
   const headline =
     salesAccess === "yes"
-      ? "Invite your data manager."
-      : "Invite your kitchen lead.";
+      ? t("setup.staff.inviteDataHeadline")
+      : t("setup.staff.inviteChefHeadline");
   const subtext =
     salesAccess === "yes"
-      ? "They'll be able to connect your POS or upload sales exports directly."
-      : "The forecast is ready. Invite the person who runs the kitchen so they can log production and track waste from day one.";
+      ? t("setup.staff.inviteDataSubtext")
+      : t("setup.staff.inviteChefSubtext");
 
   return (
     <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
@@ -143,11 +145,11 @@ export default function StaffInvitePage() {
             onClick={() => setSalesAccess(null)}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            ← {t("setup.common.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 5 — Team
+            {t("setup.common.step", { step: 5 })} — {t("setup.common.team")}
           </span>
         </div>
 
@@ -165,7 +167,7 @@ export default function StaffInvitePage() {
         >
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Email Address
+              {t("setup.staff.emailLabel")}
             </label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5A5A60]">
@@ -188,7 +190,7 @@ export default function StaffInvitePage() {
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Role
+              {t("setup.staff.roleLabel")}
             </label>
             <div className="relative">
               <select
@@ -196,7 +198,7 @@ export default function StaffInvitePage() {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
               >
-                {ROLE_OPTIONS.map((opt) => (
+                {ROLE_OPTIONS(t).map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -220,10 +222,10 @@ export default function StaffInvitePage() {
               className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-[14px] font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
             >
               {isSubmitting ? (
-                "Sending invite..."
+                t("setup.staff.sendingInvite")
               ) : (
                 <>
-                  Send Invite &amp; Continue
+                  {t("setup.staff.sendInvite")}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -234,7 +236,7 @@ export default function StaffInvitePage() {
               onClick={() => router.push("/setup/pricing")}
               className="w-full h-12 border border-[#2E2E33] bg-transparent hover:bg-[#1C1C1F] text-[#8E8E93] hover:text-[#C7C7CC] text-[14px] font-medium rounded-[8px] transition-colors duration-150"
             >
-              Skip — choose plan first
+              {t("setup.staff.skipChoosePlan")}
             </button>
           </div>
         </form>

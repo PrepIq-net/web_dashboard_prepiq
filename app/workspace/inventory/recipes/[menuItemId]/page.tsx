@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Trash, Plus, Search, Check, WarningTriangle } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useTranslation } from "@/lib/i18n";
 import { useCurrentUserProfile } from "@/services";
 import {
   useIngredients,
@@ -33,6 +34,7 @@ type PendingLine = {
 // ============================================================================
 
 function RecipeBuilderContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useParams<{ menuItemId: string }>();
   const searchParams = useSearchParams();
@@ -133,7 +135,7 @@ function RecipeBuilderContent() {
     const qty = parseFloat(line.quantity);
     if (!line.quantity || isNaN(qty) || qty <= 0) {
       setPendingLines((prev) =>
-        prev.map((l) => (l.key === key ? { ...l, error: "Enter a valid quantity greater than 0." } : l))
+        prev.map((l) => (l.key === key ? { ...l, error: t("workspace.inventory.recipesBuilder.validQtyError") } : l))
       );
       return;
     }
@@ -153,7 +155,7 @@ function RecipeBuilderContent() {
     } catch {
       setPendingLines((prev) =>
         prev.map((l) =>
-          l.key === key ? { ...l, saving: false, error: "Failed to save. Try again." } : l
+          l.key === key ? { ...l, saving: false, error: t("workspace.inventory.recipesBuilder.saveFailed") } : l
         )
       );
     }
@@ -168,10 +170,10 @@ function RecipeBuilderContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Recipe Builder"
+      eyebrow={t("workspace.inventory.recipesBuilder.eyebrow")}
       title={menuItemName}
-      description="Define which ingredients go into this dish and how much of each is needed per serving."
-      insight="Accurate recipes are the foundation of ingredient demand forecasting. Every line here directly drives prep quantity predictions."
+      description={t("workspace.inventory.recipesBuilder.description")}
+      insight={t("workspace.inventory.recipesBuilder.insight")}
     >
       {/* Back nav */}
       <div className="mb-8">
@@ -180,7 +182,7 @@ function RecipeBuilderContent() {
           className="inline-flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Inventory
+          {t("workspace.inventory.recipesBuilder.backToInventory")}
         </Link>
       </div>
 
@@ -194,12 +196,14 @@ function RecipeBuilderContent() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Ingredients
+                {t("workspace.inventory.recipesBuilder.ingredientsTitle")}
               </p>
               <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
                 {totalLines === 0
-                  ? "No ingredients yet"
-                  : `${savedRecipes.length} ingredient${savedRecipes.length !== 1 ? "s" : ""}`}
+                  ? t("workspace.inventory.recipesBuilder.noIngredientsYet")
+                  : savedRecipes.length === 1
+                    ? t("workspace.inventory.recipesBuilder.nIngredients", { count: savedRecipes.length })
+                    : t("workspace.inventory.recipesBuilder.nIngredientsPlural", { count: savedRecipes.length })}
               </h3>
             </div>
             <button
@@ -209,23 +213,23 @@ function RecipeBuilderContent() {
               className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90 disabled:opacity-40"
             >
               <Plus className="h-4 w-4" />
-              Add Ingredient
+              {t("workspace.inventory.recipesBuilder.addIngredient")}
             </button>
           </div>
 
           {/* Saved recipe lines */}
           {isLoading ? (
             <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 text-center">
-              <p className="text-sm text-text-muted">Loading recipe…</p>
+              <p className="text-sm text-text-muted">{t("workspace.inventory.recipesBuilder.loadingRecipe")}</p>
             </div>
           ) : savedRecipes.length === 0 && pendingLines.length === 0 ? (
             <div className="bg-surface-2 rounded-xl border border-surface-4 p-12 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-3 border border-surface-4">
                 <Plus className="h-5 w-5 text-text-muted" />
               </div>
-              <p className="text-sm font-semibold text-text-secondary">Start building the recipe</p>
+              <p className="text-sm font-semibold text-text-secondary">{t("workspace.inventory.recipesBuilder.startBuildingTitle")}</p>
               <p className="mt-1 text-xs text-text-muted">
-                Add ingredients one by one. Each line represents one component of this dish.
+                {t("workspace.inventory.recipesBuilder.startBuildingDesc")}
               </p>
               <button
                 type="button"
@@ -233,16 +237,16 @@ function RecipeBuilderContent() {
                 className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
               >
                 <Plus className="h-4 w-4" />
-                Add First Ingredient
+                {t("workspace.inventory.recipesBuilder.addFirstIngredient")}
               </button>
             </div>
           ) : (
             <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
               {/* Column headers */}
               <div className="grid grid-cols-[1fr_140px_100px_48px] gap-4 border-b border-surface-4 bg-gradient-to-br from-surface-3 to-surface-2 px-5 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Ingredient</p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Qty per serving</p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste %</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("workspace.inventory.ingredients.table.ingredient")}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("workspace.inventory.recipesBuilder.qtyPerServing")}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("workspace.inventory.recipesBuilder.wastePct")}</p>
                 <span />
               </div>
 
@@ -281,21 +285,21 @@ function RecipeBuilderContent() {
           {/* Recipe stats */}
           <div className="bg-surface-2 rounded-xl border border-surface-4 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-              Recipe Summary
+              {t("workspace.inventory.recipesBuilder.recipeSummary")}
             </p>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-text-muted">Total ingredients</p>
+                <p className="text-sm text-text-muted">{t("workspace.inventory.recipesBuilder.totalIngredients")}</p>
                 <p className="text-sm font-semibold text-text-primary">{savedRecipes.length}</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-text-muted">Perishable</p>
+                <p className="text-sm text-text-muted">{t("workspace.inventory.recipesBuilder.perishable")}</p>
                 <p className="text-sm font-semibold text-status-warning">
                   {savedRecipes.filter((r) => ingredients.find((i) => i.id === r.ingredient)?.is_perishable).length}
                 </p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-text-muted">Unsaved lines</p>
+                <p className="text-sm text-text-muted">{t("workspace.inventory.recipesBuilder.unsavedLines")}</p>
                 <p className={`text-sm font-semibold ${pendingLines.length > 0 ? "text-brand-gold" : "text-text-muted"}`}>
                   {pendingLines.length}
                 </p>
@@ -307,7 +311,7 @@ function RecipeBuilderContent() {
           {categoryBreakdown.length > 0 && (
             <div className="bg-surface-2 rounded-xl border border-surface-4 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                By Category
+                {t("workspace.inventory.recipesBuilder.byCategory")}
               </p>
               <div className="space-y-3">
                 {categoryBreakdown.map(([cat, data]) => (
@@ -333,14 +337,13 @@ function RecipeBuilderContent() {
           {/* Tip */}
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-2">
-              How it works
+              {t("workspace.inventory.recipesBuilder.howItWorks")}
             </p>
             <p className="text-xs text-text-muted leading-relaxed">
-              Each ingredient line represents the quantity needed to produce <strong className="text-text-secondary">one serving</strong> of this dish.
-              The waste factor adds a buffer for prep loss (e.g. trimming, cooking reduction).
+              {t("workspace.inventory.recipesBuilder.howItWorksDesc")}
             </p>
             <p className="mt-3 text-xs text-text-muted leading-relaxed">
-              These quantities are multiplied by the daily forecast to calculate total ingredient demand.
+              {t("workspace.inventory.recipesBuilder.forecastMultiplicationDesc")}
             </p>
           </div>
         </div>
@@ -376,6 +379,7 @@ function SavedRecipeLine({
   onDelete: () => void;
   isDeleting: boolean;
 }) {
+  const { t } = useTranslation();
   const wastePct = parseFloat(recipe.waste_factor ?? "0") * 100;
 
   return (
@@ -391,7 +395,7 @@ function SavedRecipeLine({
           </span>
           {ingredient?.is_perishable && (
             <span className="text-[10px] uppercase tracking-[0.06em] text-status-warning">
-              · perishable
+              · {t("workspace.inventory.recipesBuilder.perishableBadge")}
             </span>
           )}
         </div>
@@ -447,6 +451,7 @@ function PendingRecipeLine({
   onSave: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const qtyRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus quantity when line appears
@@ -470,7 +475,7 @@ function PendingRecipeLine({
           </span>
           {line.ingredient.is_perishable && (
             <span className="text-[10px] uppercase tracking-[0.06em] text-status-warning">
-              · perishable
+              · {t("workspace.inventory.recipesBuilder.perishableBadge")}
             </span>
           )}
         </div>
@@ -578,6 +583,7 @@ function IngredientPicker({
   onSelect: (i: Ingredient) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   // Group by category when no search, flat list when searching
   const grouped = useMemo(() => {
     if (search.trim()) return null;
@@ -612,7 +618,7 @@ function IngredientPicker({
             type="text"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search ingredients…"
+            placeholder={t("workspace.inventory.recipesBuilder.searchIngredients")}
             className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
           />
           {search && (
@@ -621,7 +627,7 @@ function IngredientPicker({
               onClick={() => onSearch("")}
               className="text-xs text-text-muted hover:text-text-secondary"
             >
-              Clear
+              {t("workspace.inventory.recipesBuilder.clear")}
             </button>
           )}
         </div>
@@ -631,7 +637,9 @@ function IngredientPicker({
           {ingredients.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-text-muted">
-                {search ? "No ingredients match your search." : "All ingredients are already in this recipe."}
+                {search
+                  ? t("workspace.inventory.recipesBuilder.noMatch")
+                  : t("workspace.inventory.recipesBuilder.allUsed")}
               </p>
             </div>
           ) : grouped ? (
@@ -659,8 +667,18 @@ function IngredientPicker({
         {/* Footer hint */}
         <div className="border-t border-surface-4 px-4 py-3">
           <p className="text-[11px] text-text-muted">
-            {ingredients.length} ingredient{ingredients.length !== 1 ? "s" : ""} available
-            {search ? ` matching "${search}"` : ""}
+            {ingredients.length === 1
+              ? t("workspace.inventory.recipesBuilder.nAvailable", {
+                  count: ingredients.length,
+                })
+              : t("workspace.inventory.recipesBuilder.nAvailablePlural", {
+                  count: ingredients.length,
+                })}
+            {search
+              ? t("workspace.inventory.recipesBuilder.matchingSearch", {
+                  search,
+                })
+              : ""}
           </p>
         </div>
       </div>
@@ -675,6 +693,7 @@ function IngredientPickerRow({
   ingredient: Ingredient;
   onSelect: (i: Ingredient) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -685,12 +704,18 @@ function IngredientPickerRow({
         <p className="text-sm font-semibold text-text-primary truncate">{ingredient.name}</p>
         <div className="mt-0.5 flex items-center gap-2">
           {ingredient.shelf_life_days && (
-            <span className={`text-[11px] ${ingredient.shelf_life_days <= 5 ? "text-status-warning" : "text-text-muted"}`}>
-              {ingredient.shelf_life_days}d shelf life
+            <span
+              className={`text-[11px] ${ingredient.shelf_life_days <= 5 ? "text-status-warning" : "text-text-muted"}`}
+            >
+              {t("workspace.inventory.recipesBuilder.shelfLifeDays", {
+                days: ingredient.shelf_life_days,
+              })}
             </span>
           )}
           {ingredient.is_perishable && (
-            <span className="text-[10px] uppercase tracking-[0.06em] text-status-warning">perishable</span>
+            <span className="text-[10px] uppercase tracking-[0.06em] text-status-warning">
+              {t("workspace.inventory.recipesBuilder.perishableBadge")}
+            </span>
           )}
         </div>
       </div>
@@ -706,10 +731,13 @@ function IngredientPickerRow({
 // ============================================================================
 
 export default function RecipeBuilderPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
-        <div className="px-6 py-8 text-sm text-text-muted">Loading recipe builder…</div>
+        <div className="px-6 py-8 text-sm text-text-muted">
+          {t("common.loading")}
+        </div>
       }
     >
       <RecipeBuilderContent />

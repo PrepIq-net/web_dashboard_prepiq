@@ -37,6 +37,7 @@ export function ChefView({
   operationalWarnings,
   isLoading,
 }: ChefViewProps) {
+  const { t } = useTranslation();
   const taskCompletionPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
@@ -45,19 +46,18 @@ export function ChefView({
       <div className="mb-12 flex items-start justify-between gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
-            Production Command
+            {t("dashboard.home.productionCommand")}
           </p>
           <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
-            Today&apos;s Production Plan
+            {t("dashboard.home.todaysPlan")}
           </h1>
           <p className="mt-4 text-base text-text-secondary max-w-2xl">
-            Operational guidance and task management for{" "}
-            {branchName || "your assigned branch"}.
+            {t("dashboard.home.assignedBranch")}: {branchName || t("dashboard.home.assignedBranch")}.
           </p>
         </div>
         <div className="text-right shrink-0 mt-1">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-            Shift Progress
+            {t("dashboard.home.shiftProgress")}
           </p>
           <p className="mt-1 font-display text-3xl font-semibold text-brand-gold">
             {shiftProgress.toFixed(0)}%
@@ -72,18 +72,18 @@ export function ChefView({
           <div className="px-8 py-6 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Production Schedule
+                {t("dashboard.home.productionSchedule")}
               </p>
               <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Items to Prepare
+                {t("dashboard.home.itemsToPrepare")}
               </h2>
             </div>
             <div className="text-right">
               <p className="text-sm font-medium text-text-secondary">
-                {todayRecommendations.length} items planned
+                {t("dashboard.home.itemsPlanned", { count: todayRecommendations.length })}
               </p>
               <p className="text-xs text-text-muted mt-0.5">
-                Total: {todayPlanTotal.toLocaleString()} units
+                {t("dashboard.home.totalUnits", { count: todayPlanTotal.toLocaleString() })}
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export function ChefView({
           {isLoading ? (
             <div className="px-8 py-12 flex items-center justify-center text-text-muted gap-3">
               <div className="w-5 h-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-              Loading today&apos;s production command…
+              {t("common.loading")}
             </div>
           ) : todayRecommendations.length ? (
             <div className="divide-y divide-surface-4">
@@ -99,10 +99,10 @@ export function ChefView({
                 const isHighPriority = index < 3;
                 const isMedPriority = index < 7;
                 const priorityLabel = isHighPriority
-                  ? "High"
+                  ? t("dashboard.home.highPriority")
                   : isMedPriority
-                    ? "Medium"
-                    : "Standard";
+                    ? t("dashboard.home.medPriority")
+                    : t("dashboard.home.stdPriority");
                 const priorityCls = isHighPriority
                   ? "bg-status-critical/15 text-status-critical"
                   : isMedPriority
@@ -125,7 +125,7 @@ export function ChefView({
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${priorityCls}`}
                         >
-                          {priorityLabel} Priority
+                          {priorityLabel} {t("dashboard.home.prioritySuffix")}
                         </span>
                       </div>
                     </div>
@@ -141,8 +141,8 @@ export function ChefView({
             </div>
           ) : (
             <div className="px-8 py-12 text-center">
-              <p className="text-text-muted">No production command generated yet</p>
-              <p className="text-sm text-text-disabled mt-1">Check back in a few minutes</p>
+              <p className="text-text-muted">{t("dashboard.home.noCommandGenerated")}</p>
+              <p className="text-sm text-text-disabled mt-1">{t("dashboard.home.checkBack")}</p>
             </div>
           )}
         </div>
@@ -154,10 +154,10 @@ export function ChefView({
         <article className="bg-surface-2 rounded-card p-8 border border-surface-4/50">
           <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Task Management
+              {t("dashboard.home.taskManagement")}
             </p>
             <h2 className="mt-2 font-display text-xl font-semibold text-text-primary">
-              Assigned Tasks
+              {t("dashboard.home.assignedTasks")}
             </h2>
           </div>
 
@@ -185,15 +185,15 @@ export function ChefView({
                         : "bg-status-warning/15 text-status-warning"
                     }`}
                   >
-                    {task.done ? "Done" : "Pending"}
+                    {task.done ? t("dashboard.home.done") : t("dashboard.home.pending")}
                   </span>
                 </div>
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-text-muted">No assigned tasks yet</p>
+                <p className="text-text-muted">{t("dashboard.home.noAssignedTasks")}</p>
                 <p className="text-sm text-text-disabled mt-1">
-                  Tasks will appear as they are assigned
+                  {t("dashboard.home.tasksWillAppear")}
                 </p>
               </div>
             )}
@@ -201,7 +201,7 @@ export function ChefView({
 
           <div className="mt-6 pt-6 border-t border-surface-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-text-secondary">Task Completion</p>
+              <p className="text-sm font-medium text-text-secondary">{t("dashboard.home.taskCompletion")}</p>
               <span className="text-sm font-semibold text-text-primary">
                 {completedCount}/{totalCount}
               </span>
@@ -219,10 +219,10 @@ export function ChefView({
         <article className="bg-surface-2 rounded-card p-8 border border-surface-4/50">
           <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Shift Information
+              {t("dashboard.home.shiftInformation")}
             </p>
             <h2 className="mt-2 font-display text-xl font-semibold text-text-primary">
-              Current Status
+              {t("dashboard.home.currentStatus")}
             </h2>
           </div>
 
@@ -230,7 +230,7 @@ export function ChefView({
             <div className="grid grid-cols-2 gap-3">
               <div className="p-5 bg-surface-3 rounded-xl text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
-                  Current Time
+                  {t("dashboard.home.currentTime")}
                 </p>
                 <p className="font-display text-2xl font-semibold text-text-primary">
                   {currentTimeLabel}
@@ -238,7 +238,7 @@ export function ChefView({
               </div>
               <div className="p-5 bg-surface-3 rounded-xl text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
-                  Shift Progress
+                  {t("dashboard.home.shiftProgress")}
                 </p>
                 <p className="font-display text-2xl font-semibold text-brand-gold">
                   {shiftProgress.toFixed(0)}%
@@ -248,7 +248,7 @@ export function ChefView({
 
             <div className="p-5 bg-surface-3 rounded-xl">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-text-secondary">Shift Timeline</p>
+                <p className="text-sm font-medium text-text-secondary">{t("dashboard.home.shiftTimeline")}</p>
                 <p className="text-xs text-text-muted">6:00 AM – 10:00 PM</p>
               </div>
               <div className="h-2.5 bg-surface-2 rounded-full overflow-hidden">
@@ -261,7 +261,7 @@ export function ChefView({
 
             <div className="p-5 bg-surface-3 rounded-xl">
               <p className="text-sm font-medium text-text-secondary mb-3">
-                Operational Warnings
+                {t("dashboard.home.operationalWarnings")}
               </p>
               {operationalWarnings.length ? (
                 <div className="space-y-2">
@@ -273,7 +273,7 @@ export function ChefView({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-status-success">No active operational warnings</p>
+                <p className="text-sm text-status-success">{t("dashboard.home.noWarnings")}</p>
               )}
             </div>
           </div>

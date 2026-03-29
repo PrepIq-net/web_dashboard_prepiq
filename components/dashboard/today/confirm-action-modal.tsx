@@ -1,6 +1,7 @@
 "use client";
 
 import { ModalShell } from "@/components/ui/modal-shell";
+import { useTranslation } from "@/lib/i18n";
 
 type ConfirmActionModalProps = {
   open: boolean;
@@ -23,6 +24,7 @@ export function ConfirmActionModal({
   onClose,
   onConfirm,
 }: ConfirmActionModalProps) {
+  const { t } = useTranslation();
   return (
     <ModalShell
       open={open}
@@ -36,7 +38,7 @@ export function ConfirmActionModal({
             onClick={onClose}
             className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-3"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -48,7 +50,7 @@ export function ConfirmActionModal({
                 : "border-brand-gold/45 text-brand-gold hover:bg-brand-gold/10"
             }`}
           >
-            {isConfirming ? "Processing..." : confirmLabel}
+            {isConfirming ? t("setup.common.processing") : confirmLabel}
           </button>
         </>
       }

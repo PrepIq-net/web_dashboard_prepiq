@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
@@ -49,6 +50,7 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
 }
 
 function RiskPageContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -132,15 +134,15 @@ function RiskPageContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Risk"
-      title="Operational Risk"
-      description="Early warning signals for service disruption, waste, and supply risk."
-      insight="See what could go wrong before service starts."
+      eyebrow={t("risk.eyebrow")}
+      title={t("risk.title")}
+      description={t("risk.description")}
+      insight={t("risk.insight")}
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <Select
-            label="Branch"
+            label={t("common.branch")}
             options={branchOptions.map((branch) => ({
               value: branch.id,
               label: branch.name,
@@ -150,7 +152,7 @@ function RiskPageContent() {
           />
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Date
+              {t("common.date")}
             </label>
             <input
               type="date"
@@ -161,7 +163,7 @@ function RiskPageContent() {
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Scope
+              {t("financial.summary.title")}
             </label>
             <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
               {risk ? `${risk.branch_name} · ${risk.target_date}` : "—"}
@@ -172,14 +174,14 @@ function RiskPageContent() {
         <div className="mt-6 pt-6 border-t border-surface-4">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "OVERVIEW", label: "Overview" },
-              { id: "STOCKOUT", label: "Stockout Risk" },
-              { id: "WASTE", label: "Waste Risk" },
-              { id: "SUPPLY", label: "Supply Risk" },
-              { id: "VOLATILITY", label: "Demand Volatility" },
-              { id: "NETWORK", label: "Network Signals" },
-              { id: "ALERTS", label: "Operational Alerts" },
-              { id: "TREND", label: "Risk Trend" },
+              { id: "OVERVIEW", label: t("risk.tabs.overview") },
+              { id: "STOCKOUT", label: t("risk.tabs.stockout") },
+              { id: "WASTE", label: t("risk.tabs.waste") },
+              { id: "SUPPLY", label: t("risk.tabs.supply") },
+              { id: "VOLATILITY", label: t("risk.tabs.volatility") },
+              { id: "NETWORK", label: t("risk.tabs.network") },
+              { id: "ALERTS", label: t("risk.tabs.alerts") },
+              { id: "TREND", label: t("risk.tabs.trend") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -202,17 +204,17 @@ function RiskPageContent() {
         <section className="space-y-8">
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Daily Operational Risk Score
+              {t("risk.overview.dailyScore")}
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-text-muted">Kitchen Risk Level</p>
+                <p className="text-sm text-text-muted">{t("risk.overview.kitchenLevel")}</p>
                 <p className={`mt-1 text-3xl font-semibold ${riskTone(risk?.risk_score.score ?? 0)}`}>
                   {risk?.risk_score.level ?? "—"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-text-muted">Score</p>
+                <p className="text-sm text-text-muted">{t("risk.overview.score")}</p>
                 <p className="mt-1 text-3xl font-semibold text-text-primary">
                   {risk?.risk_score.score ?? 0} / 100
                 </p>
@@ -220,25 +222,25 @@ function RiskPageContent() {
             </div>
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Demand volatility</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">{t("risk.volatility.title")}</p>
                 <p className="mt-2 text-xl font-semibold text-text-primary">
                   {toPercent(breakdown?.demand_volatility ?? 0)}
                 </p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Stock risk</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">{t("workspace.today.table.risk")}</p>
                 <p className="mt-2 text-xl font-semibold text-text-primary">
                   {toPercent(breakdown?.stock_risk ?? 0)}
                 </p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Waste risk</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">{t("workspace.today.live.wasteRisk")}</p>
                 <p className="mt-2 text-xl font-semibold text-text-primary">
                   {toPercent(breakdown?.waste_risk ?? 0)}
                 </p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Supply risk</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-text-muted">{t("risk.supply.title")}</p>
                 <p className="mt-2 text-xl font-semibold text-text-primary">
                   {toPercent(breakdown?.supply_risk ?? 0)}
                 </p>
@@ -248,24 +250,24 @@ function RiskPageContent() {
 
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Risk Calculation Signals
+              {t("risk.overview.calculationSignals")}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
-                <p className="font-semibold text-text-primary">Demand signals</p>
-                <p>Forecast confidence · Demand volatility · Trend velocity</p>
+                <p className="font-semibold text-text-primary">{t("risk.overview.demandSignals")}</p>
+                <p>{t("risk.overview.demandSignalsDetail")}</p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
-                <p className="font-semibold text-text-primary">Inventory signals</p>
-                <p>Remaining stock · Depletion rate</p>
+                <p className="font-semibold text-text-primary">{t("risk.overview.inventorySignals")}</p>
+                <p>{t("risk.overview.inventorySignalsDetail")}</p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
-                <p className="font-semibold text-text-primary">Supply signals</p>
-                <p>Supplier lead time · Stock buffer</p>
+                <p className="font-semibold text-text-primary">{t("risk.overview.supplySignals")}</p>
+                <p>{t("risk.overview.supplySignalsDetail")}</p>
               </div>
               <div className="rounded-lg border border-surface-4 bg-surface-3 p-4 text-sm text-text-secondary">
-                <p className="font-semibold text-text-primary">Operational signals</p>
-                <p>Waste rate · Stockout history · Chef overrides</p>
+                <p className="font-semibold text-text-primary">{t("risk.overview.operationalSignals")}</p>
+                <p>{t("risk.overview.operationalSignalsDetail")}</p>
               </div>
             </div>
           </div>
@@ -276,10 +278,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Stockout Risk Forecast
+              {t("risk.stockout.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Next Service Risk Signals
+              {t("risk.stockout.signalsTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -301,7 +303,7 @@ function RiskPageContent() {
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-text-secondary">
-                    Probability: <span className="font-semibold text-text-primary">{toPercent(item.probability_pct)}</span>
+                    {t("risk.stockout.probability", { percent: toPercent(item.probability_pct) })}
                   </p>
                   <ul className="mt-3 space-y-1 text-sm text-text-muted">
                     {item.reasons.map((reason, index) => (
@@ -309,13 +311,13 @@ function RiskPageContent() {
                     ))}
                   </ul>
                   <p className="mt-3 text-sm font-semibold text-text-primary">
-                    Suggested action: {item.suggested_action}
+                    {t("workspace.today.context.suggested")} {item.suggested_action}
                   </p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No elevated stockout risks detected for the selected date.
+                {t("risk.stockout.noRisks")}
               </div>
             )}
           </div>
@@ -326,10 +328,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Waste Risk Forecast
+              {t("risk.waste.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Over-prep Loss Signals
+              {t("risk.waste.signalsTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -351,10 +353,7 @@ function RiskPageContent() {
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-text-secondary">
-                    Projected excess:{" "}
-                    <span className="font-semibold text-text-primary">
-                      {item.projected_excess}
-                    </span>
+                    {t("risk.waste.projectedExcess", { quantity: item.projected_excess })}
                   </p>
                   <ul className="mt-3 space-y-1 text-sm text-text-muted">
                     {item.drivers.map((reason, index) => (
@@ -362,13 +361,13 @@ function RiskPageContent() {
                     ))}
                   </ul>
                   <p className="mt-3 text-sm font-semibold text-text-primary">
-                    Suggested action: {item.suggested_action}
+                    {t("workspace.today.context.suggested")} {item.suggested_action}
                   </p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No elevated waste risks detected for the selected date.
+                {t("risk.waste.noRisks")}
               </div>
             )}
           </div>
@@ -379,10 +378,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Supply Risk
+              {t("risk.supply.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Procurement Early Warnings
+              {t("risk.supply.signalsTitle")}
             </h3>
             {risk?.supply_risk?.data_note ? (
               <p className="mt-2 text-sm text-text-muted">{risk.supply_risk.data_note}</p>
@@ -407,18 +406,18 @@ function RiskPageContent() {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-text-secondary">
-                    <p>Current stock: {item.current_stock} {item.unit}</p>
-                    <p>Expected depletion: {item.expected_depletion_days} days</p>
-                    <p>Supplier lead time: {item.supplier_lead_time_days} days</p>
+                    <p>{t("risk.supply.currentStock", { quantity: item.current_stock, unit: item.unit })}</p>
+                    <p>{t("risk.supply.expectedDepletion", { days: item.expected_depletion_days })}</p>
+                    <p>{t("risk.supply.supplierLeadTime", { days: item.supplier_lead_time_days })}</p>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-text-primary">
-                    Suggested action: {item.suggested_action}
+                    {t("workspace.today.context.suggested")} {item.suggested_action}
                   </p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No supply risks detected for the selected date.
+                {t("risk.supply.noRisks")}
               </div>
             )}
           </div>
@@ -429,10 +428,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Demand Volatility Risk
+              {t("risk.volatility.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Forecasting Uncertainty Signals
+              {t("risk.volatility.signalsTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -442,18 +441,18 @@ function RiskPageContent() {
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-semibold text-text-primary">{item.item_title}</p>
                     <span className="text-xs font-semibold text-text-muted">
-                      Confidence: {item.forecast_confidence}
+                      {t("risk.volatility.confidence", { label: item.forecast_confidence })}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-text-secondary">
-                    Volatility: <span className="font-semibold text-text-primary">{toPercent(item.volatility_pct)}</span>
+                    {t("risk.volatility.volatility", { percent: toPercent(item.volatility_pct) })}
                   </p>
                   <p className="mt-3 text-sm text-text-muted">{item.recent_pattern}</p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No high demand volatility detected for the selected date.
+                {t("risk.volatility.noVolatility")}
               </div>
             )}
           </div>
@@ -464,10 +463,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Network Risk Signals
+              {t("risk.network.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Cross-location Risk Alerts
+              {t("risk.network.signalsTitle")}
             </h3>
           </div>
           {risk?.network_risk?.available ? (
@@ -475,27 +474,27 @@ function RiskPageContent() {
               {(risk.network_risk.alerts ?? []).length ? (
                 risk.network_risk.alerts?.map((alert) => (
                   <div key={alert.item_id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-lg font-semibold text-text-primary">{alert.item_title ?? "Item"}</p>
+                    <p className="text-lg font-semibold text-text-primary">{alert.item_title ?? t("workspace.today.table.item")}</p>
                     <p className="mt-2 text-sm text-text-secondary">
-                      Waste increasing across {alert.locations_affected} locations.
+                      {t("risk.network.wasteIncreasing", { count: alert.locations_affected })}
                     </p>
                     <p className="mt-2 text-sm text-text-secondary">
-                      Average waste change: <span className="font-semibold text-text-primary">{toPercent(alert.avg_waste_rate_change_pct)}</span>
+                      {t("risk.network.avgWasteChange", { percent: toPercent(alert.avg_waste_rate_change_pct) })}
                     </p>
                     <p className="mt-3 text-sm font-semibold text-text-primary">
-                      Suggested action: {alert.suggested_action}
+                      {t("workspace.today.context.suggested")} {alert.suggested_action}
                     </p>
                   </div>
                 ))
               ) : (
                 <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                  {risk.network_risk.message ?? "No network risk spikes detected."}
+                  {risk.network_risk.message ?? t("risk.network.noRisks")}
                 </div>
               )}
             </div>
           ) : (
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-              {risk?.network_risk?.message ?? "Network insights require multiple active branches."}
+              {risk?.network_risk?.message ?? t("risk.network.multipleBranchesRequired")}
             </div>
           )}
         </section>
@@ -505,10 +504,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Operational Alerts
+              {t("risk.alerts.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Active Risk Inbox
+              {t("risk.alerts.signalsTitle")}
             </h3>
           </div>
           <div className="space-y-3">
@@ -531,13 +530,13 @@ function RiskPageContent() {
                   </div>
                   <p className="mt-1 text-sm text-text-muted">{alert.detail}</p>
                   <p className="mt-3 text-sm font-semibold text-text-primary">
-                    Suggested action: {alert.suggested_action}
+                    {t("workspace.today.context.suggested")} {alert.suggested_action}
                   </p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No active operational alerts right now.
+                {t("risk.alerts.noAlerts")}
               </div>
             )}
           </div>
@@ -548,10 +547,10 @@ function RiskPageContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Risk Trend
+              {t("risk.trend.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Risks Increasing Over Time
+              {t("risk.trend.signalsTitle")}
             </h3>
           </div>
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
@@ -578,7 +577,7 @@ function RiskPageContent() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-text-muted">Not enough risk trend data yet.</p>
+                    <p className="text-sm text-text-muted">{t("risk.trend.noData")}</p>
             )}
           </div>
         </section>
@@ -588,11 +587,12 @@ function RiskPageContent() {
 }
 
 export default function RiskPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading risk intelligence…
+          {t("risk.loading")}
         </div>
       }
     >

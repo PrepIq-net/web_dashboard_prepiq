@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { useCreateMenuItem, useUpdateMenuItem } from "@/services/inventory/hooks";
 import type { MenuItem } from "@/services/inventory/types";
+import { useTranslation } from "@/lib/i18n";
 
 const CATEGORY_OPTIONS = [
   "Pastries", "Beverages", "Mains", "Sides",
@@ -45,6 +46,7 @@ function toForm(item: MenuItem): FormState {
 }
 
 export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
+  const { t } = useTranslation();
   const isEdit = Boolean(menuItem);
   const formId = useId();
 
@@ -212,7 +214,7 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
             </div>
           )}
           {imagePreviewError && (
-            <p className="mt-1.5 text-xs text-status-warning">Image URL could not be loaded. It will still be saved.</p>
+            <p className="mt-1.5 text-xs text-status-warning">{t("common.warning")}</p>
           )}
         </div>
 

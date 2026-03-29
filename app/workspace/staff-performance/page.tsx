@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -84,7 +85,11 @@ function percent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-function roleLabel(role: string) {
+function roleLabel(t: any, role: string) {
+  const key = `roles.${role}`;
+  const translated = t(key);
+  if (translated !== key) return translated;
+
   return role
     .toLowerCase()
     .split("_")
@@ -108,6 +113,7 @@ function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
 }
 
 export default function StaffPerformancePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
@@ -188,7 +194,7 @@ export default function StaffPerformancePage() {
         const branchId = member.branch_id ?? assignment?.branch ?? assignment?.branch_details?.id ?? null;
         const branchData = branchId
           ? branchMap.get(branchId)
-          : { name: "Unassigned", wastePct: 0, surplusPct: 0, complianceBadge: "GREEN" };
+          : { name: t("workspace.staffPerformance.unassigned"), wastePct: 0, surplusPct: 0, complianceBadge: "GREEN" };
 
         const baseEfficiency = 64 + (entropy % 22);
         const wastePenalty = (branchData?.wastePct ?? 0) * 2.2;
@@ -294,7 +300,7 @@ export default function StaffPerformancePage() {
   const handleRemoveMember = (row: StaffPerformanceRow) => {
     if (!canManageStaff) return;
     const removeStaffRole = STAFF_REMOVE_ROLES.has(normalizeRole(row.role));
-    const confirmation = window.confirm(`Remove ${row.staffName} from the organization?`);
+    const confirmation = window.confirm(t("workspace.staffPerformance.removeMemberConfirm", { name: row.staffName }));
     if (!confirmation) return;
 
     if (removeStaffRole) {
@@ -307,46 +313,70 @@ export default function StaffPerformancePage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("staffName", {
-        header: "Staff",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
+        header: t("workspace.staffPerformance.table.staff"),
+        cell: (info) => (
+          <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>
+        ),
       }),
       columnHelper.accessor("role", {
-        header: "Role",
-        cell: (info) => <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">{info.getValue()}</span>,
+        header: t("workspace.staffPerformance.table.role"),
+        cell: (info) => (
+          <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">
+            {roleLabel(t, info.getValue())}
+          </span>
+        ),
       }),
       columnHelper.accessor("branchName", {
-        header: "Branch",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
+        header: t("workspace.staffPerformance.table.branch"),
+        cell: (info) => (
+          <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>
+        ),
       }),
       columnHelper.accessor("productionEfficiency", {
-        header: "Production Efficiency",
+        header: t("workspace.staffPerformance.table.productionEfficiency"),
         cell: (info) => (
-          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
+          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>
+            {percent(info.getValue())}
+          </span>
         ),
       }),
       columnHelper.accessor("errorRate", {
-        header: "Error Rate",
-        cell: (info) => {
-          const value = info.getValue();
-          return <span className={`text-[12px] ${value >= 8 ? "text-[#C44949]" : value >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>{percent(value)}</span>;
-        },
-      }),
-      columnHelper.accessor("wasteContribution", {
-        header: "Waste Contribution",
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{percent(info.getValue())}</span>,
-      }),
-      columnHelper.accessor("shiftReliability", {
-        header: "Shift Reliability",
-        cell: (info) => (
-          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
-        ),
-      }),
-      columnHelper.accessor("trendDelta", {
-        header: "Trend",
+        header: t("workspace.staffPerformance.table.errorRate"),
         cell: (info) => {
           const value = info.getValue();
           return (
-            <span className={`text-[12px] ${value > 0 ? "text-[#3F8F68]" : value < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
+            <span
+              className={`text-[12px] ${value >= 8 ? "text-[#C44949]" : value >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
+            >
+              {percent(value)}
+            </span>
+          );
+        },
+      }),
+      columnHelper.accessor("wasteContribution", {
+        header: t("workspace.staffPerformance.table.wasteContribution"),
+        cell: (info) => (
+          <span className="text-[12px] text-[#C48B2A]">
+            {percent(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("shiftReliability", {
+        header: t("workspace.staffPerformance.table.shiftReliability"),
+        cell: (info) => (
+          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>
+            {percent(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("trendDelta", {
+        header: t("workspace.staffPerformance.table.trend"),
+        cell: (info) => {
+          const value = info.getValue();
+          return (
+            <span
+              className={`text-[12px] ${value > 0 ? "text-[#3F8F68]" : value < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}
+            >
               {value > 0 ? "+" : ""}
               {value.toFixed(1)} pts
             </span>
@@ -354,18 +384,20 @@ export default function StaffPerformancePage() {
         },
       }),
       columnHelper.accessor("coachingPriority", {
-        header: "Coaching",
+        header: t("workspace.staffPerformance.table.coaching"),
         cell: (info) => {
           const value = info.getValue();
           return (
-            <span className={`text-[11px] uppercase tracking-[0.08em] ${value === "HIGH" ? "text-[#C44949]" : value === "MEDIUM" ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
-              {value}
+            <span
+              className={`text-[11px] uppercase tracking-[0.08em] ${value === "HIGH" ? "text-[#C44949]" : value === "MEDIUM" ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
+            >
+              {t(`workspace.staffPerformance.coachingStatus.${value}`)}
             </span>
           );
         },
       }),
     ],
-    [],
+    [t],
   );
 
   const table = useReactTable({
@@ -376,84 +408,119 @@ export default function StaffPerformancePage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Staff"
-      title="Performance Intelligence"
-      description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction."
-      insight="Coaching efficiency improves when high-risk operators are identified using reliability, error rate, and waste contribution together."
+      eyebrow={t("workspace.staffPerformance.eyebrow")}
+      title={t("workspace.staffPerformance.title")}
+      description={t("workspace.staffPerformance.description")}
+      insight={t("workspace.staffPerformance.insight")}
     >
       <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 md:grid-cols-4">
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Staff Tracked</p>
-          <p className="font-display text-4xl font-semibold tracking-tight text-text-primary">{rows.length}</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+            {t("workspace.staffPerformance.staffTracked")}
+          </p>
+          <p className="font-display text-4xl font-semibold tracking-tight text-text-primary">
+            {rows.length}
+          </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Active operators in current scope</p>
+            <p className="text-xs text-text-muted">
+              {t("workspace.staffPerformance.activeOperators")}
+            </p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Efficiency</p>
-          <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgEfficiency)}`}>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+            {t("workspace.staffPerformance.avgEfficiency")}
+          </p>
+          <p
+            className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgEfficiency)}`}
+          >
             {percent(avgEfficiency)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Production completion quality</p>
+            <p className="text-xs text-text-muted">
+              {t("workspace.staffPerformance.productionQuality")}
+            </p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Error Rate</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+            {t("workspace.staffPerformance.avgErrorRate")}
+          </p>
           <p
             className={`font-display text-4xl font-semibold tracking-tight ${avgErrorRate >= 8 ? "text-[#C44949]" : avgErrorRate >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
           >
             {percent(avgErrorRate)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Execution mistakes per shift</p>
+            <p className="text-xs text-text-muted">
+              {t("workspace.staffPerformance.executionMistakes")}
+            </p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Coaching Queue</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+            {t("workspace.staffPerformance.coachingQueue")}
+          </p>
           <div className="flex items-baseline gap-2 text-text-primary">
-            <span className="font-display text-3xl text-[#C44949]">{highCoachingCount}</span>
-            <span className="text-sm text-text-muted">high</span>
-            <span className="ml-3 font-display text-2xl text-[#C48B2A]">{mediumCoachingCount}</span>
-            <span className="text-sm text-text-muted">medium</span>
+            <span className="font-display text-3xl text-[#C44949]">
+              {highCoachingCount}
+            </span>
+            <span className="text-sm text-text-muted">
+              {t("workspace.staffPerformance.high")}
+            </span>
+            <span className="ml-3 font-display text-2xl text-[#C48B2A]">
+              {mediumCoachingCount}
+            </span>
+            <span className="text-sm text-text-muted">
+              {t("workspace.staffPerformance.medium")}
+            </span>
           </div>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className={`text-xs ${scoreTone(avgReliability)}`}>Reliability {percent(avgReliability)}</p>
+            <p className={`text-xs ${scoreTone(avgReliability)}`}>
+              {t("workspace.staffPerformance.reliabilityLabel", {
+                percent: avgReliability.toFixed(1),
+              })}
+            </p>
           </div>
         </article>
       </section>
 
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Scope</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            {t("workspace.staffPerformance.scope")}
+          </p>
           <p className="mt-1 text-sm text-text-muted">
-            Filter by timeframe and branch to isolate staff performance patterns before taking coaching action.
+            {t("workspace.staffPerformance.scopeDescription")}
           </p>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Select
-            label="Timeframe"
+            label={t("financial.timeframe")}
             value={timeframe}
             onChange={setTimeframe}
             options={[
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
-              { value: "90d", label: "Last 90 days" },
+              { value: "7d", label: t("workspace.salesWaste.last7DaysLabel") },
+              { value: "30d", label: t("workspace.salesWaste.last30DaysLabel") },
+              { value: "90d", label: t("financial.last90Days") },
             ]}
           />
           <Select
-            label="Branch"
+            label={t("common.branch")}
             value={branchFilter}
             onChange={setBranchFilter}
             options={[
-              { value: "ALL", label: "All branches" },
-              ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+              { value: "ALL", label: t("financial.allBranches") },
+              ...branches.map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              })),
             ]}
           />
         </div>
         <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
           <p className="text-xs text-text-muted">
-            This view updates all metrics and ranking logic for the selected scope.
+            {t("workspace.staffPerformance.viewUpdateNotice")}
           </p>
         </div>
       </section>
@@ -461,26 +528,43 @@ export default function StaffPerformancePage() {
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Performance Table</p>
-            <p className="mt-1 text-sm text-text-muted">Ranked signals per team member for coaching and staffing decisions.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              {t("workspace.staffPerformance.performanceTable")}
+            </p>
+            <p className="mt-1 text-sm text-text-muted">
+              {t("workspace.staffPerformance.rankedSignalsDescription")}
+            </p>
           </div>
           <p className="text-xs text-text-muted">
-            {rows.length} total record{rows.length === 1 ? "" : "s"}
+            {rows.length === 1
+              ? t("workspace.staffPerformance.totalRecords", {
+                  count: rows.length,
+                })
+              : t("workspace.staffPerformance.totalRecordsPlural", {
+                  count: rows.length,
+                })}
           </p>
         </div>
         <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
           {orgMembersQuery.isLoading || staffQuery.isLoading ? (
-            <p className="px-6 py-6 text-sm text-text-muted">Loading staff intelligence...</p>
-          ) : null}
-          {!orgMembersQuery.isLoading && !staffQuery.isLoading && rows.length === 0 ? (
             <p className="px-6 py-6 text-sm text-text-muted">
-              No active staff records found for the selected branch filter.
+              {t("workspace.staffPerformance.loadingIntelligence")}
+            </p>
+          ) : null}
+          {!orgMembersQuery.isLoading &&
+          !staffQuery.isLoading &&
+          rows.length === 0 ? (
+            <p className="px-6 py-6 text-sm text-text-muted">
+              {t("workspace.staffPerformance.noStaffRecords")}
             </p>
           ) : null}
           {rows.length > TABLE_PAGE_SIZE ? (
             <div className="flex items-center justify-between gap-3 border-b border-surface-4 px-6 py-4">
               <p className="text-xs text-text-muted">
-                Showing {Math.min(TABLE_PAGE_SIZE, rows.length)} of {rows.length} staff records per page.
+                {t("workspace.staffPerformance.showingRecords", {
+                  count: Math.min(TABLE_PAGE_SIZE, rows.length),
+                  total: rows.length,
+                })}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -489,18 +573,23 @@ export default function StaffPerformancePage() {
                   onClick={() => setTablePage((prev) => Math.max(0, prev - 1))}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
-                  Previous
+                  {t("workspace.staffPerformance.previous")}
                 </button>
                 <span className="text-[11px] text-text-muted">
-                  Page {Math.min(tablePage + 1, totalPages)} / {totalPages}
+                  {t("workspace.staffPerformance.pageLabel", {
+                    current: Math.min(tablePage + 1, totalPages),
+                    total: totalPages,
+                  })}
                 </span>
                 <button
                   type="button"
                   disabled={tablePage >= totalPages - 1}
-                  onClick={() => setTablePage((prev) => Math.min(totalPages - 1, prev + 1))}
+                  onClick={() =>
+                    setTablePage((prev) => Math.min(totalPages - 1, prev + 1))
+                  }
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
-                  Next
+                  {t("workspace.staffPerformance.next")}
                 </button>
               </div>
             </div>
@@ -521,58 +610,78 @@ export default function StaffPerformancePage() {
       <section className="mt-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Compare Staff</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              {t("workspace.staffPerformance.compareStaff")}
+            </p>
             <p className="mt-1 text-sm text-text-muted">
-              Compare two operators to see who is currently driving stronger execution quality.
+              {t("workspace.staffPerformance.compareStaffDescription")}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <Select
-                label="Compare A"
+                label={t("workspace.staffPerformance.selectStaffA")}
                 value={compareA}
                 onChange={setCompareA}
                 options={[
-                  { value: "", label: "Select staff A" },
+                  { value: "", label: t("workspace.staffPerformance.selectStaffA") },
                   ...rows.map((row) => ({ value: row.id, label: row.staffName })),
                 ]}
               />
               <Select
-                label="Compare B"
+                label={t("workspace.staffPerformance.selectStaffB")}
                 value={compareB}
                 onChange={setCompareB}
                 options={[
-                  { value: "", label: "Select staff B" },
+                  { value: "", label: t("workspace.staffPerformance.selectStaffB") },
                   ...rows.map((row) => ({ value: row.id, label: row.staffName })),
                 ]}
               />
             </div>
-            <p className={`mt-4 text-sm font-medium ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-text-muted"}`}>
-              Efficiency delta: {compareDelta > 0 ? "+" : ""}
-              {compareDelta.toFixed(1)} pts
+            <p
+              className={`mt-4 text-sm font-medium ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-text-muted"}`}
+            >
+              {t("workspace.staffPerformance.efficiencyDelta", {
+                delta: `${compareDelta > 0 ? "+" : ""}${compareDelta.toFixed(1)}`,
+              })}
             </p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Coaching Needs</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              {t("workspace.staffPerformance.coachingNeeds")}
+            </p>
             <p className="mt-1 text-sm text-text-muted">
-              Highest-priority interventions sorted by reliability, efficiency, and shift error risk.
+              {t("workspace.staffPerformance.coachingNeedsDescription")}
             </p>
             <div className="mt-4 space-y-2.5">
               {coachingNeeds.length ? (
                 coachingNeeds.map((row) => (
-                  <div key={`coach-${row.id}`} className="rounded-lg border border-surface-4 bg-[#232327] px-3 py-3">
+                  <div
+                    key={`coach-${row.id}`}
+                    className="rounded-lg border border-surface-4 bg-[#232327] px-3 py-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(row.coachingPriority)}`}>
-                        {row.coachingPriority}
+                      <p className="text-[13px] text-[#F5F5F7]">
+                        {row.staffName}
+                      </p>
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(row.coachingPriority)}`}
+                      >
+                        {t(`workspace.staffPerformance.coachingStatus.${row.coachingPriority}`)}
                       </span>
                     </div>
                     <p className="text-[12px] text-[#8E8E93]">
-                      {row.branchName} · Efficiency {percent(row.productionEfficiency)} · Error {percent(row.errorRate)}
+                      {row.branchName} ·{" "}
+                      {t("workspace.staffPerformance.table.productionEfficiency")}{" "}
+                      {percent(row.productionEfficiency)} ·{" "}
+                      {t("workspace.staffPerformance.table.errorRate")}{" "}
+                      {percent(row.errorRate)}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-[12px] text-[#8E8E93]">No coaching interventions currently required.</p>
+                <p className="text-[12px] text-[#8E8E93]">
+                  {t("workspace.staffPerformance.noCoachingRequired")}
+                </p>
               )}
             </div>
           </article>
@@ -582,35 +691,53 @@ export default function StaffPerformancePage() {
       <section className="mt-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Staff Management</p>
-            <p className="mt-1 text-sm text-text-muted">Remove branch-level operators when assignments are no longer active.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              {t("workspace.staffPerformance.staffManagement")}
+            </p>
+            <p className="mt-1 text-sm text-text-muted">
+              {t("workspace.staffPerformance.staffManagementDescription")}
+            </p>
           </div>
-          {canManageStaff ? <p className="text-xs text-text-muted">Admin controls enabled</p> : null}
+          {canManageStaff ? (
+            <p className="text-xs text-text-muted">
+              {t("workspace.staffPerformance.adminControlsEnabled")}
+            </p>
+          ) : null}
         </div>
         <div className="divide-y divide-[#232327] rounded-xl border border-surface-4 bg-surface-2 px-6">
           {rows.length ? (
             rows.slice(0, 16).map((row) => (
-              <div key={`member-${row.memberId}`} className="flex items-center justify-between py-3">
+              <div
+                key={`member-${row.memberId}`}
+                className="flex items-center justify-between py-3"
+              >
                 <div>
-                  <p className="text-[13px] text-text-primary">{row.staffName}</p>
+                  <p className="text-[13px] text-text-primary">
+                    {row.staffName}
+                  </p>
                   <p className="text-[12px] text-text-muted">
-                    {roleLabel(row.role)} · {row.branchName}
+                    {roleLabel(t, row.role)} · {row.branchName}
                   </p>
                 </div>
                 {canManageStaff ? (
                   <button
                     type="button"
                     onClick={() => handleRemoveMember(row)}
-                    disabled={removeStaffMutation.isPending || removeOrgMemberMutation.isPending}
+                    disabled={
+                      removeStaffMutation.isPending ||
+                      removeOrgMemberMutation.isPending
+                    }
                     className="inline-flex h-8 items-center rounded-full border border-[#C44949]/45 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#C44949] transition-colors hover:bg-[#C44949]/10 disabled:opacity-50"
                   >
-                    Remove
+                    {t("common.delete")}
                   </button>
                 ) : null}
               </div>
             ))
           ) : (
-            <p className="py-4 text-[12px] text-[#8E8E93]">No active members to manage.</p>
+            <p className="py-4 text-[12px] text-[#8E8E93]">
+              {t("workspace.staffPerformance.noActiveMembers")}
+            </p>
           )}
         </div>
       </section>

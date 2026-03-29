@@ -6,6 +6,7 @@ import { ReactNode, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { createQueryClient } from "@/lib/api/query-client";
 import { SidebarStateProvider } from "@/components/dashboard/sidebar-state";
+import { TranslationProvider } from "@/lib/i18n";
 
 type ProvidersProps = {
   children: ReactNode;
@@ -24,8 +25,9 @@ export function Providers({ children }: ProvidersProps) {
           height: "1.1em",
         }}
       >
-        <SidebarStateProvider>
-          {children}
+        <TranslationProvider>
+          <SidebarStateProvider>
+            {children}
           <Toaster
             position="bottom-right"
             toastOptions={{
@@ -52,7 +54,8 @@ export function Providers({ children }: ProvidersProps) {
               },
             }}
           />
-        </SidebarStateProvider>
+          </SidebarStateProvider>
+        </TranslationProvider>
       </IconoirProvider>
     </QueryClientProvider>
   );

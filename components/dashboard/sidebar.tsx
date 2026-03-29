@@ -27,6 +27,8 @@ import {
 } from "iconoir-react";
 import { useSessionLogoutUser } from "@/services";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
+import { LanguageSwitcher } from "./language-switcher";
+import { useTranslation } from "@/lib/i18n";
 import type { UserProfile } from "@/services/users/types";
 
 interface NavItem {
@@ -281,6 +283,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
   user,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
   const logoutMutation = useSessionLogoutUser();
   const { collapsed, toggle } = useSidebarState();
@@ -304,7 +307,20 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
     return false;
   };
 
-  const navSections = getNavSectionsByRole(user?.organization_role);
+  const rawNavSections = getNavSectionsByRole(user?.organization_role);
+
+  // Map raw labels to translated versions
+  const navSections = rawNavSections.map((section) => ({
+    ...section,
+    title: t(`dashboard.sidebar.${section.title.toLowerCase()}`),
+    items: section.items.map((item) => {
+      const key = item.label.toLowerCase().replace(/ & /g, " ").replace(/\s/g, "");
+      return {
+        ...item,
+        label: t(`dashboard.sidebar.${key}`),
+      };
+    }),
+  }));
 
   const handleLogout = () => {
     startTransition(() => {
@@ -434,7 +450,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 
         <Link
           href="/workspace/support"
-          title={collapsed ? "Support" : undefined}
+          title={collapsed ? t("common.support") : undefined}
           className={`w-full rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-[#1C1C1F] hover:text-text-primary flex items-center ${
             collapsed ? "justify-center" : "gap-3"
           }`}
@@ -442,8 +458,9 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#1C1C1F] text-text-muted">
             <HelpCircle className="h-4 w-4 flex-shrink-0" />
           </span>
-          {!collapsed && <span className="truncate">Support</span>}
+          {!collapsed && <span className="truncate">{t("common.support")}</span>}
         </Link>
+        <LanguageSwitcher collapsed={collapsed} />
         <button
           className={`w-full rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-[#1C1C1F] hover:text-text-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed ${
             collapsed ? "justify-center" : "gap-3"
@@ -451,12 +468,12 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
           type="button"
           onClick={handleLogout}
           disabled={logoutMutation.isPending || isPending}
-          title={collapsed ? "Sign out" : undefined}
+          title={collapsed ? t("common.logout") : undefined}
         >
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#1C1C1F] text-text-muted">
             <LogOut className="h-4 w-4 flex-shrink-0" />
           </span>
-          {!collapsed && <span className="truncate">Sign out</span>}
+          {!collapsed && <span className="truncate">{t("common.logout")}</span>}
         </button>
       </div>
     </aside>

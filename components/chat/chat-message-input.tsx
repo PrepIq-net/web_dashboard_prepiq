@@ -2,6 +2,7 @@
 
 import { useState, useRef, KeyboardEvent } from "react";
 import { Send, Attachment, Xmark } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface ChatMessageInputProps {
   onSend: (content: string, attachment?: File) => void;
@@ -12,8 +13,9 @@ interface ChatMessageInputProps {
 export function ChatMessageInput({ 
   onSend, 
   disabled = false, 
-  placeholder = "Type a message..." 
+  placeholder
 }: ChatMessageInputProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +46,7 @@ export function ChatMessageInput({
     if (file) {
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        alert("File size must be less than 10MB");
+        alert(t("workspace.chat.area.fileSizeError"));
         return;
       }
       setAttachment(file);
@@ -140,7 +142,7 @@ export function ChatMessageInput({
 
       {/* Helper Text */}
       <p className="text-xs text-text-muted">
-        Press Enter to send, Shift+Enter for new line. Max file size: 10MB.
+        {t("workspace.chat.area.helperText")}
       </p>
     </div>
   );

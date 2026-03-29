@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useTranslation } from "@/lib/i18n";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import { ForecastDriverWaterfall } from "@/components/dashboard/today/forecast-driver-waterfall";
 import { ConfidenceBreakdown } from "@/components/dashboard/today/confidence-breakdown";
@@ -35,11 +36,14 @@ function formatQty(value: number, unit: string) {
   return discrete ? `${Math.round(value)} ${unit}` : `${value.toFixed(2)} ${unit}`;
 }
 
-function confidenceNarrative(score?: number | null) {
-  if (score == null) return "Insufficient history to score confidence.";
-  if (score >= 0.75) return "High confidence based on stable recent demand.";
-  if (score >= 0.5) return "Moderate confidence with some expected variance.";
-  return "Low confidence; demand is volatile or sparse.";
+function confidenceNarrative(
+  score: number | null | undefined,
+  t: (key: string) => string,
+) {
+  if (score == null) return t("workspace.today.deepDive.narrativeNone");
+  if (score >= 0.75) return t("workspace.today.deepDive.narrativeHigh");
+  if (score >= 0.5) return t("workspace.today.deepDive.narrativeModerate");
+  return t("workspace.today.deepDive.narrativeLow");
 }
 
 // ============================================================================
@@ -47,6 +51,7 @@ function confidenceNarrative(score?: number | null) {
 // ============================================================================
 
 function DeepDiveContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useParams<{ prepPlanItemId: string }>();
   const searchParams = useSearchParams();
@@ -137,10 +142,15 @@ function DeepDiveContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Deep Dive"
+      eyebrow={t("workspace.today.deepDive.eyebrow")}
       title={itemTitle}
-      description={`Forecast intelligence for ${targetDate} · ${branchId ? "Branch loaded" : "No branch"}`}
-      insight="Every signal that shaped this forecast is visible here. Use it to make a confident prep decision."
+      description={t("workspace.today.deepDive.description", {
+        date: targetDate,
+        status: branchId
+          ? t("workspace.today.deepDive.branchLoaded")
+          : t("workspace.today.deepDive.noBranch"),
+      })}
+      insight={t("workspace.today.deepDive.insight")}
     >
       {/* Back nav */}
       <div className="mb-8 flex items-center justify-between">
@@ -149,7 +159,7 @@ function DeepDiveContent() {
           className="inline-flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Today
+          {t("workspace.today.deepDive.backToToday")}
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -160,20 +170,22 @@ function DeepDiveContent() {
             }}
             className="inline-flex h-9 items-center rounded-lg border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:text-text-primary hover:border-surface-4/80 transition-colors"
           >
-            Refresh
+            {t("workspace.today.deepDive.refresh")}
           </button>
           <Link
             href={`/workspace/forecast-intelligence/${productId}?branch_id=${branchId}&date=${targetDate}`}
             className="inline-flex h-9 items-center rounded-lg border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold hover:bg-brand-gold/10 transition-colors"
           >
-            Full history →
+            {t("workspace.today.deepDive.fullHistory")}
           </Link>
         </div>
       </div>
 
       {isLoading ? (
         <div className="py-16 text-center">
-          <p className="text-sm text-text-muted">Loading forecast data…</p>
+          <p className="text-sm text-text-muted">
+            {t("workspace.today.deepDive.loadingForecast")}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -186,13 +198,16 @@ function DeepDiveContent() {
             {acceptSuccess && (
               <div className="rounded-xl border border-status-success/40 bg-status-success/10 px-5 py-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-status-success">
-                  Plan updated to {acceptedQty != null ? formatQty(acceptedQty, unit) : "—"}
+                  {t("workspace.today.deepDive.planUpdated", {
+                    quantity:
+                      acceptedQty != null ? formatQty(acceptedQty, unit) : "—",
+                  })}
                 </p>
                 <Link
                   href={`/workspace/today?branch_id=${branchId}&date=${targetDate}`}
                   className="text-xs font-semibold text-status-success hover:underline"
                 >
-                  Back to prep plan →
+                  {t("workspace.today.deepDive.backToPrepPlan")}
                 </Link>
               </div>
             )}
@@ -201,7 +216,7 @@ function DeepDiveContent() {
             {advancedForecast?.action_recommendations?.length ? (
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-3">
-                  Recommended Actions
+                  {t("workspace.today.deepDive.recommendedActions")}
                 </p>
                 <div className="space-y-3">
                   {advancedForecast.action_recommendations.map((action: any, i: number) => (
@@ -224,38 +239,46 @@ function DeepDiveContent() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                    Forecast Confidence
+                    {t("workspace.today.deepDive.forecastConfidence")}
                   </p>
                   <div className="mt-2 flex items-baseline gap-3">
                     <p className="font-display text-4xl font-semibold text-text-primary">
-                      {advancedForecast?.confidence != null ? percent(advancedForecast.confidence) : "—"}
+                      {advancedForecast?.confidence != null
+                        ? percent(advancedForecast.confidence)
+                        : "—"}
                     </p>
-                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
-                      (advancedForecast?.confidence ?? 0) >= 0.75
-                        ? "bg-status-success/20 text-status-success"
-                        : (advancedForecast?.confidence ?? 0) >= 0.5
-                          ? "bg-status-warning/20 text-status-warning"
-                          : "bg-status-critical/20 text-status-critical"
-                    }`}>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
+                        (advancedForecast?.confidence ?? 0) >= 0.75
+                          ? "bg-status-success/20 text-status-success"
+                          : (advancedForecast?.confidence ?? 0) >= 0.5
+                            ? "bg-status-warning/20 text-status-warning"
+                            : "bg-status-critical/20 text-status-critical"
+                      }`}
+                    >
                       {advancedForecast?.confidence_label ?? "—"}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-text-secondary">
-                    {confidenceNarrative(advancedForecast?.confidence)}
+                    {confidenceNarrative(advancedForecast?.confidence, t)}
                   </p>
                 </div>
                 <div className="rounded-lg border border-surface-4 bg-surface-3/50 px-4 py-3 text-right shrink-0">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">Recommended</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                    {t("workspace.today.deepDive.recommended")}
+                  </p>
                   <p className="mt-1 font-display text-2xl font-semibold text-text-primary">
                     {advancedForecast?.ensemble_forecast != null
                       ? formatQty(advancedForecast.ensemble_forecast, unit)
                       : "—"}
                   </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    Risk-adjusted:{" "}
-                    {advancedForecast?.loss_optimized_qty != null
-                      ? formatQty(advancedForecast.loss_optimized_qty, unit)
-                      : "—"}
+                    {t("workspace.today.deepDive.riskAdjusted", {
+                      quantity:
+                        advancedForecast?.loss_optimized_qty != null
+                          ? formatQty(advancedForecast.loss_optimized_qty, unit)
+                          : "—",
+                    })}
                   </p>
                 </div>
               </div>
@@ -274,10 +297,10 @@ function DeepDiveContent() {
             {advancedForecast?.signal_contributions ? (
               <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-1">
-                  What's Driving This Forecast
+                  {t("workspace.today.deepDive.drivingForecast")}
                 </p>
                 <p className="text-sm text-text-secondary mb-4">
-                  Starting from baseline, here's how each signal adjusted the final number.
+                  {t("workspace.today.deepDive.drivingForecastDesc")}
                 </p>
                 <ForecastDriverWaterfall
                   baselineQty={advancedForecast.signal_contributions.baseline_qty}
@@ -308,32 +331,38 @@ function DeepDiveContent() {
               <div className="flex items-center justify-between px-5 py-4 border-b border-surface-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                    Ingredient Requirements
+                    {t("workspace.today.deepDive.ingredientRequirements")}
                   </p>
                   <p className="mt-0.5 text-sm text-text-secondary">
-                    What your kitchen needs to make today's plan
+                    {t("workspace.today.deepDive.kitchenNeedsDesc")}
                   </p>
                 </div>
                 {!ingredientLoaded && (
-                  <span className="text-xs text-text-muted">Loading…</span>
+                  <span className="text-xs text-text-muted">
+                    {t("common.loading")}
+                  </span>
                 )}
               </div>
 
               {!ingredientLoaded ? (
                 <div className="px-5 py-6 text-center">
-                  <p className="text-sm text-text-muted">Calculating ingredient demand…</p>
+                  <p className="text-sm text-text-muted">
+                    {t("workspace.today.deepDive.calculatingIngredientDemand")}
+                  </p>
                 </div>
               ) : itemIngredients.length === 0 ? (
                 <div className="px-5 py-6">
-                  <p className="text-sm text-text-secondary">No ingredient data found.</p>
+                  <p className="text-sm text-text-secondary">
+                    {t("workspace.today.deepDive.noIngredientData")}
+                  </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    Set up a recipe for this item in the Inventory section to unlock ingredient forecasting.
+                    {t("workspace.today.deepDive.setupRecipeDesc")}
                   </p>
                   <Link
                     href={`/workspace/inventory?branch=${branchId}&org=${resolvedOrgId}&tab=recipes`}
                     className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold hover:bg-brand-gold/10 transition-colors"
                   >
-                    Build recipe →
+                    {t("workspace.today.deepDive.buildRecipe")}
                   </Link>
                 </div>
               ) : (
@@ -359,9 +388,23 @@ function DeepDiveContent() {
                   {ingredientData?.items_with_no_recipe?.length > 0 && (
                     <div className="border-t border-surface-4 px-5 py-3 bg-status-warning/5">
                       <p className="text-xs text-status-warning">
-                        {ingredientData.items_with_no_recipe.length} item{ingredientData.items_with_no_recipe.length !== 1 ? "s" : ""} missing recipes —{" "}
-                        <Link href={`/workspace/inventory?branch=${branchId}&org=${resolvedOrgId}&tab=recipes`} className="underline">
-                          fix in Inventory
+                        {ingredientData.items_with_no_recipe.length === 1
+                          ? t("workspace.today.deepDive.missingRecipesWarning", {
+                              count:
+                                ingredientData.items_with_no_recipe.length,
+                            })
+                          : t(
+                              "workspace.today.deepDive.missingRecipesWarningPlural",
+                              {
+                                count:
+                                  ingredientData.items_with_no_recipe.length,
+                              },
+                            )}
+                        <Link
+                          href={`/workspace/inventory?branch=${branchId}&org=${resolvedOrgId}&tab=recipes`}
+                          className="underline"
+                        >
+                          {t("workspace.today.deepDive.fixInInventory")}
                         </Link>
                       </p>
                     </div>
@@ -374,10 +417,10 @@ function DeepDiveContent() {
             {advancedForecast?.scenarios?.length ? (
               <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-1">
-                  Prep Scenarios
+                  {t("workspace.today.deepDive.prepScenarios")}
                 </p>
                 <p className="text-sm text-text-secondary mb-4">
-                  Compare outcomes across different prep quantities.
+                  {t("workspace.today.deepDive.compareOutcomesDesc")}
                 </p>
                 <ScenarioBarChart scenarios={advancedForecast.scenarios} />
               </section>
@@ -387,20 +430,55 @@ function DeepDiveContent() {
             {forecastMetrics ? (
               <details className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
                 <summary className="flex cursor-pointer items-center justify-between px-5 py-4 list-none hover:bg-surface-3/30 transition-colors">
-                  <p className="text-sm font-semibold text-text-primary">Historical Performance</p>
-                  <span className="text-xs text-text-muted">Expand ↓</span>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {t("workspace.today.deepDive.historicalPerformance")}
+                  </p>
+                  <span className="text-xs text-text-muted">
+                    {t("workspace.today.deepDive.expand")}
+                  </span>
                 </summary>
                 <div className="border-t border-surface-4 px-5 py-5 space-y-4">
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                     {[
-                      { label: "Forecast Accuracy", value: forecastMetrics.forecast_accuracy != null ? `${(forecastMetrics.forecast_accuracy * 100).toFixed(1)}%` : "—" },
-                      { label: "Waste Rate", value: forecastMetrics.waste_rate != null ? `${(forecastMetrics.waste_rate * 100).toFixed(1)}%` : "—" },
-                      { label: "Stockout Rate", value: forecastMetrics.stockout_rate != null ? `${(forecastMetrics.stockout_rate * 100).toFixed(1)}%` : "—" },
-                      { label: "MAPE", value: forecastMetrics.mape != null ? `${forecastMetrics.mape.toFixed(1)}%` : "—" },
+                      {
+                        label: t("financial.accuracy.currentAccuracy"),
+                        value:
+                          forecastMetrics.forecast_accuracy != null
+                            ? `${(forecastMetrics.forecast_accuracy * 100).toFixed(1)}%`
+                            : "—",
+                      },
+                      {
+                        label: t("financial.waste.wasteRate"),
+                        value:
+                          forecastMetrics.waste_rate != null
+                            ? `${(forecastMetrics.waste_rate * 100).toFixed(1)}%`
+                            : "—",
+                      },
+                      {
+                        label: t("workspace.today.closed.stockoutHeader"),
+                        value:
+                          forecastMetrics.stockout_rate != null
+                            ? `${(forecastMetrics.stockout_rate * 100).toFixed(1)}%`
+                            : "—",
+                      },
+                      {
+                        label: t("workspace.overview.mape"),
+                        value:
+                          forecastMetrics.mape != null
+                            ? `${forecastMetrics.mape.toFixed(1)}%`
+                            : "—",
+                      },
                     ].map((stat) => (
-                      <div key={stat.label} className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{stat.label}</p>
-                        <p className="mt-1 font-display text-xl font-semibold text-text-primary">{stat.value}</p>
+                      <div
+                        key={stat.label}
+                        className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-3"
+                      >
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                          {stat.label}
+                        </p>
+                        <p className="mt-1 font-display text-xl font-semibold text-text-primary">
+                          {stat.value}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -412,13 +490,19 @@ function DeepDiveContent() {
             {dataQuality ? (
               <details className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
                 <summary className="flex cursor-pointer items-center justify-between px-5 py-4 list-none hover:bg-surface-3/30 transition-colors">
-                  <p className="text-sm font-semibold text-text-primary">Data Health</p>
-                  <span className="text-xs text-text-muted">Expand ↓</span>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {t("workspace.today.deepDive.dataHealth")}
+                  </p>
+                  <span className="text-xs text-text-muted">
+                    {t("workspace.today.deepDive.expand")}
+                  </span>
                 </summary>
                 <div className="border-t border-surface-4 px-5 py-5 space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-text-muted">Quality Score</p>
+                      <p className="text-xs text-text-muted">
+                        {t("workspace.today.deepDive.qualityScore")}
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-text-primary">
                         {dataQuality.overall_quality_score != null
                           ? `${(dataQuality.overall_quality_score * 100).toFixed(0)}%`
@@ -426,18 +510,25 @@ function DeepDiveContent() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-text-muted">Checks Passed</p>
+                      <p className="text-xs text-text-muted">
+                        {t("workspace.today.deepDive.checksPassed")}
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-text-primary">
-                        {dataQuality.passed_checks != null && dataQuality.total_checks != null
+                        {dataQuality.passed_checks != null &&
+                        dataQuality.total_checks != null
                           ? `${dataQuality.passed_checks} / ${dataQuality.total_checks}`
                           : "—"}
                       </p>
                     </div>
                   </div>
                   {dataQuality.recommendation ? (
-                    <p className="text-xs text-text-secondary">{dataQuality.recommendation}</p>
+                    <p className="text-xs text-text-secondary">
+                      {dataQuality.recommendation}
+                    </p>
                   ) : (
-                    <p className="text-xs text-status-success">No data quality issues detected.</p>
+                    <p className="text-xs text-status-success">
+                      {t("workspace.today.deepDive.noDataQualityIssues")}
+                    </p>
                   )}
                 </div>
               </details>
@@ -452,42 +543,50 @@ function DeepDiveContent() {
             {prepItem && (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-                  Current Plan
+                  {t("workspace.today.deepDive.currentPlan")}
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-text-muted">Suggested</p>
+                    <p className="text-sm text-text-muted">
+                      {t("workspace.today.deepDive.suggested")}
+                    </p>
                     <p className="text-sm font-semibold text-text-primary">
                       {formatQty(prepItem.suggested_quantity, unit)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-text-muted">Your plan</p>
+                    <p className="text-sm text-text-muted">
+                      {t("workspace.today.deepDive.yourPlan")}
+                    </p>
                     <p className="text-sm font-semibold text-text-primary">
                       {prepItem.planned_quantity != null
                         ? formatQty(prepItem.planned_quantity, unit)
-                        : "Not set"}
+                        : t("workspace.today.deepDive.notSet")}
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-text-muted">Decision</p>
-                    <span className={`text-xs font-semibold uppercase tracking-[0.08em] ${
-                      prepItem.decision === "ACCEPTED_AI"
-                        ? "text-status-success"
-                        : prepItem.decision === "CHEF_OVERRIDE"
-                          ? "text-status-warning"
-                          : "text-text-muted"
-                    }`}>
+                    <p className="text-sm text-text-muted">
+                      {t("workspace.today.deepDive.decision")}
+                    </p>
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-[0.08em] ${
+                        prepItem.decision === "ACCEPTED_AI"
+                          ? "text-status-success"
+                          : prepItem.decision === "CHEF_OVERRIDE"
+                            ? "text-status-warning"
+                            : "text-text-muted"
+                      }`}
+                    >
                       {prepItem.decision === "ACCEPTED_AI"
-                        ? "Accepted"
+                        ? t("workspace.today.deepDive.accepted")
                         : prepItem.decision === "CHEF_OVERRIDE"
-                          ? "Override"
-                          : "Pending"}
+                          ? t("workspace.today.deepDive.override")
+                          : t("workspace.today.deepDive.pending")}
                     </span>
                   </div>
                   {isPlanLocked && (
                     <p className="text-xs text-status-success border-t border-surface-4 pt-3">
-                      Plan is locked
+                      {t("workspace.today.deepDive.planLocked")}
                     </p>
                   )}
                 </div>
@@ -498,17 +597,17 @@ function DeepDiveContent() {
             {prepItem && (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                  Risk Snapshot
+                  {t("workspace.today.deepDive.riskSnapshot")}
                 </p>
                 <div className="space-y-3">
                   {[
                     {
-                      label: "Stockout risk",
+                      label: t("workspace.today.deepDive.stockoutRisk"),
                       value: prepItem.forecast_context?.risk_of_stockout ?? 0,
                       criticalAt: 0.45,
                     },
                     {
-                      label: "Waste risk",
+                      label: t("workspace.today.deepDive.wasteRisk"),
                       value: prepItem.forecast_context?.risk_of_waste ?? 0,
                       criticalAt: 0.45,
                     },
@@ -516,7 +615,9 @@ function DeepDiveContent() {
                     <div key={risk.label}>
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs text-text-muted">{risk.label}</p>
-                        <p className={`text-xs font-semibold ${risk.value >= risk.criticalAt ? "text-status-critical" : risk.value >= 0.25 ? "text-status-warning" : "text-status-success"}`}>
+                        <p
+                          className={`text-xs font-semibold ${risk.value >= risk.criticalAt ? "text-status-critical" : risk.value >= 0.25 ? "text-status-warning" : "text-status-success"}`}
+                        >
                           {percent(risk.value)}
                         </p>
                       </div>
@@ -536,14 +637,19 @@ function DeepDiveContent() {
             {prepItem?.forecast_context?.reasoning?.length ? (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-                  Why This Number
+                  {t("workspace.today.deepDive.whyThisNumber")}
                 </p>
                 <div className="space-y-2">
-                  {prepItem.forecast_context.reasoning.map((line: string, i: number) => (
-                    <p key={i} className="text-xs text-text-secondary leading-relaxed">
-                      {i + 1}. {line}
-                    </p>
-                  ))}
+                  {prepItem.forecast_context.reasoning.map(
+                    (line: string, i: number) => (
+                      <p
+                        key={i}
+                        className="text-xs text-text-secondary leading-relaxed"
+                      >
+                        {i + 1}. {line}
+                      </p>
+                    ),
+                  )}
                 </div>
               </div>
             ) : null}
@@ -552,22 +658,47 @@ function DeepDiveContent() {
             {prepItem?.forecast_context?.applied_signals ? (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-                  Signal Adjustments
+                  {t("workspace.today.deepDive.signalAdjustments")}
                 </p>
                 <div className="space-y-2">
-                  {Object.entries(prepItem.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
-                    const modifier = signal?.modifier ?? 0;
-                    if (Math.abs(modifier) < 0.005) return null;
-                    const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
-                    return (
-                      <div key={key} className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">{label}</span>
-                        <span className={`text-xs font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
-                          {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {Object.entries(prepItem.forecast_context.applied_signals).map(
+                    ([key, signal]: [string, any]) => {
+                      const modifier = signal?.modifier ?? 0;
+                      if (Math.abs(modifier) < 0.005) return null;
+                      const label =
+                        key === "reservation"
+                          ? t("workspace.today.deepDive.reservations")
+                          : key === "event"
+                            ? t("workspace.today.deepDive.event")
+                            : key === "weather"
+                              ? t("workspace.today.deepDive.weather")
+                              : key === "staffing"
+                                ? t("workspace.today.deepDive.staffing")
+                                : key === "kitchen_capacity"
+                                  ? t("workspace.today.deepDive.kitchenCapacity")
+                                  : key === "delivery_mix"
+                                    ? t("workspace.today.deepDive.deliveryMix")
+                                    : key === "traffic"
+                                      ? t("workspace.today.deepDive.traffic")
+                                      : key;
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-xs text-text-secondary">
+                            {label}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}
+                          >
+                            {modifier > 0 ? "↑" : "↓"}{" "}
+                            {(Math.abs(modifier) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </div>
             ) : null}

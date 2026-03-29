@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -42,6 +43,7 @@ function toPercent(value: number) {
 }
 
 export default function BranchesPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
@@ -151,7 +153,7 @@ export default function BranchesPage() {
   const columns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
-        header: "Branch",
+        header: t("common.branch"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
             {info.getValue()}
@@ -159,7 +161,7 @@ export default function BranchesPage() {
         ),
       }),
       branchColumnHelper.accessor("revenue", {
-        header: "Revenue",
+        header: t("branches.table.revenue"),
         cell: (info) => (
           <div className="inline-flex items-baseline gap-1">
             <span className="text-sm font-bold text-brand-gold tracking-tight">
@@ -170,7 +172,7 @@ export default function BranchesPage() {
         ),
       }),
       branchColumnHelper.accessor("marginPct", {
-        header: "Margin",
+        header: t("branches.table.margin"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-success">
             {toPercent(info.getValue())}
@@ -178,7 +180,7 @@ export default function BranchesPage() {
         ),
       }),
       branchColumnHelper.accessor("riskScore", {
-        header: "Risk Score",
+        header: t("branches.table.riskScore"),
         cell: (info) => {
           const value = info.getValue();
           const colorClass =
@@ -195,7 +197,7 @@ export default function BranchesPage() {
         },
       }),
       branchColumnHelper.accessor("wastePct", {
-        header: "Waste %",
+        header: t("branches.table.wastePct"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-warning">
             {toPercent(info.getValue())}
@@ -203,7 +205,7 @@ export default function BranchesPage() {
         ),
       }),
       branchColumnHelper.accessor("efficiencyScore", {
-        header: "Efficiency",
+        header: t("branches.table.efficiency"),
         cell: (info) => (
           <span className="text-sm font-medium text-text-secondary">
             {info.getValue().toFixed(1)}
@@ -211,7 +213,7 @@ export default function BranchesPage() {
         ),
       }),
       branchColumnHelper.accessor("status", {
-        header: "Status",
+        header: t("common.status"),
         cell: (info) => {
           const status = info.getValue();
           const colorClass =
@@ -224,14 +226,14 @@ export default function BranchesPage() {
             <span
               className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${colorClass}`}
             >
-              {status.replace("_", " ")}
+              {status === "HEALTHY" ? t("branches.healthy") : status === "AT_RISK" ? t("branches.atRisk") : t("branches.underperforming")}
             </span>
           );
         },
       }),
       branchColumnHelper.display({
         id: "actions",
-        header: "Actions",
+        header: t("branches.table.actions"),
         cell: (info) => {
           const row = info.row.original;
           const target = targetAdjustments[row.id] ?? 0;
@@ -242,7 +244,7 @@ export default function BranchesPage() {
                 onClick={() => router.push(`/?branch=${row.id}`)}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-gold/40 bg-surface-3 px-3 text-xs font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold-hover active:scale-[0.98]"
               >
-                Open
+                {t("branches.table.open")}
               </button>
               <button
                 type="button"
@@ -254,13 +256,13 @@ export default function BranchesPage() {
                 }
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-primary active:scale-[0.98]"
               >
-                +5 Target
+                {t("branches.table.plus5Target")}
               </button>
               <Link
                 href={`/workspace/settings?branch=${row.id}`}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-muted transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-secondary active:scale-[0.98]"
               >
-                Settings
+                {t("branches.table.settings")}
               </Link>
             </div>
           );
@@ -278,57 +280,57 @@ export default function BranchesPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Branches"
-      title="Branch Control"
-      description="Multi-branch performance control surface for revenue, margin, risk, and operational efficiency."
-      insight="Executive leverage improves when branch performance is ranked by margin and risk, then reviewed against explicit targets."
+      eyebrow={t("branches.eyebrow")}
+      title={t("branches.title")}
+      description={t("branches.description")}
+      insight={t("branches.insight")}
     >
       <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 mb-12 md:grid-cols-4">
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Total Branches
+            {t("branches.totalBranches")}
           </p>
           <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
             {rows.length}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Active locations</p>
+            <p className="text-xs text-text-muted">{t("branches.activeLocations")}</p>
           </div>
         </article>
 
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Healthy
+            {t("branches.healthy")}
           </p>
           <p className="font-display text-4xl font-semibold text-status-success tracking-tight">
             {statusCounts.healthy}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Performing well</p>
+            <p className="text-xs text-text-muted">{t("branches.performingWell")}</p>
           </div>
         </article>
 
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            At Risk
+            {t("branches.atRisk")}
           </p>
           <p className="font-display text-4xl font-semibold text-status-warning tracking-tight">
             {statusCounts.atRisk}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Needs attention</p>
+            <p className="text-xs text-text-muted">{t("branches.needsAttention")}</p>
           </div>
         </article>
 
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Underperforming
+            {t("branches.underperforming")}
           </p>
           <p className="font-display text-4xl font-semibold text-status-critical tracking-tight">
             {statusCounts.underperforming}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Critical status</p>
+            <p className="text-xs text-text-muted">{t("branches.criticalStatus")}</p>
           </div>
         </article>
       </section>
@@ -336,10 +338,10 @@ export default function BranchesPage() {
       <section className="mt-12">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Branch Performance
+            {t("branches.performanceTitle")}
           </p>
           <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            Branch Control Table
+            {t("branches.controlTable")}
           </h3>
         </div>
 
@@ -361,7 +363,7 @@ export default function BranchesPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <article className="lg:col-span-2 bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-              Branch Drill-in
+              {t("branches.drillIn")}
             </p>
             <div className="space-y-3">
               {rows.slice(0, 5).map((row) => (
@@ -373,14 +375,14 @@ export default function BranchesPage() {
                     {row.branch}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    Revenue {toCurrency(row.revenue)} · Margin{" "}
-                    {toPercent(row.marginPct)} · Risk {row.riskScore.toFixed(0)}
+                    {t("branches.table.revenue")} {toCurrency(row.revenue)} · {t("branches.table.margin")}{" "}
+                    {toPercent(row.marginPct)} · {t("branches.table.riskScore")} {row.riskScore.toFixed(0)}
                   </p>
                 </div>
               ))}
               {!rows.length ? (
                 <p className="text-sm text-text-muted">
-                  No branches found for current organization context.
+                  {t("branches.noBranchesFound")}
                 </p>
               ) : null}
             </div>
@@ -388,7 +390,7 @@ export default function BranchesPage() {
 
           <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-              Compare Branches
+              {t("branches.compare")}
             </p>
             <div className="space-y-3">
               <select
@@ -396,7 +398,7 @@ export default function BranchesPage() {
                 onChange={(event) => setCompareA(event.target.value)}
                 className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               >
-                <option value="">Branch A</option>
+                <option value="">{t("branches.branchA")}</option>
                 {rows.map((row) => (
                   <option key={row.id} value={row.id}>
                     {row.branch}
@@ -408,7 +410,7 @@ export default function BranchesPage() {
                 onChange={(event) => setCompareB(event.target.value)}
                 className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               >
-                <option value="">Branch B</option>
+                <option value="">{t("branches.branchB")}</option>
                 {rows.map((row) => (
                   <option key={row.id} value={row.id}>
                     {row.branch}
@@ -417,7 +419,7 @@ export default function BranchesPage() {
               </select>
               <div className="pt-3 mt-3 border-t border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
-                  Efficiency Delta
+                  {t("branches.efficiencyDelta")}
                 </p>
                 <p
                   className={`font-display text-3xl font-bold tracking-tight ${compareDelta >= 0 ? "text-status-success" : "text-status-critical"}`}
@@ -431,7 +433,7 @@ export default function BranchesPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                       <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                        Branch A Accuracy
+                        {t("branches.branchAAccuracy")}
                       </p>
                       <p className="mt-1 text-sm font-semibold text-text-primary">
                         {compareMetricsA.data?.forecast_accuracy != null
@@ -439,7 +441,7 @@ export default function BranchesPage() {
                           : "—"}
                       </p>
                       <p className="text-[11px] text-text-muted">
-                        Quality{" "}
+                        {t("branches.quality")}{" "}
                         {compareQualityA.data?.overall_quality_score != null
                           ? `${compareQualityA.data.overall_quality_score.toFixed(0)}%`
                           : "—"}
@@ -447,7 +449,7 @@ export default function BranchesPage() {
                     </div>
                     <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
                       <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                        Branch B Accuracy
+                        {t("branches.branchBAccuracy")}
                       </p>
                       <p className="mt-1 text-sm font-semibold text-text-primary">
                         {compareMetricsB.data?.forecast_accuracy != null
@@ -455,7 +457,7 @@ export default function BranchesPage() {
                           : "—"}
                       </p>
                       <p className="text-[11px] text-text-muted">
-                        Quality{" "}
+                        {t("branches.quality")}{" "}
                         {compareQualityB.data?.overall_quality_score != null
                           ? `${compareQualityB.data.overall_quality_score.toFixed(0)}%`
                           : "—"}
@@ -463,8 +465,7 @@ export default function BranchesPage() {
                     </div>
                   </div>
                   <p>
-                    Forecast accuracy reflects recent learning signals; data
-                    quality highlights ingestion reliability.
+                    {t("branches.compareNote")}
                   </p>
                 </div>
               ) : null}

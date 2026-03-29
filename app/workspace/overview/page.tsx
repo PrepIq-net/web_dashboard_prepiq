@@ -7,6 +7,7 @@ import { Shop, Calendar } from "iconoir-react";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -42,6 +43,7 @@ function formatNumberishCurrency(value: string | number | null | undefined) {
 }
 
 export default function WorkspaceOverviewPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -154,10 +156,17 @@ export default function WorkspaceOverviewPage() {
       .slice(0, 3)
       .map((row) => ({
         title: row.title,
-        detail: `Observed in ${row.observed_in_kitchens} kitchen${row.observed_in_kitchens === 1 ? "" : "s"}.`,
+        detail:
+          row.observed_in_kitchens === 1
+            ? t("workspace.overview.observedInKitchens", {
+                count: row.observed_in_kitchens,
+              })
+            : t("workspace.overview.observedInKitchensPlural", {
+                count: row.observed_in_kitchens,
+              }),
         confidence: row.confidence,
       }));
-  }, [organizationNetworkQuery.data?.top_network_insights]);
+  }, [organizationNetworkQuery.data?.top_network_insights, t]);
   const locationRows = useMemo(() => {
     return (
       organizationNetworkQuery.data?.location_performance ??
@@ -211,7 +220,7 @@ export default function WorkspaceOverviewPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted animate-pulse">
-            Loading enterprise insights...
+            {t("workspace.overview.loadingEnterpriseInsights")}
           </p>
         </div>
       </main>
@@ -224,15 +233,15 @@ export default function WorkspaceOverviewPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Overview"
-      title="Cross Location Dashboard"
-      description="Enterprise network intelligence with shared pattern detection, waste comparison, and forecast reliability."
-      insight="Executives should get one view of cross-branch truth: what pattern is repeatable, where waste is growing, and what action should be standardized."
+      eyebrow={t("workspace.overview.eyebrow")}
+      title={t("workspace.overview.title")}
+      description={t("workspace.overview.description")}
+      insight={t("workspace.overview.insight")}
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Select
-            label="Anchor Branch"
+            label={t("workspace.overview.anchorBranchLabel")}
             leadingIcon={<Shop className="h-4 w-4" />}
             options={branchOptions.map((branch) => ({
               value: branch.id,
@@ -242,12 +251,14 @@ export default function WorkspaceOverviewPage() {
             onChange={setBranchId}
             disabled={!branchOptions.length}
             placeholder={
-              !branchOptions.length ? "No branches available" : "Select branch"
+              !branchOptions.length
+                ? t("workspace.common.noBranches")
+                : t("workspace.common.selectBranch")
             }
           />
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Date
+              {t("common.date")}
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
@@ -261,12 +272,11 @@ export default function WorkspaceOverviewPage() {
           </div>
           <article className="rounded-xl border border-brand-gold/35 bg-brand-gold/10 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-gold">
-              Suggested Action
+              {t("workspace.overview.suggestedActionTitle")}
             </p>
             <p className="mt-1 text-sm text-text-primary">
               {organizationNetworkQuery.data?.top_network_insights?.[0]
-                ?.suggested_action ??
-                "No validated organization-wide transfer action yet."}
+                ?.suggested_action ?? t("workspace.overview.noValidatedAction")}
             </p>
           </article>
         </div>
@@ -275,7 +285,7 @@ export default function WorkspaceOverviewPage() {
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Forecast Accuracy
+            {t("workspace.overview.forecastAccuracyTitle")}
           </p>
           <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
             {metricsQuery.data?.forecast_accuracy != null
@@ -283,12 +293,12 @@ export default function WorkspaceOverviewPage() {
               : "—"}
           </p>
           <p className="text-xs text-text-secondary">
-            {metricsQuery.data?.summary ?? "Awaiting forecast metrics."}
+            {metricsQuery.data?.summary ?? t("workspace.overview.awaitingMetrics")}
           </p>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Error Metrics
+            {t("workspace.overview.errorMetricsTitle")}
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
@@ -319,7 +329,7 @@ export default function WorkspaceOverviewPage() {
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Data Quality
+            {t("workspace.overview.dataQualityTitle")}
           </p>
           <p className="mt-2 font-display text-3xl font-semibold text-text-primary">
             {dataQualityQuery.data?.overall_quality_score != null
@@ -327,11 +337,12 @@ export default function WorkspaceOverviewPage() {
               : "—"}
           </p>
           <p className="text-xs text-text-secondary">
-            {dataQualityQuery.data?.quality_label ?? "No quality score yet."}
+            {dataQualityQuery.data?.quality_label ??
+              t("workspace.overview.noQualityScore")}
           </p>
           <p className="mt-2 text-xs text-text-muted">
             {dataQualityQuery.data?.recommendation ??
-              "Quality checks appear after ingest."}
+              t("workspace.overview.qualityChecksHint")}
           </p>
         </article>
       </section>
@@ -339,10 +350,10 @@ export default function WorkspaceOverviewPage() {
       <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Network Intelligence
+            {t("workspace.overview.networkIntelligenceTitle")}
           </p>
           <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
-            Top Network Insights
+            {t("workspace.overview.topNetworkInsightsTitle")}
           </h3>
           {networkInsights.length ? (
             <div className="mt-3 space-y-2">
@@ -357,7 +368,7 @@ export default function WorkspaceOverviewPage() {
                   <p className="mt-1 text-xs text-text-secondary">
                     {row.detail}
                     {typeof row.confidence === "number"
-                      ? ` Confidence ${percent(row.confidence)}.`
+                      ? ` ${t("workspace.overview.confidenceLevel", { percent: percent(row.confidence) })}`
                       : ""}
                   </p>
                 </div>
@@ -365,21 +376,21 @@ export default function WorkspaceOverviewPage() {
             </div>
           ) : (
             <p className="mt-3 text-sm text-text-secondary">
-              No validated network learnings available yet for this branch/day.
+              {t("workspace.overview.noNetworkLearnings")}
             </p>
           )}
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Enterprise Value
+            {t("workspace.overview.enterpriseValueTitle")}
           </p>
           <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
-            Cross Location Snapshot
+            {t("workspace.overview.crossLocationSnapshotTitle")}
           </h3>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Locations
+                {t("workspace.overview.locationsLabel")}
               </p>
               <p className="mt-1 text-xl font-semibold text-text-primary">
                 {organizationNetworkQuery.data?.summary.branch_count ??
@@ -389,7 +400,7 @@ export default function WorkspaceOverviewPage() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Forecast Accuracy (7d)
+                {t("workspace.overview.forecastAccuracy7d")}
               </p>
               <p className="mt-1 text-xl font-semibold text-text-primary">
                 {percent(
@@ -400,7 +411,7 @@ export default function WorkspaceOverviewPage() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Waste Risk
+                {t("workspace.overview.wasteRiskLabel")}
               </p>
               <p className="mt-1 text-xl font-semibold text-status-warning">
                 {(executiveQuery.data?.summary?.waste_risk_pct ?? 0).toFixed(1)}
@@ -409,7 +420,7 @@ export default function WorkspaceOverviewPage() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Total Waste Cost
+                {t("workspace.overview.totalWasteCostLabel")}
               </p>
               <p className="mt-1 text-xl font-semibold text-status-critical">
                 {formatNumberishCurrency(
@@ -419,20 +430,24 @@ export default function WorkspaceOverviewPage() {
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3/30 px-3 py-3 col-span-2">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Lifecycle
+                {t("workspace.overview.lifecycleLabel")}
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Candidate{" "}
-                {organizationNetworkQuery.data?.summary.candidate_patterns ?? 0}
-                {" · "}Validated{" "}
-                {organizationNetworkQuery.data?.summary.validated_patterns ?? 0}
-                {" · "}Deployed{" "}
-                {organizationNetworkQuery.data?.summary.deployed_patterns ?? 0}
-                {" · "}Freshness{" "}
-                {percent(
-                  organizationNetworkQuery.data?.summary
-                    .average_freshness_score ?? 0,
-                )}
+                {t("workspace.overview.lifecycleDetails", {
+                  candidate:
+                    organizationNetworkQuery.data?.summary.candidate_patterns ??
+                    0,
+                  validated:
+                    organizationNetworkQuery.data?.summary.validated_patterns ??
+                    0,
+                  deployed:
+                    organizationNetworkQuery.data?.summary.deployed_patterns ??
+                    0,
+                  freshness: percent(
+                    organizationNetworkQuery.data?.summary
+                      .average_freshness_score ?? 0,
+                  ),
+                })}
               </p>
             </div>
           </div>
@@ -441,14 +456,13 @@ export default function WorkspaceOverviewPage() {
 
       <section className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-          Location Performance
+          {t("workspace.overview.locationPerformanceTitle")}
         </p>
         <h3 className="mt-2 font-display text-xl font-semibold text-text-primary">
-          Shared Patterns and Waste Comparison
+          {t("workspace.overview.patternsComparisonTitle")}
         </h3>
         <p className="mt-1 text-sm text-text-secondary">
-          Open any branch for a read-only Today snapshot with phase, plan,
-          forecast, and money exposure.
+          {t("workspace.overview.branchDrillInDescription")}
         </p>
         <div className="mt-4 space-y-3 lg:hidden">
           {locationRows.map((row) => (
@@ -462,7 +476,8 @@ export default function WorkspaceOverviewPage() {
                     {row.branchName}
                   </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    Forecast {row.forecastText} · Margin signal{" "}
+                    {t("workspace.overview.table.forecastAccuracy")}{" "}
+                    {row.forecastText} · {t("workspace.overview.table.marginSignal")}{" "}
                     {row.marginSignal}
                   </p>
                 </div>
@@ -470,18 +485,18 @@ export default function WorkspaceOverviewPage() {
                   href={`/workspace/overview/branch/${row.branchId}?date=${targetDate}`}
                   className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
                 >
-                  Open
+                  {t("workspace.overview.openBranchButton")}
                 </Link>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                  <p className="text-text-muted">Revenue</p>
+                  <p className="text-text-muted">{t("workspace.overview.table.revenue")}</p>
                   <p className="mt-1 font-semibold text-text-primary">
                     {formatCurrency(row.revenueValue)}
                   </p>
                 </div>
                 <div className="rounded-lg border border-surface-4 bg-surface-2/70 px-3 py-2">
-                  <p className="text-text-muted">Waste</p>
+                  <p className="text-text-muted">{t("workspace.overview.table.wastePct")}</p>
                   <p className="mt-1 font-semibold text-status-warning">
                     {row.wasteText}
                   </p>
@@ -495,22 +510,22 @@ export default function WorkspaceOverviewPage() {
             <thead className="border-b border-surface-4/70">
               <tr>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Location
+                  {t("workspace.overview.table.location")}
                 </th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Revenue
+                  {t("workspace.overview.table.revenue")}
                 </th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Waste %
+                  {t("workspace.overview.table.wastePct")}
                 </th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Forecast Accuracy
+                  {t("workspace.overview.table.forecastAccuracy")}
                 </th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Margin Signal
+                  {t("workspace.overview.table.marginSignal")}
                 </th>
                 <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                  Branch View
+                  {t("workspace.overview.table.branchView")}
                 </th>
               </tr>
             </thead>
@@ -538,7 +553,7 @@ export default function WorkspaceOverviewPage() {
                         href={`/workspace/overview/branch/${row.branchId}?date=${targetDate}`}
                         className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-semibold text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10"
                       >
-                        Open
+                        {t("workspace.overview.openBranchButton")}
                       </Link>
                     </td>
                   </tr>

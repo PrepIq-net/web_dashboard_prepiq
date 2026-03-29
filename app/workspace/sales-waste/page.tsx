@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -73,19 +74,20 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
     .join(" ");
 }
 
-function getProfitabilityLabel(marginPct: number) {
-  if (marginPct >= 60) return "High";
-  if (marginPct >= 45) return "Medium";
-  return "Low";
+function getProfitabilityLabel(t: any, marginPct: number) {
+  if (marginPct >= 60) return t("workspace.today.confidence.high");
+  if (marginPct >= 45) return t("workspace.today.confidence.medium");
+  return t("workspace.today.confidence.low");
 }
 
-function getProfitabilityTone(label: string) {
-  if (label === "High") return "text-status-success";
-  if (label === "Medium") return "text-brand-gold";
+function getProfitabilityTone(marginPct: number) {
+  if (marginPct >= 60) return "text-status-success";
+  if (marginPct >= 45) return "text-brand-gold";
   return "text-status-critical";
 }
 
 function SalesWasteContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -167,11 +169,14 @@ function SalesWasteContent() {
   const summaries = report?.summaries;
   const summaryCards = useMemo(
     () => [
-      { label: "Today", data: summaries?.today },
-      { label: "Last 7 Days", data: summaries?.week },
-      { label: "Last 30 Days", data: summaries?.month },
+      { label: t("workspace.salesWaste.todayLabel"), data: summaries?.today },
+      { label: t("workspace.salesWaste.last7DaysLabel"), data: summaries?.week },
+      {
+        label: t("workspace.salesWaste.last30DaysLabel"),
+        data: summaries?.month,
+      },
     ],
-    [summaries],
+    [summaries, t],
   );
 
   const items = useMemo(() => {
@@ -183,28 +188,28 @@ function SalesWasteContent() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("item_title", {
-        header: "Item",
+        header: t("workspace.salesWaste.table.item"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
-            {info.getValue() ?? "Unknown"}
+            {info.getValue() ?? t("common.none")}
           </span>
         ),
       }),
       columnHelper.accessor("sold", {
-        header: "Sold",
+        header: t("workspace.salesWaste.table.sold"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">{info.getValue()}</span>
         ),
       }),
       columnHelper.accessor("waste", {
-        header: "Waste",
+        header: t("workspace.salesWaste.table.waste"),
         cell: (info) => (
           <span className="text-sm text-status-warning">{info.getValue()}</span>
         ),
       }),
       columnHelper.display({
         id: "wastePct",
-        header: "Waste %",
+        header: t("workspace.salesWaste.table.wastePct"),
         cell: (info) => {
           const row = info.row.original;
           const base = Math.max(row.sold, 1);
@@ -215,7 +220,7 @@ function SalesWasteContent() {
         },
       }),
       columnHelper.accessor("revenue", {
-        header: "Revenue",
+        header: t("workspace.salesWaste.table.revenue"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -223,27 +228,29 @@ function SalesWasteContent() {
         ),
       }),
       columnHelper.accessor("margin_impact", {
-        header: "Profitability",
+        header: t("workspace.salesWaste.table.profitability"),
         cell: (info) => (
-          <span className={`text-sm font-semibold ${getProfitabilityTone(getProfitabilityLabel(info.row.original.margin_pct))}`}>
-            {getProfitabilityLabel(info.row.original.margin_pct)}
+          <span
+            className={`text-sm font-semibold ${getProfitabilityTone(info.row.original.margin_pct)}`}
+          >
+            {getProfitabilityLabel(t, info.row.original.margin_pct)}
           </span>
         ),
       }),
       columnHelper.display({
         id: "actions",
-        header: "Action",
+        header: t("workspace.salesWaste.table.action"),
         cell: (info) => (
           <Link
             href={`/workspace/sales-waste/item?item=${info.row.original.item_id}&branch=${selectedBranchId}&date=${anchorDate}&period=${period}`}
             className="inline-flex h-8 items-center rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-text-primary"
           >
-            Drill In
+            {t("workspace.salesWaste.drillInButton")}
           </Link>
         ),
       }),
     ],
-    [anchorDate, selectedBranchId, period],
+    [anchorDate, selectedBranchId, period, t],
   );
 
   const table = useReactTable({
@@ -270,15 +277,15 @@ function SalesWasteContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Sales & Waste"
-      title="Profit Intelligence"
-      description="Connect sales performance with waste loss and forecasting impact."
-      insight="Understand where revenue is being captured and where margin leaks are happening."
+      eyebrow={t("workspace.salesWaste.eyebrow")}
+      title={t("workspace.salesWaste.title")}
+      description={t("workspace.salesWaste.description")}
+      insight={t("workspace.salesWaste.insight")}
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <Select
-            label="Branch"
+            label={t("common.branch")}
             options={branchOptions.map((branch) => ({
               value: branch.id,
               label: branch.name,
@@ -287,18 +294,18 @@ function SalesWasteContent() {
             onChange={setSelectedBranchId}
           />
           <Select
-            label="Period"
+            label={t("financial.timeframe")}
             options={[
-              { value: "today", label: "Today" },
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
+              { value: "today", label: t("workspace.salesWaste.todayLabel") },
+              { value: "7d", label: t("workspace.salesWaste.last7DaysLabel") },
+              { value: "30d", label: t("workspace.salesWaste.last30DaysLabel") },
             ]}
             value={period}
             onChange={setPeriod}
           />
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Anchor Date
+              {t("workspace.salesWaste.anchorDateLabel")}
             </label>
             <input
               type="date"
@@ -309,7 +316,7 @@ function SalesWasteContent() {
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Selected Window
+              {t("workspace.salesWaste.selectedWindowLabel")}
             </label>
             <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
               {report
@@ -322,13 +329,13 @@ function SalesWasteContent() {
         <div className="mt-6 pt-6 border-t border-surface-4">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "OVERVIEW", label: "Overview" },
-              { id: "ITEMS", label: "Item Performance" },
-              { id: "TRENDS", label: "Trends" },
-              { id: "FORECAST", label: "Forecast Impact" },
-              { id: "DRIVERS", label: "Waste Drivers" },
-              { id: "INSIGHTS", label: "Insights" },
-              { id: "NETWORK", label: "Network" },
+              { id: "OVERVIEW", label: t("workspace.salesWaste.tabs.overview") },
+              { id: "ITEMS", label: t("workspace.salesWaste.tabs.items") },
+              { id: "TRENDS", label: t("workspace.salesWaste.tabs.trends") },
+              { id: "FORECAST", label: t("workspace.salesWaste.tabs.forecast") },
+              { id: "DRIVERS", label: t("workspace.salesWaste.tabs.drivers") },
+              { id: "INSIGHTS", label: t("workspace.salesWaste.tabs.insights") },
+              { id: "NETWORK", label: t("workspace.salesWaste.tabs.network") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -352,10 +359,10 @@ function SalesWasteContent() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Sales Summary
+                {t("financial.tabs.overview")}
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Performance at a Glance
+                {t("workspace.salesWaste.performanceAtGlanceTitle")}
               </h3>
               <div className="mt-6 grid grid-cols-1 gap-4">
                 {summaryCards.map((card) => (
@@ -367,9 +374,21 @@ function SalesWasteContent() {
                       {toCurrency(card.data?.revenue ?? 0)}
                     </p>
                     <div className="mt-4 space-y-2 text-sm text-text-secondary">
-                      <p>Orders: {card.data?.total_orders ?? 0}</p>
-                      <p>Avg Order: {toCurrency(card.data?.avg_order_value ?? 0)}</p>
-                      <p>Top Item: {card.data?.top_item?.item_title ?? "—"}</p>
+                      <p>
+                        {t("workspace.salesWaste.ordersCount", {
+                          count: card.data?.total_orders ?? 0,
+                        })}
+                      </p>
+                      <p>
+                        {t("workspace.salesWaste.avgOrderValue", {
+                          amount: toCurrency(card.data?.avg_order_value ?? 0),
+                        })}
+                      </p>
+                      <p>
+                        {t("workspace.salesWaste.topItemLabel", {
+                          title: card.data?.top_item?.item_title ?? "—",
+                        })}
+                      </p>
                     </div>
                   </article>
                 ))}
@@ -378,10 +397,10 @@ function SalesWasteContent() {
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Waste Summary
+                {t("workspace.salesWaste.tabs.drivers")}
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Where Profit Leaks Happen
+                {t("workspace.salesWaste.profitLeaksTitle")}
               </h3>
               <div className="mt-6 grid grid-cols-1 gap-4">
                 {summaryCards.map((card) => (
@@ -393,10 +412,27 @@ function SalesWasteContent() {
                       {toCurrency(card.data?.waste_summary?.total_waste_value ?? 0)}
                     </p>
                     <div className="mt-4 space-y-2 text-sm text-text-secondary">
-                      <p>Waste Rate: {toPercent(card.data?.waste_summary?.waste_rate_pct ?? 0)}</p>
-                      <p>Top Waste: {card.data?.waste_summary?.top_waste_item?.item_title ?? "—"}</p>
                       <p>
-                        Units Wasted: {card.data?.waste_summary?.top_waste_item?.units_wasted ?? 0}
+                        {t("workspace.salesWaste.wasteRateLabel", {
+                          percent:
+                            card.data?.waste_summary?.waste_rate_pct?.toFixed(
+                              1,
+                            ) ?? 0,
+                        })}
+                      </p>
+                      <p>
+                        {t("workspace.salesWaste.topWasteLabel", {
+                          title:
+                            card.data?.waste_summary?.top_waste_item
+                              ?.item_title ?? "—",
+                        })}
+                      </p>
+                      <p>
+                        {t("workspace.salesWaste.unitsWastedLabel", {
+                          count:
+                            card.data?.waste_summary?.top_waste_item
+                              ?.units_wasted ?? 0,
+                        })}
                       </p>
                     </div>
                   </article>
@@ -407,15 +443,15 @@ function SalesWasteContent() {
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Sales Efficiency
+              {t("workspace.salesWaste.salesEfficiencyTitle")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Sales vs Waste Ratio
+              {t("workspace.salesWaste.salesVsWasteRatioTitle")}
             </h3>
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Revenue
+                  {t("financial.summary.revenue")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                   {toCurrency(report?.totals?.revenue ?? 0)}
@@ -423,7 +459,7 @@ function SalesWasteContent() {
               </article>
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Waste Cost
+                  {t("financial.summary.wasteCost")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
                   {toCurrency(report?.totals?.waste_cost ?? 0)}
@@ -431,13 +467,13 @@ function SalesWasteContent() {
               </article>
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Efficiency Ratio
+                  {t("workspace.salesWaste.efficiencyRatioLabel")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
                   {toPercent(efficiencyRatio)}
                 </p>
                 <p className="mt-2 text-xs text-text-muted">
-                  (Revenue − Waste) / Revenue
+                  {t("workspace.salesWaste.efficiencyRatioFormula")}
                 </p>
               </article>
             </div>
@@ -449,36 +485,44 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Item Performance
+              {t("workspace.salesWaste.tabs.items")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Sales, Waste, and Forecast Impact
+              {t("workspace.history.tabItemPerformance")}
             </h3>
             <p className="mt-2 text-sm text-text-muted">
-              Waste % and profitability highlight which items need forecast tuning.
+              {t("workspace.salesWaste.tuningHint")}
             </p>
           </div>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
             <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Revenue</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                {t("financial.summary.revenue")}
+              </p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
                 {toCurrency(report?.totals?.revenue ?? 0)}
               </p>
             </article>
             <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Food Cost Ratio</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                {t("workspace.salesWaste.foodCostRatioLabel")}
+              </p>
               <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
                 {toPercent(report?.totals?.food_cost_ratio ?? 0)}
               </p>
             </article>
             <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Rate</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                {t("financial.waste.wasteRate")}
+              </p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-warning">
                 {toPercent(report?.totals?.waste_rate_pct ?? 0)}
               </p>
             </article>
             <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Lost Revenue</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                {t("financial.stockout.lostRevenue")}
+              </p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-critical">
                 {toCurrency(report?.totals?.lost_revenue ?? 0)}
               </p>
@@ -504,22 +548,34 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Sales &amp; Waste Trends
+              {t("workspace.salesWaste.tabs.trends")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Daily Sales and Waste Signals
+              {t("financial.trends.breakdownTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {[
-              { label: "Revenue", color: "text-status-success", series: trendSeries.revenue },
-              { label: "Waste Rate", color: "text-status-critical", series: trendSeries.wasteRate, suffix: "%" },
+              {
+                label: t("workspace.salesWaste.revenueTrendLabel"),
+                color: "text-status-success",
+                series: trendSeries.revenue,
+              },
+              {
+                label: t("workspace.salesWaste.wasteRateTrendLabel"),
+                color: "text-status-critical",
+                series: trendSeries.wasteRate,
+                suffix: "%",
+              },
             ].map((chart) => {
               const points = buildSparklinePoints(chart.series, 520, 160);
               return (
-                <div key={chart.label} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                <div
+                  key={chart.label}
+                  className="rounded-xl border border-surface-4 bg-surface-2 p-5"
+                >
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    {chart.label} Trend
+                    {chart.label}
                   </p>
                   {chart.series.length ? (
                     <div className="mt-4">
@@ -539,7 +595,14 @@ function SalesWasteContent() {
                             <p className="font-semibold text-text-secondary">
                               {chart.suffix
                                 ? `${(chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0).toFixed(1)}${chart.suffix}`
-                                : toCurrency(chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0)}
+                                : toCurrency(
+                                    chart.series[
+                                      Math.max(
+                                        0,
+                                        chart.series.length - 6 + index,
+                                      )
+                                    ] ?? 0,
+                                  )}
                             </p>
                           </div>
                         ))}
@@ -547,7 +610,7 @@ function SalesWasteContent() {
                     </div>
                   ) : (
                     <p className="mt-4 text-sm text-text-muted">
-                      Not enough historical data yet.
+                      {t("financial.trends.notEnoughData")}
                     </p>
                   )}
                 </div>
@@ -561,16 +624,16 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Forecast Impact
+              {t("workspace.salesWaste.tabs.forecast")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              ML Accuracy → Real Money Saved
+              {t("workspace.salesWaste.mlAccuracyTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Forecast Accuracy
+                {t("financial.accuracy.currentAccuracy")}
               </p>
               <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
                 {toPercent(report?.forecast_impact?.forecast_accuracy ?? 0)}
@@ -578,7 +641,7 @@ function SalesWasteContent() {
             </article>
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Waste Avoided
+                {t("workspace.salesWaste.wasteAvoidedLabel")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toCurrency(report?.forecast_impact?.waste_avoided ?? 0)}
@@ -587,8 +650,8 @@ function SalesWasteContent() {
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
                 {report?.forecast_impact?.stockouts_prevented === null
-                  ? "Stockouts Detected"
-                  : "Stockouts Prevented"}
+                  ? t("workspace.salesWaste.stockoutsDetectedLabel")
+                  : t("workspace.salesWaste.stockoutsPreventedLabel")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
                 {report?.forecast_impact?.stockouts_prevented ??
@@ -604,10 +667,10 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Top Waste Drivers
+              {t("workspace.salesWaste.tabs.drivers")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Why Waste Happens
+              {t("workspace.salesWaste.whyWasteHappensTitle")}
             </h3>
             {report?.waste_drivers?.data_note ? (
               <p className="mt-2 text-sm text-text-muted">{report.waste_drivers.data_note}</p>
@@ -641,25 +704,33 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Opportunity Insights
+              {t("workspace.salesWaste.tabs.insights")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Actionable Recommendations
+              {t("workspace.salesWaste.actionableRecommendationsTitle")}
             </h3>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {(report?.opportunity_insights ?? []).length ? (
               report?.opportunity_insights.map((insight) => (
-                <article key={insight.item_id ?? insight.item_title} className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+                <article
+                  key={insight.item_id ?? insight.item_title}
+                  className="rounded-xl border border-surface-4 bg-surface-2 p-6"
+                >
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {insight.item_title ?? "Item"}
+                    {insight.item_title ?? t("workspace.salesWaste.table.item")}
                   </p>
                   <p className="mt-3 text-sm text-text-secondary">
-                    Waste rate: <span className="font-semibold text-status-critical">{toPercent(insight.waste_rate_pct)}</span>
+                    {t("financial.waste.wasteRate")}:{" "}
+                    <span className="font-semibold text-status-critical">
+                      {toPercent(insight.waste_rate_pct)}
+                    </span>
                   </p>
-                  <p className="mt-3 text-sm text-text-secondary">{insight.suggested_action}</p>
+                  <p className="mt-3 text-sm text-text-secondary">
+                    {insight.suggested_action}
+                  </p>
                   <p className="mt-4 text-xs uppercase tracking-[0.14em] text-text-muted">
-                    Potential savings
+                    {t("setup.forecast.potentialSavings")}
                   </p>
                   <p className="mt-1 text-lg font-semibold text-status-success">
                     {toCurrency(insight.potential_savings)}
@@ -668,7 +739,7 @@ function SalesWasteContent() {
               ))
             ) : (
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
-                No high-waste opportunities detected for this window yet.
+                {t("workspace.salesWaste.noWasteOpportunities")}
               </div>
             )}
           </div>
@@ -679,25 +750,29 @@ function SalesWasteContent() {
         <section>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Network Insight
+              {t("workspace.salesWaste.tabs.network")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Cross-Branch Signals
+              {t("workspace.salesWaste.crossBranchSignalsTitle")}
             </h3>
           </div>
           {report?.network_insights?.available ? (
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-sm text-text-secondary">
-                Average waste rate across network:{" "}
-                <span className="font-semibold text-status-critical">
-                  {toPercent(report.network_insights.avg_waste_rate_pct ?? 0)}
-                </span>
+                {t("workspace.salesWaste.avgWasteNetwork", {
+                  percent: toPercent(
+                    report.network_insights.avg_waste_rate_pct ?? 0,
+                  ),
+                })}
               </p>
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 {(report.network_insights.top_waste_items ?? []).map((item) => (
-                  <div key={item.item_id ?? item.item_title} className="rounded-lg border border-surface-4 bg-surface-3 p-4">
+                  <div
+                    key={item.item_id ?? item.item_title}
+                    className="rounded-lg border border-surface-4 bg-surface-3 p-4"
+                  >
                     <p className="text-xs uppercase tracking-[0.14em] text-text-muted">
-                      {item.item_title ?? "Item"}
+                      {item.item_title ?? t("workspace.salesWaste.table.item")}
                     </p>
                     <p className="mt-2 text-lg font-semibold text-status-critical">
                       {toCurrency(item.waste_cost)}
@@ -709,7 +784,7 @@ function SalesWasteContent() {
           ) : (
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-muted">
               {report?.network_insights?.message ??
-                "Network insights are not available for this account yet."}
+                t("risk.network.noRisks")}
             </div>
           )}
         </section>
@@ -719,11 +794,12 @@ function SalesWasteContent() {
 }
 
 export default function SalesWastePage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading sales &amp; waste workspace…
+          {t("workspace.salesWaste.loadingSalesWaste")}
         </div>
       }
     >

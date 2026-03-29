@@ -4,12 +4,14 @@ import { useState } from "react";
 import { ChatBubble, User, Plus } from "iconoir-react";
 import { CreateThreadModal } from "./create-thread-modal";
 import type { UserProfile } from "@/services/users/types";
+import { useTranslation } from "@/lib/i18n";
 
 interface ChatEmptyStateProps {
   user?: UserProfile | null;
 }
 
 export function ChatEmptyState({ user }: ChatEmptyStateProps) {
+  const { t } = useTranslation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   
   const canCreateThread = user?.organization_role && [
@@ -31,13 +33,12 @@ export function ChatEmptyState({ user }: ChatEmptyStateProps) {
 
         {/* Title */}
         <h3 className="text-xl font-semibold text-text-primary mb-3">
-          Welcome to Team Chat
+          {t("workspace.chat.empty.title")}
         </h3>
 
         {/* Description */}
         <p className="text-text-secondary mb-6 leading-relaxed">
-          Stay connected with your team through organized conversations. 
-          Select a conversation from the sidebar to start messaging, or create a new one to get started.
+          {t("workspace.chat.empty.description")}
         </p>
 
         {/* Features */}
@@ -47,9 +48,9 @@ export function ChatEmptyState({ user }: ChatEmptyStateProps) {
               <User className="h-4 w-4 text-brand-gold" />
             </div>
             <div className="text-left">
-              <h4 className="text-sm font-medium text-text-primary mb-1">Team Collaboration</h4>
+              <h4 className="text-sm font-medium text-text-primary mb-1">{t("workspace.chat.empty.feature1Title")}</h4>
               <p className="text-xs text-text-muted">
-                Organize conversations by topic, project, or team to keep discussions focused and searchable.
+                {t("workspace.chat.empty.feature1Desc")}
               </p>
             </div>
           </div>
@@ -59,9 +60,9 @@ export function ChatEmptyState({ user }: ChatEmptyStateProps) {
               <ChatBubble className="h-4 w-4 text-status-success" />
             </div>
             <div className="text-left">
-              <h4 className="text-sm font-medium text-text-primary mb-1">Real-time Messaging</h4>
+              <h4 className="text-sm font-medium text-text-primary mb-1">{t("workspace.chat.empty.feature2Title")}</h4>
               <p className="text-xs text-text-muted">
-                Send messages, share files, and get instant notifications when team members respond.
+                {t("workspace.chat.empty.feature2Desc")}
               </p>
             </div>
           </div>
@@ -71,40 +72,40 @@ export function ChatEmptyState({ user }: ChatEmptyStateProps) {
         {canCreateThread ? (
           <div className="space-y-3">
             <p className="text-sm text-text-muted">
-              Ready to start collaborating?
+              {t("workspace.chat.empty.ready")}
             </p>
             <button 
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-sm font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/20 active:scale-95"
             >
               <Plus className="h-4 w-4" />
-              Create New Conversation
+              {t("workspace.chat.empty.create")}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-text-muted">
-              Select a conversation from the sidebar to start messaging.
+              {t("workspace.chat.empty.select")}
             </p>
             <div className="inline-flex items-center gap-2 rounded-lg bg-surface-3 px-4 py-2 text-sm text-text-secondary">
               <ChatBubble className="h-4 w-4" />
-              Choose a conversation to begin
+              {t("workspace.chat.empty.choose")}
             </div>
           </div>
         )}
 
         {/* Tips */}
         <div className="mt-8 pt-6 border-t border-surface-4">
-          <p className="text-xs text-text-muted mb-3">💡 Pro Tips:</p>
+          <p className="text-xs text-text-muted mb-3">💡 {t("workspace.chat.empty.proTips")}</p>
           <div className="text-left space-y-2">
             <p className="text-xs text-text-muted">
-              • Use @mentions to notify specific team members
+              • {t("workspace.chat.empty.tip1")}
             </p>
             <p className="text-xs text-text-muted">
-              • Drag and drop files to share them instantly
+              • {t("workspace.chat.empty.tip2")}
             </p>
             <p className="text-xs text-text-muted">
-              • Use tags to organize conversations by topic
+              • {t("workspace.chat.empty.tip3")}
             </p>
           </div>
         </div>

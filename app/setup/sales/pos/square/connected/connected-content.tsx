@@ -8,8 +8,10 @@ import {
   RefreshDouble,
   WarningTriangle,
 } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 export function SquareConnectedContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,18 +24,19 @@ export function SquareConnectedContent() {
   const errorDescription = searchParams.get("error_description");
 
   const title = isConnected
-    ? "Square connected"
-    : "Square connection not completed";
+    ? t("setup.sales.upload.connected.successTitle")
+    : t("setup.sales.upload.connected.failTitle");
 
   const message = useMemo(() => {
     if (isConnected) {
-      return "PrepIQ can now pull sales and location data from your Square account.";
+      return t("setup.sales.upload.connected.successMsg");
     }
 
     if (errorDescription) return errorDescription;
-    if (error) return `Square returned: ${error}`;
-    return "The authorization was canceled or failed. You can retry now.";
-  }, [error, errorDescription, isConnected]);
+    if (error)
+      return t("setup.sales.upload.connected.squareError", { error });
+    return t("setup.sales.upload.connected.failMsg");
+  }, [error, errorDescription, isConnected, t]);
 
   return (
     <div className="w-full max-w-lg rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-6">
@@ -46,7 +49,9 @@ export function SquareConnectedContent() {
         <span
           className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isConnected ? "text-[#3F8F68]" : "text-[#C48B2A]"}`}
         >
-          {isConnected ? "Integration Active" : "Action Required"}
+          {isConnected
+            ? t("setup.sales.upload.connected.active")
+            : t("setup.sales.upload.connected.actionRequired")}
         </span>
       </div>
 
@@ -60,11 +65,12 @@ export function SquareConnectedContent() {
       {isConnected && (
         <div className="rounded-[8px] border border-[#2E2E33] bg-[#232327] p-3 mb-6 space-y-1">
           <p className="text-[12px] text-[#C7C7CC]">
-            Connection ID:{" "}
+            {t("setup.sales.upload.connected.connId")}:{" "}
             <span className="text-[#F5F5F7]">{connectionId || "-"}</span>
           </p>
           <p className="text-[12px] text-[#C7C7CC]">
-            Branch ID: <span className="text-[#F5F5F7]">{branchId || "-"}</span>
+            {t("setup.sales.upload.connected.branchId")}:{" "}
+            <span className="text-[#F5F5F7]">{branchId || "-"}</span>
           </p>
         </div>
       )}
@@ -75,7 +81,7 @@ export function SquareConnectedContent() {
             onClick={() => router.push("/setup/items")}
             className="w-full h-11 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors"
           >
-            See forecast
+            {t("setup.sales.upload.connected.seeForecast")}
             <ArrowRight className="h-4 w-4" />
           </button>
         ) : (
@@ -83,7 +89,7 @@ export function SquareConnectedContent() {
             onClick={() => router.push("/setup/sales/pos/square/connect")}
             className="w-full h-11 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors"
           >
-            Retry Square connection
+            {t("setup.sales.upload.connected.retry")}
             <RefreshDouble className="h-4 w-4" />
           </button>
         )}
@@ -92,9 +98,10 @@ export function SquareConnectedContent() {
           onClick={() => router.push("/setup/sales/pos")}
           className="w-full h-11 rounded-[8px] border border-[#2E2E33] bg-transparent hover:bg-[#232327] text-[#C7C7CC] text-sm font-medium transition-colors"
         >
-          Back to POS systems
+          {t("setup.sales.upload.connect.backToPos")}
         </button>
       </div>
     </div>
   );
+}
 }

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { inter, satoshi } from "@/lib/fonts";
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-function resolveHtmlLang(acceptLanguage: string | null): string {
+async function resolveHtmlLang(acceptLanguage: string | null): Promise<string> {
+  const cookieStore = await cookies();
+  const cookieLang = cookieStore.get("PREPIQ_LANGUAGE")?.value;
+  if (cookieLang === "en" || cookieLang === "fr") return cookieLang;
+
   const supported = new Set(["en", "fr"]);
   const preferred = (acceptLanguage ?? "")
     .split(",")
@@ -64,7 +68,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headersList = await headers();
-  const lang = resolveHtmlLang(headersList.get("accept-language"));
+  const lang = await resolveHtmlLang(headersList.get("accept-language"));
 
   return (
     <html lang={lang}>

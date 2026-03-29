@@ -1,6 +1,7 @@
 "use client";
 
 import { Brain } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 type WorkspaceShellProps = {
   eyebrow: string;
@@ -17,6 +18,7 @@ export function WorkspaceShell({
   insight,
   children,
 }: WorkspaceShellProps) {
+  const { t } = useTranslation();
   return (
     <>
       <section className="pb-8 border-b border-[#2A2A2E]">
@@ -37,7 +39,7 @@ export function WorkspaceShell({
         <div className="inline-flex items-center gap-2 text-[#A8821F]">
           <Brain className="h-4 w-4" />
           <p className="text-[11px] uppercase tracking-[0.14em]">
-            PrepIQ Insight
+            {t("workspace.common.insight")}
           </p>
         </div>
         <p className="mt-2 text-[14px] leading-[24px] text-[#C7C7CC]">

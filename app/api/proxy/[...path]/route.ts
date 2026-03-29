@@ -31,10 +31,13 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 /**
- * Resolve a two-letter language code from the incoming Accept-Language header.
+ * Resolve a two-letter language code from cookies or the incoming Accept-Language header.
  * Falls back to "en" for anything unsupported.
  */
 function resolveLanguage(request: NextRequest): string {
+  const cookieLang = request.cookies.get("PREPIQ_LANGUAGE")?.value;
+  if (cookieLang === "en" || cookieLang === "fr") return cookieLang;
+
   const supported = new Set(["en", "fr"]);
   const raw = request.headers.get("accept-language") ?? "";
 

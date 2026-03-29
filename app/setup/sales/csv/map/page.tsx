@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   buildMappedCSV,
   parseCSVFile,
@@ -21,37 +22,14 @@ import {
 
 const REQUIRED_FIELDS: Array<{
   id: keyof CSVColumnMapping;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: "saleDate",
-    label: "Date",
-    description: "When the sale occurred (e.g., date, timestamp)",
-  },
-  {
-    id: "item",
-    label: "Item name or POS item id",
-    description: "Item title or provider item identifier from your export",
-  },
-  {
-    id: "quantity",
-    label: "Quantity sold",
-    description: "How many units (e.g., qty, amount)",
-  },
-];
+}> = [{ id: "saleDate" }, { id: "item" }, { id: "quantity" }];
 
 const OPTIONAL_FIELDS: Array<{
   id: keyof CSVColumnMapping;
-  label: string;
-  description: string;
-}> = [
-  { id: "revenue", label: "Revenue (optional)", description: "Total sale value for margin analysis." },
-  { id: "unit", label: "Unit (optional)", description: "PCS, KG, LTR, etc." },
-  { id: "externalRef", label: "External ref (optional)", description: "Order/receipt identifier for dedupe." },
-];
+}> = [{ id: "revenue" }, { id: "unit" }, { id: "externalRef" }];
 
 export default function CSVMappingPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const file = useCSVUploadSessionStore((state) => state.file);
   const branchId = useCSVUploadSessionStore((state) => state.branchId);
@@ -126,7 +104,7 @@ export default function CSVMappingPage() {
       if (unique.size !== values.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each CSV column can only map to one field.",
+          message: t("setup.sales.csvMappingErrorUnique"),
         });
       }
       if (headers.length) {
@@ -136,7 +114,9 @@ export default function CSVMappingPage() {
           if (!headerSet.has(value)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Column "${value}" is not in the CSV headers.`,
+              message: t("workspace.today.csvMap.columnNotInHeaders", {
+                column: value,
+              }),
               path: [key],
             });
           }
@@ -204,8 +184,13 @@ export default function CSVMappingPage() {
       if (created + updated > 0) {
         toast.success(
           failed > 0
-            ? `Imported ${created + updated} rows (${failed} failed).`
-            : `Import complete: ${created + updated} rows processed.`,
+            ? t("workspace.today.csvMap.importPartialSuccess", {
+                total: created + updated,
+                failed,
+              })
+            : t("workspace.today.csvMap.importSuccess", {
+                count: created + updated,
+              }),
         );
         setIsTransitioningAfterImport(true);
         // In setup flow (no returnPath), go to items confirmation; otherwise return to caller
@@ -214,11 +199,19 @@ export default function CSVMappingPage() {
         return;
       }
 
-      toast.error("No rows were imported. Please check your mapping.");
-      setMappingError("No rows were imported. Please review mapping and try again.");
+      toast.error(t("workspace.today.csvMap.noRowsImported"));
+      setMappingError(t("workspace.today.csvMap.noRowsImported"));
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "Failed to import CSV.");
-      toast.error(error instanceof Error ? error.message : "Failed to import CSV.");
+      setMappingError(
+        error instanceof Error
+          ? error.message
+          : t("workspace.today.csvMap.failedImport"),
+      );
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("workspace.today.csvMap.failedImport"),
+      );
     }
   }
 
@@ -231,44 +224,45 @@ export default function CSVMappingPage() {
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            ← {t("workspace.today.csvMap.back")}
           </button>
           {returnPath ? (
             <button
               onClick={() => router.push(returnPath)}
               className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F] hover:text-[#D6A83A] transition-colors"
             >
-              Back to Live
+              {t("workspace.today.csvMap.backToLive")}
             </button>
           ) : null}
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Map Columns
+            {t("setup.common.step", { step: 2 })} — {t("workspace.today.csvMap.liveImport")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Match your columns
+          {t("workspace.today.csvMap.matchColumns")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          We found {headers.length} columns in your CSV. Please tell us
-          which column matches the data we need to generate your forecasts.
+          {t("workspace.today.csvMap.foundColumns", { count: headers.length })}
         </p>
 
         {/* Mapping Form */}
         <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-5 mb-8">
           <div className="grid grid-cols-2 gap-8 mb-4 px-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Required Data
+              {t("workspace.today.csvMap.requiredData")}
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Your CSV Column
+              {t("workspace.today.csvMap.yourCsvColumn")}
             </span>
           </div>
 
           <div className="space-y-4">
             {REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).map((field) => {
-              const isRequired = REQUIRED_FIELDS.some((required) => required.id === field.id);
+              const isRequired = REQUIRED_FIELDS.some(
+                (required) => required.id === field.id,
+              );
               const isMapped = Boolean(mapping[field.id]);
               return (
                 <div
@@ -286,10 +280,12 @@ export default function CSVMappingPage() {
                     </div>
                     <div>
                       <p className="text-[13px] font-semibold text-[#F5F5F7]">
-                        {field.label}
+                        {t(`workspace.today.csvMap.fields.${field.id}.label`)}
                       </p>
                       <p className="text-[12px] text-[#5A5A60] mt-0.5">
-                        {field.description}
+                        {t(
+                          `workspace.today.csvMap.fields.${field.id}.description`,
+                        )}
                       </p>
                     </div>
                   </div>
@@ -297,7 +293,7 @@ export default function CSVMappingPage() {
                   {/* Right Side: CSV Column Select */}
                   <div>
                     <Select
-                      label="CSV Column"
+                      label={t("workspace.today.csvMap.yourCsvColumn")}
                       options={selectOptions}
                       value={mapping[field.id] || ""}
                       onChange={(value) => handleMapChange(field.id, value)}
@@ -321,7 +317,7 @@ export default function CSVMappingPage() {
             onChange={(event) => setAutoCreateItems(event.target.checked)}
             className="accent-[#A8821F]"
           />
-          Auto-create missing items from CSV
+          {t("workspace.today.csvMap.autoCreateItems")}
         </label>
 
         {mappingError && (
@@ -333,15 +329,22 @@ export default function CSVMappingPage() {
         {!!previewMutation.data && (
           <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-4 text-[13px] text-[#C7C7CC]">
             <p>
-              Preview: {previewMutation.data.valid_rows} valid,{" "}
-              {previewMutation.data.failed_rows} failed, {previewMutation.data.would_create} create,{" "}
-              {previewMutation.data.would_update} update.
+              {t("workspace.today.csvMap.previewLabel", {
+                valid: previewMutation.data.valid_rows,
+                failed: previewMutation.data.failed_rows,
+                create: previewMutation.data.would_create,
+                update: previewMutation.data.would_update,
+              })}
             </p>
             {!!previewMutation.data.warnings.length && (
-              <p className="text-[#C48B2A] mt-2">{previewMutation.data.warnings[0]}</p>
+              <p className="text-[#C48B2A] mt-2">
+                {previewMutation.data.warnings[0]}
+              </p>
             )}
             {!!previewMutation.data.errors.length && (
-              <p className="text-[#E7B4B4] mt-2">{previewMutation.data.errors[0]}</p>
+              <p className="text-[#E7B4B4] mt-2">
+                {previewMutation.data.errors[0]}
+              </p>
             )}
           </div>
         )}
@@ -351,16 +354,18 @@ export default function CSVMappingPage() {
           onClick={() => {
             void handlePreview();
           }}
-          disabled={!isComplete || previewMutation.isPending || importMutation.isPending}
+          disabled={
+            !isComplete || previewMutation.isPending || importMutation.isPending
+          }
           className="w-full h-12 bg-[#232327] hover:bg-[#2B2B30] border border-[#2E2E33] disabled:opacity-40 disabled:cursor-not-allowed text-[#F5F5F7] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150 mb-3"
         >
           {previewMutation.isPending ? (
             <>
               <Spinner size="sm" color="#F5F5F7" />
-              Validating...
+              {t("workspace.today.csvMap.validating")}
             </>
           ) : (
-            "Validate Mapping"
+            t("workspace.today.csvMap.validateMapping")
           )}
         </button>
 
@@ -374,11 +379,11 @@ export default function CSVMappingPage() {
           {importMutation.isPending ? (
             <>
               <Spinner size="sm" color="#141416" />
-              Importing...
+              {t("workspace.today.csvMap.importing")}
             </>
           ) : (
             <>
-              Import Sales Data
+              {t("workspace.today.csvMap.importSalesData")}
               <ArrowRight className="h-4 w-4" />
             </>
           )}

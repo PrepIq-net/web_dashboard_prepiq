@@ -15,8 +15,10 @@ import {
   useProductionIntelligenceAccessScope,
   useStartSquareOAuth,
 } from "@/services/production-intelligence/hooks";
+import { useTranslation } from "@/lib/i18n";
 
 export default function POSConnectPage() {
+  const { t } = useTranslation();
   const params = useParams<{ provider: string }>();
   const router = useRouter();
   const provider = String(params?.provider || "").toLowerCase();
@@ -70,19 +72,21 @@ export default function POSConnectPage() {
       <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
         <div className="w-full max-w-lg rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C48B2A] mb-3">
-            Integration Availability
+            {t("setup.sales.upload.connect.availability")}
           </p>
           <h1 className="font-display text-[24px] leading-[32px] font-semibold text-[#F5F5F7] mb-2">
-            {provider || "This provider"} is not ready yet.
+            {t("setup.sales.upload.connect.notReady", {
+              provider: provider || "This provider",
+            })}
           </h1>
           <p className="text-[14px] leading-[22px] text-[#8E8E93] mb-6">
-            Square is the first live POS integration. Select Square to continue setup.
+            {t("setup.sales.upload.connect.squareLive")}
           </p>
           <button
             onClick={() => router.push("/setup/sales/pos")}
             className="h-11 px-5 rounded-[8px] bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416] text-sm font-semibold inline-flex items-center gap-2 transition-colors"
           >
-            Back to POS list
+            {t("setup.sales.upload.connect.backToPos")}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -99,42 +103,41 @@ export default function POSConnectPage() {
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors inline-flex items-center gap-1"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            {t("setup.sales.upload.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Square Connect
+            {t("setup.common.step", { step: 2 })} — {t("setup.sales.connectPos")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Connect Square POS
+          {t("setup.sales.upload.connect.title")}
         </h1>
         <p className="text-[14px] leading-[22px] text-[#8E8E93] mb-6">
-          Authorize PrepIQ to read your sales data and locations. Selecting a
-          branch opens Square in a new tab.
+          {t("setup.sales.upload.connect.description")}
         </p>
 
         <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-5 mb-4">
           <div className="flex items-start gap-2.5 mb-4">
             <InfoCircle className="h-4 w-4 text-[#3A6EA5] shrink-0 mt-0.5" />
             <p className="text-[13px] leading-[20px] text-[#C7C7CC]">
-              You will be redirected to Square and then returned here after authorization.
+              {t("setup.sales.upload.connect.redirectNote")}
             </p>
           </div>
 
           <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
-            Branch
+            {t("common.branch")}
           </label>
 
           {scopeLoading ? (
             <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
               <Spinner size="sm" color="#8E8E93" />
-              Loading accessible branches...
+              {t("setup.sales.upload.loadingBranches")}
             </div>
           ) : branches.length === 0 ? (
             <div className="rounded-[8px] border border-[#C48B2A]/40 bg-[#C48B2A]/10 p-3 text-[13px] text-[#C7C7CC]">
-              No accessible branches found for integration setup.
+              {t("setup.sales.upload.connect.noBranches")}
             </div>
           ) : (
             <Select
@@ -145,7 +148,7 @@ export default function POSConnectPage() {
               }))}
               value={selectedBranchId}
               onChange={handleBranchSelect}
-              placeholder="Select branch to connect"
+              placeholder={t("setup.sales.upload.connect.placeholder")}
               className="space-y-0"
             />
           )}
@@ -160,7 +163,7 @@ export default function POSConnectPage() {
                   ? scopeError.message
                   : squareOAuth.error instanceof Error
                     ? squareOAuth.error.message
-                    : "Unable to start Square connection."}
+                    : t("setup.sales.upload.connect.error")}
               </p>
             </div>
           </div>
@@ -176,12 +179,12 @@ export default function POSConnectPage() {
           {squareOAuth.isPending ? (
             <>
               <Spinner size="sm" color="#141416" />
-              Preparing OAuth...
+              {t("setup.sales.upload.connect.preparing")}
             </>
           ) : (
             <>
               <Link className="h-4 w-4" />
-              Connect with Square
+              {t("setup.sales.upload.connect.cta")}
             </>
           )}
         </button>

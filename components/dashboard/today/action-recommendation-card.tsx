@@ -23,6 +23,7 @@ export function ActionRecommendationCard({
   onAccept,
   disabled,
 }: ActionRecommendationCardProps) {
+  const { t } = useTranslation();
   const urgencyStyles = {
     HIGH: "border-status-critical/40 bg-status-critical/8",
     MEDIUM: "border-status-warning/40 bg-status-warning/8",
@@ -66,16 +67,16 @@ export function ActionRecommendationCard({
           <p className="text-sm text-text-secondary">{action.description}</p>
           <details className="mt-2">
             <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
-              Why this matters
+              {t("workspace.today.table.whyThisQuantity")}
             </summary>
             <div className="mt-2 space-y-1 text-[11px] text-text-secondary">
               <p>
-                <span className="font-semibold text-text-primary">Why: </span>
+                <span className="font-semibold text-text-primary">{t("workspace.today.deepDive.whyThisNumber")}: </span>
                 {action.why}
               </p>
               <p>
                 <span className="font-semibold text-text-primary">
-                  If you don't:{" "}
+                  {t("workspace.today.table.risk")}:{" "}
                 </span>
                 {action.consequence}
               </p>
@@ -89,7 +90,7 @@ export function ActionRecommendationCard({
             disabled={disabled}
             className={`shrink-0 inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${urgencyButtonStyles[action.urgency]}`}
           >
-            Apply
+            {t("common.submit")}
           </button>
         )}
       </div>

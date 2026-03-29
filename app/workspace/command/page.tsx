@@ -159,18 +159,24 @@ export default function CommandPage() {
         .filter((branch) => Number(branch.margin_deviation_pct ?? 0) < -1)
         .map((branch) => ({
           id: `finance-margin-${branch.branch_id}`,
-          title: `Margin dropped ${Math.abs(Number(branch.margin_deviation_pct ?? 0)).toFixed(1)}%`,
+          title: t("workspace.command.marginDroppedMsg", {
+            percent: Math.abs(
+              Number(branch.margin_deviation_pct ?? 0),
+            ).toFixed(1),
+          }),
           impactedBranch: branch.branch_name,
-          financialImpact: normalizeImpact(Number(branch.total_waste_cost ?? "0") * 0.22),
-          actionRecommendation: "Review purchase costs and prep-to-sales mismatch this week.",
+          financialImpact: normalizeImpact(
+            Number(branch.total_waste_cost ?? "0") * 0.22,
+          ),
+          actionRecommendation: t("workspace.command.reviewPurchaseCostsMsg"),
           viewHref: `/workspace/margin-protection?branch=${branch.branch_id}`,
         })),
       {
         id: "finance-margin-fallback",
-        title: "Margin drift signal",
+        title: t("workspace.command.marginDriftSignal"),
         impactedBranch: "Organization",
         financialImpact: 1200,
-        actionRecommendation: "Audit margin movement before month-end close.",
+        actionRecommendation: t("workspace.command.auditMarginMsg"),
         viewHref: "/workspace/margin-protection",
       },
     );
@@ -180,18 +186,20 @@ export default function CommandPage() {
         .filter((branch) => Number(branch.waste_pct ?? 0) >= 4)
         .map((branch) => ({
           id: `finance-waste-${branch.branch_id}`,
-          title: `Waste outlier ${Number(branch.waste_pct ?? 0).toFixed(1)}%`,
+          title: t("workspace.command.wasteOutlierMsg", {
+            percent: Number(branch.waste_pct ?? 0).toFixed(1),
+          }),
           impactedBranch: branch.branch_name,
           financialImpact: normalizeImpact(Number(branch.waste_pct ?? 0) * 260),
-          actionRecommendation: "Investigate item-level overproduction and end-of-day carryover.",
+          actionRecommendation: t("workspace.command.investigateOverproductionMsg"),
           viewHref: `/workspace/waste-cost-report?branch=${branch.branch_id}`,
         })),
       {
         id: "finance-waste-fallback",
-        title: "Waste outlier review",
+        title: t("workspace.command.wasteOutlierReview"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "Waste levels are stable; keep monitoring outlier thresholds.",
+        actionRecommendation: t("workspace.command.wasteLevelsStableMsg"),
         viewHref: "/workspace/waste-cost-report",
       },
     );
@@ -199,42 +207,50 @@ export default function CommandPage() {
     const purchaseVariance = pickFirst(
       supplierLikeAlerts.map((alert, index) => ({
         id: `finance-purchase-${alert.id}`,
-        title: alert.title || "Purchase variance alert",
+        title: alert.title || t("workspace.command.purchaseVarianceAlert"),
         impactedBranch: alert.branch_name,
-        financialImpact: normalizeImpact((supplierLikeAlerts.length - index) * 320),
-        actionRecommendation: "Validate supplier invoice and contracted unit price.",
+        financialImpact: normalizeImpact(
+          (supplierLikeAlerts.length - index) * 320,
+        ),
+        actionRecommendation: t("workspace.command.validateSupplierInvoiceMsg"),
         viewHref: "/workspace/purchase-variance",
       })),
       {
         id: "finance-purchase-fallback",
-        title: "Supplier cost deviation",
+        title: t("workspace.command.supplierCostDeviation"),
         impactedBranch: "Organization",
         financialImpact: 900,
-        actionRecommendation: "Review recurring SKUs for cost movement.",
+        actionRecommendation: t("workspace.command.reviewRecurringSkusMsg"),
         viewHref: "/workspace/purchase-variance",
       },
     );
 
     const taxFlag: CommandCard = {
       id: "finance-tax",
-      title: "Tax risk flag",
+      title: t("workspace.command.taxRiskFlag"),
       impactedBranch: "Organization",
-      financialImpact: normalizeImpact(Number(marginReportQuery.data?.summary?.total_waste_cost ?? "0") * 0.18),
-      actionRecommendation: "Check waste accounting classification before filing cycle.",
+      financialImpact: normalizeImpact(
+        Number(marginReportQuery.data?.summary?.total_waste_cost ?? "0") * 0.18,
+      ),
+      actionRecommendation: t("workspace.command.checkWasteAccountingMsg"),
       viewHref: "/workspace/tax-engine",
     };
 
     return [
-      { label: "Margin Drop Alerts", cards: [marginDrop] },
-      { label: "Waste Outliers", cards: [wasteOutlier] },
-      { label: "Purchase Variance Alerts", cards: [purchaseVariance] },
-      { label: "Tax Risk Flags", cards: [taxFlag] },
+      { label: t("workspace.command.marginDropAlerts"), cards: [marginDrop] },
+      { label: t("workspace.command.wasteOutliers"), cards: [wasteOutlier] },
+      {
+        label: t("workspace.command.purchaseVarianceAlerts"),
+        cards: [purchaseVariance],
+      },
+      { label: t("workspace.command.taxRiskFlags"), cards: [taxFlag] },
     ];
   }, [
     marginBranches,
     branchesByWastePct,
     supplierLikeAlerts,
     marginReportQuery.data?.summary?.total_waste_cost,
+    t,
   ]);
 
   const operationalSections = useMemo<CommandSection[]>(() => {
@@ -242,22 +258,23 @@ export default function CommandPage() {
       branchGrid
         .filter(
           (branch) =>
-            branch.compliance_badge === "RED" || Number(branch.waste_pct ?? 0) >= 5,
+            branch.compliance_badge === "RED" ||
+            Number(branch.waste_pct ?? 0) >= 5,
         )
         .map((branch) => ({
           id: `ops-risk-${branch.branch_id}`,
-          title: "Branch at risk",
+          title: t("workspace.command.branchAtRiskTitle"),
           impactedBranch: branch.branch_name,
           financialImpact: normalizeImpact(Number(branch.waste_pct ?? 0) * 300),
-          actionRecommendation: "Deploy branch intervention checklist and monitor next shift.",
+          actionRecommendation: t("workspace.command.deployInterventionMsg"),
           viewHref: `/workspace/branches?branch=${branch.branch_id}`,
         })),
       {
         id: "ops-risk-fallback",
-        title: "Branch at risk",
+        title: t("workspace.command.branchAtRiskTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "No branch currently exceeds risk threshold.",
+        actionRecommendation: t("workspace.command.noBranchExceedsRiskMsg"),
         viewHref: "/workspace/branches",
       },
     );
@@ -265,18 +282,20 @@ export default function CommandPage() {
     const wasteSpike = pickFirst(
       branchesByWastePct.map((branch) => ({
         id: `ops-waste-${branch.branch_id}`,
-        title: `Waste spike ${Number(branch.waste_pct ?? 0).toFixed(1)}%`,
+        title: t("workspace.command.wasteSpikeMsg", {
+          percent: Number(branch.waste_pct ?? 0).toFixed(1),
+        }),
         impactedBranch: branch.branch_name,
         financialImpact: normalizeImpact(Number(branch.waste_pct ?? 0) * 280),
-        actionRecommendation: "Adjust prep command and review top waste SKUs today.",
+        actionRecommendation: t("workspace.command.adjustPrepCommandMsg"),
         viewHref: `/workspace/waste-cost-report?branch=${branch.branch_id}`,
       })),
       {
         id: "ops-waste-fallback",
-        title: "Waste spike",
+        title: t("workspace.command.wasteSpike"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "No unusual waste spikes detected.",
+        actionRecommendation: t("workspace.command.noUnusualWasteSpikesMsg"),
         viewHref: "/workspace/waste-cost-report",
       },
     );
@@ -286,18 +305,20 @@ export default function CommandPage() {
         .filter((branch) => Number(branch.margin_deviation_pct ?? 0) < -1)
         .map((branch) => ({
           id: `ops-margin-${branch.branch_id}`,
-          title: "Margin erosion",
+          title: t("workspace.command.marginErosionTitle"),
           impactedBranch: branch.branch_name,
-          financialImpact: normalizeImpact(Number(branch.total_waste_cost ?? "0") * 0.2),
-          actionRecommendation: "Investigate menu mix and purchasing variance immediately.",
+          financialImpact: normalizeImpact(
+            Number(branch.total_waste_cost ?? "0") * 0.2,
+          ),
+          actionRecommendation: t("workspace.command.investigateMenuMixMsg"),
           viewHref: `/workspace/margin-protection?branch=${branch.branch_id}`,
         })),
       {
         id: "ops-margin-fallback",
-        title: "Margin erosion",
+        title: t("workspace.command.marginErosionTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "Margin signals remain stable today.",
+        actionRecommendation: t("workspace.command.marginSignalsStableMsg"),
         viewHref: "/workspace/margin-protection",
       },
     );
@@ -305,18 +326,20 @@ export default function CommandPage() {
     const lowStock = pickFirst(
       stockRiskAlerts.map((alert, index) => ({
         id: `ops-stock-${alert.id}`,
-        title: "Low stock risk",
+        title: t("workspace.command.lowStockRiskTitle"),
         impactedBranch: alert.branch_name,
-        financialImpact: normalizeImpact((stockRiskAlerts.length - index) * 240),
-        actionRecommendation: "Trigger replenishment or reallocate stock between branches.",
+        financialImpact: normalizeImpact(
+          (stockRiskAlerts.length - index) * 240,
+        ),
+        actionRecommendation: t("workspace.command.triggerReplenishmentMsg"),
         viewHref: "/workspace/inventory",
       })),
       {
         id: "ops-stock-fallback",
-        title: "Low stock risk",
+        title: t("workspace.command.lowStockRiskTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "No low-stock alerts in the current telemetry window.",
+        actionRecommendation: t("workspace.command.noLowStockAlertsMsg"),
         viewHref: "/workspace/inventory",
       },
     );
@@ -324,18 +347,20 @@ export default function CommandPage() {
     const purchasingAnomaly = pickFirst(
       supplierLikeAlerts.map((alert, index) => ({
         id: `ops-purchase-${alert.id}`,
-        title: "Purchasing anomaly",
+        title: t("workspace.command.purchasingAnomalyTitle"),
         impactedBranch: alert.branch_name,
-        financialImpact: normalizeImpact((supplierLikeAlerts.length - index) * 260),
-        actionRecommendation: "Compare supplier invoices to contracted pricing and demand.",
+        financialImpact: normalizeImpact(
+          (supplierLikeAlerts.length - index) * 260,
+        ),
+        actionRecommendation: t("workspace.command.compareSupplierInvoicesMsg"),
         viewHref: "/workspace/purchase-intelligence",
       })),
       {
         id: "ops-purchase-fallback",
-        title: "Purchasing anomaly",
+        title: t("workspace.command.purchasingAnomalyTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "No active purchase anomalies right now.",
+        actionRecommendation: t("workspace.command.noActivePurchaseAnomaliesMsg"),
         viewHref: "/workspace/purchase-intelligence",
       },
     );
@@ -348,18 +373,18 @@ export default function CommandPage() {
         })
         .map((branch) => ({
           id: `ops-staff-${branch.branch_id}`,
-          title: "Underperforming staff pattern",
+          title: t("workspace.command.underperformingStaffPatternTitle"),
           impactedBranch: branch.branch_name,
           financialImpact: normalizeImpact(Number(branch.waste_pct ?? 0) * 180),
-          actionRecommendation: "Run shift coaching and verify checklist completion quality.",
+          actionRecommendation: t("workspace.command.runShiftCoachingMsg"),
           viewHref: "/workspace/staff-performance",
         })),
       {
         id: "ops-staff-fallback",
-        title: "Underperforming staff pattern",
+        title: t("workspace.command.underperformingStaffPatternTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "No staff performance anomalies detected.",
+        actionRecommendation: t("workspace.command.noStaffAnomaliesMsg"),
         viewHref: "/workspace/staff-performance",
       },
     );
@@ -367,18 +392,22 @@ export default function CommandPage() {
     const forecastDeviation = pickFirst(
       branchesByForecastMiss.map((branch) => ({
         id: `ops-forecast-${branch.branch_id}`,
-        title: `Forecast deviation ${branch.missPct.toFixed(1)}%`,
+        title: t("workspace.command.forecastDeviationMsg", {
+          percent: branch.missPct.toFixed(1),
+        }),
         impactedBranch: branch.branch_name,
         financialImpact: normalizeImpact(branch.miss * 30),
-        actionRecommendation: "Recalibrate command quantities and confirm data freshness.",
+        actionRecommendation: t("workspace.command.recalibrateCommandMsg"),
         viewHref: "/workspace/production-intelligence",
       })),
       {
         id: "ops-forecast-fallback",
-        title: "Forecast deviation",
+        title: t("workspace.command.forecastDeviation"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "Forecast deviations are currently within tolerance.",
+        actionRecommendation: t(
+          "workspace.command.forecastDeviationsToleranceMsg",
+        ),
         viewHref: "/workspace/production-intelligence",
       },
     );
@@ -388,31 +417,45 @@ export default function CommandPage() {
         .filter((branch) => Number(branch.surplus_pct ?? 0) >= 3)
         .map((branch) => ({
           id: `ops-prod-${branch.branch_id}`,
-          title: "Production misalignment",
+          title: t("workspace.command.productionMisalignmentTitle"),
           impactedBranch: branch.branch_name,
-          financialImpact: normalizeImpact(Number(branch.surplus_pct ?? 0) * 220),
-          actionRecommendation: "Tighten prep windows and reduce late-shift overproduction.",
+          financialImpact: normalizeImpact(
+            Number(branch.surplus_pct ?? 0) * 220,
+          ),
+          actionRecommendation: t("workspace.command.tightenPrepWindowsMsg"),
           viewHref: `/workspace/production-intelligence?branch=${branch.branch_id}`,
         })),
       {
         id: "ops-prod-fallback",
-        title: "Production misalignment",
+        title: t("workspace.command.productionMisalignmentTitle"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        actionRecommendation: "Production is aligned with current demand profile.",
+        actionRecommendation: t("workspace.command.productionAlignedDemandMsg"),
         viewHref: "/workspace/production-intelligence",
       },
     );
 
     return [
-      { label: "Branch at Risk", cards: [atRiskBranch] },
-      { label: "Waste Spike", cards: [wasteSpike] },
-      { label: "Margin Erosion", cards: [marginErosion] },
-      { label: "Low Stock Risk", cards: [lowStock] },
-      { label: "Purchasing Anomalies", cards: [purchasingAnomaly] },
-      { label: "Underperforming Staff Patterns", cards: [underperformingStaff] },
-      { label: "Forecast Deviation", cards: [forecastDeviation] },
-      { label: "Production Misalignment", cards: [productionMisalignment] },
+      { label: t("workspace.command.branchAtRisk"), cards: [atRiskBranch] },
+      { label: t("workspace.command.wasteSpike"), cards: [wasteSpike] },
+      { label: t("workspace.command.marginErosion"), cards: [marginErosion] },
+      { label: t("workspace.command.lowStockRisk"), cards: [lowStock] },
+      {
+        label: t("workspace.command.purchasingAnomalies"),
+        cards: [purchasingAnomaly],
+      },
+      {
+        label: t("workspace.command.underperformingStaffPatterns"),
+        cards: [underperformingStaff],
+      },
+      {
+        label: t("workspace.command.forecastDeviation"),
+        cards: [forecastDeviation],
+      },
+      {
+        label: t("workspace.command.productionMisalignment"),
+        cards: [productionMisalignment],
+      },
     ];
   }, [
     branchGrid,
@@ -421,26 +464,27 @@ export default function CommandPage() {
     marginBranches,
     stockRiskAlerts,
     supplierLikeAlerts,
+    t,
   ]);
 
   const executiveSections = useMemo<CommandSection[]>(() => {
     const profitLeakage = pickFirst(
       wasteByBranch.map((branch) => ({
         id: `exec-profit-${branch.branchId}`,
-        title: "Profit leakage alert",
+        title: t("workspace.command.profitLeakageAlert"),
         impactedBranch: branch.branchName,
         financialImpact: normalizeImpact(branch.wasteCost * 4),
-        rootCauseHint: "Leakage is tied to recurring waste concentration.",
-        actionRecommendation: "View breakdown and assign corrective ownership.",
+        rootCauseHint: t("workspace.command.leakageRecurringWasteMsg"),
+        actionRecommendation: t("workspace.command.viewBreakdownAssignCorrectiveMsg"),
         viewHref: `/workspace/margin-protection?branch=${branch.branchId}`,
       })),
       {
         id: "exec-profit-fallback",
-        title: "Profit leakage alert",
+        title: t("workspace.command.profitLeakageAlert"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        rootCauseHint: "No major leakage patterns detected.",
-        actionRecommendation: "Keep weekly margin protection cadence.",
+        rootCauseHint: t("workspace.command.noMajorLeakageMsg"),
+        actionRecommendation: t("workspace.command.keepWeeklyMarginMsg"),
         viewHref: "/workspace/margin-protection",
       },
     );
@@ -457,20 +501,20 @@ export default function CommandPage() {
         .sort((a, b) => a.score - b.score)
         .map((branch) => ({
           id: `exec-under-${branch.branch_id}`,
-          title: "Branch underperformance alert",
+          title: t("workspace.command.branchUnderperformanceAlert"),
           impactedBranch: branch.branch_name,
           financialImpact: normalizeImpact(Number(branch.waste_pct ?? 0) * 420),
-          rootCauseHint: "Low branch score from waste/surplus pressure.",
-          actionRecommendation: "View breakdown and start branch recovery sprint.",
+          rootCauseHint: t("workspace.command.lowBranchScoreMsg"),
+          actionRecommendation: t("workspace.command.viewBreakdownRecoveryMsg"),
           viewHref: `/workspace/branches?branch=${branch.branch_id}`,
         })),
       {
         id: "exec-under-fallback",
-        title: "Branch underperformance alert",
+        title: t("workspace.command.branchUnderperformanceAlert"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        rootCauseHint: "No significant underperformance variance.",
-        actionRecommendation: "Maintain weekly branch ranking review.",
+        rootCauseHint: t("workspace.command.noSignificantUnderperformanceMsg"),
+        actionRecommendation: t("workspace.command.maintainWeeklyRankingMsg"),
         viewHref: "/workspace/branches",
       },
     );
@@ -478,61 +522,70 @@ export default function CommandPage() {
     const costSpike = pickFirst(
       supplierLikeAlerts.map((alert, index) => ({
         id: `exec-cost-${alert.id}`,
-        title: "Cost spike warning",
+        title: t("workspace.command.costSpikeWarning"),
         impactedBranch: alert.branch_name,
-        financialImpact: normalizeImpact((supplierLikeAlerts.length - index) * 650),
-        rootCauseHint: "Supplier-side price movement detected.",
-        actionRecommendation: "View breakdown and renegotiate procurement terms.",
+        financialImpact: normalizeImpact(
+          (supplierLikeAlerts.length - index) * 650,
+        ),
+        rootCauseHint: t("workspace.command.supplierSidePriceMsg"),
+        actionRecommendation: t("workspace.command.viewBreakdownRenegotiateMsg"),
         viewHref: "/workspace/purchase-intelligence",
       })),
       {
         id: "exec-cost-fallback",
-        title: "Cost spike warning",
+        title: t("workspace.command.costSpikeWarning"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        rootCauseHint: "No active supplier spikes above threshold.",
-        actionRecommendation: "Continue contract compliance monitoring.",
+        rootCauseHint: t("workspace.command.noActiveSupplierSpikesMsg"),
+        actionRecommendation: t("workspace.command.continueContractComplianceMsg"),
         viewHref: "/workspace/purchase-intelligence",
       },
     );
 
     const systemicRisk: CommandCard = {
       id: "exec-systemic",
-      title: "Systemic risk flag",
+      title: t("workspace.command.systemicRiskFlag"),
       impactedBranch: "Organization",
       financialImpact: normalizeImpact(highSeverityCount * 1200),
-      rootCauseHint: `${highSeverityCount} high-severity system signal(s) across branches.`,
-      actionRecommendation: "View breakdown and prioritize multi-branch mitigation.",
+      rootCauseHint: t("workspace.command.highSeveritySystemSignals", {
+        count: highSeverityCount,
+      }),
+      actionRecommendation: t("workspace.command.viewBreakdownMitigationMsg"),
       viewHref: "/workspace/risk",
     };
 
     const forecastMiss = pickFirst(
       branchesByForecastMiss.map((branch) => ({
         id: `exec-forecast-${branch.branch_id}`,
-        title: "Forecast miss risk",
+        title: t("workspace.command.forecastMissRisk"),
         impactedBranch: branch.branch_name,
         financialImpact: normalizeImpact(branch.miss * 45),
-        rootCauseHint: `Forecast miss currently ${branch.missPct.toFixed(1)}% at branch level.`,
-        actionRecommendation: "View breakdown and tighten forecast governance.",
+        rootCauseHint: t("workspace.command.forecastMissBranchMsg", {
+          percent: branch.missPct.toFixed(1),
+        }),
+        actionRecommendation: t("workspace.command.viewBreakdownTightenGovernanceMsg"),
         viewHref: `/workspace/production-intelligence?branch=${branch.branch_id}`,
       })),
       {
         id: "exec-forecast-fallback",
-        title: "Forecast miss risk",
+        title: t("workspace.command.forecastMissRisk"),
         impactedBranch: "Organization",
         financialImpact: 0,
-        rootCauseHint: "Forecast stability is currently healthy.",
-        actionRecommendation: "Keep existing forecast controls active.",
+        rootCauseHint: t("workspace.command.forecastStabilityHealthyMsg"),
+        actionRecommendation: t("workspace.command.keepExistingForecastControlsMsg"),
         viewHref: "/workspace/production-intelligence",
       },
     );
 
     return [
-      { label: "Profit Leakage Alerts", cards: [profitLeakage] },
-      { label: "Branch Underperformance Alerts", cards: [underperformance] },
-      { label: "Cost Spike Warnings", cards: [costSpike] },
-      { label: "Systemic Risk Flags", cards: [systemicRisk] },
-      { label: "Forecast Miss Risks", cards: [forecastMiss] },
+      { label: t("workspace.command.profitLeakageAlerts"), cards: [profitLeakage] },
+      {
+        label: t("workspace.command.branchUnderperformanceAlerts"),
+        cards: [underperformance],
+      },
+      { label: t("workspace.command.costSpikeWarnings"), cards: [costSpike] },
+      { label: t("workspace.command.systemicRiskFlags"), cards: [systemicRisk] },
+      { label: t("workspace.command.forecastMissRisks"), cards: [forecastMiss] },
     ];
   }, [
     wasteByBranch,
@@ -540,6 +593,7 @@ export default function CommandPage() {
     supplierLikeAlerts,
     highSeverityCount,
     branchesByForecastMiss,
+    t,
   ]);
 
   const activeSections = isFinanceRole
@@ -569,7 +623,7 @@ export default function CommandPage() {
   const columns = useMemo(
     () => [
       priorityColumnHelper.accessor("rank", {
-        header: "Priority",
+        header: t("workspace.command.table.priority"),
         cell: (info) => (
           <span className="inline-flex min-w-[44px] items-center justify-center rounded-lg border border-surface-4 bg-gradient-to-br from-surface-3 to-surface-2 px-3 py-1.5 text-xs font-bold tracking-[0.08em] text-text-primary shadow-sm">
             P{info.getValue()}
@@ -578,7 +632,7 @@ export default function CommandPage() {
       }),
       priorityColumnHelper.display({
         id: "signal",
-        header: "Signal",
+        header: t("workspace.command.table.signal"),
         cell: (info) => {
           const row = info.row.original;
           const severityTone =
@@ -607,10 +661,18 @@ export default function CommandPage() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">
                 {row.sectionLabel}
               </p>
-              <div className={`inline-flex items-center gap-2.5 ${severityBg} rounded-lg px-3 py-1.5 border border-surface-4`}>
-                <span className="text-xs font-medium text-text-secondary">{row.impactedBranch}</span>
-                <span className={`h-1.5 w-1.5 rounded-full ${severityDot} shadow-sm`} />
-                <span className={`text-xs font-bold tracking-wide ${severityTone}`}>
+              <div
+                className={`inline-flex items-center gap-2.5 ${severityBg} rounded-lg px-3 py-1.5 border border-surface-4`}
+              >
+                <span className="text-xs font-medium text-text-secondary">
+                  {row.impactedBranch}
+                </span>
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${severityDot} shadow-sm`}
+                />
+                <span
+                  className={`text-xs font-bold tracking-wide ${severityTone}`}
+                >
                   {row.severity}
                 </span>
               </div>
@@ -619,7 +681,9 @@ export default function CommandPage() {
         },
       }),
       priorityColumnHelper.accessor("financialImpact", {
-        header: isOwnerRole ? "Monthly Impact" : "Impact",
+        header: isOwnerRole
+          ? t("workspace.command.table.monthlyImpact")
+          : t("workspace.command.table.impact"),
         cell: (info) => (
           <div className="inline-flex items-baseline gap-1">
             <span className="text-lg font-bold text-brand-gold tracking-tight">
@@ -631,7 +695,7 @@ export default function CommandPage() {
       }),
       priorityColumnHelper.display({
         id: "action",
-        header: "Action Recommendation",
+        header: t("workspace.command.table.actionRecommendation"),
         cell: (info) => {
           const row = info.row.original;
           return (
@@ -659,14 +723,14 @@ export default function CommandPage() {
               href={row.viewHref}
               className="group inline-flex h-9 items-center gap-2 rounded-lg border border-brand-gold/40 bg-surface-3 px-4 text-sm font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold-hover active:scale-[0.98]"
             >
-              View
+              {t("workspace.command.table.view")}
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           );
         },
       }),
     ],
-    [isOwnerRole],
+    [isOwnerRole, t],
   );
   const table = useReactTable({
     data: priorityRows,
@@ -676,71 +740,80 @@ export default function CommandPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Command"
+      eyebrow={t("workspace.command.eyebrow")}
       title={
         isFinanceRole
-          ? "Financial Command"
+          ? t("workspace.command.titleFinance")
           : isOpsRole
-            ? "Operational Intervention"
-            : "Executive Leverage"
+            ? t("workspace.command.titleOps")
+            : t("workspace.command.titleExec")
       }
       description={
         isFinanceRole
-          ? "Anomaly detection and financial exposure queue prioritized by impact."
+          ? t("workspace.command.descriptionFinance")
           : isOpsRole
-            ? "Triage dashboard for operational risk across branches."
-            : "Executive command queue focused on money leakage and systemic exposure."
+            ? t("workspace.command.descriptionOps")
+            : t("workspace.command.descriptionExec")
       }
       insight={
         isFinanceRole
-          ? "High-impact financial anomalies are surfaced first so finance can intervene before month-end leakage compounds."
+          ? t("workspace.command.insightFinance")
           : isOpsRole
-            ? "Intervene where risk concentration is highest, then verify branch correction loop completion."
-            : "Executive command should answer one question quickly: where are we losing money next month?"
+            ? t("workspace.command.insightOps")
+            : t("workspace.command.insightExec")
       }
     >
       <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 mb-12 md:grid-cols-4">
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Open Command Cards
+            {t("workspace.command.openCommandCards")}
           </p>
           <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
-            {activeSections.reduce((sum, section) => sum + section.cards.length, 0)}
+            {activeSections.reduce(
+              (sum, section) => sum + section.cards.length,
+              0,
+            )}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Active interventions</p>
+            <p className="text-xs text-text-muted">
+              {t("workspace.command.activeInterventions")}
+            </p>
           </div>
         </article>
-        
+
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Estimated Impact
+            {t("workspace.command.estimatedImpact")}
           </p>
           <p className="font-display text-4xl font-semibold text-brand-gold tracking-tight">
             {toCurrency(totalImpact)}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
             <p className="text-xs text-text-muted">
-              {isOwnerRole ? "Monthly exposure" : "Current period"}
+              {isOwnerRole
+                ? t("workspace.command.monthlyExposure")
+                : t("workspace.command.currentPeriod")}
             </p>
           </div>
         </article>
-        
+
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            High Severity
+            {t("workspace.command.highSeverity")}
           </p>
           <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
             {highSeverityCount}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Critical signals</p>
+            <p className="text-xs text-text-muted">
+              {t("workspace.command.criticalSignals")}
+            </p>
           </div>
         </article>
-        
+
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Severity Mix
+            {t("workspace.command.severityMix")}
           </p>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="font-display text-2xl font-semibold text-status-critical">{redCount}</span>
@@ -767,10 +840,10 @@ export default function CommandPage() {
       <section className="mt-12">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Priority Queue
+            {t("workspace.command.priorityQueue")}
           </p>
           <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            Intervention Priorities
+            {t("workspace.command.interventionPriorities")}
           </h3>
         </div>
         

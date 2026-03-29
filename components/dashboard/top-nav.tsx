@@ -10,8 +10,10 @@ import {
   useNotifications,
   useSessionLogoutUser,
 } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 
 const TopNavComponent = memo(function DashboardTopNav() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const notificationsQuery = useNotifications();
   const markAsReadMutation = useMarkNotificationsAsRead();
@@ -69,10 +71,10 @@ const TopNavComponent = memo(function DashboardTopNav() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Dashboard
+            {t("common.dashboard")}
           </p>
           <h1 className="mt-1 font-display text-[30px] font-semibold leading-[38px] text-[#F5F5F7]">
-            Overview
+            {t("common.overview")}
           </h1>
         </div>
 
@@ -81,7 +83,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
             <input
               type="text"
-              placeholder="Search reports, branches, settings..."
+              placeholder={t("dashboard.topNav.searchPlaceholder")}
               className="h-10 w-full rounded-[8px] bg-[#232327] pl-9 pr-3 text-[13px] text-[#F5F5F7] placeholder:text-[#8E8E93] focus:outline-none focus:ring-1 focus:ring-[#A8821F]"
             />
           </label>
@@ -107,20 +109,20 @@ const TopNavComponent = memo(function DashboardTopNav() {
               <div className="absolute right-0 z-30 mt-2 w-[360px] rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                    Notifications
+                    {t("dashboard.topNav.notifications")}
                   </p>
                   <button
                     type="button"
                     onClick={handleMarkAllRead}
                     className="text-[11px] text-[#A8821F] hover:text-[#D2A53A]"
                   >
-                    Mark all read
+                    {t("dashboard.topNav.markAllRead")}
                   </button>
                 </div>
                 <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
                   {notificationsQuery.isLoading ? (
                     <p className="py-2 text-[12px] text-[#8E8E93]">
-                      Loading notifications...
+                      {t("common.loading")}
                     </p>
                   ) : notifications.length ? (
                     notifications.slice(0, 8).map((notification) => (
@@ -135,23 +137,22 @@ const TopNavComponent = memo(function DashboardTopNav() {
                         className="w-full border-b border-[#2A2A2E] px-0.5 py-2 text-left last:border-b-0"
                       >
                         <p className="text-[12px] text-[#F5F5F7]">
-                          {notification.title || "Notification"}
+                          {notification.title || t("common.info")}
                         </p>
                         <p className="mt-0.5 text-[11px] text-[#8E8E93]">
                           {notification.body ||
                             notification.message ||
-                            "No details available."}
+                            t("common.none")}
                         </p>
                       </button>
                     ))
                   ) : (
                     <div className="space-y-2 py-2">
                       <p className="text-[12px] text-[#C7C7CC]">
-                        No new notifications.
+                        {t("dashboard.topNav.noNotifications")}
                       </p>
                       <p className="text-[11px] text-[#8E8E93]">
-                        You will see forecast, supplier, and compliance alerts
-                        here.
+                        {t("dashboard.topNav.notificationEmptyDetail")}
                       </p>
                     </div>
                   )}
@@ -204,7 +205,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     onClick={() => setAvatarMenuOpen(false)}
                   >
                     <User className="h-4 w-4" />
-                    Profile & Settings
+                    {t("common.profileSettings")}
                   </Link>
                   <button
                     type="button"
@@ -213,7 +214,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     className="w-full rounded-[8px] px-2 py-2 text-left text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] inline-flex items-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
-                    {logoutMutation.isPending ? "Signing out..." : "Sign out"}
+                    {logoutMutation.isPending ? t("auth.signingOut") : t("common.logout")}
                   </button>
                 </div>
               </div>

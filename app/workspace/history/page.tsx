@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCurrentUserProfile,
@@ -59,6 +60,7 @@ function formatLongDate(value: string) {
 }
 
 function HistoryContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -145,22 +147,22 @@ function HistoryContent() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("item_title", {
-        header: "Item",
+        header: t("workspace.history.table.item"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
-            {info.getValue() ?? "Unknown"}
+            {info.getValue() ?? t("common.none")}
           </span>
         ),
       }),
       columnHelper.accessor("planned_qty", {
-        header: "Planned",
+        header: t("workspace.history.table.planned"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">{info.getValue()}</span>
         ),
       }),
       columnHelper.display({
         id: "prepared",
-        header: "Prepared",
+        header: t("workspace.history.table.prepared"),
         cell: (info) => {
           const row = info.row.original;
           const prepared = row.planned_qty + row.additional_qty;
@@ -170,20 +172,20 @@ function HistoryContent() {
         },
       }),
       columnHelper.accessor("actual_sales", {
-        header: "Sold",
+        header: t("workspace.history.table.sold"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">{info.getValue()}</span>
         ),
       }),
       columnHelper.accessor("waste_qty", {
-        header: "Waste",
+        header: t("workspace.history.table.waste"),
         cell: (info) => (
           <span className="text-sm text-status-warning">{info.getValue()}</span>
         ),
       }),
       columnHelper.display({
         id: "stockout",
-        header: "Stockout",
+        header: t("workspace.history.table.stockout"),
         cell: (info) => {
           const row = info.row.original;
           return (
@@ -194,13 +196,13 @@ function HistoryContent() {
                   : "text-sm text-text-muted"
               }
             >
-              {row.stockout_flag ? "Yes" : "No"}
+              {row.stockout_flag ? t("common.yes") : t("common.no")}
             </span>
           );
         },
       }),
       columnHelper.accessor("revenue", {
-        header: "Revenue",
+        header: t("workspace.history.table.revenue"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -208,7 +210,7 @@ function HistoryContent() {
         ),
       }),
     ],
-    [],
+    [t],
   );
 
   const table = useReactTable({
@@ -219,16 +221,16 @@ function HistoryContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Review"
-      title="History"
-      description="Review past service days to learn what worked, where waste happened, and how prep decisions performed."
-      insight="Use the review signals to fine-tune tomorrow’s prep plan and reduce repeat waste."
+      eyebrow={t("workspace.history.eyebrow")}
+      title={t("workspace.history.title")}
+      description={t("workspace.history.description")}
+      insight={t("workspace.history.insight")}
     >
       <section className="space-y-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Branch
+              {t("workspace.history.branchLabel")}
             </label>
             <Select
               value={selectedBranchId}
@@ -240,12 +242,12 @@ function HistoryContent() {
                 label: branch.name,
                 value: branch.id,
               }))}
-              placeholder="Select branch"
+              placeholder={t("workspace.history.selectBranchPlaceholder")}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Service Date
+              {t("workspace.history.serviceDateLabel")}
             </label>
             <input
               type="date"
@@ -259,10 +261,10 @@ function HistoryContent() {
         <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-              Service History
+              {t("workspace.history.serviceHistoryTitle")}
             </p>
             <p className="text-xs text-text-muted">
-              Last {report?.window_days ?? 14} days
+              {t("workspace.history.lastNDays", { count: report?.window_days ?? 14 })}
             </p>
           </div>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
@@ -282,20 +284,20 @@ function HistoryContent() {
                   >
                     <p className="text-sm font-semibold">{formatShortDate(day.date)}</p>
                     <p className="mt-2 text-xs text-text-muted">
-                      Accuracy {day.forecast_accuracy.toFixed(0)}%
+                      {t("workspace.history.accuracyLabel", { percent: day.forecast_accuracy.toFixed(0) })}
                     </p>
                     <p className="text-xs text-text-muted">
-                      Waste {toCurrency(day.waste_cost)}
+                      {t("workspace.history.wasteLabel", { cost: toCurrency(day.waste_cost) })}
                     </p>
                     <p className="text-xs text-text-muted">
-                      Stockouts {day.stockout_count}
+                      {t("workspace.history.stockoutsLabel", { count: day.stockout_count })}
                     </p>
                   </button>
                 );
               })
             ) : (
               <div className="text-sm text-text-muted">
-                No service days available yet.
+                {t("workspace.history.noServiceDays")}
               </div>
             )}
           </div>
@@ -303,9 +305,9 @@ function HistoryContent() {
 
         <div className="flex flex-wrap gap-2">
           {[
-            { id: "SUMMARY", label: "Daily Summary" },
-            { id: "ITEMS", label: "Item Performance" },
-            { id: "EXCEPTIONS", label: "Waste & Stockouts" },
+            { id: "SUMMARY", label: t("workspace.history.tabDailySummary") },
+            { id: "ITEMS", label: t("workspace.history.tabItemPerformance") },
+            { id: "EXCEPTIONS", label: t("workspace.history.tabWasteStockouts") },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -334,32 +336,32 @@ function HistoryContent() {
           <div className="lg:col-span-2 space-y-6">
             <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold">
-                Service Review
+                {t("workspace.history.serviceReviewTitle")}
               </p>
               <h3 className="mt-2 text-2xl font-semibold text-text-primary">
-                {summary ? formatLongDate(summary.date) : "No service selected"}
+                {summary ? formatLongDate(summary.date) : t("workspace.history.noServiceSelected")}
               </h3>
               <p className="mt-2 text-sm text-text-muted">
                 {summary
-                  ? "Snapshot of how prep decisions performed."
-                  : "Select a service day to review performance."}
+                  ? t("workspace.history.snapshotDescription")
+                  : t("workspace.history.selectServiceDescription")}
               </p>
               <div className="mt-6 grid grid-cols-2 gap-4">
                 {[
                   {
-                    label: "Forecast Accuracy",
+                    label: t("workspace.history.metricForecastAccuracy"),
                     value: summary ? `${summary.forecast_accuracy.toFixed(0)}%` : "—",
                   },
                   {
-                    label: "Revenue",
+                    label: t("workspace.history.metricRevenue"),
                     value: summary ? toCurrency(summary.revenue) : "—",
                   },
                   {
-                    label: "Waste Cost",
+                    label: t("workspace.history.metricWasteCost"),
                     value: summary ? toCurrency(summary.waste_cost) : "—",
                   },
                   {
-                    label: "Stockouts",
+                    label: t("workspace.history.metricStockouts"),
                     value: summary ? summary.stockout_count : "—",
                   },
                 ].map((metric) => (
@@ -381,17 +383,17 @@ function HistoryContent() {
           <div className="space-y-6">
             <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Planning Signals
+                {t("workspace.history.planningSignalsTitle")}
               </p>
               <div className="mt-4 space-y-4 text-sm text-text-secondary">
                 <div className="flex items-center justify-between">
-                  <span>Prep items planned</span>
+                  <span>{t("workspace.history.prepItemsPlanned")}</span>
                   <span className="font-semibold text-text-primary">
                     {summary ? summary.prep_items_planned : "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Lost revenue estimate</span>
+                  <span>{t("workspace.history.lostRevenueEstimate")}</span>
                   <span className="font-semibold text-text-primary">
                     {summary ? toCurrency(summary.lost_revenue_estimate) : "—"}
                   </span>
@@ -401,11 +403,10 @@ function HistoryContent() {
 
             <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Insight
+                {t("common.insight")}
               </p>
               <p className="mt-3 text-sm text-text-secondary">
-                Track how decisions map to waste and stockouts so tomorrow’s prep
-                is tighter.
+                {t("workspace.history.insightText")}
               </p>
             </div>
           </div>
@@ -417,10 +418,10 @@ function HistoryContent() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold">
-                Item Performance
+                {t("workspace.history.tabItemPerformance")}
               </p>
               <h3 className="mt-2 text-2xl font-semibold text-text-primary">
-                Planned vs Actual
+                {t("workspace.history.plannedVsActualTitle")}
               </h3>
             </div>
             <p className="text-xs text-text-muted">
@@ -437,7 +438,7 @@ function HistoryContent() {
         <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold">
-              Top Waste Items
+              {t("workspace.history.topWasteItemsTitle")}
             </p>
             <div className="mt-5 space-y-4">
               {exceptions?.top_waste_items?.length ? (
@@ -448,10 +449,10 @@ function HistoryContent() {
                   >
                     <div>
                       <p className="font-semibold text-text-primary">
-                        {item.item_title ?? "Unknown"}
+                        {item.item_title ?? t("common.none")}
                       </p>
                       <p className="text-xs text-text-muted">
-                        Waste qty {item.waste_qty}
+                        {t("workspace.history.wasteQtyLabel", { quantity: item.waste_qty })}
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-status-warning">
@@ -461,7 +462,7 @@ function HistoryContent() {
                 ))
               ) : (
                 <p className="text-sm text-text-muted">
-                  No waste outliers recorded.
+                  {t("workspace.history.noWasteOutliers")}
                 </p>
               )}
             </div>
@@ -469,7 +470,7 @@ function HistoryContent() {
 
           <div className="rounded-2xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold">
-              Top Stockouts
+              {t("workspace.history.topStockoutsTitle")}
             </p>
             <div className="mt-5 space-y-4">
               {exceptions?.top_stockout_items?.length ? (
@@ -480,20 +481,20 @@ function HistoryContent() {
                   >
                     <div>
                       <p className="font-semibold text-text-primary">
-                        {item.item_title ?? "Unknown"}
+                        {item.item_title ?? t("common.none")}
                       </p>
                       <p className="text-xs text-text-muted">
-                        Lost revenue {toCurrency(item.lost_revenue_estimate)}
+                        {t("workspace.history.lostRevenueLabel", { amount: toCurrency(item.lost_revenue_estimate) })}
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-status-critical">
-                      {item.stockout_flag ? "Stockout" : "—"}
+                      {item.stockout_flag ? t("workspace.history.stockoutStatus") : "—"}
                     </p>
                   </div>
                 ))
               ) : (
                 <p className="text-sm text-text-muted">
-                  No stockout risks recorded.
+                  {t("workspace.history.noStockoutRisks")}
                 </p>
               )}
             </div>
@@ -505,11 +506,12 @@ function HistoryContent() {
 }
 
 export default function HistoryPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading service history…
+          {t("workspace.history.loadingHistory")}
         </div>
       }
     >

@@ -7,6 +7,7 @@ import { CreateThreadModal } from "./create-thread-modal";
 import { Select } from "@/components/ui/select";
 import type { ChatThread } from "@/services/chat/types";
 import type { UserProfile } from "@/services/users/types";
+import { useTranslation } from "@/lib/i18n";
 
 interface ChatThreadListProps {
   threads: ChatThread[];
@@ -23,6 +24,7 @@ export function ChatThreadList({
   isLoading,
   user,
 }: ChatThreadListProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -73,7 +75,7 @@ export function ChatThreadList({
     <>
       <div className="p-4 border-b border-surface-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">Conversations</h2>
+          <h2 className="text-lg font-semibold text-text-primary">{t("workspace.chat.list.title")}</h2>
           {canCreateThread && (
             <button
               onClick={() => setShowCreateModal(true)}
@@ -89,7 +91,7 @@ export function ChatThreadList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder={t("workspace.chat.list.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
@@ -100,11 +102,11 @@ export function ChatThreadList({
         <div className="flex items-end gap-2">
           <div className="w-full">
             <Select
-              label="Status"
+              label={t("common.status")}
               options={[
-                { value: "all", label: "All Status" },
-                { value: "active", label: "Active" },
-                { value: "closed", label: "Closed" },
+                { value: "all", label: t("common.all") },
+                { value: "active", label: t("branches.healthy") },
+                { value: "closed", label: t("common.close") },
                 { value: "archived", label: "Archived" },
               ]}
               value={filterStatus}
@@ -137,12 +139,12 @@ export function ChatThreadList({
               <Search className="h-6 w-6 text-text-muted" />
             </div>
             <p className="text-sm text-text-secondary mb-2">
-              {searchQuery || filterStatus !== "all" ? "No conversations found" : "No conversations yet"}
+              {searchQuery || filterStatus !== "all" ? t("workspace.chat.create.noMembers") : t("workspace.chat.list.noThreads")}
             </p>
             <p className="text-xs text-text-muted">
               {searchQuery || filterStatus !== "all" 
-                ? "Try adjusting your search or filter criteria"
-                : "Start a new conversation to get started"
+                ? t("workspace.chat.create.tryAdjusting")
+                : t("workspace.chat.area.startPrompt")
               }
             </p>
           </div>

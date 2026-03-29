@@ -7,6 +7,7 @@ import { useCreateChatThread } from "@/services/chat/hooks";
 import { useBranches, useOrganizationMembers } from "@/services";
 import type { UserProfile } from "@/services/users/types";
 import type { ThreadType } from "@/services/chat/types";
+import { useTranslation } from "@/lib/i18n";
 
 interface CreateThreadModalProps {
   user?: UserProfile | null;
@@ -15,6 +16,7 @@ interface CreateThreadModalProps {
 }
 
 export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModalProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     thread_type: "INTERNAL" as ThreadType,
     category: "",
@@ -123,8 +125,8 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
       <div className="mx-auto w-full max-w-2xl rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-between border-b border-[#2A2A2E] px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">Start New Conversation</h2>
-            <p className="text-xs text-text-muted mt-0.5">Create a chat thread with your team members</p>
+            <h2 className="text-lg font-semibold text-text-primary">{t("workspace.chat.create.title")}</h2>
+            <p className="text-xs text-text-muted mt-0.5">{t("workspace.chat.create.subtitle")}</p>
           </div>
           <button
             onClick={onClose}
@@ -145,17 +147,14 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">Conversation Name (Optional)</label>
+              <label className="text-sm font-medium text-text-secondary">{t("workspace.chat.create.nameLabel")}</label>
               <input
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-                placeholder="e.g., Morning Kitchen Sync"
+                placeholder={t("workspace.chat.create.namePlaceholder")}
                 className="h-12 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               />
-              <p className="text-[11px] text-text-muted">
-                If left blank, PrepIQ will generate a smart name based on selected members.
-              </p>
             </div>
           </div>
 
@@ -181,11 +180,11 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-text-secondary">
-                Select Team Members <span className="text-status-critical">*</span>
+                {t("workspace.chat.create.searchLabel")} <span className="text-status-critical">*</span>
               </label>
               {selectedParticipantIds.length > 0 && (
                 <span className="text-xs text-text-muted">
-                  {selectedParticipantIds.length} selected
+                  {selectedParticipantIds.length} {t("dashboard.sidebar.workspace").toLowerCase()}
                 </span>
               )}
             </div>
@@ -231,7 +230,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
                 type="text"
                 value={memberSearch}
                 onChange={(event) => setMemberSearch(event.target.value)}
-                placeholder="Search by name, email, or role"
+                placeholder={t("workspace.chat.create.searchPlaceholder")}
                 className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               />
             </div>
@@ -291,8 +290,8 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-4 mb-3">
                     <Search className="h-5 w-5 text-text-muted" />
                   </div>
-                  <p className="text-sm text-text-secondary mb-1">No members found</p>
-                  <p className="text-xs text-text-muted">Try adjusting your search criteria</p>
+                  <p className="text-sm text-text-secondary mb-1">{t("workspace.chat.create.noMembers")}</p>
+                  <p className="text-xs text-text-muted">{t("workspace.chat.create.tryAdjusting")}</p>
                 </div>
               )}
             </div>
@@ -315,14 +314,14 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
               onClick={onClose}
               className="h-10 rounded-lg border border-[#2A2A2E] bg-transparent px-5 text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-surface-3 hover:text-text-primary hover:border-[#3A3A40] active:scale-95"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
               className="h-10 rounded-lg bg-gradient-to-br from-[#A8821F] to-[#8F6F18] px-6 text-sm font-semibold text-[#141416] shadow-[0_2px_8px_rgba(168,130,31,0.25)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(168,130,31,0.35)] hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
-              {createThreadMutation.isPending ? "Creating..." : "Create Conversation"}
+              {createThreadMutation.isPending ? t("workspace.chat.create.starting") : t("workspace.chat.create.button")}
             </button>
           </div>
         </form>

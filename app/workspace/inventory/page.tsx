@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 import { Plus, EditPencil, ArrowRight } from "iconoir-react";
 import {
   createColumnHelper,
@@ -33,11 +34,11 @@ const CORE_ROW_MODEL = getCoreRowModel();
 
 type TabId = "ingredients" | "recipes" | "waste" | "signals";
 
-const TABS: Array<{ id: TabId; label: string }> = [
-  { id: "ingredients", label: "Ingredients" },
-  { id: "recipes", label: "Recipes" },
-  { id: "waste", label: "Waste" },
-  { id: "signals", label: "Stock Signals" },
+const TABS = (t: any): Array<{ id: TabId; label: string }> => [
+  { id: "ingredients", label: t("workspace.inventory.tabs.ingredients") },
+  { id: "recipes", label: t("workspace.inventory.tabs.recipes") },
+  { id: "waste", label: t("workspace.inventory.tabs.waste") },
+  { id: "signals", label: t("workspace.inventory.tabs.signals") },
 ];
 
 const ingredientColumnHelper = createColumnHelper<Ingredient>();
@@ -45,6 +46,7 @@ const menuItemColumnHelper = createColumnHelper<MenuItem>();
 const prepBatchColumnHelper = createColumnHelper<PrepBatch>();
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -102,23 +104,23 @@ export default function InventoryPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Inventory"
-      title="Kitchen Intelligence"
-      description="What ingredients do you have? How much is needed? What's being wasted? What's at risk?"
-      insight="Inventory precision compounds when ingredient planning is tied to actual usage patterns and waste is reviewed daily."
+      eyebrow={t("workspace.inventory.eyebrow")}
+      title={t("workspace.inventory.title")}
+      description={t("workspace.inventory.description")}
+      insight={t("workspace.inventory.insight")}
     >
       {/* Controls */}
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Select
-            label="Branch"
+            label={t("common.branch")}
             options={branchOptions}
             value={branchId}
             onChange={setBranchId}
           />
           <div className="md:col-span-2 flex items-end">
             <p className="text-xs text-text-muted">
-              Ingredients are shared across all branches. Menu items, recipes, prep batches, and waste are branch-specific.
+              {t("workspace.inventory.sharedDesc")}
             </p>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function InventoryPage() {
         {/* Tab Nav */}
         <div className="mt-6 pt-6 border-t border-surface-4">
           <div className="flex flex-wrap gap-2">
-            {TABS.map((tab) => (
+            {TABS(t).map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -147,24 +149,24 @@ export default function InventoryPage() {
       {/* Summary KPIs */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4 mb-8">
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Ingredients</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.tabs.ingredients")}</p>
           <p className="mt-2 font-display text-3xl font-semibold text-text-primary">{ingredients.length}</p>
-          <p className="mt-1 text-xs text-text-muted">org-wide catalog</p>
+          <p className="mt-1 text-xs text-text-muted">{t("workspace.inventory.stats.orgCatalog")}</p>
         </article>
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Perishable</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.ingredients.table.perishable")}</p>
           <p className="mt-2 font-display text-3xl font-semibold text-status-warning">{perishableCount}</p>
-          <p className="mt-1 text-xs text-text-muted">need daily tracking</p>
+          <p className="mt-1 text-xs text-text-muted">{t("workspace.inventory.stats.perishableDesc")}</p>
         </article>
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Events</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.waste.totalEvents")}</p>
           <p className="mt-2 font-display text-3xl font-semibold text-status-critical">{totalWasteEvents}</p>
-          <p className="mt-1 text-xs text-text-muted">this branch</p>
+          <p className="mt-1 text-xs text-text-muted">{t("workspace.inventory.stats.thisBranch")}</p>
         </article>
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Item</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.waste.topIngredient")}</p>
           <p className="mt-2 text-sm font-semibold text-text-primary truncate">{topWasteIngredient}</p>
-          <p className="mt-1 text-xs text-text-muted">highest waste volume</p>
+          <p className="mt-1 text-xs text-text-muted">{t("workspace.inventory.stats.highestVolume")}</p>
         </article>
       </section>
 
@@ -192,6 +194,7 @@ function IngredientsTab({
   isLoading: boolean;
   organizationId: string;
 }) {
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Ingredient | null>(null);
 
@@ -208,13 +211,13 @@ function IngredientsTab({
   const columns = useMemo(
     () => [
       ingredientColumnHelper.accessor("name", {
-        header: "Ingredient",
+        header: t("workspace.inventory.ingredients.table.ingredient"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">{info.getValue()}</span>
         ),
       }),
       ingredientColumnHelper.accessor("category", {
-        header: "Category",
+        header: t("workspace.inventory.ingredients.table.category"),
         cell: (info) => (
           <span className="text-sm text-text-secondary capitalize">
             {info.getValue()?.toLowerCase().replace(/_/g, " ") || "—"}
@@ -222,13 +225,13 @@ function IngredientsTab({
         ),
       }),
       ingredientColumnHelper.accessor("unit", {
-        header: "Unit",
+        header: t("workspace.inventory.ingredients.table.unit"),
         cell: (info) => (
           <span className="text-sm text-text-secondary uppercase">{info.getValue()}</span>
         ),
       }),
       ingredientColumnHelper.accessor("shelf_life_days", {
-        header: "Shelf Life",
+        header: t("workspace.inventory.ingredients.table.shelfLife"),
         cell: (info) => {
           const val = info.getValue();
           return (
@@ -239,14 +242,14 @@ function IngredientsTab({
         },
       }),
       ingredientColumnHelper.accessor("is_perishable", {
-        header: "Perishable",
+        header: t("workspace.inventory.ingredients.table.perishable"),
         cell: (info) => (
           <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
             info.getValue()
               ? "bg-status-warning/10 text-status-warning border border-status-warning/20"
               : "bg-surface-3 text-text-muted border border-surface-4"
           }`}>
-            {info.getValue() ? "Yes" : "No"}
+            {info.getValue() ? t("workspace.today.closed.yes") : t("workspace.today.closed.no")}
           </span>
         ),
       }),
@@ -275,9 +278,9 @@ function IngredientsTab({
       <div>
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Ingredient Catalog</p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Org-wide ingredient master</h3>
-            <p className="mt-1 text-sm text-text-muted">Shared across all branches. Perishable items need daily tracking.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.inventory.ingredients.catalog")}</p>
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">{t("workspace.inventory.ingredients.masterTitle")}</h3>
+            <p className="mt-1 text-sm text-text-muted">{t("workspace.inventory.ingredients.sharedNote")}</p>
           </div>
           <button
             type="button"
@@ -285,23 +288,23 @@ function IngredientsTab({
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
-            Add Ingredient
+            {t("workspace.inventory.ingredients.addIngredient")}
           </button>
         </div>
 
         {isLoading ? (
-          <LoadingState label="Loading ingredients..." />
+          <LoadingState label={t("workspace.inventory.ingredients.loading")} />
         ) : ingredients.length === 0 ? (
           <div className="bg-surface-2 rounded-xl border border-surface-4 p-12 text-center">
-            <p className="text-sm text-text-secondary">No ingredients yet.</p>
-            <p className="mt-1 text-xs text-text-muted">Add your first ingredient to start building recipes.</p>
+            <p className="text-sm text-text-secondary">{t("workspace.inventory.ingredients.noIngredients")}</p>
+            <p className="mt-1 text-xs text-text-muted">{t("workspace.inventory.ingredients.addFirstHint")}</p>
             <button
               type="button"
               onClick={openCreate}
               className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
-              Add First Ingredient
+              {t("workspace.inventory.ingredients.addFirstIngredient")}
             </button>
           </div>
         ) : (
@@ -348,12 +351,13 @@ function RecipesTab({
   branchId: string;
   orgId: string;
 }) {
+  const { t } = useTranslation();
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<MenuItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  if (isLoading) return <LoadingState label="Loading menu items..." />;
-  if (!menuItems.length) return <EmptyState label="No menu items found." hint="Menu items are branch-specific. Add items to this branch to build recipes." />;
+  if (isLoading) return <LoadingState label={t("workspace.inventory.recipes.loading")} />;
+  if (!menuItems.length) return <EmptyState label={t("workspace.inventory.recipes.noItems")} hint={t("workspace.inventory.recipes.noItemsHint")} />;
 
   return (
     <>
@@ -361,9 +365,9 @@ function RecipesTab({
         <div className="lg:col-span-2">
           <div className="mb-4 flex items-end justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Menu Items</p>
-              <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Branch menu</h3>
-              <p className="mt-1 text-sm text-text-muted">Click "Build Recipe" to define ingredients for each dish.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.inventory.recipes.menuItems")}</p>
+              <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">{t("workspace.inventory.recipes.branchMenu")}</h3>
+              <p className="mt-1 text-sm text-text-muted">{t("workspace.inventory.recipes.buildRecipeNote")}</p>
             </div>
             <button
               type="button"
@@ -371,7 +375,7 @@ function RecipesTab({
               className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
-              Add Item
+              {t("workspace.inventory.recipes.addItem")}
             </button>
           </div>
           <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
@@ -379,9 +383,9 @@ function RecipesTab({
               <table className="w-full min-w-[480px]">
                 <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Menu Item</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Category</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Status</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("workspace.inventory.recipes.menuItems")}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("workspace.inventory.ingredients.table.category")}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{t("common.status")}</th>
                     <th className="px-6 py-4" />
                   </tr>
                 </thead>
@@ -415,12 +419,16 @@ function RecipesTab({
                         <span className="text-sm text-text-secondary">{item.category || "—"}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-                          item.is_active
-                            ? "bg-status-success/10 text-status-success border border-status-success/20"
-                            : "bg-surface-3 text-text-muted border border-surface-4"
-                        }`}>
-                          {item.is_active ? "Active" : "Inactive"}
+                        <span
+                          className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                            item.is_active
+                              ? "bg-status-success/10 text-status-success border border-status-success/20"
+                              : "bg-surface-3 text-text-muted border border-surface-4"
+                          }`}
+                        >
+                          {item.is_active
+                            ? t("workspace.today.live.onTrack")
+                            : t("common.none")}
                         </span>
                       </td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
@@ -437,7 +445,7 @@ function RecipesTab({
                             href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
                           >
-                            Build Recipe
+                            {t("workspace.inventory.recipes.buildRecipe")}
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         </div>
@@ -461,7 +469,7 @@ function RecipesTab({
             />
           ) : (
             <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 flex items-center justify-center h-full min-h-[200px]">
-              <p className="text-sm text-text-muted text-center">Select a menu item to preview its recipe</p>
+              <p className="text-sm text-text-muted text-center">{t("workspace.inventory.recipes.selectItemPreview")}</p>
             </div>
           )}
         </div>
@@ -490,6 +498,7 @@ function RecipeDetail({
   branchId: string;
   orgId: string;
 }) {
+  const { t } = useTranslation();
   const recipesQuery = useRecipes(menuItemId, true);
   const recipes = recipesQuery.data ?? EMPTY_LIST;
   const menuItem = menuItems.find((m) => m.id === menuItemId);
@@ -498,7 +507,7 @@ function RecipeDetail({
     <div>
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Recipe Preview</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.inventory.recipes.preview")}</p>
           <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
             {menuItem?.name ?? "—"}
           </h3>
@@ -507,7 +516,7 @@ function RecipeDetail({
           href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold/20 border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/30"
         >
-          Edit
+          {t("common.edit")}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -526,16 +535,16 @@ function RecipeDetail({
 
       <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
         {recipesQuery.isLoading ? (
-          <div className="p-6 text-sm text-text-muted">Loading recipe...</div>
+          <div className="p-6 text-sm text-text-muted">{t("workspace.inventory.recipes.loadingRecipe")}</div>
         ) : recipes.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-sm text-text-muted">No recipe lines yet.</p>
+            <p className="text-sm text-text-muted">{t("workspace.inventory.recipes.noRecipeLines")}</p>
             <Link
               href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
               className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
               <Plus className="h-3.5 w-3.5" />
-              Build Recipe
+              {t("workspace.inventory.recipes.buildRecipe")}
             </Link>
           </div>
         ) : (
@@ -549,7 +558,7 @@ function RecipeDetail({
                 <div className="text-right">
                   <p className="text-sm font-semibold text-brand-gold">{parseFloat(recipe.quantity).toFixed(3)}</p>
                   {parseFloat(recipe.waste_factor) > 0 && (
-                    <p className="text-xs text-text-muted">+{(parseFloat(recipe.waste_factor) * 100).toFixed(0)}% waste</p>
+                    <p className="text-xs text-text-muted">{t("workspace.inventory.recipes.wasteFactor", { percent: (parseFloat(recipe.waste_factor) * 100).toFixed(0) })}</p>
                   )}
                 </div>
               </div>
@@ -566,8 +575,9 @@ function RecipeDetail({
 // ============================================================================
 
 function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoading: boolean }) {
-  if (isLoading) return <LoadingState label="Loading waste analytics..." />;
-  if (!wasteAnalytics) return <EmptyState label="No waste data available." hint="Waste events will appear here once recorded for this branch." />;
+  const { t } = useTranslation();
+  if (isLoading) return <LoadingState label={t("workspace.inventory.waste.loading")} />;
+  if (!wasteAnalytics) return <EmptyState label={t("workspace.inventory.waste.noData")} hint={t("workspace.inventory.waste.noDataHint")} />;
 
   const { by_ingredient, by_reason, total_waste_events } = wasteAnalytics;
   const topWaste = by_ingredient?.[0];
@@ -575,26 +585,26 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
   return (
     <div className="space-y-8">
       <div className="mb-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Waste Intelligence</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Where waste is happening</h3>
-        <p className="mt-1 text-sm text-text-muted">Breakdown by ingredient and by reason.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.inventory.waste.intelligence")}</p>
+        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">{t("workspace.inventory.waste.happeningTitle")}</h3>
+        <p className="mt-1 text-sm text-text-muted">{t("workspace.inventory.waste.breakdownNote")}</p>
       </div>
 
       {/* Summary row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Total Events</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.waste.totalEvents")}</p>
           <p className="mt-2 font-display text-3xl font-semibold text-status-critical">{total_waste_events ?? 0}</p>
         </article>
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Ingredient</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.waste.topIngredient")}</p>
           <p className="mt-2 text-sm font-semibold text-text-primary">{topWaste?.ingredient_name ?? "—"}</p>
           {topWaste && (
             <p className="mt-1 text-xs text-text-muted">{parseFloat(topWaste.total_waste).toFixed(2)} units</p>
           )}
         </article>
         <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Reason</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.inventory.waste.topReason")}</p>
           <p className="mt-2 text-sm font-semibold text-text-primary">
             {by_reason?.[0]?.reason?.replace(/_/g, " ") ?? "—"}
           </p>
@@ -607,7 +617,7 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* By Ingredient */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">By Ingredient</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">{t("workspace.inventory.waste.byIngredient")}</p>
           {by_ingredient?.length ? (
             <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg divide-y divide-surface-4">
               {by_ingredient.map((item: any) => {
@@ -620,7 +630,7 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
                       <div>
                         <p className="text-sm font-semibold text-text-primary">{item.ingredient_name}</p>
                         {item.is_perishable && (
-                          <span className="text-[10px] uppercase tracking-[0.08em] text-status-warning">perishable</span>
+                          <span className="text-[10px] uppercase tracking-[0.08em] text-status-warning">{t("workspace.inventory.ingredients.table.perishable")}</span>
                         )}
                       </div>
                       <p className="text-sm font-semibold text-status-critical">{qty.toFixed(2)} units</p>
@@ -633,13 +643,13 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
               })}
             </div>
           ) : (
-            <p className="text-sm text-text-muted">No waste by ingredient recorded.</p>
+            <p className="text-sm text-text-muted">{t("workspace.inventory.waste.noWasteByIngredient")}</p>
           )}
         </div>
 
         {/* By Reason */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">By Reason</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">{t("workspace.inventory.waste.byReason")}</p>
           {by_reason?.length ? (
             <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg divide-y divide-surface-4">
               {by_reason.map((item: any) => {
@@ -662,7 +672,7 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
               })}
             </div>
           ) : (
-            <p className="text-sm text-text-muted">No waste reasons recorded.</p>
+            <p className="text-sm text-text-muted">{t("workspace.inventory.waste.noWasteByReason")}</p>
           )}
         </div>
       </div>
@@ -675,6 +685,7 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
 // ============================================================================
 
 function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLoading: boolean }) {
+  const { t } = useTranslation();
   const now = new Date();
 
   const byIngredient = useMemo(() => {
@@ -700,13 +711,13 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
   const columns = useMemo(
     () => [
       prepBatchColumnHelper.accessor("ingredient_name", {
-        header: "Ingredient",
+        header: t("workspace.inventory.ingredients.table.ingredient"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">{info.getValue() ?? "—"}</span>
         ),
       }),
       prepBatchColumnHelper.accessor("quantity_prepared", {
-        header: "Qty Prepared",
+        header: t("workspace.inventory.signals.table.qtyPrepared"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {parseFloat(info.getValue()).toFixed(2)} {info.row.original.unit}
@@ -714,7 +725,7 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
         ),
       }),
       prepBatchColumnHelper.accessor("prepared_at", {
-        header: "Prepared At",
+        header: t("workspace.inventory.signals.table.preparedAt"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {new Date(info.getValue()).toLocaleString([], {
@@ -725,31 +736,31 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
         ),
       }),
       prepBatchColumnHelper.accessor("prepared_by_display", {
-        header: "Prepared By",
+        header: t("workspace.inventory.signals.table.preparedBy"),
         cell: (info) => (
           <span className="text-sm text-text-muted">{info.getValue() ?? "—"}</span>
         ),
       }),
     ],
-    [],
+    [t],
   );
 
   const table = useReactTable({ data: recentBatches, columns, getCoreRowModel: CORE_ROW_MODEL });
 
-  if (isLoading) return <LoadingState label="Loading stock signals..." />;
+  if (isLoading) return <LoadingState label={t("workspace.inventory.signals.loading")} />;
 
   return (
     <div className="space-y-8">
       <div className="mb-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Stock Signals</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Prep activity and volume</h3>
-        <p className="mt-1 text-sm text-text-muted">Most prepped ingredients and recent batch activity.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.inventory.signals.title")}</p>
+        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">{t("workspace.inventory.signals.activityTitle")}</h3>
+        <p className="mt-1 text-sm text-text-muted">{t("workspace.inventory.signals.activityNote")}</p>
       </div>
 
       {/* Top prepped */}
       {byIngredient.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">Most Prepped Ingredients</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">{t("workspace.inventory.signals.mostPrepped")}</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             {byIngredient.map((item) => (
               <article key={item.name} className="bg-surface-2 rounded-xl p-4 border border-surface-4">
@@ -757,7 +768,9 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
                 <p className="mt-2 font-display text-2xl font-semibold text-brand-gold">
                   {item.total.toFixed(1)}
                 </p>
-                <p className="text-xs text-text-muted uppercase">{item.unit} · {item.batches} batch{item.batches !== 1 ? "es" : ""}</p>
+                <p className="text-xs text-text-muted uppercase">
+                  {item.unit} · {item.batches === 1 ? t("workspace.inventory.signals.nBatches", { count: 1 }) : t("workspace.inventory.signals.nBatchesPlural", { count: item.batches })}
+                </p>
               </article>
             ))}
           </div>
@@ -767,10 +780,10 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
       {/* Recent batches table */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-          Recent Prep Activity (last 24h)
+          {t("workspace.inventory.signals.recentActivity")}
         </p>
         {recentBatches.length === 0 ? (
-          <p className="text-sm text-text-muted">No prep activity in the last 24 hours.</p>
+          <p className="text-sm text-text-muted">{t("workspace.inventory.signals.noActivity")}</p>
         ) : (
           <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">

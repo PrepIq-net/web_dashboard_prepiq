@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -93,6 +94,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 }
 
 export default function FinancialPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
@@ -225,7 +227,7 @@ export default function FinancialPage() {
   const branchColumns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
-        header: "Branch",
+        header: t("common.branch"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
             {info.getValue()}
@@ -233,7 +235,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("revenue", {
-        header: "Revenue",
+        header: t("financial.summary.revenue"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -241,7 +243,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("foodCost", {
-        header: "Food Cost",
+        header: t("financial.summary.foodCost"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -249,7 +251,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("wasteCost", {
-        header: "Waste Cost",
+        header: t("financial.summary.wasteCost"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-warning">
             {toCurrency(info.getValue())}
@@ -257,7 +259,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("grossMargin", {
-        header: "Gross Margin",
+        header: t("financial.summary.grossMargin"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-success">
             {toCurrency(info.getValue())}
@@ -265,7 +267,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("marginPct", {
-        header: "Margin %",
+        header: t("financial.summary.marginPct"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
             {toPercent(info.getValue())}
@@ -284,10 +286,10 @@ export default function FinancialPage() {
 
   const timeframeLabel =
     timeframe === "7d"
-      ? "Last 7 Days"
+      ? t("financial.last7Days")
       : timeframe === "90d"
-        ? "Last 90 Days"
-        : "Last 30 Days";
+        ? t("financial.last90Days")
+        : t("financial.last30Days");
 
   const exportReport = () => {
     const rows = branchRows.map((row) => [
@@ -315,29 +317,29 @@ export default function FinancialPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Financial"
-      title="Financial Intelligence"
-      description="Operational financial performance across revenue, food cost, and waste."
-      insight="Connect kitchen execution to margin performance in real time."
+      eyebrow={t("financial.eyebrow")}
+      title={t("financial.title")}
+      description={t("financial.description")}
+      insight={t("financial.insight")}
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <Select
-            label="Timeframe"
+            label={t("financial.timeframe")}
             leadingIcon={<Calendar className="h-4 w-4" />}
             options={[
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
-              { value: "90d", label: "Last 90 days" },
+              { value: "7d", label: t("financial.last7Days") },
+              { value: "30d", label: t("financial.last30Days") },
+              { value: "90d", label: t("financial.last90Days") },
             ]}
             value={timeframe}
             onChange={setTimeframe}
           />
 
           <Select
-            label="Branch Focus"
+            label={t("financial.branchFocus")}
             options={[
-              { value: "ALL", label: "All branches" },
+              { value: "ALL", label: t("financial.allBranches") },
               ...branchOptions,
             ]}
             value={branchFilter}
@@ -347,7 +349,7 @@ export default function FinancialPage() {
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Data Range
+              {t("financial.dataRange")}
             </label>
             <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
               {financialData
@@ -358,7 +360,7 @@ export default function FinancialPage() {
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Quick Export
+              {t("financial.quickExport")}
             </label>
             <button
               type="button"
@@ -367,20 +369,20 @@ export default function FinancialPage() {
               disabled={branchRows.length === 0}
             >
               <Download className="h-4 w-4" />
-              Export Data
+              {t("financial.exportData")}
             </button>
           </div>
         </div>
         <div className="mt-6 pt-6 border-t border-surface-4">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "OVERVIEW", label: "Overview" },
-              { id: "WASTE", label: "Waste" },
-              { id: "STOCKOUT", label: "Stockouts" },
-              { id: "ACCURACY", label: "Forecast Impact" },
-              { id: "PROFIT", label: "Item Profitability" },
-              { id: "BRANCHES", label: "Branches" },
-              { id: "TRENDS", label: "Trends" },
+              { id: "OVERVIEW", label: t("financial.tabs.overview") },
+              { id: "WASTE", label: t("financial.tabs.waste") },
+              { id: "STOCKOUT", label: t("financial.tabs.stockout") },
+              { id: "ACCURACY", label: t("financial.tabs.accuracy") },
+              { id: "PROFIT", label: t("financial.tabs.profit") },
+              { id: "BRANCHES", label: t("financial.tabs.branches") },
+              { id: "TRENDS", label: t("financial.tabs.trends") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -403,7 +405,7 @@ export default function FinancialPage() {
         <section className="mt-8">
         <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            PrepIQ Impact Report
+            {t("financial.impact.title")}
           </p>
           <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
             {timeframeLabel}
@@ -412,114 +414,114 @@ export default function FinancialPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-10">
           <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Forecast Accuracy
+              {t("financial.accuracy.currentAccuracy")}
             </p>
             <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
               {toPercent(impactReport?.accuracy_pct ?? 0)}
             </p>
-            <p className="mt-3 text-xs text-text-muted">Average accuracy</p>
+            <p className="mt-3 text-xs text-text-muted">{t("financial.impact.avgAccuracy")}</p>
           </article>
           <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Waste Reduced
+              {t("financial.accuracy.wastePrevented")}
             </p>
             <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
               {toCurrency(impactReport?.waste_reduced ?? 0)}
             </p>
-            <p className="mt-3 text-xs text-text-muted">Period improvement</p>
+            <p className="mt-3 text-xs text-text-muted">{t("financial.impact.periodImprovement")}</p>
           </article>
           <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Stockouts Avoided
+              {t("financial.stockout.stockoutEvents")}
             </p>
             <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
               {impactReport?.stockouts_avoided ?? 0}
             </p>
-            <p className="mt-3 text-xs text-text-muted">Events prevented</p>
+            <p className="mt-3 text-xs text-text-muted">{t("financial.impact.eventsPrevented")}</p>
           </article>
           <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Revenue Protected
+              {t("financial.stockout.protectedByPrepiq")}
             </p>
             <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
               {toCurrency(impactReport?.revenue_protected ?? 0)}
             </p>
-            <p className="mt-3 text-xs text-text-muted">Estimated impact</p>
+            <p className="mt-3 text-xs text-text-muted">{t("financial.impact.estimatedImpact")}</p>
           </article>
         </div>
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Financial Overview
+            {t("financial.summary.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
               {timeframeLabel}
             </h3>
             <p className="mt-1 text-sm text-text-muted">
               {branchFilter === "ALL" || !financialData?.branch_name
-                ? "Organization-wide view"
-                : `Branch: ${financialData.branch_name}`}
+                ? t("financial.organizationWide")
+                : t("financial.branchView", { name: financialData.branch_name })}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Revenue
+                {t("financial.summary.revenue")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toCurrency(summary?.revenue ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.revenue_delta_pct)}
+                {t("financial.summary.vsPrior", { sign: (summary?.revenue_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(summary?.revenue_delta_pct ?? 0).toFixed(1), suffix: "%" })}
               </p>
             </article>
 
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Food Cost
+                {t("financial.summary.foodCost")}
               </p>
               <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
                 {toCurrency(summary?.food_cost ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.food_cost_delta_pct)}
+                {t("financial.summary.vsPrior", { sign: (summary?.food_cost_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(summary?.food_cost_delta_pct ?? 0).toFixed(1), suffix: "%" })}
               </p>
             </article>
 
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Waste Cost
+                {t("financial.summary.wasteCost")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
                 {toCurrency(summary?.waste_cost ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.waste_cost_delta_pct)}
+                {t("financial.summary.vsPrior", { sign: (summary?.waste_cost_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(summary?.waste_cost_delta_pct ?? 0).toFixed(1), suffix: "%" })}
               </p>
             </article>
 
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Gross Margin
+                {t("financial.summary.grossMargin")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toCurrency(summary?.gross_margin ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.gross_margin_delta_pct)}
+                {t("financial.summary.vsPrior", { sign: (summary?.gross_margin_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(summary?.gross_margin_delta_pct ?? 0).toFixed(1), suffix: "%" })}
               </p>
             </article>
 
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Margin %
+                {t("financial.summary.marginPct")}
               </p>
               <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
                 {toPercent(summary?.margin_pct ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
                 {summary?.margin_pct_delta != null
-                  ? `${summary.margin_pct_delta >= 0 ? "+" : ""}${summary.margin_pct_delta.toFixed(1)} pp vs prior`
+                  ? t("financial.summary.vsPrior", { sign: (summary.margin_pct_delta) >= 0 ? "+" : "", value: Math.abs(summary.margin_pct_delta).toFixed(1), suffix: " pp" })
                   : "—"}
               </p>
             </article>
@@ -532,7 +534,7 @@ export default function FinancialPage() {
           <div>
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Waste Cost Analysis
+                {t("financial.waste.title")}
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
                 {timeframeLabel}
@@ -541,30 +543,30 @@ export default function FinancialPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Total Waste
+                  {t("financial.waste.totalWaste")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
                   {toCurrency(wasteAnalysis?.total_waste_cost ?? 0)}
                 </p>
                 <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(summary?.waste_cost_delta_pct)}
+                  {t("financial.summary.vsPrior", { sign: (summary?.waste_cost_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(summary?.waste_cost_delta_pct ?? 0).toFixed(1), suffix: "%" })}
                 </p>
               </article>
 
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Waste Rate
+                  {t("financial.waste.wasteRate")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
                   {toPercent(wasteAnalysis?.waste_rate_pct ?? 0)}
                 </p>
-                <p className="mt-3 text-xs text-text-muted">Share of revenue</p>
+                <p className="mt-3 text-xs text-text-muted">{t("financial.waste.shareOfRevenue")}</p>
               </article>
             </div>
 
             <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Waste Items
+                {t("financial.waste.topItems")}
               </p>
               <div className="space-y-3">
                 {(wasteAnalysis?.top_items ?? []).length ? (
@@ -588,7 +590,7 @@ export default function FinancialPage() {
                   ))
                 ) : (
                   <p className="text-sm text-text-muted">
-                    No waste events recorded.
+                    {t("financial.waste.noEvents")}
                   </p>
                 )}
               </div>
@@ -602,7 +604,7 @@ export default function FinancialPage() {
           <div>
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Stockout Revenue Loss
+                {t("financial.stockout.title")}
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
                 {timeframeLabel}
@@ -611,44 +613,44 @@ export default function FinancialPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Lost Revenue
+                  {t("financial.stockout.lostRevenue")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
                   {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
                 </p>
                 <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(stockoutImpact?.lost_revenue_delta_pct)}
+                  {t("financial.summary.vsPrior", { sign: (stockoutImpact?.lost_revenue_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(stockoutImpact?.lost_revenue_delta_pct ?? 0).toFixed(1), suffix: "%" })}
                 </p>
               </article>
 
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Stockout Events
+                  {t("financial.stockout.stockoutEvents")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
                   {stockoutImpact?.stockout_events ?? 0}
                 </p>
                 <p className="mt-3 text-xs text-text-muted">
-                  Service interruptions
+                  {t("financial.stockout.serviceInterruptions")}
                 </p>
               </article>
 
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 sm:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Revenue Protected by PrepIQ
+                  {t("financial.stockout.protectedByPrepiq")}
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                   {toCurrency(stockoutImpact?.revenue_protected ?? 0)}
                 </p>
                 <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(stockoutImpact?.revenue_protected_delta_pct)}
+                  {t("financial.summary.vsPrior", { sign: (stockoutImpact?.revenue_protected_delta_pct ?? 0) >= 0 ? "+" : "", value: Math.abs(stockoutImpact?.revenue_protected_delta_pct ?? 0).toFixed(1), suffix: "%" })}
                 </p>
               </article>
             </div>
 
             <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Stockouts
+                {t("financial.stockout.topStockouts")}
               </p>
               <div className="space-y-3">
                 {(stockoutImpact?.top_items ?? []).length ? (
@@ -667,7 +669,7 @@ export default function FinancialPage() {
                   ))
                 ) : (
                   <p className="text-sm text-text-muted">
-                    No stockouts detected.
+                    {t("financial.stockout.noStockouts")}
                   </p>
                 )}
               </div>
@@ -680,7 +682,7 @@ export default function FinancialPage() {
         <section className="mt-10">
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Forecast Accuracy Impact
+              {t("financial.accuracy.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
               {timeframeLabel}
@@ -689,35 +691,35 @@ export default function FinancialPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Current Accuracy
+                {t("financial.accuracy.currentAccuracy")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toPercent(forecastImpact?.accuracy_pct ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                Average forecast accuracy
+                {t("financial.impact.avgAccuracy")}
               </p>
             </article>
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Waste Prevented
+                {t("financial.accuracy.wastePrevented")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toCurrency(forecastImpact?.waste_prevented ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                Improvement vs prior period
+                {t("financial.accuracy.improvementVsPrior")}
               </p>
             </article>
             <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Stockouts Avoided
+                {t("financial.accuracy.stockoutsAvoided")}
               </p>
               <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                 {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">
-                Avoided lost revenue
+                {t("financial.accuracy.avoidedLostRevenue")}
               </p>
             </article>
           </div>
@@ -728,16 +730,16 @@ export default function FinancialPage() {
         <section className="mt-10">
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Item Profitability
+              {t("financial.profit.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Top Profit Drivers
+              {t("financial.profit.driversTitle")}
             </h3>
           </div>
           <div className="mb-4 flex flex-wrap gap-2">
             {[
-              { id: "REVENUE", label: "Top Revenue" },
-              { id: "MARGIN", label: "Top Margin %" },
+              { id: "REVENUE", label: t("financial.profit.topRevenue") },
+              { id: "MARGIN", label: t("financial.profit.topMarginPct") },
             ].map((option) => (
               <button
                 key={option.id}
@@ -759,19 +761,19 @@ export default function FinancialPage() {
                 <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
                   <tr>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
+                      {t("workspace.today.closed.itemHeader")}
                     </th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Revenue
+                      {t("financial.summary.revenue")}
                     </th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Food Cost
+                      {t("financial.summary.foodCost")}
                     </th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin
+                      {t("financial.summary.grossMargin")}
                     </th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin %
+                      {t("financial.summary.marginPct")}
                     </th>
                   </tr>
                 </thead>
@@ -805,7 +807,7 @@ export default function FinancialPage() {
                         colSpan={5}
                         className="px-6 py-6 text-sm text-text-muted"
                       >
-                        No profitability data available for this period.
+                        {t("financial.profit.noData")}
                       </td>
                     </tr>
                   )}
@@ -831,17 +833,17 @@ export default function FinancialPage() {
                   {toCurrency(branch.revenue)}
                 </p>
                 <p className="mt-3 text-xs text-text-muted">
-                  Margin {toPercent(branch.marginPct)}
+                  {t("financial.summary.marginPct")} {toPercent(branch.marginPct)}
                 </p>
               </article>
             ))}
           </div>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Branch Performance
+              {t("financial.branches.title")}
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Revenue, Cost, and Margin Breakdown
+              {t("financial.branches.breakdownTitle")}
             </h3>
           </div>
 
@@ -866,10 +868,10 @@ export default function FinancialPage() {
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Cost Trends
+                {t("financial.trends.title")}
               </p>
               <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Revenue, Waste, Food Cost, Margin
+                {t("financial.trends.breakdownTitle")}
               </h3>
             </div>
             <button
@@ -879,28 +881,28 @@ export default function FinancialPage() {
               disabled={!costTrends.length}
             >
               <Download className="h-4 w-4" />
-              Download Trend CSV
+              {t("financial.trends.downloadCsv")}
             </button>
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {[
               {
-                label: "Revenue",
+                label: t("financial.summary.revenue"),
                 color: "text-status-success",
                 series: trendSeries.revenue,
               },
               {
-                label: "Food Cost",
+                label: t("financial.summary.foodCost"),
                 color: "text-text-secondary",
                 series: trendSeries.food,
               },
               {
-                label: "Waste Cost",
+                label: t("financial.summary.wasteCost"),
                 color: "text-status-critical",
                 series: trendSeries.waste,
               },
               {
-                label: "Margin",
+                label: t("financial.summary.grossMargin"), // Using grossMargin for Margin
                 color: "text-brand-gold",
                 series: trendSeries.margin,
               },
@@ -912,7 +914,7 @@ export default function FinancialPage() {
                   className="rounded-xl border border-surface-4 bg-surface-2 p-5"
                 >
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    {chart.label} Trend
+                    {t("financial.trends.trendLabel", { label: chart.label })}
                   </p>
                   {chart.series.length ? (
                     <div className="mt-4">
@@ -942,7 +944,7 @@ export default function FinancialPage() {
                     </div>
                   ) : (
                     <p className="mt-4 text-sm text-text-muted">
-                      Not enough historical data yet.
+                      {t("financial.trends.notEnoughData")}
                     </p>
                   )}
                 </div>
