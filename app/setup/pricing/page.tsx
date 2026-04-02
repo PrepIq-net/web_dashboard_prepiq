@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  CoinsSwap,
-  ShieldCheck,
-  CheckCircle,
-} from "iconoir-react";
+import { ArrowRight, CoinsSwap, ShieldCheck, CheckCircle } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -89,7 +84,8 @@ export default function PricingStepPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitError, setSubmitError] = useState("");
 
-  const currentSubscriptionError = currentSubscriptionQuery.error as ApiError | null;
+  const currentSubscriptionError =
+    currentSubscriptionQuery.error as ApiError | null;
   const hasNoActiveSubscription = currentSubscriptionError?.status === 404;
   const currentPlanType = hasNoActiveSubscription
     ? "CORE"
@@ -105,7 +101,8 @@ export default function PricingStepPage() {
   );
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
   const currentPlan = plans.find((plan) => plan.plan_type === currentPlanType);
-  const recommendedPlanType = plansQuery.data?.recommendation?.recommended_plan_type;
+  const recommendedPlanType =
+    plansQuery.data?.recommendation?.recommended_plan_type;
   const recommendationReason = plansQuery.data?.recommendation?.reason;
 
   useEffect(() => {
@@ -185,7 +182,8 @@ export default function PricingStepPage() {
           Choose the plan that matches your operation.
         </h1>
         <p className="text-[16px] leading-[24px] text-text-muted max-w-3xl mb-10">
-          Start with your current plan, or upgrade now to unlock broader controls and deeper intelligence.
+          Start with your current plan, or upgrade now to unlock broader
+          controls and deeper intelligence.
         </p>
 
         <section className="mb-10 rounded-card border border-border-default bg-surface-2 p-6">
@@ -194,7 +192,9 @@ export default function PricingStepPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">Active plan</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                Active plan
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
                 {currentPlan?.name ?? "Core"}
               </p>
@@ -205,16 +205,22 @@ export default function PricingStepPage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">Branch coverage</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                Branch coverage
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
-                {currentPlan ? maxBranchesLabel(currentPlan) : "1 branch included"}
+                {currentPlan
+                  ? maxBranchesLabel(currentPlan)
+                  : "1 branch included"}
               </p>
               <p className="text-[13px] text-text-secondary mt-1">
                 Branch limits come from the selected commercial plan.
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">Billing model</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
+                Billing model
+              </p>
               <p className="font-display text-[26px] leading-[34px] text-text-primary">
                 {pricingModelLabel(currentPlan?.pricing_model)}
               </p>
@@ -228,7 +234,9 @@ export default function PricingStepPage() {
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-1">
                 Recommendation Logic
               </p>
-              <p className="text-[13px] text-text-secondary">{recommendationReason}</p>
+              <p className="text-[13px] text-text-secondary">
+                {recommendationReason}
+              </p>
             </div>
           ) : null}
         </section>
@@ -316,14 +324,20 @@ export default function PricingStepPage() {
                     </p>
                     <div className="flex items-end gap-2">
                       <p className="font-display text-[44px] leading-[44px] text-text-primary">
-                        {isHybridOrCustom ? `From ${monthlyPrice}` : monthlyPrice}
+                        {isHybridOrCustom
+                          ? `From ${monthlyPrice}`
+                          : monthlyPrice}
                       </p>
                       <p className="text-[14px] text-text-muted pb-1">/month</p>
                     </div>
-                    <p className="text-[13px] text-text-muted mt-2">Yearly: {yearlyPrice}/year</p>
+                    <p className="text-[13px] text-text-muted mt-2">
+                      Yearly: {yearlyPrice}/year
+                    </p>
 
                     {plan.plan_type === "CORE" ? (
-                      <p className="text-[13px] text-status-success mt-2">30-day trial included.</p>
+                      <p className="text-[13px] text-status-success mt-2">
+                        30-day trial included.
+                      </p>
                     ) : null}
 
                     {isHybridOrCustom ? (
@@ -336,13 +350,21 @@ export default function PricingStepPage() {
                   </div>
 
                   <div className="mb-6">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-2">Capacity</p>
-                    <p className="text-[15px] text-text-primary">{maxBranchesLabel(plan)}</p>
-                    <p className="text-[12px] text-text-muted mt-1">{pricingModelLabel(pricingMode)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-2">
+                      Capacity
+                    </p>
+                    <p className="text-[15px] text-text-primary">
+                      {maxBranchesLabel(plan)}
+                    </p>
+                    <p className="text-[12px] text-text-muted mt-1">
+                      {pricingModelLabel(pricingMode)}
+                    </p>
                   </div>
 
                   <div className="mb-7 flex-1">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-3">What&apos;s included</p>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted mb-3">
+                      What&apos;s included
+                    </p>
                     {features.length ? (
                       <ul className="space-y-3">
                         {features.map((feature) => (
@@ -356,15 +378,23 @@ export default function PricingStepPage() {
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-[14px] text-text-muted">Feature details are being updated.</p>
+                      <p className="text-[14px] text-text-muted">
+                        Feature details are being updated.
+                      </p>
                     )}
                   </div>
 
                   <Button
                     variant={isCurrent ? "primary" : "secondary"}
                     fullWidth
-                    leftIcon={isCurrent ? <CheckCircle className="h-4 w-4" /> : undefined}
-                    onClick={() => (isCurrent ? handleContinueCurrent() : handleUpgrade(plan))}
+                    leftIcon={
+                      isCurrent ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : undefined
+                    }
+                    onClick={() =>
+                      isCurrent ? handleContinueCurrent() : handleUpgrade(plan)
+                    }
                   >
                     <span className="inline-flex items-center gap-2">
                       {cta}
@@ -386,8 +416,8 @@ export default function PricingStepPage() {
               Confirm plan, branch, and payment method.
             </h2>
             <p className="text-[13px] text-text-secondary max-w-2xl">
-              Select the branch the subscription should cover. Payments are routed
-              to Stripe for cards and PawaPay for mobile money.
+              Select the branch the subscription should cover. Payments are
+              routed to Stripe for cards and PawaPay for mobile money.
             </p>
           </div>
 
