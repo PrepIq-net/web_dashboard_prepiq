@@ -10,6 +10,7 @@ import {
   MultiplePages,
   InfoCircle,
   DoubleCheck,
+  CoinsSwap,
 } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,11 @@ export default function CheckoutPage() {
     [plans, selectedPlanId],
   );
 
+  const selectedBranchName = useMemo(
+    () => branches.find((b) => b.id === selectedBranchId)?.name || "selected",
+    [branches, selectedBranchId],
+  );
+
   useEffect(() => {
     if (userLoading || !user) return;
     const fullName = `${user.first_name} ${user.last_name}`.trim();
@@ -97,6 +103,16 @@ export default function CheckoutPage() {
     setBillingEmail((prev) => prev || user.email);
     setPhoneNumber((prev) => prev || user.phone || "");
   }, [userLoading, user]);
+  const currentSubscriptionQuery = useCurrentSubscription(
+    selectedBranchId ? { branch_id: selectedBranchId } : undefined,
+  );
+  const branchSub = currentSubscriptionQuery.data;
+  const isTransition =
+    branchSub &&
+    branchSub.status === "ACTIVE" &&
+    (branchSub.plan?.id !== selectedPlanId ||
+      branchSub.billing_cycle !== billingCycle);
+  const currentSubPlanName = branchSub?.plan?.name;
 
   useEffect(() => {
     if (!branches.length) return;
@@ -194,13 +210,31 @@ export default function CheckoutPage() {
             <section className="space-y-6">
               <div>
                 <h1 className="font-display text-[32px] leading-tight font-semibold mb-2">
-                  Subscription Details
+                  {isTransition ? "Complete Your Upgrade" : "Subscription Details"}
                 </h1>
                 <p className="text-text-muted text-[15px]">
-                  Setting up {selectedPlan?.name || "your plan"} for your
-                  organization.
+                  {isTransition
+                    ? `Transitioning your ${selectedBranchName} branch to the ${selectedPlan?.name} plan.`
+                    : `Setting up ${selectedPlan?.name || "your plan"} for your organization.`}
                 </p>
               </div>
+
+              {/* Upgrade Transition Notice */}
+              {isTransition && (
+                <div className="p-5 rounded-xl border border-brand-gold/30 bg-brand-gold/5 flex items-start gap-4 animate-fade-in">
+                  <div className="h-10 w-10 rounded-full bg-brand-gold/10 flex items-center justify-center shrink-0">
+                    <CoinsSwap className="h-5 w-5 text-brand-gold" />
+                  </div>
+                  <div>
+                    <h4 className="text-[15px] font-semibold text-brand-gold font-display">
+                      Upgrade Transition Detected
+                    </h4>
+                    <p className="text-[13px] text-text-secondary leading-relaxed mt-1">
+                      You are currently on the <b>{currentSubPlanName}</b> plan. By proceeding, your new <b>{selectedPlan?.name}</b> tier will activate immediately, replacing your existing subscription window for this branch.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {selectedPlan && (
                 <div className="bg-surface-2 rounded-card border border-border-default p-8">
