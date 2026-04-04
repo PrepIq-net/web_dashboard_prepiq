@@ -94,7 +94,22 @@ export function AdvancedForecastModalContent({
 }: AdvancedForecastModalContentProps) {
   return (
     <div className="space-y-6">
-      {/* ── 1. Action Recommendations (Top Priority) ── */}
+      {/* ── 1. AI Reasoning (The "Why") ── */}
+      {advancedForecast?.ai_narrative ? (
+        <section className="rounded-xl border border-brand-gold/20 bg-brand-gold/[0.03] px-5 py-5 shadow-[0_0_20px_rgba(184,150,46,0.05)]">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-1.5 w-1.5 rounded-full bg-brand-gold animate-pulse" />
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              AI Insight Summary
+            </p>
+          </div>
+          <p className="text-sm font-medium leading-relaxed text-text-primary">
+            {advancedForecast.ai_narrative}
+          </p>
+        </section>
+      ) : null}
+
+      {/* ── 2. Action Recommendations (Top Priority) ── */}
       {advancedForecast?.action_recommendations?.length ? (
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-3">
