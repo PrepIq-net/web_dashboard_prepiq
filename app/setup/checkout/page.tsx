@@ -9,7 +9,6 @@ import {
   CreditCard,
   MultiplePages,
   InfoCircle,
-  Stripe,
   DoubleCheck,
 } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
@@ -425,7 +424,6 @@ export default function CheckoutPage() {
 
                     <Button
                       fullWidth
-                      size="lg"
                       className="h-14 text-[16px] font-semibold"
                       onClick={handleCheckout}
                       disabled={checkoutMutation.isPending}
@@ -455,7 +453,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="bg-surface-3/30 p-6 flex items-center justify-center gap-4 border-t border-chart-grid grayscale opacity-50">
-                  <Stripe className="h-8" />
+                  <CreditCard className="h-6" />
                   <div className="h-4 w-px bg-border-default" />
                   <span className="text-[10px] font-bold uppercase tracking-widest">
                     PCI Compliant

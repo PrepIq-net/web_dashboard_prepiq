@@ -288,7 +288,6 @@ export default function PricingStepPage() {
                 <Button
                   fullWidth
                   variant={isRecommended || isCurrent ? "primary" : "secondary"}
-                  size="lg"
                   className={`h-14 font-semibold text-[15px] ${isDisabled ? "opacity-30 cursor-not-allowed grayscale" : ""}`}
                   disabled={isDisabled}
                   onClick={() =>
