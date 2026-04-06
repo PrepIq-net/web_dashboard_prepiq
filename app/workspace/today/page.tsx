@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Shop, Calendar } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
@@ -252,6 +253,7 @@ const FALLBACK_DEMAND_SIGNALS = [
 ];
 
 function TodayWorkspacePageContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -1688,7 +1690,7 @@ function TodayWorkspacePageContent() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-text-muted">vs typical {branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString("en-US", { weekday: "short" })}</p>
+                        <p className="text-text-muted">{t("today.outlook.vsTypical", { day: branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString(t("common.language") === "fr" ? "fr-FR" : "en-US", { weekday: "short" }) })}</p>
                         <p className={`font-semibold ${demandDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}>
                           {toPercent(demandDeltaPct)}
                         </p>

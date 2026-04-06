@@ -10,10 +10,18 @@ import {
 export async function getNotifications(params?: {
   status?: string;
   domain?: string;
+  urgency?: string;
+  escalation?: string;
+  is_today?: boolean;
+  limit?: number;
 }) {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.domain) search.set("domain", params.domain);
+  if (params?.urgency) search.set("urgency", params.urgency);
+  if (params?.escalation) search.set("escalation", params.escalation);
+  if (params?.is_today) search.set("is_today", "true");
+  if (params?.limit) search.set("limit", params.limit.toString());
   const query = search.toString();
   const endpoint = query
     ? `${notificationEndpoints.list()}?${query}`

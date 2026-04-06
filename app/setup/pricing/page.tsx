@@ -1,19 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CoinsSwap,
   ShieldCheck,
   CheckCircle,
+  DoubleCheck,
+  MultiplePages,
+  InfoCircle,
 } from "iconoir-react";
-import { ApiError } from "@/lib/api/errors";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import {
   useCurrentSubscription,
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
+import { useCurrentUserProfile } from "@/services";
 import type { SubscriptionPlan } from "@/services/payment/types";
 
 function toNumber(value: unknown): number {
@@ -25,14 +29,14 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string");
-}
-
 function formatPriceValue(value: unknown) {
   const amount = toNumber(value);
   return `$${amount.toLocaleString()}`;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 function sortPlanOrder(plans: SubscriptionPlan[]) {
@@ -44,251 +48,299 @@ function sortPlanOrder(plans: SubscriptionPlan[]) {
   });
 }
 
-function pricingModelLabel(mode?: string) {
-  if (mode === "HYBRID_BASE_PLUS_CUSTOM") return "Published + custom quote";
-  if (mode === "CUSTOM_ONLY") return "Custom quote";
-  return "Published rates";
-}
-
-function maxBranchesLabel(plan: SubscriptionPlan) {
-  const value = plan.plan_limits?.MAX_BRANCHES;
-  if (typeof value !== "number") return "Unlimited branches";
-  if (value <= 1) return "1 branch included";
-  return `${value} branches included`;
-}
-
-function planSubtitle(planType?: string) {
-  if (planType === "CORE") return "Daily branch operations";
-  if (planType === "INTELLIGENCE") return "Forecasting and margin insights";
-  if (planType === "COMMAND") return "Multi-branch command center";
-  return "Operational plan";
-}
+const PLAN_TIERS = {
+  CORE: 1,
+  INTELLIGENCE: 2,
+  COMMAND: 3,
+} as const;
 
 export default function PricingStepPage() {
   const router = useRouter();
+  const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const plansQuery = useSubscriptionPlanPricing();
   const currentSubscriptionQuery = useCurrentSubscription();
 
-  const currentSubscriptionError = currentSubscriptionQuery.error as ApiError | null;
-  const hasNoActiveSubscription = currentSubscriptionError?.status === 404;
-  const currentPlanType = hasNoActiveSubscription
-    ? "CORE"
-    : currentSubscriptionQuery.data?.plan?.plan_type;
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">(
+    "YEARLY",
+  );
 
   const plans = useMemo(
     () => sortPlanOrder(plansQuery.data?.plans ?? []),
     [plansQuery.data?.plans],
   );
-  const currentPlan = plans.find((plan) => plan.plan_type === currentPlanType);
-  const recommendedPlanType = plansQuery.data?.recommendation?.recommended_plan_type;
+
+  const currentPlanType =
+    currentSubscriptionQuery.data?.plan?.plan_type || null;
+  const currentTier = currentPlanType
+    ? PLAN_TIERS[currentPlanType as keyof typeof PLAN_TIERS] || 0
+    : 0;
+
+  const recommendedPlanType =
+    plansQuery.data?.recommendation?.recommended_plan_type;
   const recommendationReason = plansQuery.data?.recommendation?.reason;
 
-  function handleContinueCurrent() {
+  function handleSelect(plan: SubscriptionPlan) {
+    router.push(`/setup/checkout?planId=${plan.id}&cycle=${billingCycle}`);
+  }
+
+  function handleContinue() {
     router.push("/");
   }
 
-  function handleUpgrade(planType: string) {
-    router.push(`/?upgrade=${encodeURIComponent(planType)}`);
+  if (plansQuery.isLoading || userLoading) {
+    return (
+      <div className="min-h-screen bg-surface-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner size="lg" />
+          <p className="text-text-secondary animate-pulse">
+            Loading intelligence plans...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#141416] p-6">
-      <div className="mx-auto w-full max-w-6xl py-8">
-        <div className="flex items-center gap-2 mb-8">
-          <CoinsSwap className="h-4 w-4 text-[#A8821F]" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Final Step - Pricing
-          </span>
-        </div>
-
-        <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
-          Choose the plan that matches your operation.
-        </h1>
-        <p className="text-[16px] leading-[24px] text-[#8E8E93] max-w-3xl mb-10">
-          Start with your current plan, or upgrade now to unlock broader controls and deeper intelligence.
-        </p>
-
-        <section className="mb-10 rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-6">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-[#8E8E93] mb-4">
-            Your workspace today
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-1">Active plan</p>
-              <p className="font-display text-[26px] leading-[34px] text-[#F5F5F7]">
-                {currentPlan?.name ?? "Core"}
-              </p>
-              <p className="text-[13px] text-[#C7C7CC] mt-1">
-                {hasNoActiveSubscription
-                  ? "No paid subscription yet. You are on the default Core path."
-                  : "A subscription is already active for this workspace."}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-1">Branch coverage</p>
-              <p className="font-display text-[26px] leading-[34px] text-[#F5F5F7]">
-                {currentPlan ? maxBranchesLabel(currentPlan) : "1 branch included"}
-              </p>
-              <p className="text-[13px] text-[#C7C7CC] mt-1">
-                Branch limits come from the selected commercial plan.
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-1">Billing model</p>
-              <p className="font-display text-[26px] leading-[34px] text-[#F5F5F7]">
-                {pricingModelLabel(currentPlan?.pricing_model)}
-              </p>
-              <p className="text-[13px] text-[#C7C7CC] mt-1">
-                Command may switch to custom quote at higher location counts.
-              </p>
-            </div>
+    <div className="min-h-screen bg-surface-1 text-text-primary px-6 py-16">
+      <div className="mx-auto max-w-[1240px]">
+        {/* Header Section */}
+        <section className="text-center mb-16 space-y-4">
+          <div className="flex items-center justify-center gap-2 text-brand-gold font-semibold uppercase tracking-[0.2em] text-[12px] mb-6 animate-fade-in">
+            <CoinsSwap className="h-4 w-4" />
+            <span>Onboarding Infrastructure</span>
           </div>
-          {recommendationReason ? (
-            <div className="mt-5 pt-5 border-t border-[#2A2A2E]">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-1">
-                Recommendation Logic
-              </p>
-              <p className="text-[13px] text-[#C7C7CC]">{recommendationReason}</p>
-            </div>
-          ) : null}
+
+          <h1 className="font-display text-[48px] md:text-[60px] leading-[1.1] font-semibold tracking-tight max-w-4xl mx-auto">
+            Operational Intelligence. <br />
+            <span className="text-brand-gold">Priced for Growth.</span>
+          </h1>
+
+          <p className="text-text-muted text-[17px] max-w-2xl mx-auto leading-relaxed pt-2">
+            Choose the plan that fits your kitchen operations. All plans include
+            standard forecasting infrastructure.
+          </p>
         </section>
 
-        {plansQuery.isLoading ? (
-          <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-8">
-            <div className="flex items-center justify-center gap-3 text-[#C7C7CC]">
-              <Spinner size="lg" />
-              <span className="text-[14px]">Loading pricing plans...</span>
+        {/* Global Summary Info - Recommendation */}
+        {recommendationReason && (
+          <div className="max-w-3xl mx-auto mb-16 p-4 rounded-xl border border-brand-gold/20 bg-brand-gold/5 flex items-start gap-4">
+            <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-[13px] font-semibold text-brand-gold uppercase tracking-wider">
+                Analysis Result
+              </p>
+              <p className="text-[14px] text-text-secondary leading-relaxed">
+                {recommendationReason}
+              </p>
             </div>
           </div>
-        ) : plansQuery.isError ? (
-          <div className="rounded-[12px] border border-[#6B2A2A] bg-[#2A1E1E] p-5 text-[#F2B8B5]">
-            Failed to load pricing plans. Please refresh.
+        )}
+
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-6 mb-16">
+          <button
+            onClick={() => setBillingCycle("MONTHLY")}
+            className={`text-[15px] font-medium transition-all ${billingCycle === "MONTHLY" ? "text-text-primary" : "text-text-muted opacity-40 hover:opacity-60"}`}
+          >
+            Monthly
+          </button>
+
+          <button
+            onClick={() =>
+              setBillingCycle(billingCycle === "MONTHLY" ? "YEARLY" : "MONTHLY")
+            }
+            className="group relative h-7 w-12 rounded-full border border-border-default bg-surface-3 transition-colors duration-300 hover:border-brand-gold/50"
+          >
+            <div
+              className={`absolute top-1 left-1 h-5 w-5 rounded-full transition-all duration-300 transform ${billingCycle === "YEARLY" ? "translate-x-5 bg-brand-gold" : "bg-text-muted"}`}
+            />
+          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setBillingCycle("YEARLY")}
+              className={`text-[15px] font-medium transition-all ${billingCycle === "YEARLY" ? "text-text-primary" : "text-text-muted opacity-40 hover:opacity-60"}`}
+            >
+              Yearly
+            </button>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-status-success bg-status-success/10 px-2.5 py-1 rounded-full border border-status-success/20">
+              Save 15%
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {plans.map((plan) => {
-              const isCurrent = currentPlanType === plan.plan_type;
-              const pricingMode = plan.pricing_model;
-              const pricingDetails =
-                (plan.pricing_model_details as
-                  | { custom_quote_required_above_locations?: number }
-                  | undefined) ?? {};
-              const isHybridOrCustom =
-                pricingMode === "HYBRID_BASE_PLUS_CUSTOM" ||
-                pricingMode === "CUSTOM_ONLY";
-              const quoteThreshold =
-                pricingDetails.custom_quote_required_above_locations;
-              const features = asStringArray(plan.features);
+        </div>
 
-              const monthlyPrice = formatPriceValue(plan.monthly_price);
-              const yearlyPrice = formatPriceValue(plan.yearly_price);
+        {/* Plan Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20 animate-slide-up">
+          {plans.map((plan) => {
+            const isCurrent = currentPlanType === plan.plan_type;
+            const planTier =
+              PLAN_TIERS[plan.plan_type as keyof typeof PLAN_TIERS] || 0;
+            const isRecommended = plan.plan_type === recommendedPlanType;
 
-              const cta = isCurrent
-                ? "Continue with current plan"
-                : plan.plan_type === "COMMAND" && isHybridOrCustom
-                  ? "Upgrade to Command"
-                  : `Upgrade to ${plan.name}`;
-              const isRecommended = plan.plan_type === recommendedPlanType;
+            const price =
+              billingCycle === "MONTHLY"
+                ? formatPriceValue(plan.monthly_price)
+                : formatPriceValue(plan.yearly_price);
 
-              return (
-                <section
-                  key={plan.id}
-                  className={`rounded-[12px] border bg-[#1C1C1F] p-6 h-full flex flex-col ${
-                    isCurrent ? "border-[#A8821F]" : "border-[#2E2E33]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3 mb-6">
-                    <div>
-                      <p className="font-display text-[28px] leading-[34px] font-semibold text-[#F5F5F7]">
-                        {plan.name}
-                      </p>
-                      <p className="text-[13px] text-[#8E8E93] mt-1">
-                        {plan.tagline || planSubtitle(plan.plan_type)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isRecommended ? (
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full bg-[#3A6EA5]/20 text-[#8DB7E0] whitespace-nowrap">
-                          Recommended
-                        </span>
-                      ) : null}
-                      {isCurrent ? (
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full bg-[#A8821F]/15 text-[#A8821F] whitespace-nowrap">
-                          Current
-                        </span>
-                      ) : null}
+            const features = asStringArray(plan.features);
+
+            // Logic for button label and state
+            let buttonLabel = "Select Plan";
+            let isDisabled = false;
+            let showArrow = true;
+
+            if (isCurrent) {
+              buttonLabel = "Current Tier";
+              isDisabled = false; // Allow "Continue" logic
+              showArrow = false;
+            } else if (planTier > currentTier) {
+              buttonLabel = currentTier === 0 ? "Get Started" : "Upgrade Now";
+            } else {
+              buttonLabel = "Downgrade Restricted";
+              isDisabled = true;
+              showArrow = false;
+            }
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative group rounded-card border transition-all duration-500 overflow-hidden flex flex-col p-8 ${
+                  isRecommended
+                    ? "border-brand-gold bg-surface-2 shadow-[0_12px_45px_-12px_rgba(168,130,31,0.25)] scale-[1.03] z-10"
+                    : isCurrent
+                      ? "border-brand-gold/40 bg-surface-2"
+                      : "border-border-default bg-surface-2 hover:border-text-muted/40"
+                }`}
+              >
+                {/* Popular / Recommended Badge */}
+                {isRecommended && (
+                  <div className="absolute top-0 right-0 left-0 bg-brand-gold h-[2px] z-20">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-brand-gold px-4 py-1.5 rounded-b-xl text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+                      AI Recommended
                     </div>
                   </div>
+                )}
 
-                  <div className="mb-6 pb-6 border-b border-[#2A2A2E]">
-                    <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93] mb-2">
-                      Monthly
-                    </p>
-                    <div className="flex items-end gap-2">
-                      <p className="font-display text-[44px] leading-[44px] text-[#F5F5F7]">
-                        {isHybridOrCustom ? `From ${monthlyPrice}` : monthlyPrice}
-                      </p>
-                      <p className="text-[14px] text-[#8E8E93] pb-1">/month</p>
-                    </div>
-                    <p className="text-[13px] text-[#8E8E93] mt-2">Yearly: {yearlyPrice}/year</p>
-
-                    {plan.plan_type === "CORE" ? (
-                      <p className="text-[13px] text-[#3F8F68] mt-2">30-day trial included.</p>
-                    ) : null}
-
-                    {isHybridOrCustom ? (
-                      <p className="text-[13px] text-[#C48B2A] mt-2">
-                        {quoteThreshold
-                          ? `Custom quote required above ${quoteThreshold} locations.`
-                          : "Custom quote available for larger rollouts."}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="mb-6">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-2">Capacity</p>
-                    <p className="text-[15px] text-[#F5F5F7]">{maxBranchesLabel(plan)}</p>
-                    <p className="text-[12px] text-[#8E8E93] mt-1">{pricingModelLabel(pricingMode)}</p>
-                  </div>
-
-                  <div className="mb-7 flex-1">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93] mb-3">What&apos;s included</p>
-                    {features.length ? (
-                      <ul className="space-y-3">
-                        {features.map((feature) => (
-                          <li
-                            key={feature}
-                            className="text-[14px] leading-[22px] text-[#C7C7CC] flex items-start gap-2.5"
-                          >
-                            <ShieldCheck className="h-4 w-4 text-[#3F8F68] shrink-0 mt-0.5" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-[14px] text-[#8E8E93]">Feature details are being updated.</p>
+                <div className="mb-10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display text-[26px] font-semibold tracking-tight">
+                      {plan.name}
+                    </h3>
+                    {isCurrent && (
+                      <DoubleCheck className="h-5 w-5 text-brand-gold" />
                     )}
                   </div>
+                  <p className="text-text-muted text-[14px]">
+                    {plan.tagline || "Base operational engine"}
+                  </p>
+                </div>
 
-                  <button
-                    onClick={() =>
-                      isCurrent ? handleContinueCurrent() : handleUpgrade(plan.plan_type)
-                    }
-                    className={`mt-auto w-full h-11 rounded-[8px] text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors duration-150 ${
-                      isCurrent
-                        ? "bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] text-[#141416]"
-                        : "bg-transparent border border-[#2E2E33] hover:bg-[#232327] text-[#F5F5F7]"
-                    }`}
-                  >
-                    {isCurrent ? <CheckCircle className="h-4 w-4" /> : null}
-                    {cta}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </section>
-              );
-            })}
+                <div className="mb-10 space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[44px] font-semibold font-display tracking-tight">
+                      {price}
+                    </span>
+                    <span className="text-text-muted text-[15px]">
+                      {billingCycle === "MONTHLY" ? "/mo" : "/yr"}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-text-muted opacity-60 font-medium">
+                    Billed {billingCycle.toLowerCase()} per branch
+                  </p>
+                </div>
+
+                {/* Capacity Info */}
+                <div className="mb-10 p-4 rounded-xl bg-surface-3/50 border border-border-default/50 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <MultiplePages className="h-4 w-4 text-text-muted" />
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-medium">
+                        {plan.plan_limits?.MAX_BRANCHES
+                          ? `Up to ${plan.plan_limits.MAX_BRANCHES} Branches`
+                          : "Unlimited Branches"}
+                      </span>
+                      <span className="text-[11px] text-text-muted uppercase tracking-wider">
+                        Enterprise Capacity
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-5 mb-10">
+                  <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-text-muted">
+                    Intelligence Tier
+                  </p>
+                  <ul className="space-y-4">
+                    {features.map((feature) => (
+                      <li
+                        key={feature}
+                        className="flex items-start gap-3 group/feat"
+                      >
+                        <CheckCircle className="h-4 w-4 text-status-success shrink-0 mt-0.5" />
+                        <span className="text-[14px] text-text-secondary leading-tight">
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <Button
+                  fullWidth
+                  variant={isRecommended || isCurrent ? "primary" : "secondary"}
+                  className={`h-14 font-semibold text-[15px] ${isDisabled ? "opacity-30 cursor-not-allowed grayscale" : ""}`}
+                  disabled={isDisabled}
+                  onClick={() =>
+                    isCurrent ? handleContinue() : handleSelect(plan)
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    {buttonLabel}
+                    {showArrow && (
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                    )}
+                  </span>
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Brand Assurance */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-16 border-t border-chart-grid">
+          <div className="space-y-4">
+            <h4 className="flex items-center gap-3 font-display font-semibold text-[17px]">
+              <ShieldCheck className="h-5 w-5 text-brand-gold" />
+              Secure Infrastructure
+            </h4>
+            <p className="text-[13px] text-text-muted leading-relaxed">
+              PropIQ uses enterprise-grade encryption for all POS integrations
+              and operational data. Verified PCI-DSS compliant transactions.
+            </p>
           </div>
-        )}
+          <div className="space-y-4">
+            <h4 className="flex items-center gap-3 font-display font-semibold text-[17px]">
+              <DoubleCheck className="h-5 w-5 text-brand-gold" />
+              99.9% Forecast Uptime
+            </h4>
+            <p className="text-[13px] text-text-muted leading-relaxed">
+              Our forecasting models run on dedicated HA clusters to ensure your
+              kitchen is never without intelligence, even during peak loads.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <h4 className="flex items-center gap-3 font-display font-semibold text-[17px]">
+              <div className="h-5 w-5 rounded-full border-2 border-brand-gold flex items-center justify-center text-[10px] font-bold">
+                Q
+              </div>
+              Priority Support
+            </h4>
+            <p className="text-[13px] text-text-muted leading-relaxed">
+              Intelligence and Command tiers receive priority access to our
+              kitchen operations analysts to optimize your deployment.
+            </p>
+          </div>
+        </section>
       </div>
     </div>
   );
