@@ -154,6 +154,21 @@ export async function removeOrganizationMember(id: string, userId: string) {
   );
 }
 
+export async function updateOrganizationMember(
+  id: string,
+  userId: string,
+  payload: { role: string },
+) {
+  return apiClientWithSchema(
+    organizationsEndpoints.updateMember(id, userId),
+    organizationMemberSchema,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
 export async function getOrganizationFinancialOverview(
   id: string,
   params: OrganizationFinancialOverviewQuery = {},

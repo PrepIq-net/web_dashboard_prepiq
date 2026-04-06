@@ -22,8 +22,28 @@ import {
   useUpdateOrganization,
   useOrganizationMembers,
   useAddOrganizationMember,
+  useUpdateOrganizationMember,
   useRemoveOrganizationMember,
 } from "@/services/organizations/hooks";
+import {
+  useBranches,
+  useBranch,
+  useUpdateBranch,
+} from "@/services/branches/hooks";
+import {
+  useIntegrationsOverview,
+  useSquareOAuthStart,
+  useToastOAuthStart,
+  useLoyverseOAuthStart,
+  useCloverOAuthStart,
+  useRetryIntegrationsSync,
+} from "@/services/production-intelligence/hooks";
+import {
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+} from "@/services/notifications/hooks";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   createColumnHelper,
   useReactTable,
@@ -31,18 +51,13 @@ import {
 } from "@/components/ui/native-table";
 import { ModalShell } from "@/components/ui/modal-shell";
 import type { OrganizationMemberRole } from "@/services/organizations/types";
-
-const columnHelper = createColumnHelper<any>();
-import {
-  useBranches,
-  useBranch,
-  useUpdateBranch,
-} from "@/services/branches/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
+
+const columnHelper = createColumnHelper<any>();
 
 type SettingsTab =
   | "organization"
@@ -122,7 +137,7 @@ export default function SettingsPage() {
     >
       <div className="flex flex-col md:flex-row gap-8 mt-4">
         {/* Settings Sidebar */}
-        <aside className="w-full md:w-64 flex-shrink-0">
+        <aside className="w-full md:w-64 shrink-0">
           <nav className="flex flex-col space-y-1">
             {filteredTabs.map((tab) => (
               <button
@@ -160,8 +175,18 @@ export default function SettingsPage() {
             />
           )}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
+          {activeTab === "integrations" && (
+            <IntegrationsSettings orgId={org?.id} />
+          )}
+          {activeTab === "notifications" && <NotificationsSettings />}
           {/* Add more tabs content here as they are implemented */}
-          {!["organization", "branches", "users-roles"].includes(activeTab) && (
+          {![
+            "organization",
+            "branches",
+            "users-roles",
+            "integrations",
+            "notifications",
+          ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
                 {tabs.find((t) => t.id === activeTab)?.icon}
@@ -264,7 +289,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           <Select
             label="Business Type"
             value={formData.business_type}
-            onChange={(val) => handleChange("business_type", val)}
+            onChange={(val: string) => handleChange("business_type", val)}
             options={[
               { label: "Restaurant", value: "RESTAURANT" },
               { label: "Hotel", value: "HOTEL" },
@@ -277,7 +302,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           <Select
             label="Timezone"
             value={formData.timezone}
-            onChange={(val) => handleChange("timezone", val)}
+            onChange={(val: string) => handleChange("timezone", val)}
             options={[
               { label: "UTC", value: "UTC" },
               { label: "Eastern Time (ET)", value: "America/New_York" },
@@ -289,7 +314,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           <Select
             label="Default Currency"
             value={formData.currency}
-            onChange={(val) => handleChange("currency", val)}
+            onChange={(val: string) => handleChange("currency", val)}
             options={[
               { label: "USD ($)", value: "USD" },
               { label: "EUR (€)", value: "EUR" },
@@ -356,7 +381,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
                 className="font-mono uppercase"
               />
               <div
-                className="h-12 w-12 rounded-lg border border-[#2A2A2E] flex-shrink-0 mb-[1px]"
+                className="h-12 w-12 rounded-lg border border-[#2A2A2E] shrink-0 mb-px"
                 style={{ backgroundColor: formData.brand_color }}
               />
             </div>
@@ -401,6 +426,282 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+function IntegrationsSettings({ orgId }: { orgId?: string }) {
+  const { data: integrations, isLoading } = useIntegrationsOverview({
+    organization_id: orgId || "",
+  });
+  const retrySync = useRetryIntegrationsSync();
+  const squareOAuth = useSquareOAuthStart();
+  const toastOAuth = useToastOAuthStart();
+  const loyverseOAuth = useLoyverseOAuthStart();
+  const cloverOAuth = useCloverOAuthStart();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
+  const posSystems = [
+    {
+      id: "toast",
+      name: "Toast",
+      icon: <Shop className="h-6 w-6" />,
+      status: "Disconnected",
+    },
+    {
+      id: "square",
+      name: "Square",
+      icon: <Shop className="h-6 w-6" />,
+      status: "Disconnected",
+    },
+    {
+      id: "clover",
+      name: "Clover",
+      icon: <Shop className="h-6 w-6" />,
+      status: "Disconnected",
+    },
+    {
+      id: "lightspeed",
+      name: "Lightspeed",
+      icon: <Shop className="h-6 w-6" />,
+      status: "Disconnected",
+    },
+  ];
+
+  const handleConnect = (id: string) => {
+    const payload = { branch_id: "" }; // Ideally select branch first
+    if (id === "square") squareOAuth.mutate(payload);
+    else if (id === "toast") toastOAuth.mutate(payload);
+    else if (id === "loyverse") loyverseOAuth.mutate(payload);
+    else if (id === "clover") cloverOAuth.mutate(payload);
+    else toast.error(`${id} connection not implemented yet.`);
+  };
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h2 className="text-xl font-semibold text-text-primary">
+          Integrations
+        </h2>
+        <p className="text-sm text-text-muted mt-1">
+          Connect your POS, accounting, and reservation systems to PrepIQ.
+        </p>
+      </div>
+
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <Shop className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            POS Systems
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {posSystems.map((pos) => (
+            <div
+              key={pos.id}
+              className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
+                  {pos.icon}
+                </div>
+                <div>
+                  <p className="font-medium text-text-primary">{pos.name}</p>
+                  <Badge
+                    variant="outline"
+                    className="mt-1 text-[10px] opacity-60"
+                  >
+                    {pos.status}
+                  </Badge>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => handleConnect(pos.id)}
+                className="h-9 px-4 text-xs font-semibold"
+              >
+                Connect
+              </Button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <CloudSync className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Accounting & Reservations
+          </h3>
+        </div>
+
+        <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
+          <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
+          <p className="text-sm text-text-muted max-w-xs mx-auto">
+            QuickBooks, Xero, and OpenTable integrations are currently in
+            private beta. Contact support to join the waitlist.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function NotificationsSettings() {
+  const { data: preferences, isLoading } = useNotificationPreferences();
+  const updatePreferences = useUpdateNotificationPreferences();
+  const [localPrefs, setLocalPrefs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (preferences) {
+      setLocalPrefs(preferences);
+    }
+  }, [preferences]);
+
+  const handleToggle = (domain: string, channel: string, enabled: boolean) => {
+    const updated = localPrefs.map((p) =>
+      p.domain === domain ? { ...p, [`${channel}_enabled`]: enabled } : p,
+    );
+    setLocalPrefs(updated);
+    updatePreferences.mutate(updated);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
+  const notificationTypes = [
+    {
+      domain: "PRODUCTION",
+      label: "Production & Prep",
+      description: "Prep plan updates and completion alerts",
+    },
+    {
+      domain: "INVENTORY",
+      label: "Inventory & Waste",
+      description: "Stockout risks and high-waste threshold alerts",
+    },
+    {
+      domain: "PROCUREMENT",
+      label: "Supplier & Purchasing",
+      description: "Order reminders and delivery status",
+    },
+    {
+      domain: "STAFF",
+      label: "Staff & Performance",
+      description: "Shift assignments and daily summaries",
+    },
+  ];
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h2 className="text-xl font-semibold text-text-primary">
+          Notification Settings
+        </h2>
+        <p className="text-sm text-text-muted mt-1">
+          Control how and when you receive operational alerts.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-[#1C1C1F] overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-[#1C1C1F]/50">
+            <tr>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
+                Notification Type
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
+                In-App
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
+                Email
+              </th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
+                Push
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1C1C1F]/50">
+            {notificationTypes.map((type) => {
+              const pref = localPrefs.find((p) => p.domain === type.domain) || {
+                domain: type.domain,
+                in_app_enabled: true,
+                email_enabled: true,
+                push_enabled: true,
+              };
+
+              return (
+                <tr
+                  key={type.domain}
+                  className="hover:bg-[#1C1C1F]/20 transition-colors"
+                >
+                  <td className="px-6 py-5">
+                    <p className="text-sm font-medium text-text-primary">
+                      {type.label}
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {type.description}
+                    </p>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <Switch
+                      checked={pref.in_app_enabled}
+                      onCheckedChange={(val) =>
+                        handleToggle(type.domain, "in_app", val)
+                      }
+                    />
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <Switch
+                      checked={pref.email_enabled}
+                      onCheckedChange={(val) =>
+                        handleToggle(type.domain, "email", val)
+                      }
+                    />
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <Switch
+                      checked={pref.push_enabled}
+                      onCheckedChange={(val) =>
+                        handleToggle(type.domain, "push", val)
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="p-6 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-start gap-4">
+        <div className="h-10 w-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold shrink-0">
+          <InfoCircle className="h-5 w-5" />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-text-primary">
+            Operational Escalation
+          </h4>
+          <p className="text-xs text-text-muted mt-1 leading-relaxed">
+            Critical system alerts (like server downtime or major inventory
+            discrepancies) bypass these settings and are always sent via all
+            available channels to ensure operational continuity.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -540,7 +841,7 @@ function BranchSettings({
               <Select
                 label="Timezone"
                 value={formData.timezone}
-                onChange={(val) => handleChange("timezone", val)}
+                onChange={(val: string) => handleChange("timezone", val)}
                 options={[
                   { label: "UTC", value: "UTC" },
                   { label: "Eastern Time (ET)", value: "America/New_York" },
@@ -617,7 +918,7 @@ function BranchSettings({
                 placeholder="e.g. Campus-Heavy, Tourist"
               />
               <div className="p-4 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E] flex items-start gap-3">
-                <InfoCircle className="h-5 w-5 text-brand-gold flex-shrink-0 mt-0.5" />
+                <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
                 <p className="text-xs text-text-muted leading-relaxed">
                   Advanced demand patterns (nearby venues, events) are currently
                   managed via the
@@ -676,6 +977,7 @@ function BranchSettings({
 function UserRoleSettings({ orgId }: { orgId?: string }) {
   const { data: members, isLoading } = useOrganizationMembers(orgId || "");
   const addMember = useAddOrganizationMember(orgId || "");
+  const updateMember = useUpdateOrganizationMember(orgId || "");
   const removeMember = useRemoveOrganizationMember(orgId || "");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newMember, setNewMember] = useState<{
@@ -693,6 +995,10 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         setNewMember({ user_email: "", role: "STAFF_OPERATOR" });
       },
     });
+  };
+
+  const handleUpdateRole = (userId: string, newRole: string) => {
+    updateMember.mutate({ userId, role: newRole });
   };
 
   const handleRemoveMember = (userId: string) => {
@@ -726,9 +1032,20 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       columnHelper.accessor("role", {
         header: "Role",
         cell: (info) => (
-          <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-[10px] font-semibold text-brand-gold border border-brand-gold/20">
-            {(info.getValue() as string).replace("ORG_", "").replace("_", " ")}
-          </span>
+          <select
+            value={info.getValue()}
+            onChange={(e) =>
+              handleUpdateRole(info.row.original.user, e.target.value)
+            }
+            className="bg-[#1C1C1F] text-brand-gold text-[10px] font-semibold border border-brand-gold/20 rounded-md px-2 py-1 outline-none cursor-pointer"
+          >
+            <option value="ORG_OWNER">OWNER</option>
+            <option value="ORG_ADMIN">ADMIN</option>
+            <option value="OPS_DIRECTOR">OPS DIRECTOR</option>
+            <option value="GM">GM</option>
+            <option value="BRANCH_MANAGER">BRANCH MANAGER</option>
+            <option value="STAFF_OPERATOR">STAFF OPERATOR</option>
+          </select>
         ),
       }),
       columnHelper.accessor("branch_name", {
@@ -817,7 +1134,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           <Select
             label="Assign Role"
             value={newMember.role}
-            onChange={(val) =>
+            onChange={(val: string) =>
               setNewMember({
                 ...newMember,
                 role: val as OrganizationMemberRole,

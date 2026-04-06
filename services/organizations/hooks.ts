@@ -95,6 +95,21 @@ export function useAddOrganizationMember(id: string) {
   });
 }
 
+export function useUpdateOrganizationMember(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      organizationService.updateOrganizationMember(id, userId, { role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
+      toast.success("Member role updated.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update member.");
+    },
+  });
+}
+
 export function useRemoveOrganizationMember(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

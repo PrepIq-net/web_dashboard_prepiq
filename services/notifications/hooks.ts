@@ -5,11 +5,18 @@ import {
   getNotifications,
   markNotificationsAsRead,
   markNotificationsAsResolved,
+  getNotificationPreferences,
+  updateNotificationPreferences,
 } from "@/services/notifications/service";
-import type { MarkNotificationsPayload } from "@/services/notifications/types";
+import type {
+  MarkNotificationsPayload,
+  NotificationPreference,
+} from "@/services/notifications/types";
+import { toast } from "react-hot-toast";
 
 export const notificationQueryKeys = {
   root: ["notifications"] as const,
+  preferences: () => [...notificationQueryKeys.root, "preferences"] as const,
   list: (params?: {
     status?: string;
     domain?: string;
@@ -52,6 +59,33 @@ export function useMarkNotificationsAsRead() {
       markNotificationsAsRead(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationQueryKeys.root });
+    },
+  });
+}
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: notificationQueryKeys.preferences(),
+    queryFn: getNotificationPreferences,
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (preferences: Partial<NotificationPreference>[]) =>
+      updateNotificationPreferences(preferences),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: notificationQueryKeys.preferences(),
+      });
+      toast.success("Notification preferences updated.");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.message || "Failed to update notification preferences.",
+      );
     },
   });
 }
