@@ -36,7 +36,6 @@ import {
   useToastOAuthStart,
   useLoyverseOAuthStart,
   useCloverOAuthStart,
-  useRetryIntegrationsSync,
 } from "@/services/production-intelligence/hooks";
 import {
   useNotificationPreferences,
@@ -168,12 +167,7 @@ export default function SettingsPage() {
           {activeTab === "organization" && (
             <OrganizationSettings orgId={org?.id} />
           )}
-          {activeTab === "branches" && (
-            <BranchSettings
-              orgId={org?.id}
-              userRole={user?.organization_role ?? undefined}
-            />
-          )}
+          {activeTab === "branches" && <BranchSettings orgId={org?.id} />}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
             <IntegrationsSettings orgId={org?.id} />
@@ -431,10 +425,9 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
 }
 
 function IntegrationsSettings({ orgId }: { orgId?: string }) {
-  const { data: integrations, isLoading } = useIntegrationsOverview({
-    organization_id: orgId || "",
+  const { isLoading } = useIntegrationsOverview({
+    organization_id: orgId || "00000000-0000-0000-0000-000000000000",
   });
-  const retrySync = useRetryIntegrationsSync();
   const squareOAuth = useSquareOAuthStart();
   const toastOAuth = useToastOAuthStart();
   const loyverseOAuth = useLoyverseOAuthStart();
@@ -476,12 +469,22 @@ function IntegrationsSettings({ orgId }: { orgId?: string }) {
   ];
 
   const handleConnect = (id: string) => {
-    const payload = { branch_id: "" }; // Ideally select branch first
-    if (id === "square") squareOAuth.mutate(payload);
-    else if (id === "toast") toastOAuth.mutate(payload);
-    else if (id === "loyverse") loyverseOAuth.mutate(payload);
-    else if (id === "clover") cloverOAuth.mutate(payload);
-    else toast.error(`${id} connection not implemented yet.`);
+    const branch_id = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for now
+    if (id === "square") {
+      squareOAuth.mutate({ branch_id });
+    } else if (id === "toast") {
+      toastOAuth.mutate({
+        branch_id,
+        client_id: "placeholder",
+        client_secret: "placeholder",
+      });
+    } else if (id === "loyverse") {
+      loyverseOAuth.mutate({ branch_id });
+    } else if (id === "clover") {
+      cloverOAuth.mutate({ branch_id });
+    } else {
+      toast.error(`${id} connection not implemented yet.`);
+    }
   };
 
   return (
@@ -706,13 +709,7 @@ function NotificationsSettings() {
   );
 }
 
-function BranchSettings({
-  orgId,
-  userRole,
-}: {
-  orgId?: string;
-  userRole?: string;
-}) {
+function BranchSettings({ orgId }: { orgId?: string }) {
   const { data: branches, isLoading: loadingBranches } = useBranches(
     orgId || "",
   );

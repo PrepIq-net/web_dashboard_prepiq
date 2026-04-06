@@ -12,16 +12,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import {
   useProductionIntelligenceAccessScope,
-  useStartCloverOAuth,
+  useCloverOAuthStart,
 } from "@/services/production-intelligence/hooks";
 
 export default function CloverConnectPage() {
   const router = useRouter();
-  const { data: scope, isLoading: scopeLoading, error: scopeError } =
-    useProductionIntelligenceAccessScope();
+  const {
+    data: scope,
+    isLoading: scopeLoading,
+    error: scopeError,
+  } = useProductionIntelligenceAccessScope();
 
   const [branchId, setBranchId] = useState("");
-  const cloverOAuth = useStartCloverOAuth();
+  const cloverOAuth = useCloverOAuthStart();
 
   const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
 
@@ -140,9 +143,7 @@ export default function CloverConnectPage() {
           onClick={() => {
             void handleCloverConnect();
           }}
-          disabled={
-            cloverOAuth.isPending || scopeLoading || !selectedBranchId
-          }
+          disabled={cloverOAuth.isPending || scopeLoading || !selectedBranchId}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] inline-flex items-center justify-center gap-2 transition-colors"
         >
           {cloverOAuth.isPending ? (

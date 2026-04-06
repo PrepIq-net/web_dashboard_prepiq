@@ -91,6 +91,7 @@ import type {
   SalesManualQuickEntryPayload,
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
+  IntegrationsSyncRetryQuery,
 } from "@/services/production-intelligence/types";
 
 export const productionIntelligenceQueryKeys = {
@@ -204,11 +205,13 @@ export const productionIntelligenceQueryKeys = {
       "integrations-overview",
       params.organization_id,
     ] as const,
-  integrationsOverview: (params: IntegrationsOverviewQuery) =>
+  integrationsSyncRetry: (params: IntegrationsSyncRetryQuery) =>
     [
       ...productionIntelligenceQueryKeys.root,
-      "integrations-overview",
-      params.organization_id,
+      "integrations-sync-retry",
+      params.branch_id,
+      params.connection_id,
+      params.provider_code,
     ] as const,
   operationsProduction: (params: OperationsProductionQuery) =>
     [
@@ -742,7 +745,7 @@ export function useIntegrationsOverview(params: IntegrationsOverviewQuery) {
   });
 }
 
-export function useRetryIntegrationsSync() {
+export function useIntegrationsSyncRetry() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -784,22 +787,20 @@ export function useCloverOAuthStart() {
   });
 }
 
-export function useStartToastOAuth() {
-  return useMutation({
-    mutationFn: (payload: ToastOAuthStartPayload) => startToastOAuth(payload),
-  });
-}
+export function useRetryIntegrationsSync() {
+  const queryClient = useQueryClient();
 
-export function useStartLoyverseOAuth() {
   return useMutation({
-    mutationFn: (payload: LoyverseOAuthStartPayload) =>
-      startLoyverseOAuth(payload),
-  });
-}
-
-export function useStartCloverOAuth() {
-  return useMutation({
-    mutationFn: (payload: CloverOAuthStartPayload) => startCloverOAuth(payload),
+    mutationFn: (payload: {
+      branch_id: string;
+      connection_id?: string;
+      provider_code?: string;
+    }) => retryIntegrationsSync(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.root,
+      });
+    },
   });
 }
 
