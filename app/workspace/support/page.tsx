@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -43,7 +45,12 @@ import {
   useVoteFeatureRequest,
   useBranches,
 } from "@/services";
-import type { HelpArticle, SystemStatus, SupportTicket, FeatureRequest } from "@/services/support/types";
+import type {
+  HelpArticle,
+  SystemStatus,
+  SupportTicket,
+  FeatureRequest,
+} from "@/services/support/types";
 
 function getStatusIcon(status: SystemStatus["forecast_engine"]) {
   switch (status) {
@@ -141,7 +148,8 @@ function QuickGuideCard({
         <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-brand-gold group-hover:translate-x-1 transition-all" />
       </div>
       <p className="text-xs text-text-muted mt-3">
-        <span className="text-brand-gold font-medium">{articleCount}</span> articles
+        <span className="text-brand-gold font-medium">{articleCount}</span>{" "}
+        articles
       </p>
     </button>
   );
@@ -196,8 +204,12 @@ function FeatureRequestCard({
     <div className="p-4 rounded-lg bg-surface-2 border border-border-default">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <h4 className="text-sm font-semibold text-text-primary">{request.title}</h4>
-          <p className="text-xs text-text-muted mt-1 line-clamp-2">{request.description}</p>
+          <h4 className="text-sm font-semibold text-text-primary">
+            {request.title}
+          </h4>
+          <p className="text-xs text-text-muted mt-1 line-clamp-2">
+            {request.description}
+          </p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] px-2 py-0.5 rounded bg-surface-3 text-text-muted uppercase tracking-wider">
               {request.category}
@@ -237,7 +249,9 @@ export default function SupportPage() {
 
   // Local state
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"help" | "contact" | "report" | "features">("help");
+  const [activeTab, setActiveTab] = useState<
+    "help" | "contact" | "report" | "features"
+  >("help");
   const [ticketForm, setTicketForm] = useState({
     subject: "",
     category: "technical_issue" as const,
@@ -267,7 +281,7 @@ export default function SupportPage() {
         acc[article.category].push(article);
         return acc;
       },
-      {} as Record<string, HelpArticle[]>
+      {} as Record<string, HelpArticle[]>,
     );
   }, [helpArticlesQuery.data]);
 
@@ -275,7 +289,10 @@ export default function SupportPage() {
   const openFeatureRequests = useMemo(() => {
     return (
       featureRequestsQuery.data?.filter(
-        (r) => r.status === "open" || r.status === "under_review" || r.status === "planned"
+        (r) =>
+          r.status === "open" ||
+          r.status === "under_review" ||
+          r.status === "planned",
       ) ?? []
     );
   }, [featureRequestsQuery.data]);
@@ -284,7 +301,12 @@ export default function SupportPage() {
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     await createTicketMutation.mutateAsync(ticketForm);
-    setTicketForm({ subject: "", category: "technical_issue", description: "", priority: "medium" });
+    setTicketForm({
+      subject: "",
+      category: "technical_issue",
+      description: "",
+      priority: "medium",
+    });
     setActiveTab("help");
   };
 
@@ -420,13 +442,19 @@ export default function SupportPage() {
                       key={article.id}
                       className="text-left p-4 rounded-lg bg-surface-2 border border-border-default hover:border-brand-gold/30 transition-all"
                     >
-                      <h4 className="text-sm font-semibold text-text-primary">{article.title}</h4>
-                      <p className="text-xs text-text-muted mt-1 line-clamp-2">{article.summary}</p>
+                      <h4 className="text-sm font-semibold text-text-primary">
+                        {article.title}
+                      </h4>
+                      <p className="text-xs text-text-muted mt-1 line-clamp-2">
+                        {article.summary}
+                      </p>
                     </button>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-text-muted">No results found. Try a different search term.</p>
+                <p className="text-sm text-text-muted">
+                  No results found. Try a different search term.
+                </p>
               )}
             </div>
           )}
@@ -443,14 +471,18 @@ export default function SupportPage() {
                     title="Getting Started"
                     description="Set up your branch and connect your POS"
                     icon={<Rocket className="h-5 w-5" />}
-                    articleCount={groupedArticles["getting_started"]?.length ?? 0}
+                    articleCount={
+                      groupedArticles["getting_started"]?.length ?? 0
+                    }
                     onClick={() => {}}
                   />
                   <QuickGuideCard
                     title="Daily Operations"
                     description="Planning, live service, and reporting"
                     icon={<Terminal className="h-5 w-5" />}
-                    articleCount={groupedArticles["daily_operations"]?.length ?? 0}
+                    articleCount={
+                      groupedArticles["daily_operations"]?.length ?? 0
+                    }
                     onClick={() => {}}
                   />
                   <QuickGuideCard
@@ -478,7 +510,9 @@ export default function SupportPage() {
                     title="POS Integration"
                     description="Connecting your POS system"
                     icon={<Terminal className="h-5 w-5" />}
-                    articleCount={groupedArticles["pos_integration"]?.length ?? 0}
+                    articleCount={
+                      groupedArticles["pos_integration"]?.length ?? 0
+                    }
                     onClick={() => {}}
                   />
                 </div>
@@ -511,7 +545,9 @@ export default function SupportPage() {
                     />
                   </div>
                 ) : (
-                  <p className="text-sm text-text-muted">Unable to load system status.</p>
+                  <p className="text-sm text-text-muted">
+                    Unable to load system status.
+                  </p>
                 )}
               </div>
 
@@ -526,8 +562,12 @@ export default function SupportPage() {
                       <Play className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-text-primary">Command Center Intro</h4>
-                      <p className="text-xs text-text-muted mt-0.5">2-minute video guide</p>
+                      <h4 className="text-sm font-semibold text-text-primary">
+                        Command Center Intro
+                      </h4>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        2-minute video guide
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 p-4 rounded-lg bg-surface-2 border border-border-default hover:border-brand-gold/30 transition-all cursor-pointer">
@@ -535,40 +575,14 @@ export default function SupportPage() {
                       <Book className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-text-primary">Kitchen Planning Guide</h4>
-                      <p className="text-xs text-text-muted mt-0.5">Best practices documentation</p>
+                      <h4 className="text-sm font-semibold text-text-primary">
+                        Kitchen Planning Guide
+                      </h4>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        Best practices documentation
+                      </p>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Account Links */}
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-muted mb-4">
-                  Account & Billing
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => router.push("/workspace/billing")}
-                    className="flex items-center gap-3 p-4 rounded-lg bg-surface-2 border border-border-default hover:border-brand-gold/30 transition-all text-left"
-                  >
-                    <CreditCard className="h-5 w-5 text-text-muted" />
-                    <span className="text-sm font-medium text-text-primary">View Invoices</span>
-                  </button>
-                  <button
-                    onClick={() => router.push("/workspace/billing")}
-                    className="flex items-center gap-3 p-4 rounded-lg bg-surface-2 border border-border-default hover:border-brand-gold/30 transition-all text-left"
-                  >
-                    <CreditCard className="h-5 w-5 text-text-muted" />
-                    <span className="text-sm font-medium text-text-primary">Update Payment</span>
-                  </button>
-                  <button
-                    onClick={() => router.push("/workspace/billing")}
-                    className="flex items-center gap-3 p-4 rounded-lg bg-surface-2 border border-border-default hover:border-brand-gold/30 transition-all text-left"
-                  >
-                    <CreditCard className="h-5 w-5 text-text-muted" />
-                    <span className="text-sm font-medium text-text-primary">Upgrade Plan</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -587,7 +601,9 @@ export default function SupportPage() {
               <input
                 type="text"
                 value={ticketForm.subject}
-                onChange={(e) => setTicketForm({ ...ticketForm, subject: e.target.value })}
+                onChange={(e) =>
+                  setTicketForm({ ...ticketForm, subject: e.target.value })
+                }
                 placeholder="Brief description of your issue"
                 required
                 className="w-full h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all"
@@ -596,41 +612,43 @@ export default function SupportPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
-                  Category
-                </label>
-                <select
+                <Select
+                  label="Category"
+                  options={[
+                    { value: "technical_issue", label: "Technical Issue" },
+                    { value: "data_problem", label: "Data Problem" },
+                    { value: "forecast_question", label: "Forecast Question" },
+                    { value: "billing_issue", label: "Billing Issue" },
+                    { value: "pos_integration", label: "POS Integration" },
+                    { value: "other", label: "Other" },
+                  ]}
                   value={ticketForm.category}
-                  onChange={(e) =>
-                    setTicketForm({ ...ticketForm, category: e.target.value as typeof ticketForm.category })
+                  onChange={(value) =>
+                    setTicketForm({
+                      ...ticketForm,
+                      category: value as typeof ticketForm.category,
+                    })
                   }
-                  className="w-full h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all appearance-none"
-                >
-                  <option value="technical_issue">Technical Issue</option>
-                  <option value="data_problem">Data Problem</option>
-                  <option value="forecast_question">Forecast Question</option>
-                  <option value="billing_issue">Billing Issue</option>
-                  <option value="pos_integration">POS Integration</option>
-                  <option value="other">Other</option>
-                </select>
+                />
               </div>
 
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
-                  Priority
-                </label>
-                <select
+                <Select
+                  label="Priority"
+                  options={[
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                    { value: "critical", label: "Critical" },
+                  ]}
                   value={ticketForm.priority}
-                  onChange={(e) =>
-                    setTicketForm({ ...ticketForm, priority: e.target.value as typeof ticketForm.priority })
+                  onChange={(value) =>
+                    setTicketForm({
+                      ...ticketForm,
+                      priority: value as typeof ticketForm.priority,
+                    })
                   }
-                  className="w-full h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all appearance-none"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
+                />
               </div>
             </div>
 
@@ -640,7 +658,9 @@ export default function SupportPage() {
               </label>
               <textarea
                 value={ticketForm.description}
-                onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
+                onChange={(e) =>
+                  setTicketForm({ ...ticketForm, description: e.target.value })
+                }
                 placeholder="Please provide details about your issue..."
                 required
                 rows={6}
@@ -650,11 +670,12 @@ export default function SupportPage() {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-text-muted">
-                Branch:{" "}
-                {branchesQuery.data?.[0]?.name ?? "Not selected"}
+                Branch: {branchesQuery.data?.[0]?.name ?? "Not selected"}
               </p>
               <Button type="submit" disabled={createTicketMutation.isPending}>
-                {createTicketMutation.isPending ? "Submitting..." : "Submit Ticket"}
+                {createTicketMutation.isPending
+                  ? "Submitting..."
+                  : "Submit Ticket"}
               </Button>
             </div>
           </form>
@@ -667,10 +688,13 @@ export default function SupportPage() {
           <div className="max-w-2xl p-6 rounded-xl bg-status-critical/10 border border-status-critical/20">
             <div className="flex items-center gap-3 mb-4">
               <WarningCircle className="h-6 w-6 text-status-critical" />
-              <h3 className="text-sm font-semibold text-text-primary">Report a Problem</h3>
+              <h3 className="text-sm font-semibold text-text-primary">
+                Report a Problem
+              </h3>
             </div>
             <p className="text-xs text-text-muted mb-6">
-              Use this for urgent issues. Browser info and page location are automatically captured.
+              Use this for urgent issues. Browser info and page location are
+              automatically captured.
             </p>
 
             <form onSubmit={handleSubmitBugReport} className="space-y-4">
@@ -680,7 +704,9 @@ export default function SupportPage() {
                 </label>
                 <textarea
                   value={bugForm.description}
-                  onChange={(e) => setBugForm({ ...bugForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setBugForm({ ...bugForm, description: e.target.value })
+                  }
                   placeholder="What isn't working? Include any error messages..."
                   required
                   rows={4}
@@ -697,7 +723,9 @@ export default function SupportPage() {
                   variant="primary"
                   disabled={createBugReportMutation.isPending}
                 >
-                  {createBugReportMutation.isPending ? "Submitting..." : "Submit Report"}
+                  {createBugReportMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Report"}
                 </Button>
               </div>
             </form>
@@ -710,44 +738,62 @@ export default function SupportPage() {
         <div className="mt-6 space-y-8">
           {/* Submit New Feature */}
           <div className="p-6 rounded-xl bg-surface-2 border border-border-default">
-            <h3 className="text-sm font-semibold text-text-primary mb-4">Submit a Feature Request</h3>
+            <h3 className="text-sm font-semibold text-text-primary mb-4">
+              Submit a Feature Request
+            </h3>
             <form onSubmit={handleSubmitFeatureRequest} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   value={featureForm.title}
-                  onChange={(e) => setFeatureForm({ ...featureForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setFeatureForm({ ...featureForm, title: e.target.value })
+                  }
                   placeholder="Feature title"
                   required
                   className="h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all"
                 />
-                <select
+                <Select
+                  options={[
+                    { value: "forecasting", label: "Forecasting" },
+                    { value: "production", label: "Production" },
+                    { value: "purchasing", label: "Purchasing" },
+                    { value: "reporting", label: "Reporting" },
+                    { value: "inventory", label: "Inventory" },
+                    { value: "pos_integration", label: "POS Integration" },
+                    { value: "other", label: "Other" },
+                  ]}
                   value={featureForm.category}
-                  onChange={(e) =>
-                    setFeatureForm({ ...featureForm, category: e.target.value as typeof featureForm.category })
+                  onChange={(value) =>
+                    setFeatureForm({
+                      ...featureForm,
+                      category: value as typeof featureForm.category,
+                    })
                   }
-                  className="h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all appearance-none"
-                >
-                  <option value="forecasting">Forecasting</option>
-                  <option value="production">Production</option>
-                  <option value="purchasing">Purchasing</option>
-                  <option value="reporting">Reporting</option>
-                  <option value="inventory">Inventory</option>
-                  <option value="pos_integration">POS Integration</option>
-                  <option value="other">Other</option>
-                </select>
+                  placeholder="Select category"
+                />
               </div>
               <textarea
                 value={featureForm.description}
-                onChange={(e) => setFeatureForm({ ...featureForm, description: e.target.value })}
+                onChange={(e) =>
+                  setFeatureForm({
+                    ...featureForm,
+                    description: e.target.value,
+                  })
+                }
                 placeholder="Describe how this feature would help your operations..."
                 required
                 rows={3}
                 className="w-full px-4 py-3 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none"
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={createFeatureRequestMutation.isPending}>
-                  {createFeatureRequestMutation.isPending ? "Submitting..." : "Submit Request"}
+                <Button
+                  type="submit"
+                  disabled={createFeatureRequestMutation.isPending}
+                >
+                  {createFeatureRequestMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Request"}
                 </Button>
               </div>
             </form>
@@ -763,7 +809,11 @@ export default function SupportPage() {
             ) : openFeatureRequests.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {openFeatureRequests.map((request) => (
-                  <FeatureRequestCard key={request.id} request={request} onVote={handleVote} />
+                  <FeatureRequestCard
+                    key={request.id}
+                    request={request}
+                    onVote={handleVote}
+                  />
                 ))}
               </div>
             ) : (

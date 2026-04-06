@@ -10,6 +10,7 @@ import {
   useSalesDataValidation,
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 
 type LocalLog = {
   id: string;
@@ -559,21 +560,17 @@ export default function ProductionPage() {
       <section className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Branch Context
-            </label>
-            <select
+            <Select
+              label="Branch Context"
+              options={branchOptions.map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              }))}
               value={activeBranchId}
-              onChange={(event) => setSelectedBranchId(event.target.value)}
-              className="h-11 min-w-[240px] rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[14px] text-[#F5F5F7]"
-            >
-              {!branchOptions.length ? <option value="">No branches available</option> : null}
-              {branchOptions.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setSelectedBranchId(value)}
+              placeholder={branchOptions.length ? "Select branch" : "No branches available"}
+              className="min-w-[240px]"
+            />
             {activeBranch ? (
               <p className="text-[13px] text-[#8E8E93]">
                 Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
@@ -732,36 +729,37 @@ export default function ProductionPage() {
             <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Log batches and waste in real time.</p>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <select
+              <Select
+                options={[
+                  { value: "", label: "Select item" },
+                  ...enrichedItems.map((item) => ({
+                    value: item.id,
+                    label: item.title,
+                  })),
+                ]}
                 value={selectedItemId}
-                onChange={(event) => setSelectedItemId(event.target.value)}
-                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
-              >
-                <option value="">Select item</option>
-                {enrichedItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setSelectedItemId(value)}
+                placeholder="Select item"
+              />
               <input
                 value={batchQuantity}
                 onChange={(event) => setBatchQuantity(event.target.value)}
                 placeholder="Quantity"
                 className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
               />
-              <select
+              <Select
+                options={[
+                  { value: "UNSPECIFIED", label: "Waste reason (optional)" },
+                  { value: "OVER_PREP", label: "Over-prep" },
+                  { value: "DEMAND_FLUCTUATION", label: "Demand fluctuation" },
+                  { value: "CHEF_OVERRIDE", label: "Chef override" },
+                  { value: "INVENTORY_EXPIRY", label: "Inventory expiry" },
+                  { value: "OTHER", label: "Other" },
+                ]}
                 value={wasteReason}
-                onChange={(event) => setWasteReason(event.target.value as WasteReason)}
-                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
-              >
-                <option value="UNSPECIFIED">Waste reason (optional)</option>
-                <option value="OVER_PREP">Over-prep</option>
-                <option value="DEMAND_FLUCTUATION">Demand fluctuation</option>
-                <option value="CHEF_OVERRIDE">Chef override</option>
-                <option value="INVENTORY_EXPIRY">Inventory expiry</option>
-                <option value="OTHER">Other</option>
-              </select>
+                onChange={(value) => setWasteReason(value as WasteReason)}
+                placeholder="Select waste reason"
+              />
               <input
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
