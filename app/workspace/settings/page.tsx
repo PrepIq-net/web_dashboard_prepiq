@@ -1,12 +1,117 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { useCurrentUserProfile } from "@/services";
+import { useCurrentUserProfile, useMyOrganizations } from "@/services";
+import {
+  Building,
+  Shop,
+  Group,
+  CloudSync,
+  BellNotification,
+  ShieldCheck,
+  Brain,
+  ArrowRight,
+  Upload,
+  InfoCircle,
+  Plus,
+  Trash,
+} from "iconoir-react";
+import {
+  useOrganizationDetail,
+  useUpdateOrganization,
+  useOrganizationMembers,
+  useAddOrganizationMember,
+  useRemoveOrganizationMember,
+} from "@/services/organizations/hooks";
+import {
+  createColumnHelper,
+  useReactTable,
+  NativeTable,
+} from "@/components/ui/native-table";
+import { ModalShell } from "@/components/ui/modal-shell";
+import type { OrganizationMemberRole } from "@/services/organizations/types";
+
+const columnHelper = createColumnHelper<any>();
+import {
+  useBranches,
+  useBranch,
+  useUpdateBranch,
+} from "@/services/branches/hooks";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { toast } from "react-hot-toast";
+import Image from "next/image";
+
+type SettingsTab =
+  | "organization"
+  | "branches"
+  | "users-roles"
+  | "integrations"
+  | "notifications"
+  | "security"
+  | "data-ai";
+
+interface TabItem {
+  id: SettingsTab;
+  label: string;
+  icon: React.ReactNode;
+  roles?: string[];
+}
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<SettingsTab>("organization");
   const { data: user } = useCurrentUserProfile();
+  const { data: organizations } = useMyOrganizations();
+  const org = organizations?.[0];
+
+  const tabs: TabItem[] = [
+    {
+      id: "organization",
+      label: "Organization",
+      icon: <Building className="h-4 w-4" />,
+      roles: ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR"],
+    },
+    {
+      id: "branches",
+      label: "Branches",
+      icon: <Shop className="h-4 w-4" />,
+      roles: ["ORG_OWNER", "OPS_DIRECTOR", "BRANCH_MANAGER"],
+    },
+    {
+      id: "users-roles",
+      label: "Users & Roles",
+      icon: <Group className="h-4 w-4" />,
+      roles: ["ORG_OWNER", "ORG_ADMIN"],
+    },
+    {
+      id: "integrations",
+      label: "Integrations",
+      icon: <CloudSync className="h-4 w-4" />,
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: <BellNotification className="h-4 w-4" />,
+    },
+    {
+      id: "security",
+      label: "Security",
+      icon: <ShieldCheck className="h-4 w-4" />,
+    },
+    {
+      id: "data-ai",
+      label: "Data & AI Preferences",
+      icon: <Brain className="h-4 w-4" />,
+    },
+  ];
+
+  const filteredTabs = tabs.filter(
+    (tab) =>
+      !tab.roles ||
+      (user?.organization_role && tab.roles.includes(user.organization_role)),
+  );
 
   return (
     <WorkspaceShell
@@ -15,49 +120,730 @@ export default function SettingsPage() {
       description="Workspace configuration, access controls, and platform preferences."
       insight="Enable branch-level default context to reduce navigation friction for operators."
     >
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3 pb-8 border-b border-[#2A2A2E]">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-            Access Profiles
-          </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-            5
-          </p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-            MFA Coverage
-          </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-            100%
-          </p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-            Pending Changes
-          </p>
-          <p className="mt-2 font-display text-[30px] leading-[36px] text-[#F5F5F7]">
-            2
-          </p>
-        </article>
-      </section>
+      <div className="flex flex-col md:flex-row gap-8 mt-4">
+        {/* Settings Sidebar */}
+        <aside className="w-full md:w-64 flex-shrink-0">
+          <nav className="flex flex-col space-y-1">
+            {filteredTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "bg-[#1C1C1F] text-brand-gold shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-[#2A2A2E]"
+                    : "text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary"
+                }`}
+              >
+                <span
+                  className={`${activeTab === tab.id ? "text-brand-gold" : "text-text-muted"}`}
+                >
+                  {tab.icon}
+                </span>
+                {tab.label}
+                {activeTab === tab.id && (
+                  <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                )}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-      <section className="mt-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-          Operational Highlights
-        </p>
-        <div className="mt-3 space-y-2">
-          <p className="text-[14px] text-[#C7C7CC]">
-            • Profile and organization settings are healthy.
-          </p>
-          <p className="text-[14px] text-[#C7C7CC]">
-            • Audit logs are retained and searchable.
-          </p>
-          <p className="text-[14px] text-[#C7C7CC]">
-            • Role-based defaults are now ready for rollout.
+        {/* Content Panel */}
+        <main className="flex-1 min-w-0 bg-[#141416] rounded-2xl border border-[#1C1C1F] p-6 md:p-8">
+          {activeTab === "organization" && (
+            <OrganizationSettings orgId={org?.id} />
+          )}
+          {activeTab === "branches" && (
+            <BranchSettings
+              orgId={org?.id}
+              userRole={user?.organization_role ?? undefined}
+            />
+          )}
+          {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
+          {/* Add more tabs content here as they are implemented */}
+          {!["organization", "branches", "users-roles"].includes(activeTab) && (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
+                {tabs.find((t) => t.id === activeTab)?.icon}
+              </div>
+              <h3 className="text-lg font-medium text-text-primary">
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </h3>
+              <p className="text-sm text-text-muted mt-1">
+                This section is currently under development.
+              </p>
+            </div>
+          )}
+        </main>
+      </div>
+    </WorkspaceShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+function OrganizationSettings({ orgId }: { orgId?: string }) {
+  const { data: org, isLoading } = useOrganizationDetail(orgId || "");
+  const updateOrg = useUpdateOrganization(orgId || "");
+  const [formData, setFormData] = useState<any>(null);
+
+  useEffect(() => {
+    if (org && !formData) {
+      setFormData({
+        name: org.name || "",
+        business_type: org.business_type || "RESTAURANT",
+        timezone: org.timezone || "UTC",
+        currency: org.currency || "USD",
+        country: org.country || "",
+        brand_color: org.brand_color || "#A8821F",
+        receipt_name: org.receipt_name || "",
+        default_prep_buffer_minutes: org.default_prep_buffer_minutes || 30,
+        forecast_horizon_days: org.forecast_horizon_days || 7,
+      });
+    }
+  }, [org, formData]);
+
+  if (isLoading || !formData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
+  const handleSave = () => {
+    updateOrg.mutate(formData, {
+      onSuccess: () => {
+        toast.success("Organization settings updated");
+      },
+    });
+  };
+
+  const handleChange = (key: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <div className="space-y-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-text-primary">
+            Organization Settings
+          </h2>
+          <p className="text-sm text-text-muted mt-1">
+            Manage global business identity and operational defaults.
           </p>
         </div>
+        <Button
+          onClick={handleSave}
+          disabled={updateOrg.isPending}
+          className="font-semibold px-6"
+        >
+          {updateOrg.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+
+      {/* General Settings */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <InfoCircle className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            General
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Input
+            label="Organization Name"
+            value={formData.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            placeholder="e.g. PrepIQ Kitchen"
+          />
+          <Select
+            label="Business Type"
+            value={formData.business_type}
+            onChange={(val) => handleChange("business_type", val)}
+            options={[
+              { label: "Restaurant", value: "RESTAURANT" },
+              { label: "Hotel", value: "HOTEL" },
+              { label: "Bakery", value: "BAKERY" },
+              { label: "Cloud Kitchen", value: "CLOUD_KITCHEN" },
+              { label: "Catering", value: "CATERING" },
+              { label: "Institutional", value: "INSTITUTIONAL" },
+            ]}
+          />
+          <Select
+            label="Timezone"
+            value={formData.timezone}
+            onChange={(val) => handleChange("timezone", val)}
+            options={[
+              { label: "UTC", value: "UTC" },
+              { label: "Eastern Time (ET)", value: "America/New_York" },
+              { label: "Pacific Time (PT)", value: "America/Los_Angeles" },
+              { label: "London (GMT)", value: "Europe/London" },
+              { label: "East Africa (EAT)", value: "Africa/Nairobi" },
+            ]}
+          />
+          <Select
+            label="Default Currency"
+            value={formData.currency}
+            onChange={(val) => handleChange("currency", val)}
+            options={[
+              { label: "USD ($)", value: "USD" },
+              { label: "EUR (€)", value: "EUR" },
+              { label: "GBP (£)", value: "GBP" },
+              { label: "KES (KSh)", value: "KES" },
+            ]}
+          />
+        </div>
       </section>
-    </WorkspaceShell>
+
+      {/* Branding */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <Building className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Branding
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <span className="text-sm font-medium text-text-secondary">
+              Organization Logo
+            </span>
+            <div className="flex items-center gap-6">
+              <div className="h-24 w-24 rounded-2xl bg-[#1C1C1F] border border-[#2A2A2E] flex items-center justify-center overflow-hidden relative group">
+                {org?.logo ? (
+                  <Image
+                    src={org.logo}
+                    alt="Logo"
+                    fill
+                    className="object-contain p-2"
+                  />
+                ) : (
+                  <Building className="h-8 w-8 text-text-muted" />
+                )}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                  <Upload className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-text-primary">
+                  Update Logo
+                </p>
+                <p className="text-xs text-text-muted">
+                  SVG, PNG or JPG (max 2MB)
+                </p>
+                <Button
+                  variant="secondary"
+                  className="mt-2 text-[11px] h-8 px-3"
+                >
+                  Upload New
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex gap-3 items-end">
+              <Input
+                label="Brand Color"
+                value={formData.brand_color}
+                onChange={(e) => handleChange("brand_color", e.target.value)}
+                className="font-mono uppercase"
+              />
+              <div
+                className="h-12 w-12 rounded-lg border border-[#2A2A2E] flex-shrink-0 mb-[1px]"
+                style={{ backgroundColor: formData.brand_color }}
+              />
+            </div>
+            <Input
+              label="Receipt Name"
+              value={formData.receipt_name}
+              onChange={(e) => handleChange("receipt_name", e.target.value)}
+              placeholder="e.g. PREPIQ KITCHEN LTD"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Operational Defaults */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <Brain className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Operational Defaults
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Input
+            label="Default Prep Buffer (Minutes)"
+            type="number"
+            value={formData.default_prep_buffer_minutes}
+            onChange={(e) =>
+              handleChange(
+                "default_prep_buffer_minutes",
+                parseInt(e.target.value),
+              )
+            }
+          />
+          <Input
+            label="Forecast Horizon (Days)"
+            type="number"
+            value={formData.forecast_horizon_days}
+            onChange={(e) =>
+              handleChange("forecast_horizon_days", parseInt(e.target.value))
+            }
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function BranchSettings({
+  orgId,
+  userRole,
+}: {
+  orgId?: string;
+  userRole?: string;
+}) {
+  const { data: branches, isLoading: loadingBranches } = useBranches(
+    orgId || "",
+  );
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const { data: branch, isLoading: loadingBranch } = useBranch(
+    orgId || "",
+    selectedBranchId,
+  );
+  const updateBranch = useUpdateBranch(orgId || "", selectedBranchId);
+  const [formData, setFormData] = useState<any>(null);
+
+  // Default to first branch if none selected
+  useEffect(() => {
+    if (branches?.length && !selectedBranchId) {
+      setSelectedBranchId(branches[0].id);
+    }
+  }, [branches, selectedBranchId]);
+
+  // Sync form data when branch details are loaded
+  useEffect(() => {
+    if (branch) {
+      setFormData({
+        name: branch.name || "",
+        address: branch.address || "",
+        timezone: branch.timezone || "UTC",
+        capacity: branch.capacity || 0,
+        average_prep_time_minutes: branch.average_prep_time_minutes || 15,
+        service_start_time: branch.service_start_time || "",
+        service_end_time: branch.service_end_time || "",
+        seasonality_profile: branch.seasonality_profile || "",
+        min_stock_buffer: branch.min_stock_buffer || 10,
+        waste_threshold: branch.waste_threshold || 0.05,
+        reorder_buffer: branch.reorder_buffer || 5,
+      });
+    }
+  }, [branch]);
+
+  const handleSave = () => {
+    updateBranch.mutate(formData, {
+      onSuccess: () => {
+        toast.success("Branch settings updated");
+      },
+    });
+  };
+
+  const handleChange = (key: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  if (loadingBranches) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
+  const branchOptions =
+    branches?.map((b) => ({
+      label: b.name,
+      value: b.id,
+    })) || [];
+
+  return (
+    <div className="space-y-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-text-primary">
+            Branch Settings
+          </h2>
+          <p className="text-sm text-text-muted mt-1">
+            Configure kitchen capacity, schedules, and local demand signals.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-48">
+            <Select
+              value={selectedBranchId}
+              onChange={setSelectedBranchId}
+              options={branchOptions}
+              placeholder="Select Branch"
+            />
+          </div>
+          <Button
+            onClick={handleSave}
+            disabled={updateBranch.isPending || !selectedBranchId}
+            className="font-semibold px-6"
+          >
+            {updateBranch.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </div>
+
+      {!selectedBranchId ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
+          <Shop className="h-8 w-8 text-text-muted mb-3" />
+          <p className="text-sm text-text-muted">
+            Select a branch to configure its settings.
+          </p>
+        </div>
+      ) : loadingBranch || !formData ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {/* General */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+              <Shop className="h-4 w-4 text-brand-gold" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+                General
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Branch Name"
+                value={formData.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+              />
+              <Input
+                label="Address"
+                value={formData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+              />
+              <Select
+                label="Timezone"
+                value={formData.timezone}
+                onChange={(val) => handleChange("timezone", val)}
+                options={[
+                  { label: "UTC", value: "UTC" },
+                  { label: "Eastern Time (ET)", value: "America/New_York" },
+                  { label: "Pacific Time (PT)", value: "America/Los_Angeles" },
+                  { label: "London (GMT)", value: "Europe/London" },
+                  { label: "East Africa (EAT)", value: "Africa/Nairobi" },
+                ]}
+              />
+            </div>
+          </section>
+
+          {/* Kitchen Configuration */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+              <Brain className="h-4 w-4 text-brand-gold" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+                Kitchen Configuration
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Kitchen Capacity (Units)"
+                type="number"
+                value={formData.capacity}
+                onChange={(e) =>
+                  handleChange("capacity", parseInt(e.target.value))
+                }
+              />
+              <Input
+                label="Average Prep Time (Minutes)"
+                type="number"
+                value={formData.average_prep_time_minutes}
+                onChange={(e) =>
+                  handleChange(
+                    "average_prep_time_minutes",
+                    parseInt(e.target.value),
+                  )
+                }
+              />
+              <Input
+                label="Service Start Time"
+                type="time"
+                value={formData.service_start_time}
+                onChange={(e) =>
+                  handleChange("service_start_time", e.target.value)
+                }
+              />
+              <Input
+                label="Service End Time"
+                type="time"
+                value={formData.service_end_time}
+                onChange={(e) =>
+                  handleChange("service_end_time", e.target.value)
+                }
+              />
+            </div>
+          </section>
+
+          {/* Demand Context */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+              <CloudSync className="h-4 w-4 text-brand-gold" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+                Demand Context
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Seasonality Profile"
+                value={formData.seasonality_profile}
+                onChange={(e) =>
+                  handleChange("seasonality_profile", e.target.value)
+                }
+                placeholder="e.g. Campus-Heavy, Tourist"
+              />
+              <div className="p-4 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E] flex items-start gap-3">
+                <InfoCircle className="h-5 w-5 text-brand-gold flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Advanced demand patterns (nearby venues, events) are currently
+                  managed via the
+                  <span className="text-brand-gold font-medium">
+                    {" "}
+                    PrepIQ Intelligence Engine
+                  </span>{" "}
+                  automatically.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Inventory Rules */}
+          <section className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+              <ShieldCheck className="h-4 w-4 text-brand-gold" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+                Inventory Rules
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Input
+                label="Min Stock Buffer (%)"
+                type="number"
+                value={formData.min_stock_buffer}
+                onChange={(e) =>
+                  handleChange("min_stock_buffer", parseInt(e.target.value))
+                }
+              />
+              <Input
+                label="Waste Threshold (%)"
+                type="number"
+                step="0.01"
+                value={formData.waste_threshold}
+                onChange={(e) =>
+                  handleChange("waste_threshold", parseFloat(e.target.value))
+                }
+              />
+              <Input
+                label="Reorder Buffer"
+                type="number"
+                value={formData.reorder_buffer}
+                onChange={(e) =>
+                  handleChange("reorder_buffer", parseInt(e.target.value))
+                }
+              />
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserRoleSettings({ orgId }: { orgId?: string }) {
+  const { data: members, isLoading } = useOrganizationMembers(orgId || "");
+  const addMember = useAddOrganizationMember(orgId || "");
+  const removeMember = useRemoveOrganizationMember(orgId || "");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newMember, setNewMember] = useState<{
+    user_email: string;
+    role: OrganizationMemberRole;
+  }>({
+    user_email: "",
+    role: "STAFF_OPERATOR",
+  });
+
+  const handleAddMember = () => {
+    addMember.mutate(newMember, {
+      onSuccess: () => {
+        setIsAddModalOpen(false);
+        setNewMember({ user_email: "", role: "STAFF_OPERATOR" });
+      },
+    });
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    if (window.confirm("Are you sure you want to remove this member?")) {
+      removeMember.mutate(userId);
+    }
+  };
+
+  const columns = useMemo(
+    () => [
+      columnHelper.display({
+        id: "user",
+        header: "User",
+        cell: (info) => {
+          const member = info.row.original;
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-[#1C1C1F] flex items-center justify-center text-xs font-semibold text-brand-gold border border-[#2A2A2E]">
+                {member.first_name?.[0] || member.email?.[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-primary">
+                  {member.first_name} {member.last_name}
+                </p>
+                <p className="text-xs text-text-muted">{member.email}</p>
+              </div>
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor("role", {
+        header: "Role",
+        cell: (info) => (
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-[10px] font-semibold text-brand-gold border border-brand-gold/20">
+            {(info.getValue() as string).replace("ORG_", "").replace("_", " ")}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("branch_name", {
+        header: "Branch",
+        cell: (info) => (
+          <span className="text-sm text-text-secondary">
+            {info.getValue() || "All Branches"}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "Actions",
+        cell: (info) => (
+          <button
+            onClick={() => handleRemoveMember(info.row.original.user)}
+            className="p-2 text-text-muted hover:text-red-500 transition-colors"
+            title="Remove Member"
+          >
+            <Trash className="h-4 w-4" />
+          </button>
+        ),
+      }),
+    ],
+    [members],
+  );
+
+  const table = useReactTable({
+    data: members || [],
+    columns,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-text-primary">
+            Users & Roles
+          </h2>
+          <p className="text-sm text-text-muted mt-1">
+            Manage team access, permissions, and role-based assignments.
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          leftIcon={<Plus className="h-4 w-4" />}
+          className="font-semibold px-4"
+        >
+          Add Member
+        </Button>
+      </div>
+
+      <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
+        <NativeTable
+          table={table}
+          headerClassName="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]"
+          cellClassName="border-b border-[#1C1C1F]/50 last:border-0"
+        />
+      </div>
+
+      {/* Add Member Modal */}
+      <ModalShell
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Add Organization Member"
+        description="Invite a new member to join your organization."
+      >
+        <div className="space-y-6 py-4 px-1">
+          <Input
+            label="User Email"
+            type="email"
+            value={newMember.user_email}
+            onChange={(e) =>
+              setNewMember({ ...newMember, user_email: e.target.value })
+            }
+            placeholder="colleague@example.com"
+          />
+          <Select
+            label="Assign Role"
+            value={newMember.role}
+            onChange={(val) =>
+              setNewMember({
+                ...newMember,
+                role: val as OrganizationMemberRole,
+              })
+            }
+            options={[
+              { label: "Admin", value: "ORG_ADMIN" },
+              { label: "Operations Director", value: "OPS_DIRECTOR" },
+              { label: "General Manager", value: "GM" },
+              { label: "Branch Manager", value: "BRANCH_MANAGER" },
+              { label: "Staff Operator", value: "STAFF_OPERATOR" },
+            ]}
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddMember}
+              disabled={addMember.isPending || !newMember.user_email}
+            >
+              {addMember.isPending ? "Adding..." : "Add Member"}
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+    </div>
   );
 }

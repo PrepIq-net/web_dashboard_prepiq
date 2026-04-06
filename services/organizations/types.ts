@@ -70,6 +70,16 @@ export const organizationSchema = z.object({
   created_at: z.string().optional(),
   member_count: z.number().optional(),
   slug: z.string().optional(),
+
+  // New settings fields
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
+  country: z.string().nullable().optional(),
+  brand_color: z.string().optional(),
+  receipt_name: z.string().nullable().optional(),
+  default_service_hours: z.record(z.string(), z.any()).optional(),
+  default_prep_buffer_minutes: z.number().optional(),
+  forecast_horizon_days: z.number().optional(),
 });
 
 export type Organization = z.infer<typeof organizationSchema>;
@@ -84,6 +94,16 @@ export const organizationRegisterPayloadSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   logo: z.any().optional(),
+
+  // New settings fields
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
+  country: z.string().optional(),
+  brand_color: z.string().optional(),
+  receipt_name: z.string().optional(),
+  default_service_hours: z.record(z.string(), z.any()).optional(),
+  default_prep_buffer_minutes: z.number().optional(),
+  forecast_horizon_days: z.number().optional(),
 });
 
 export type OrganizationRegisterPayload = z.infer<
