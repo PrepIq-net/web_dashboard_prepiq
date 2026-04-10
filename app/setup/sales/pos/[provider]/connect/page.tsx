@@ -13,7 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import {
   useProductionIntelligenceAccessScope,
-  useStartSquareOAuth,
+  useSquareOAuthStart,
 } from "@/services/production-intelligence/hooks";
 
 export default function POSConnectPage() {
@@ -22,11 +22,14 @@ export default function POSConnectPage() {
   const provider = String(params?.provider || "").toLowerCase();
   const isSquare = provider === "square";
 
-  const { data: scope, isLoading: scopeLoading, error: scopeError } =
-    useProductionIntelligenceAccessScope();
+  const {
+    data: scope,
+    isLoading: scopeLoading,
+    error: scopeError,
+  } = useProductionIntelligenceAccessScope();
 
   const [branchId, setBranchId] = useState("");
-  const squareOAuth = useStartSquareOAuth();
+  const squareOAuth = useSquareOAuthStart();
 
   const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
 
@@ -76,7 +79,8 @@ export default function POSConnectPage() {
             {provider || "This provider"} is not ready yet.
           </h1>
           <p className="text-[14px] leading-[22px] text-[#8E8E93] mb-6">
-            Square is the first live POS integration. Select Square to continue setup.
+            Square is the first live POS integration. Select Square to continue
+            setup.
           </p>
           <button
             onClick={() => router.push("/setup/sales/pos")}
@@ -119,7 +123,8 @@ export default function POSConnectPage() {
           <div className="flex items-start gap-2.5 mb-4">
             <InfoCircle className="h-4 w-4 text-[#3A6EA5] shrink-0 mt-0.5" />
             <p className="text-[13px] leading-[20px] text-[#C7C7CC]">
-              You will be redirected to Square and then returned here after authorization.
+              You will be redirected to Square and then returned here after
+              authorization.
             </p>
           </div>
 

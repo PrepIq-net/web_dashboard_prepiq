@@ -42,6 +42,21 @@ export const branchSchema = z.object({
   operating_hours: z.array(operatingHoursSchema).optional(),
   created_at: z.string(),
   updated_at: z.string(),
+
+  // Kitchen Configuration
+  average_prep_time_minutes: z.number().optional(),
+  service_start_time: z.string().nullable().optional(),
+  service_end_time: z.string().nullable().optional(),
+
+  // Demand Context
+  nearby_event_venues: z.array(z.string()).optional(),
+  seasonality_profile: z.string().nullable().optional(),
+  local_demand_patterns: z.record(z.string(), z.any()).optional(),
+
+  // Inventory Rules
+  min_stock_buffer: z.number().optional(),
+  waste_threshold: z.number().optional(),
+  reorder_buffer: z.number().optional(),
 });
 export type Branch = z.infer<typeof branchSchema>;
 
@@ -64,6 +79,21 @@ export const createBranchPayloadSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   operating_hours: z.array(operatingHoursSchema).optional(),
+
+  // Kitchen Configuration
+  average_prep_time_minutes: z.number().optional(),
+  service_start_time: z.string().nullable().optional(),
+  service_end_time: z.string().nullable().optional(),
+
+  // Demand Context
+  nearby_event_venues: z.array(z.string()).optional(),
+  seasonality_profile: z.string().nullable().optional(),
+  local_demand_patterns: z.record(z.string(), z.any()).optional(),
+
+  // Inventory Rules
+  min_stock_buffer: z.number().optional(),
+  waste_threshold: z.number().optional(),
+  reorder_buffer: z.number().optional(),
 });
 export type CreateBranchPayload = z.infer<typeof createBranchPayloadSchema>;
 export type UpdateBranchPayload = Partial<CreateBranchPayload>;
@@ -233,14 +263,18 @@ export const staffInviteContextRoleSchema = z.object({
   permission_hints: z.array(z.string()),
   plan_required_capability: z.string().nullable().optional(),
 });
-export type StaffInviteContextRole = z.infer<typeof staffInviteContextRoleSchema>;
+export type StaffInviteContextRole = z.infer<
+  typeof staffInviteContextRoleSchema
+>;
 
 export const staffInviteContextBranchSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   is_primary: z.boolean(),
 });
-export type StaffInviteContextBranch = z.infer<typeof staffInviteContextBranchSchema>;
+export type StaffInviteContextBranch = z.infer<
+  typeof staffInviteContextBranchSchema
+>;
 
 export const staffInviteContextSchema = z.object({
   inviter: z.object({

@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import {
   useProductionIntelligenceAccessScope,
-  useStartToastOAuth,
+  useToastOAuthStart,
 } from "@/services/production-intelligence/hooks";
 
 export default function ToastConnectPage() {
@@ -29,7 +29,7 @@ export default function ToastConnectPage() {
   const [clientSecret, setClientSecret] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const toastOAuth = useStartToastOAuth();
+  const toastOAuth = useToastOAuthStart();
 
   const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
 

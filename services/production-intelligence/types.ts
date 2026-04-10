@@ -77,18 +77,23 @@ export const prepPlanItemSchema = z.object({
     forecast_engine_input: z.record(z.string(), z.unknown()).optional(),
     forecast_engine_output: z.record(z.string(), z.unknown()).optional(),
     reasoning: z.array(z.string()),
-    applied_signals: z.record(z.string(), z.object({
-      modifier: z.number(),
-      source: z.string().optional(),
-      special_event_flag: z.boolean().optional(),
-      condition: z.string().optional(),
-      temp_bucket: z.string().optional(),
-      is_rain: z.boolean().optional(),
-      estimated_staff_count: z.number().nullable().optional(),
-      capacity_pct: z.number().nullable().optional(),
-      delivery_ratio: z.number().nullable().optional(),
-      multiplier: z.number().optional(),
-    })).optional(),
+    applied_signals: z
+      .record(
+        z.string(),
+        z.object({
+          modifier: z.number(),
+          source: z.string().optional(),
+          special_event_flag: z.boolean().optional(),
+          condition: z.string().optional(),
+          temp_bucket: z.string().optional(),
+          is_rain: z.boolean().optional(),
+          estimated_staff_count: z.number().nullable().optional(),
+          capacity_pct: z.number().nullable().optional(),
+          delivery_ratio: z.number().nullable().optional(),
+          multiplier: z.number().optional(),
+        }),
+      )
+      .optional(),
   }),
   live_monitor: z
     .object({
@@ -1662,7 +1667,9 @@ export const forecastMetricsResponseSchema = z.object({
     .optional(),
   data_points: z.number().optional(),
 });
-export type ForecastMetricsResponse = z.infer<typeof forecastMetricsResponseSchema>;
+export type ForecastMetricsResponse = z.infer<
+  typeof forecastMetricsResponseSchema
+>;
 
 export const chefSkillScoreResponseSchema = z.object({
   overall_skill_score: z.number().nullable().optional(),
@@ -1672,7 +1679,9 @@ export const chefSkillScoreResponseSchema = z.object({
   recommendation: z.string().optional(),
   metrics: z.record(z.string(), z.unknown()).optional(),
 });
-export type ChefSkillScoreResponse = z.infer<typeof chefSkillScoreResponseSchema>;
+export type ChefSkillScoreResponse = z.infer<
+  typeof chefSkillScoreResponseSchema
+>;
 
 export const dataQualityReportSchema = z.object({
   overall_quality_score: z.number().nullable().optional(),
@@ -1718,7 +1727,9 @@ export const velocityUpdateResponseSchema = z.object({
   forecast_qty: z.number().optional(),
   window_minutes: z.number().optional(),
 });
-export type VelocityUpdateResponse = z.infer<typeof velocityUpdateResponseSchema>;
+export type VelocityUpdateResponse = z.infer<
+  typeof velocityUpdateResponseSchema
+>;
 
 export const advancedForecastPayloadSchema = z.object({
   branch_id: z.string().uuid(),
@@ -1734,14 +1745,18 @@ export const forecastScenariosQuerySchema = z.object({
   item_id: z.string().uuid(),
   target_date: z.string().optional(),
 });
-export type ForecastScenariosQuery = z.infer<typeof forecastScenariosQuerySchema>;
+export type ForecastScenariosQuery = z.infer<
+  typeof forecastScenariosQuerySchema
+>;
 
 export const forecastConfidenceQuerySchema = z.object({
   branch_id: z.string().uuid(),
   item_id: z.string().uuid(),
   target_date: z.string().optional(),
 });
-export type ForecastConfidenceQuery = z.infer<typeof forecastConfidenceQuerySchema>;
+export type ForecastConfidenceQuery = z.infer<
+  typeof forecastConfidenceQuerySchema
+>;
 
 export const forecastMetricsQuerySchema = z.object({
   branch_id: z.string().uuid(),
@@ -1772,9 +1787,7 @@ export const velocityUpdatePayloadSchema = z.object({
   timestamp: z.string().optional(),
   window_minutes: z.number().optional(),
 });
-export type VelocityUpdatePayload = z.infer<
-  typeof velocityUpdatePayloadSchema
->;
+export type VelocityUpdatePayload = z.infer<typeof velocityUpdatePayloadSchema>;
 
 export const salesWasteTopItemSchema = z.object({
   item_id: z.string(),
@@ -2079,3 +2092,9 @@ export const operationsHistorySnapshotSchema = z.object({
 export type OperationsHistorySnapshot = z.infer<
   typeof operationsHistorySnapshotSchema
 >;
+
+export type IntegrationsSyncRetryQuery = {
+  branch_id: string;
+  connection_id?: string;
+  provider_code?: string;
+};

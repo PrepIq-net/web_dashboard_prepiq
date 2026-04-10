@@ -4,6 +4,8 @@ export const organizationsEndpoints = {
   detail: (id: string) => `/api/organizations/${id}/`,
   members: (id: string) => `/api/organizations/${id}/members/`,
   addMember: (id: string) => `/api/organizations/${id}/members/add/`,
+  updateMember: (id: string, userId: string) =>
+    `/api/organizations/${id}/members/${userId}/update/`,
   removeMember: (id: string, userId: string) =>
     `/api/organizations/${id}/members/${userId}/`,
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,

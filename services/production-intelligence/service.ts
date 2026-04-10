@@ -201,13 +201,13 @@ export async function getSalesWasteReport(params: SalesWasteReportQuery) {
   );
 }
 
-export async function retryIntegrationsSync() {
-  return apiClientWithSchema(
-    productionIntelligenceEndpoints.integrationsSyncRetry(),
-    z.object({ status: z.string() }),
-    { method: "POST" },
-  );
-}
+// export async function retryIntegrationsSync() {
+//   return apiClientWithSchema(
+//     productionIntelligenceEndpoints.integrationsSyncRetry(),
+//     z.object({ status: z.string() }),
+//     { method: "POST" },
+//   );
+// }
 
 type QueryValue = string | number | boolean | null | undefined;
 const UUID_PATTERN =
@@ -300,10 +300,13 @@ export async function getForecastScenarios(params: ForecastScenariosQuery) {
 export async function getForecastConfidence(params: ForecastConfidenceQuery) {
   const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
   return apiClientWithSchema(
-    withQuery(productionIntelligenceEndpoints.forecastConfidence(safeBranchId), {
-      item_id: params.item_id,
-      target_date: params.target_date,
-    }),
+    withQuery(
+      productionIntelligenceEndpoints.forecastConfidence(safeBranchId),
+      {
+        item_id: params.item_id,
+        target_date: params.target_date,
+      },
+    ),
     forecastConfidenceResponseSchema,
     { method: "GET" },
   );
@@ -714,6 +717,21 @@ export async function startCloverOAuth(payload: CloverOAuthStartPayload) {
     cloverOAuthStartResponseSchema,
     {
       method: "GET",
+    },
+  );
+}
+
+export async function retryIntegrationsSync(payload: {
+  branch_id: string;
+  connection_id?: string;
+  provider_code?: string;
+}) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.integrationsSyncRetry(),
+    z.any(),
+    {
+      method: "POST",
+      body: payload,
     },
   );
 }
