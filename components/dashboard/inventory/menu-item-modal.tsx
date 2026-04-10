@@ -21,7 +21,8 @@ type Props = {
 type FormState = {
   name: string;
   category: string;
-  image_url: string;
+  image: File | null;
+  image_preview: string | null;
   instructions: string;
   is_active: boolean;
 };
@@ -29,7 +30,8 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   name: "",
   category: "Uncategorized",
-  image_url: "",
+  image: null,
+  image_preview: null,
   instructions: "",
   is_active: true,
 };
@@ -38,7 +40,8 @@ function toForm(item: MenuItem): FormState {
   return {
     name: item.name,
     category: item.category || "Uncategorized",
-    image_url: item.image_url || "",
+    image: null,
+    image_preview: item.image || null,
     instructions: item.instructions || "",
     is_active: item.is_active,
   };
@@ -50,7 +53,6 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
 
   const [form, setForm] = useState<FormState>(menuItem ? toForm(menuItem) : EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
-  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   const createMutation = useCreateMenuItem(branchId);
   const updateMutation = useUpdateMenuItem(branchId);
@@ -60,13 +62,19 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
     if (open) {
       setForm(menuItem ? toForm(menuItem) : EMPTY_FORM);
       setError(null);
-      setImagePreviewError(false);
     }
   }, [open, menuItem]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (key === "image_url") setImagePreviewError(false);
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      set("image", file);
+      set("image_preview", URL.createObjectURL(file));
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,7 +86,7 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
     const payload = {
       name,
       category: form.category,
-      image_url: form.image_url.trim() || undefined,
+      image: form.image,
       instructions: form.instructions.trim() || undefined,
       is_active: form.is_active,
     };
@@ -95,8 +103,6 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
     }
   }
 
-  const showPreview = form.image_url.trim() && !imagePreviewError;
-
   return (
     <ModalShell
       open={open}
@@ -104,7 +110,7 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
       title={isEdit ? "Edit Menu Item" : "Add Menu Item"}
       description={
         isEdit
-          ? "Update this menu item. Image URL can be overridden — auto-generated images are preserved unless you change them."
+          ? "Update this menu item. Upload a new image to replace the current one."
           : "Add a new menu item to this branch."
       }
       maxWidthClassName="max-w-lg"
@@ -189,31 +195,36 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
           </div>
         </div>
 
-        {/* Image URL */}
+        {/* Image Upload */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-[0.1em] text-text-muted mb-2">
-            Image URL <span className="normal-case font-normal text-text-muted">(optional — auto-filled by recipe engine)</span>
+            Image
           </label>
-          <input
-            type="url"
-            value={form.image_url}
-            onChange={(e) => set("image_url", e.target.value)}
-            placeholder="https://..."
-            className="w-full h-11 rounded-lg border border-surface-4 bg-surface-3 px-4 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors"
-          />
-          {showPreview && (
-            <div className="mt-2 relative h-28 w-full overflow-hidden rounded-lg border border-surface-4 bg-surface-3">
-              <img
-                src={form.image_url}
-                alt="Preview"
-                className="h-full w-full object-cover"
-                onError={() => setImagePreviewError(true)}
-              />
-            </div>
-          )}
-          {imagePreviewError && (
-            <p className="mt-1.5 text-xs text-status-warning">Image URL could not be loaded. It will still be saved.</p>
-          )}
+          <div className="flex flex-col gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              id="image-upload"
+            />
+            <label
+              htmlFor="image-upload"
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-lg border border-dashed border-surface-4 bg-surface-3 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/60 hover:text-brand-gold"
+            >
+              {form.image ? "Change Image" : "Upload Image"}
+            </label>
+
+            {form.image_preview && (
+              <div className="relative h-28 w-full overflow-hidden rounded-lg border border-surface-4 bg-surface-3">
+                <img
+                  src={form.image_preview}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Instructions */}

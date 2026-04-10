@@ -25,7 +25,7 @@ export const menuItemSchema = z.object({
   catalog_item_title: z.string().nullable().optional(),
   name: z.string(),
   category: z.string(),
-  image_url: z.string().optional(),
+  image: z.string().optional().nullable(),
   instructions: z.string().optional(),
   is_active: z.boolean(),
   created_at: z.string(),

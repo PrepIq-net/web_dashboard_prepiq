@@ -396,9 +396,9 @@ function RecipesTab({
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {item.image_url ? (
+                          {item.image ? (
                             <img
-                              src={item.image_url}
+                              src={item.image}
                               alt={item.name}
                               className="h-9 w-9 rounded-lg object-cover border border-surface-4 shrink-0"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -513,10 +513,10 @@ function RecipeDetail({
       </div>
 
       {/* Item image */}
-      {menuItem?.image_url && (
+      {menuItem?.image && (
         <div className="mb-4 overflow-hidden rounded-xl border border-surface-4 bg-surface-3 h-40">
           <img
-            src={menuItem.image_url}
+            src={menuItem.image}
             alt={menuItem.name}
             className="h-full w-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
