@@ -154,7 +154,13 @@ export const photoUploadResponseSchema = z.object({
 });
 
 export const deleteAccountPayloadSchema = z.object({
-  reason_choice: z.enum(["PRIVACY", "NOT_USEFUL", "TOO_COMPLICATED", "OTHER"]),
+  reason_choice: z.enum([
+    "NO_LONGER_NEEDED",
+    "TOO_EXPENSIVE",
+    "FEATURES_MISSING",
+    "SWITCHING_PLATFORM",
+    "OTHER",
+  ]),
   reason_details: z.string().max(500).optional(),
   confirm: z.literal(true),
 });

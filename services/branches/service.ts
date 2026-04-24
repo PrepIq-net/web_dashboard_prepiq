@@ -78,11 +78,12 @@ export async function updateBranch(
   );
 }
 
-export async function deleteBranch(orgId: string, branchId: string) {
+export async function deleteBranch(orgId: string, branchId: string, payload: any) {
   return apiClient<{ message: string }>(
     branchEndpoints.detail(orgId, branchId),
     {
       method: "DELETE",
+      body: payload,
     },
   );
 }

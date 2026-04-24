@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { useCurrentUserProfile, useMyOrganizations } from "@/services";
+import {
+  useCurrentUserProfile,
+  useMyOrganizations,
+  useDeleteAccount,
+} from "@/services";
 import {
   Building,
   Shop,
@@ -24,11 +28,13 @@ import {
   useAddOrganizationMember,
   useUpdateOrganizationMember,
   useRemoveOrganizationMember,
+  useDeleteOrganization,
 } from "@/services/organizations/hooks";
 import {
   useBranches,
   useBranch,
   useUpdateBranch,
+  useDeleteBranch,
 } from "@/services/branches/hooks";
 import {
   useIntegrationsOverview,
@@ -173,6 +179,7 @@ export default function SettingsPage() {
             <IntegrationsSettings orgId={org?.id} />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
+          {activeTab === "security" && <SecuritySettings />}
           {/* Add more tabs content here as they are implemented */}
           {![
             "organization",
@@ -180,6 +187,7 @@ export default function SettingsPage() {
             "users-roles",
             "integrations",
             "notifications",
+            "security",
           ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
@@ -418,6 +426,28 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
               handleChange("forecast_horizon_days", parseInt(e.target.value))
             }
           />
+        </div>
+      </section>
+      {/* Danger Zone */}
+      <section className="pt-10 border-t border-red-500/20">
+        <div className="flex items-center gap-2 pb-2">
+          <Trash className="h-4 w-4 text-red-500" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-red-500">
+            Danger Zone
+          </h3>
+        </div>
+
+        <div className="mt-4 p-6 rounded-2xl bg-red-500/5 border border-red-500/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h4 className="text-base font-semibold text-text-primary">
+              Delete Organization
+            </h4>
+            <p className="text-sm text-text-muted mt-1 max-w-xl">
+              Permanently remove this organization and all associated branches,
+              data, and users. This action cannot be undone.
+            </p>
+          </div>
+          <OrganizationDeleteModal orgId={orgId} orgName={org?.name} />
         </div>
       </section>
     </div>
@@ -930,7 +960,7 @@ function BranchSettings({ orgId }: { orgId?: string }) {
           </section>
 
           {/* Inventory Rules */}
-          <section className="space-y-6">
+          <section className="space-y-6 pb-6">
             <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
               <ShieldCheck className="h-4 w-4 text-brand-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
@@ -962,6 +992,33 @@ function BranchSettings({ orgId }: { orgId?: string }) {
                 onChange={(e) =>
                   handleChange("reorder_buffer", parseInt(e.target.value))
                 }
+              />
+            </div>
+          </section>
+
+          {/* Danger Zone */}
+          <section className="pt-10 border-t border-red-500/20">
+            <div className="flex items-center gap-2 pb-2">
+              <Trash className="h-4 w-4 text-red-500" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-red-500">
+                Danger Zone
+              </h3>
+            </div>
+
+            <div className="mt-4 p-6 rounded-2xl bg-red-500/5 border border-red-500/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h4 className="text-base font-semibold text-text-primary">
+                  Delete Branch
+                </h4>
+                <p className="text-sm text-text-muted mt-1 max-w-xl">
+                  Permanently remove this branch and its historical data from
+                  forecasts and reporting. This action cannot be undone.
+                </p>
+              </div>
+              <BranchDeleteModal
+                orgId={orgId}
+                branchId={selectedBranchId}
+                branchName={branch?.name}
               />
             </div>
           </section>
@@ -1159,5 +1216,500 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         </div>
       </ModalShell>
     </div>
+  );
+}
+
+function OrganizationDeleteModal({
+  orgId,
+  orgName,
+}: {
+  orgId?: string;
+  orgName?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  const [reason, setReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
+  const [confirmName, setConfirmName] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const deleteOrg = useDeleteOrganization(orgId || "");
+
+  const reasons = [
+    { value: "NO_LONGER_NEEDED", label: "I no longer need PrepIQ" },
+    { value: "TOO_EXPENSIVE", label: "Too expensive" },
+    { value: "FEATURES_MISSING", label: "Features missing" },
+    { value: "SWITCHING_PLATFORM", label: "Switching to another platform" },
+    { value: "OTHER", label: "Other" },
+  ];
+
+  const handleDelete = () => {
+    deleteOrg.mutate(
+      {
+        reason_choice: reason,
+        reason_details: reason === "OTHER" ? otherReason : "",
+        confirm_name: confirmName,
+      },
+      {
+        onSuccess: () => {
+          setIsOpen(false);
+          window.location.href = "/workspace";
+        },
+      },
+    );
+  };
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+        onClick={() => setIsOpen(true)}
+      >
+        Delete organization
+      </Button>
+      <ModalShell
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Delete Organization"
+        description="This is a permanent action. Please read carefully."
+      >
+        <div className="space-y-6 py-4 px-1">
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <p className="text-sm font-medium text-red-500">
+                  Wait! Before you go...
+                </p>
+                <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                  Deleting your organization will immediately terminate access
+                  for all members and wipe all historical forecasts. If you're
+                  having trouble with features or pricing, our support team is
+                  available 24/7.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-text-primary">
+                  Why are you leaving?
+                </p>
+                {reasons.map((r) => (
+                  <label
+                    key={r.value}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                      reason === r.value
+                        ? "bg-brand-gold/5 border-brand-gold/30"
+                        : "bg-[#1C1C1F]/50 border-[#2A2A2E] hover:border-[#3A3A3E]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="reason"
+                      value={r.value}
+                      checked={reason === r.value}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="accent-brand-gold"
+                    />
+                    <span className="text-sm text-text-secondary">
+                      {r.label}
+                    </span>
+                  </label>
+                ))}
+                {reason === "OTHER" && (
+                  <Input
+                    placeholder="Please tell us more..."
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    type="text"
+                    label={"Tell us more"}
+                  />
+                )}
+              </div>
+              <Button
+                className="w-full mt-6"
+                disabled={!reason}
+                onClick={() => setStep(2)}
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+          {step === 2 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm text-text-muted">
+                  To confirm, please type{" "}
+                  <span className="font-bold text-text-primary break-all italic">
+                    {orgName}
+                  </span>{" "}
+                  below:
+                </p>
+                <Input
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  placeholder="Type organization name"
+                  type="text"
+                  autoFocus
+                  label={"Type organization name"}
+                />
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E]">
+                <input
+                  type="checkbox"
+                  id="confirm-check"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-1 accent-red-500"
+                />
+                <label
+                  htmlFor="confirm-check"
+                  className="text-xs text-text-muted leading-relaxed cursor-pointer"
+                >
+                  I understand that this will permanently delete{" "}
+                  <span className="text-red-500 font-medium">all data</span>,
+                  branches, and user access for this organization. This action
+                  cannot be undone.
+                </label>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => setStep(1)}
+                >
+                  Back
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  disabled={
+                    confirmName !== orgName || !agreed || deleteOrg.isPending
+                  }
+                  onClick={handleDelete}
+                >
+                  {deleteOrg.isPending ? "Deleting..." : "Permanently Delete"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </ModalShell>
+    </>
+  );
+}
+
+function BranchDeleteModal({
+  orgId,
+  branchId,
+  branchName,
+}: {
+  orgId?: string;
+  branchId: string;
+  branchName?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const deleteBranch = useDeleteBranch(orgId || "");
+
+  const reasons = [
+    { value: "NO_LONGER_NEEDED", label: "I no longer need this branch" },
+    { value: "TOO_EXPENSIVE", label: "Too expensive" },
+    { value: "FEATURES_MISSING", label: "Features missing" },
+    { value: "MOVING_SOLUTION", label: "Moving to a different solution" },
+    { value: "OTHER", label: "Other" },
+  ];
+
+  const handleDelete = () => {
+    deleteBranch.mutate(
+      {
+        branchId,
+        payload: {
+          reason_choice: reason,
+          reason_details: reason === "OTHER" ? otherReason : "",
+          confirm: agreed,
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsOpen(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+        onClick={() => setIsOpen(true)}
+      >
+        Delete branch
+      </Button>
+      <ModalShell
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Delete Branch"
+        description="This will remove the branch from your organization."
+      >
+        <div className="space-y-6 py-4 px-1">
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              You are about to delete{" "}
+              <span className="text-text-primary font-bold italic">
+                {branchName}
+              </span>
+              . This action cannot be reversed.
+            </p>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-text-primary">
+                Reason for deletion
+              </p>
+              {reasons.map((r) => (
+                <label
+                  key={r.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                    reason === r.value
+                      ? "bg-brand-gold/5 border-brand-gold/30"
+                      : "bg-[#1C1C1F]/50 border-[#2A2A2E] hover:border-[#3A3A3E]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="branch-reason"
+                    value={r.value}
+                    checked={reason === r.value}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="accent-brand-gold"
+                  />
+                  <span className="text-sm text-text-secondary">{r.label}</span>
+                </label>
+              ))}
+              {reason === "OTHER" && (
+                <Input
+                  placeholder="Please tell us more..."
+                  value={otherReason}
+                  onChange={(e) => setOtherReason(e.target.value)}
+                  type="text"
+                  label={"Tell us more"}
+                />
+              )}
+            </div>
+
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E]">
+              <input
+                type="checkbox"
+                id="confirm-branch-check"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-1 accent-red-500"
+              />
+              <label
+                htmlFor="confirm-branch-check"
+                className="text-xs text-text-muted cursor-pointer leading-relaxed"
+              >
+                I confirm that I want to delete this branch and all its
+                associated configuration and data.
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={!reason || !agreed || deleteBranch.isPending}
+              onClick={handleDelete}
+            >
+              {deleteBranch.isPending ? "Deleting..." : "Delete Branch"}
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+    </>
+  );
+}
+
+function SecuritySettings() {
+  const { data: user } = useCurrentUserProfile();
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h2 className="text-xl font-semibold text-text-primary">
+          Security & Account
+        </h2>
+        <p className="text-sm text-text-muted mt-1">
+          Manage your account security and personal data.
+        </p>
+      </div>
+
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <ShieldCheck className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Account Access
+          </h3>
+        </div>
+        <div className="p-6 rounded-2xl bg-[#1C1C1F]/30 border border-[#2A2A2E] flex items-center justify-between">
+          <div>
+            <h4 className="text-base font-semibold text-text-primary">
+              Password
+            </h4>
+            <p className="text-sm text-text-muted mt-1">
+              Change your password frequently to keep your account secure.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            className="border-[#2A2A2E] hover:border-brand-gold/50"
+          >
+            Change Password
+          </Button>
+        </div>
+      </section>
+
+      {/* Danger Zone */}
+      <section className="pt-10 border-t border-red-500/20">
+        <div className="flex items-center gap-2 pb-2">
+          <Trash className="h-4 w-4 text-red-500" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-red-500">
+            Danger Zone
+          </h3>
+        </div>
+
+        <div className="mt-4 p-6 rounded-2xl bg-red-500/5 border border-red-500/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h4 className="text-base font-semibold text-text-primary">
+              Close Account
+            </h4>
+            <p className="text-sm text-text-muted mt-1 max-w-xl">
+              Permanently delete your user account and personal data. This will
+              not affect your organization or branches if you are not the last
+              owner.
+            </p>
+          </div>
+          <AccountDeleteModal userEmail={user?.email} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AccountDeleteModal({ userEmail }: { userEmail?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
+  const deleteAccount = useDeleteAccount();
+
+  const reasons = [
+    { value: "NO_LONGER_NEEDED", label: "I no longer need PrepIQ" },
+    { value: "TOO_EXPENSIVE", label: "Too expensive" },
+    { value: "FEATURES_MISSING", label: "Features missing" },
+    { value: "SWITCHING_PLATFORM", label: "Switching to another platform" },
+    { value: "OTHER", label: "Other" },
+  ];
+
+  const handleDelete = () => {
+    deleteAccount.mutate(
+      {
+        reason_choice: reason as any,
+        reason_details: reason === "OTHER" ? otherReason : "",
+        confirm: true,
+      },
+      {
+        onSuccess: () => {
+          window.location.href = "/login";
+        },
+      },
+    );
+  };
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+        onClick={() => setIsOpen(true)}
+      >
+        Delete account
+      </Button>
+      <ModalShell
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Close Account"
+        description="We're sorry to see you go."
+      >
+        <div className="space-y-6 py-4 px-1">
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              You are about to delete your account{" "}
+              <span className="text-text-primary font-bold italic">
+                {userEmail}
+              </span>
+              .
+            </p>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-text-primary">
+                Reason for leaving
+              </p>
+              {reasons.map((r) => (
+                <label
+                  key={r.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                    reason === r.value
+                      ? "bg-brand-gold/5 border-brand-gold/30"
+                      : "bg-[#1C1C1F]/50 border-[#2A2A2E] hover:border-[#3A3A3E]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="account-reason"
+                    value={r.value}
+                    checked={reason === r.value}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="accent-brand-gold"
+                  />
+                  <span className="text-sm text-text-secondary">{r.label}</span>
+                </label>
+              ))}
+              {reason === "OTHER" && (
+                <Input
+                  placeholder="Please tell us more..."
+                  value={otherReason}
+                  onChange={(e) => setOtherReason(e.target.value)}
+                  type="text"
+                  label={"Tell us more"}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={!reason || deleteAccount.isPending}
+              onClick={handleDelete}
+            >
+              {deleteAccount.isPending ? "Deleting..." : "Delete My Account"}
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+    </>
   );
 }

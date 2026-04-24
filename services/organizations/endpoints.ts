@@ -10,4 +10,5 @@ export const organizationsEndpoints = {
     `/api/organizations/${id}/members/${userId}/`,
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,
   financialOverview: (id: string) => `/api/organizations/${id}/financial/overview/`,
+  delete: (id: string) => `/api/organizations/${id}/delete/`,
 } as const;

@@ -137,3 +137,16 @@ export function useOrganizationFinancialOverview(
     enabled: Boolean(id) && enabled,
   });
 }
+export function useDeleteOrganization(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: any) => organizationService.deleteOrganization(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.lists() });
+      toast.success("Organization deleted successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete organization.");
+    },
+  });
+}

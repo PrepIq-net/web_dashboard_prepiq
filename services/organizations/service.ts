@@ -187,3 +187,15 @@ export async function getOrganizationFinancialOverview(
     method: "GET",
   });
 }
+export async function deleteOrganization(id: string, payload: any) {
+  return apiClientWithSchema(
+    organizationsEndpoints.delete(id),
+    z.object({
+      message: z.string(),
+    }),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
