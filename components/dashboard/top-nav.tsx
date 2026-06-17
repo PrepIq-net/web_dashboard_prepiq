@@ -224,7 +224,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     {user?.email}
                   </p>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[#A8821F]">
-                    {user?.organization_role || "Member"}
+                    {user?.organization_role ?? "Member"}
                   </p>
                 </div>
                 <div className="mt-3 space-y-1">
