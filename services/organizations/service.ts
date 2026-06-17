@@ -7,6 +7,7 @@ import {
   organizationRegisterPayloadSchema,
   organizationFinancialOverviewSchema,
   type AddOrganizationMemberPayload,
+  type UpdateOrganizationMemberPayload,
   type OrganizationFinancialOverviewQuery,
   type OrganizationRegisterPayload,
 } from "./types";
@@ -157,7 +158,7 @@ export async function removeOrganizationMember(id: string, userId: string) {
 export async function updateOrganizationMember(
   id: string,
   userId: string,
-  payload: { role: string },
+  payload: UpdateOrganizationMemberPayload,
 ) {
   return apiClientWithSchema(
     organizationsEndpoints.updateMember(id, userId),

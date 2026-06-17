@@ -98,8 +98,8 @@ export function useAddOrganizationMember(id: string) {
 export function useUpdateOrganizationMember(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      organizationService.updateOrganizationMember(id, userId, { role }),
+    mutationFn: ({ userId, custom_role_slug }: { userId: string; custom_role_slug: string }) =>
+      organizationService.updateOrganizationMember(id, userId, { custom_role_slug }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
       toast.success("Member role updated.");

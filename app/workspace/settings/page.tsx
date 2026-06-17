@@ -49,7 +49,12 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { ModalShell } from "@/components/ui/modal-shell";
-import type { OrganizationMemberRole } from "@/services/organizations/types";
+import type { OrganizationMember } from "@/services/organizations/types";
+import {
+  SYSTEM_ROLE_OPTIONS,
+  SYSTEM_ROLE_SLUG,
+  resolveMemberRoleLabel,
+} from "@/services/organizations/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -85,29 +90,34 @@ export default function SettingsPage() {
       id: "organization",
       label: "Organization",
       icon: <Building className="h-4 w-4" />,
-      roles: ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR"],
+      // Super Admin only — org settings are sensitive
+      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
     },
     {
       id: "branches",
       label: "Branches",
       icon: <Shop className="h-4 w-4" />,
-      roles: ["ORG_OWNER", "OPS_DIRECTOR", "BRANCH_MANAGER"],
+      // Super Admin and Admin can manage branches
+      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
     },
     {
       id: "users-roles",
       label: "Users & Roles",
       icon: <Group className="h-4 w-4" />,
-      roles: ["ORG_OWNER", "ORG_ADMIN"],
+      // Only Super Admin manages team membership
+      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
     },
     {
       id: "integrations",
       label: "Integrations",
       icon: <CloudSync className="h-4 w-4" />,
+      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
     },
     {
       id: "notifications",
       label: "Notifications",
       icon: <BellNotification className="h-4 w-4" />,
+      // All roles can manage their own notifications
     },
     {
       id: "security",
@@ -121,10 +131,20 @@ export default function SettingsPage() {
     },
   ];
 
+  // organization_role now returns the custom role name (e.g. "Super Admin").
+  // For tab visibility we match against the slug stored in the profile.
+  // The API returns organization_role as name; we fall back to showing all
+  // tabs when role info isn't loaded yet (avoids flash of empty nav).
+  const userRoleSlug = (() => {
+    const name = user?.organization_role?.toLowerCase();
+    if (!name) return null;
+    if (name.includes("super")) return SYSTEM_ROLE_SLUG.SUPER_ADMIN;
+    if (name === "admin") return SYSTEM_ROLE_SLUG.ADMIN;
+    return SYSTEM_ROLE_SLUG.MEMBER;
+  })();
+
   const filteredTabs = tabs.filter(
-    (tab) =>
-      !tab.roles ||
-      (user?.organization_role && tab.roles.includes(user.organization_role)),
+    (tab) => !tab.roles || !userRoleSlug || tab.roles.includes(userRoleSlug),
   );
 
   return (
@@ -977,25 +997,22 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   const updateMember = useUpdateOrganizationMember(orgId || "");
   const removeMember = useRemoveOrganizationMember(orgId || "");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newMember, setNewMember] = useState<{
-    user_email: string;
-    role: OrganizationMemberRole;
-  }>({
+  const [newMember, setNewMember] = useState({
     user_email: "",
-    role: "STAFF_OPERATOR",
+    custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value as string,
   });
 
   const handleAddMember = () => {
     addMember.mutate(newMember, {
       onSuccess: () => {
         setIsAddModalOpen(false);
-        setNewMember({ user_email: "", role: "STAFF_OPERATOR" });
+        setNewMember({ user_email: "", custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value });
       },
     });
   };
 
-  const handleUpdateRole = (userId: string, newRole: string) => {
-    updateMember.mutate({ userId, role: newRole });
+  const handleUpdateRole = (userId: string, custom_role_slug: string) => {
+    updateMember.mutate({ userId, custom_role_slug });
   };
 
   const handleRemoveMember = (userId: string) => {
@@ -1010,7 +1027,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         id: "user",
         header: "User",
         cell: (info) => {
-          const member = info.row.original;
+          const member = info.row.original as OrganizationMember;
           return (
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-[#1C1C1F] flex items-center justify-center text-xs font-semibold text-brand-gold border border-[#2A2A2E]">
@@ -1026,47 +1043,69 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           );
         },
       }),
-      columnHelper.accessor("role", {
+      columnHelper.display({
+        id: "role",
         header: "Role",
-        cell: (info) => (
-          <select
-            value={info.getValue()}
-            onChange={(e) =>
-              handleUpdateRole(info.row.original.user, e.target.value)
-            }
-            className="bg-[#1C1C1F] text-brand-gold text-[10px] font-semibold border border-brand-gold/20 rounded-md px-2 py-1 outline-none cursor-pointer"
-          >
-            <option value="ORG_OWNER">OWNER</option>
-            <option value="ORG_ADMIN">ADMIN</option>
-            <option value="OPS_DIRECTOR">OPS DIRECTOR</option>
-            <option value="GM">GM</option>
-            <option value="BRANCH_MANAGER">BRANCH MANAGER</option>
-            <option value="STAFF_OPERATOR">STAFF OPERATOR</option>
-          </select>
-        ),
+        cell: (info) => {
+          const member = info.row.original as OrganizationMember;
+          const currentSlug = member.custom_role_slug ?? SYSTEM_ROLE_OPTIONS[2].value;
+          return (
+            <select
+              value={currentSlug}
+              onChange={(e) => handleUpdateRole(member.user, e.target.value)}
+              className="bg-[#1C1C1F] text-brand-gold text-[10px] font-semibold border border-brand-gold/20 rounded-md px-2 py-1 outline-none cursor-pointer"
+            >
+              {SYSTEM_ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          );
+        },
       }),
-      columnHelper.accessor("branch_name", {
+      columnHelper.display({
+        id: "role_label",
+        header: "Assigned Role",
+        cell: (info) => {
+          const member = info.row.original as OrganizationMember;
+          return (
+            <span className="text-sm text-text-secondary">
+              {resolveMemberRoleLabel(member)}
+            </span>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: "branch",
         header: "Branch",
-        cell: (info) => (
-          <span className="text-sm text-text-secondary">
-            {info.getValue() || "All Branches"}
-          </span>
-        ),
+        cell: (info) => {
+          const member = info.row.original as OrganizationMember;
+          return (
+            <span className="text-sm text-text-secondary">
+              {member.branch_name || "All Branches"}
+            </span>
+          );
+        },
       }),
       columnHelper.display({
         id: "actions",
         header: "Actions",
-        cell: (info) => (
-          <button
-            onClick={() => handleRemoveMember(info.row.original.user)}
-            className="p-2 text-text-muted hover:text-red-500 transition-colors"
-            title="Remove Member"
-          >
-            <Trash className="h-4 w-4" />
-          </button>
-        ),
+        cell: (info) => {
+          const member = info.row.original as OrganizationMember;
+          return (
+            <button
+              onClick={() => handleRemoveMember(member.user)}
+              className="p-2 text-text-muted hover:text-red-500 transition-colors"
+              title="Remove Member"
+            >
+              <Trash className="h-4 w-4" />
+            </button>
+          );
+        },
       }),
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [members],
   );
 
@@ -1078,7 +1117,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold" />
       </div>
     );
   }
@@ -1087,11 +1126,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary">
-            Users & Roles
-          </h2>
+          <h2 className="text-xl font-semibold text-text-primary">Users & Roles</h2>
           <p className="text-sm text-text-muted mt-1">
-            Manage team access, permissions, and role-based assignments.
+            Manage team access and role assignments.
           </p>
         </div>
         <Button
@@ -1111,39 +1148,25 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         />
       </div>
 
-      {/* Add Member Modal */}
       <ModalShell
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Add Organization Member"
-        description="Invite a new member to join your organization."
+        description="Invite a registered user. They'll receive the selected role."
       >
         <div className="space-y-6 py-4 px-1">
           <Input
             label="User Email"
             type="email"
             value={newMember.user_email}
-            onChange={(e) =>
-              setNewMember({ ...newMember, user_email: e.target.value })
-            }
+            onChange={(e) => setNewMember({ ...newMember, user_email: e.target.value })}
             placeholder="colleague@example.com"
           />
           <Select
             label="Assign Role"
-            value={newMember.role}
-            onChange={(val: string) =>
-              setNewMember({
-                ...newMember,
-                role: val as OrganizationMemberRole,
-              })
-            }
-            options={[
-              { label: "Admin", value: "ORG_ADMIN" },
-              { label: "Operations Director", value: "OPS_DIRECTOR" },
-              { label: "General Manager", value: "GM" },
-              { label: "Branch Manager", value: "BRANCH_MANAGER" },
-              { label: "Staff Operator", value: "STAFF_OPERATOR" },
-            ]}
+            value={newMember.custom_role_slug}
+            onChange={(val: string) => setNewMember({ ...newMember, custom_role_slug: val })}
+            options={[...SYSTEM_ROLE_OPTIONS]}
           />
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>

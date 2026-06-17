@@ -128,33 +128,20 @@ export type CreateDepartmentPayload = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Staff roles — mirrors organizations/constants.py
+// Staff roles — now role-slug based to match the dynamic RBAC system.
+// The invite flow sends a custom_role_slug; the backend resolves it to a Role.
 // ─────────────────────────────────────────────────────────────────────────────
 export const staffRoleEnum = z.enum([
-  "ORG_OWNER",
-  "OPS_DIRECTOR",
-  "ORG_ADMIN",
-  "GM",
-  "STAFF_OPERATOR",
-  "OWNER",
-  "ADMIN",
-  "BRANCH_MANAGER",
-  "STAFF",
-  "AUDITOR",
+  "system-super-admin",
+  "system-admin",
+  "system-member",
 ]);
 export type StaffRole = z.infer<typeof staffRoleEnum>;
 
 export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
-  ORG_OWNER: "Organization Owner",
-  OPS_DIRECTOR: "Operations Director",
-  ORG_ADMIN: "Organization Admin",
-  GM: "General Manager",
-  STAFF_OPERATOR: "Staff Operator",
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  BRANCH_MANAGER: "Branch Manager",
-  STAFF: "Staff Operator",
-  AUDITOR: "External Auditor",
+  "system-super-admin": "Super Admin",
+  "system-admin": "Admin",
+  "system-member": "Member",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
