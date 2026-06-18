@@ -16,6 +16,7 @@ import {
   InfoCircle,
   Plus,
   Trash,
+  Edit,
 } from "iconoir-react";
 import {
   useOrganizationDetail,
@@ -24,6 +25,11 @@ import {
   useAddOrganizationMember,
   useUpdateOrganizationMember,
   useRemoveOrganizationMember,
+  useOrganizationPermissions,
+  useOrganizationRoles,
+  useCreateOrganizationRole,
+  useUpdateOrganizationRole,
+  useDeleteOrganizationRole,
 } from "@/services/organizations/hooks";
 import {
   useBranches,
@@ -49,7 +55,7 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { ModalShell } from "@/components/ui/modal-shell";
-import type { OrganizationMember } from "@/services/organizations/types";
+import type { OrganizationMember, Role } from "@/services/organizations/types";
 import {
   SYSTEM_ROLE_OPTIONS,
   SYSTEM_ROLE_SLUG,
@@ -992,21 +998,52 @@ function BranchSettings({ orgId }: { orgId?: string }) {
 }
 
 function UserRoleSettings({ orgId }: { orgId?: string }) {
-  const { data: members, isLoading } = useOrganizationMembers(orgId || "");
+  const { data: members, isLoading: membersLoading } = useOrganizationMembers(
+    orgId || "",
+  );
+  const { data: permissions } = useOrganizationPermissions(orgId || "");
+  const { data: roles } = useOrganizationRoles(orgId || "");
   const addMember = useAddOrganizationMember(orgId || "");
   const updateMember = useUpdateOrganizationMember(orgId || "");
   const removeMember = useRemoveOrganizationMember(orgId || "");
+  const createRole = useCreateOrganizationRole(orgId || "");
+  const updateRole = useUpdateOrganizationRole(orgId || "", "");
+  const deleteRole = useDeleteOrganizationRole(orgId || "", "");
+
+  // Members modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newMember, setNewMember] = useState({
     user_email: "",
     custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value as string,
   });
 
+  // Custom roles modal state
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [roleFormMode, setRoleFormMode] = useState<"create" | "edit">("create");
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [roleForm, setRoleForm] = useState({
+    name: "",
+    description: "",
+    slug: "",
+    permission_codes: [] as string[],
+  });
+
+  // Get all available roles for member dropdown (system + custom)
+  const availableRoles = [
+    ...SYSTEM_ROLE_OPTIONS,
+    ...(roles
+      ?.filter((r) => !r.is_system)
+      .map((r) => ({ label: r.name, value: r.slug })) || []),
+  ];
+
   const handleAddMember = () => {
     addMember.mutate(newMember, {
       onSuccess: () => {
         setIsAddModalOpen(false);
-        setNewMember({ user_email: "", custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value });
+        setNewMember({
+          user_email: "",
+          custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value,
+        });
       },
     });
   };
@@ -1018,6 +1055,91 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   const handleRemoveMember = (userId: string) => {
     if (window.confirm("Are you sure you want to remove this member?")) {
       removeMember.mutate(userId);
+    }
+  };
+
+  // Custom role handlers
+  const handleOpenNewRoleModal = () => {
+    setRoleFormMode("create");
+    setEditingRoleId(null);
+    setRoleForm({
+      name: "",
+      description: "",
+      slug: "",
+      permission_codes: [],
+    });
+    setIsRoleModalOpen(true);
+  };
+
+  const handleOpenEditRoleModal = (role: Role) => {
+    setRoleFormMode("edit");
+    setEditingRoleId(role.id);
+    setRoleForm({
+      name: role.name,
+      description: role.description || "",
+      slug: role.slug,
+      permission_codes: role.permission_codes,
+    });
+    setIsRoleModalOpen(true);
+  };
+
+  const handleTogglePermission = (permissionCode: string) => {
+    setRoleForm((prev) => ({
+      ...prev,
+      permission_codes: prev.permission_codes.includes(permissionCode)
+        ? prev.permission_codes.filter((p) => p !== permissionCode)
+        : [...prev.permission_codes, permissionCode],
+    }));
+  };
+
+  const handleSaveRole = () => {
+    if (!roleForm.name.trim()) {
+      toast.error("Role name is required.");
+      return;
+    }
+
+    const payload = {
+      name: roleForm.name,
+      description: roleForm.description || undefined,
+      slug: roleForm.slug || undefined,
+      permission_codes: roleForm.permission_codes,
+    };
+
+    if (roleFormMode === "create") {
+      createRole.mutate(payload, {
+        onSuccess: () => {
+          setIsRoleModalOpen(false);
+          setRoleForm({
+            name: "",
+            description: "",
+            slug: "",
+            permission_codes: [],
+          });
+        },
+      });
+    } else if (editingRoleId) {
+      updateRole.mutate(payload, {
+        onSuccess: () => {
+          setIsRoleModalOpen(false);
+          setRoleForm({
+            name: "",
+            description: "",
+            slug: "",
+            permission_codes: [],
+          });
+          setEditingRoleId(null);
+        },
+      });
+    }
+  };
+
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete the role "${roleName}"? This cannot be undone.`,
+      )
+    ) {
+      deleteRole.mutate();
     }
   };
 
@@ -1048,14 +1170,15 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         header: "Role",
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
-          const currentSlug = member.custom_role_slug ?? SYSTEM_ROLE_OPTIONS[2].value;
+          const currentSlug =
+            member.custom_role_slug ?? SYSTEM_ROLE_OPTIONS[2].value;
           return (
             <select
               value={currentSlug}
               onChange={(e) => handleUpdateRole(member.user, e.target.value)}
               className="bg-[#1C1C1F] text-brand-gold text-[10px] font-semibold border border-brand-gold/20 rounded-md px-2 py-1 outline-none cursor-pointer"
             >
-              {SYSTEM_ROLE_OPTIONS.map((opt) => (
+              {availableRoles.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label.toUpperCase()}
                 </option>
@@ -1114,7 +1237,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     columns,
   });
 
-  if (isLoading) {
+  if (membersLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold" />
@@ -1123,29 +1246,148 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-text-primary">Users & Roles</h2>
-          <p className="text-sm text-text-muted mt-1">
-            Manage team access and role assignments.
-          </p>
+    <div className="space-y-12">
+      {/* Custom Roles Management Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">
+              Custom Roles
+            </h3>
+            <p className="text-sm text-text-muted mt-1">
+              Create and manage custom roles with specific permissions.
+            </p>
+          </div>
+          <Button
+            onClick={handleOpenNewRoleModal}
+            leftIcon={<Plus className="h-4 w-4" />}
+            className="font-semibold px-4"
+          >
+            New Role
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          leftIcon={<Plus className="h-4 w-4" />}
-          className="font-semibold px-4"
-        >
-          Add Member
-        </Button>
+
+        {roles && roles.length > 0 && roles.some((r) => !r.is_system) ? (
+          <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                      Permissions
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roles
+                    .filter((r) => !r.is_system)
+                    .map((role) => (
+                      <tr
+                        key={role.id}
+                        className="border-b border-[#1C1C1F]/50 last:border-0 hover:bg-[#1C1C1F]/20 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-medium text-text-primary">
+                            {role.name}
+                          </p>
+                          <p className="text-xs text-text-muted mt-1">
+                            {role.slug}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-text-secondary">
+                            {role.description || "—"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {role.permission_codes.slice(0, 2).map((code) => (
+                              <span
+                                key={code}
+                                className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-brand-gold border border-brand-gold/20"
+                              >
+                                {code}
+                              </span>
+                            ))}
+                            {role.permission_codes.length > 2 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-text-muted">
+                                +{role.permission_codes.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleOpenEditRoleModal(role)}
+                              className="p-2 text-text-muted hover:text-brand-gold transition-colors"
+                              title="Edit Role"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteRole(role.id, role.name)
+                              }
+                              className="p-2 text-text-muted hover:text-red-500 transition-colors"
+                              title="Delete Role"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-[#1C1C1F] p-8 text-center">
+            <p className="text-sm text-text-muted">No custom roles yet.</p>
+            <p className="text-xs text-text-muted mt-2">
+              Create your first custom role to get started.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
-        <NativeTable
-          table={table}
-          headerClassName="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]"
-          cellClassName="border-b border-[#1C1C1F]/50 last:border-0"
-        />
+      {/* Members Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">
+              Team Members
+            </h3>
+            <p className="text-sm text-text-muted mt-1">
+              Manage team access and role assignments.
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            leftIcon={<Plus className="h-4 w-4" />}
+            className="font-semibold px-4"
+          >
+            Add Member
+          </Button>
+        </div>
+
+        <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
+          <NativeTable
+            table={table}
+            headerClassName="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]"
+            cellClassName="border-b border-[#1C1C1F]/50 last:border-0"
+          />
+        </div>
       </div>
 
       <ModalShell
@@ -1159,14 +1401,18 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             label="User Email"
             type="email"
             value={newMember.user_email}
-            onChange={(e) => setNewMember({ ...newMember, user_email: e.target.value })}
+            onChange={(e) =>
+              setNewMember({ ...newMember, user_email: e.target.value })
+            }
             placeholder="colleague@example.com"
           />
           <Select
             label="Assign Role"
             value={newMember.custom_role_slug}
-            onChange={(val: string) => setNewMember({ ...newMember, custom_role_slug: val })}
-            options={[...SYSTEM_ROLE_OPTIONS]}
+            onChange={(val: string) =>
+              setNewMember({ ...newMember, custom_role_slug: val })
+            }
+            options={availableRoles}
           />
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
@@ -1177,6 +1423,101 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
               disabled={addMember.isPending || !newMember.user_email}
             >
               {addMember.isPending ? "Adding..." : "Add Member"}
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+
+      {/* Custom Role Modal */}
+      <ModalShell
+        open={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        title={
+          roleFormMode === "create" ? "Create Custom Role" : "Edit Custom Role"
+        }
+        description={
+          roleFormMode === "create"
+            ? "Define a new custom role and assign permissions."
+            : "Update the custom role and its permissions."
+        }
+      >
+        <div className="space-y-6 py-4 px-1 max-h-[70vh] overflow-y-auto">
+          <Input
+            label="Role Name"
+            value={roleForm.name}
+            onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+            placeholder="e.g., Branch Manager"
+          />
+          <Input
+            label="Description (optional)"
+            value={roleForm.description}
+            onChange={(e) =>
+              setRoleForm({ ...roleForm, description: e.target.value })
+            }
+            placeholder="e.g., Manages branch operations"
+          />
+          <Input
+            label="Slug (optional)"
+            value={roleForm.slug}
+            onChange={(e) => setRoleForm({ ...roleForm, slug: e.target.value })}
+            placeholder="e.g., branch-manager"
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-3">
+              Permissions
+            </label>
+            <div className="space-y-2 max-h-48 overflow-y-auto bg-[#1C1C1F]/30 rounded-lg p-3 border border-[#1C1C1F]">
+              {permissions && permissions.length > 0 ? (
+                permissions.map((permission) => (
+                  <label
+                    key={permission.code}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-[#1C1C1F]/40 p-2 rounded transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={roleForm.permission_codes.includes(
+                        permission.code,
+                      )}
+                      onChange={() => handleTogglePermission(permission.code)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">
+                        {permission.code}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {permission.label}
+                      </p>
+                    </div>
+                  </label>
+                ))
+              ) : (
+                <p className="text-sm text-text-muted text-center py-4">
+                  No permissions available.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveRole}
+              disabled={
+                (createRole.isPending || updateRole.isPending) &&
+                !roleForm.name.trim()
+              }
+            >
+              {roleFormMode === "create"
+                ? createRole.isPending
+                  ? "Creating..."
+                  : "Create Role"
+                : updateRole.isPending
+                  ? "Updating..."
+                  : "Update Role"}
             </Button>
           </div>
         </div>

@@ -261,14 +261,22 @@ export const organizationFinancialOverviewSchema = z.object({
     total_waste_cost: z.number(),
     waste_rate_pct: z.number(),
     top_items: z.array(
-      z.object({ item_id: z.string(), item_title: z.string(), waste_cost: z.number() }),
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        waste_cost: z.number(),
+      }),
     ),
   }),
   stockout_impact: z.object({
     lost_revenue: z.number(),
     stockout_events: z.number(),
     top_items: z.array(
-      z.object({ item_id: z.string(), item_title: z.string(), lost_revenue: z.number() }),
+      z.object({
+        item_id: z.string(),
+        item_title: z.string(),
+        lost_revenue: z.number(),
+      }),
     ),
     revenue_protected: z.number(),
     lost_revenue_delta_pct: z.number().nullable().optional(),
@@ -307,6 +315,43 @@ export const organizationFinancialOverviewSchema = z.object({
 });
 export type OrganizationFinancialOverview = z.infer<
   typeof organizationFinancialOverviewSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Permission — represents a granular permission in the RBAC system
+// ─────────────────────────────────────────────────────────────────────────────
+export const permissionSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  label: z.string(),
+});
+export type Permission = z.infer<typeof permissionSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Role — represents a collection of permissions, either system or custom
+// ─────────────────────────────────────────────────────────────────────────────
+export const roleSchema = z.object({
+  id: z.string().uuid(),
+  organization: z.string().uuid().nullable().optional(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  is_system: z.boolean(),
+  permission_codes: z.array(z.string()),
+});
+export type Role = z.infer<typeof roleSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Role create/update payload — for creating or modifying roles
+// ─────────────────────────────────────────────────────────────────────────────
+export const roleCreateUpdatePayloadSchema = z.object({
+  name: z.string().min(1, "Role name is required"),
+  description: z.string().optional(),
+  slug: z.string().optional(),
+  permission_codes: z.array(z.string()).optional().default([]),
+});
+export type RoleCreateUpdatePayload = z.infer<
+  typeof roleCreateUpdatePayloadSchema
 >;
 
 export type OrganizationFinancialOverviewQuery = {
