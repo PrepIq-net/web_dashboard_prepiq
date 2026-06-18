@@ -191,15 +191,20 @@ export function useCreateOrganizationRole(id: string) {
   });
 }
 
-export function useUpdateOrganizationRole(id: string, roleId: string) {
+export function useUpdateOrganizationRole(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: RoleCreateUpdatePayload) =>
-      organizationService.updateOrganizationRole(id, roleId, payload),
-    onSuccess: () => {
+    mutationFn: ({
+      roleId,
+      payload,
+    }: {
+      roleId: string;
+      payload: RoleCreateUpdatePayload;
+    }) => organizationService.updateOrganizationRole(id, roleId, payload),
+    onSuccess: (_role) => {
       queryClient.invalidateQueries({ queryKey: organizationKeys.roles(id) });
       queryClient.invalidateQueries({
-        queryKey: organizationKeys.roleDetail(id, roleId),
+        queryKey: organizationKeys.roleDetail(id, _role.id),
       });
       toast.success("Role updated successfully.");
     },
@@ -209,10 +214,11 @@ export function useUpdateOrganizationRole(id: string, roleId: string) {
   });
 }
 
-export function useDeleteOrganizationRole(id: string, roleId: string) {
+export function useDeleteOrganizationRole(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => organizationService.deleteOrganizationRole(id, roleId),
+    mutationFn: (roleId: string) =>
+      organizationService.deleteOrganizationRole(id, roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: organizationKeys.roles(id) });
       toast.success("Role deleted successfully.");

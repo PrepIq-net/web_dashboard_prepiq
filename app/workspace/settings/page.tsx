@@ -1007,8 +1007,8 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   const updateMember = useUpdateOrganizationMember(orgId || "");
   const removeMember = useRemoveOrganizationMember(orgId || "");
   const createRole = useCreateOrganizationRole(orgId || "");
-  const updateRole = useUpdateOrganizationRole(orgId || "", "");
-  const deleteRole = useDeleteOrganizationRole(orgId || "", "");
+  const updateRole = useUpdateOrganizationRole(orgId || "");
+  const deleteRole = useDeleteOrganizationRole(orgId || "");
 
   // Members modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -1118,18 +1118,21 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         },
       });
     } else if (editingRoleId) {
-      updateRole.mutate(payload, {
-        onSuccess: () => {
-          setIsRoleModalOpen(false);
-          setRoleForm({
-            name: "",
-            description: "",
-            slug: "",
-            permission_codes: [],
-          });
-          setEditingRoleId(null);
+      updateRole.mutate(
+        { roleId: editingRoleId, payload },
+        {
+          onSuccess: () => {
+            setIsRoleModalOpen(false);
+            setRoleForm({
+              name: "",
+              description: "",
+              slug: "",
+              permission_codes: [],
+            });
+            setEditingRoleId(null);
+          },
         },
-      });
+      );
     }
   };
 
@@ -1139,7 +1142,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         `Are you sure you want to delete the role "${roleName}"? This cannot be undone.`,
       )
     ) {
-      deleteRole.mutate();
+      deleteRole.mutate(roleId);
     }
   };
 
@@ -1440,6 +1443,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             ? "Define a new custom role and assign permissions."
             : "Update the custom role and its permissions."
         }
+        maxWidthClassName="max-w-3xl"
       >
         <div className="space-y-6 py-4 px-1 max-h-[70vh] overflow-y-auto">
           <Input
@@ -1506,10 +1510,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             </Button>
             <Button
               onClick={handleSaveRole}
-              disabled={
-                (createRole.isPending || updateRole.isPending) &&
-                !roleForm.name.trim()
-              }
+              disabled={createRole.isPending || updateRole.isPending}
             >
               {roleFormMode === "create"
                 ? createRole.isPending
