@@ -36,6 +36,7 @@ import {
   useBranch,
   useUpdateBranch,
 } from "@/services/branches/hooks";
+import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
   useIntegrationsOverview,
   useSquareOAuthStart,
@@ -1027,6 +1028,17 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     slug: "",
     permission_codes: [] as string[],
   });
+  const [isConfirmRoleDeleteOpen, setIsConfirmRoleDeleteOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isConfirmMemberRemoveOpen, setIsConfirmMemberRemoveOpen] =
+    useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{
+    userId: string;
+    label: string;
+  } | null>(null);
 
   // Get all available roles for member dropdown (system + custom)
   const availableRoles = [
@@ -1052,10 +1064,19 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     updateMember.mutate({ userId, custom_role_slug });
   };
 
-  const handleRemoveMember = (userId: string) => {
-    if (window.confirm("Are you sure you want to remove this member?")) {
-      removeMember.mutate(userId);
-    }
+  const handleRemoveMember = (userId: string, label: string) => {
+    setMemberToRemove({ userId, label });
+    setIsConfirmMemberRemoveOpen(true);
+  };
+
+  const handleConfirmRemoveMember = () => {
+    if (!memberToRemove) return;
+    removeMember.mutate(memberToRemove.userId, {
+      onSettled: () => {
+        setMemberToRemove(null);
+        setIsConfirmMemberRemoveOpen(false);
+      },
+    });
   };
 
   // Custom role handlers
@@ -1137,13 +1158,18 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   };
 
   const handleDeleteRole = (roleId: string, roleName: string) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the role "${roleName}"? This cannot be undone.`,
-      )
-    ) {
-      deleteRole.mutate(roleId);
-    }
+    setRoleToDelete({ id: roleId, name: roleName });
+    setIsConfirmRoleDeleteOpen(true);
+  };
+
+  const handleConfirmDeleteRole = () => {
+    if (!roleToDelete) return;
+    deleteRole.mutate(roleToDelete.id, {
+      onSettled: () => {
+        setRoleToDelete(null);
+        setIsConfirmRoleDeleteOpen(false);
+      },
+    });
   };
 
   const columns = useMemo(
@@ -1221,7 +1247,12 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           const member = info.row.original as OrganizationMember;
           return (
             <button
-              onClick={() => handleRemoveMember(member.user)}
+              onClick={() =>
+                handleRemoveMember(
+                  member.user,
+                  `${member.first_name || "User"} ${member.last_name || member.email}`,
+                )
+              }
               className="p-2 text-text-muted hover:text-red-500 transition-colors"
               title="Remove Member"
             >
@@ -1468,34 +1499,55 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           />
 
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-3">
-              Permissions
-            </label>
-            <div className="space-y-2 max-h-48 overflow-y-auto bg-[#1C1C1F]/30 rounded-lg p-3 border border-[#1C1C1F]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <label className="block text-sm font-medium text-text-primary">
+                Permissions
+              </label>
+              <p className="text-sm text-text-muted">
+                {roleForm.permission_codes.length} of {permissions?.length ?? 0}{" "}
+                selected
+              </p>
+            </div>
+            <div className="max-h-72 overflow-y-auto rounded-3xl border border-[#2A2A2E] bg-[#0F0F11] p-3 shadow-inner shadow-black/20">
               {permissions && permissions.length > 0 ? (
-                permissions.map((permission) => (
-                  <label
-                    key={permission.code}
-                    className="flex items-center gap-3 cursor-pointer hover:bg-[#1C1C1F]/40 p-2 rounded transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={roleForm.permission_codes.includes(
-                        permission.code,
-                      )}
-                      onChange={() => handleTogglePermission(permission.code)}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">
-                        {permission.code}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        {permission.label}
-                      </p>
-                    </div>
-                  </label>
-                ))
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {permissions.map((permission) => {
+                    const checked = roleForm.permission_codes.includes(
+                      permission.code,
+                    );
+                    return (
+                      <button
+                        key={permission.code}
+                        type="button"
+                        onClick={() => handleTogglePermission(permission.code)}
+                        className={`w-full text-left rounded-3xl border px-4 py-4 transition-all duration-150 flex items-start gap-3 ${
+                          checked
+                            ? "border-brand-gold bg-[#241F0F] shadow-[0_0_0_1px_rgba(168,130,31,0.35)]"
+                            : "border-[#2A2A2E] bg-[#141418] hover:border-[#A8821F]/70 hover:bg-[#1F1F23]"
+                        }`}
+                        aria-pressed={checked}
+                      >
+                        <span
+                          className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${
+                            checked
+                              ? "border-brand-gold bg-brand-gold text-[#141416]"
+                              : "border-[#3A3A3F] bg-transparent text-text-secondary"
+                          }`}
+                        >
+                          {checked ? "✓" : ""}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-text-primary">
+                            {permission.label}
+                          </p>
+                          <p className="text-xs text-text-muted leading-relaxed">
+                            {permission.code}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
                 <p className="text-sm text-text-muted text-center py-4">
                   No permissions available.
@@ -1523,6 +1575,46 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           </div>
         </div>
       </ModalShell>
+
+      <ConfirmActionModal
+        open={isConfirmRoleDeleteOpen}
+        title={
+          roleToDelete ? `Delete role "${roleToDelete.name}"?` : "Delete role"
+        }
+        description={
+          roleToDelete
+            ? `Deleting "${roleToDelete.name}" cannot be undone. Members assigned to this role will need a new role.`
+            : "This action cannot be undone."
+        }
+        confirmLabel="Delete role"
+        tone="critical"
+        isConfirming={deleteRole.isPending}
+        onClose={() => {
+          setIsConfirmRoleDeleteOpen(false);
+          setRoleToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteRole}
+      />
+
+      <ConfirmActionModal
+        open={isConfirmMemberRemoveOpen}
+        title={
+          memberToRemove ? `Remove ${memberToRemove.label}?` : "Remove member"
+        }
+        description={
+          memberToRemove
+            ? `This will remove ${memberToRemove.label} from the organization and revoke access immediately.`
+            : "This action will remove the member from the organization."
+        }
+        confirmLabel="Remove member"
+        tone="critical"
+        isConfirming={removeMember.isPending}
+        onClose={() => {
+          setIsConfirmMemberRemoveOpen(false);
+          setMemberToRemove(null);
+        }}
+        onConfirm={handleConfirmRemoveMember}
+      />
     </div>
   );
 }
