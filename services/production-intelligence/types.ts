@@ -2045,6 +2045,8 @@ export const historyTimelineEntrySchema = z.object({
   stockout_count: z.number(),
   revenue: z.number(),
   has_snapshot: z.boolean(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historySummarySchema = z.object({
@@ -2056,6 +2058,10 @@ export const historySummarySchema = z.object({
   revenue: z.number(),
   prep_items_planned: z.number(),
   lost_revenue_estimate: z.number(),
+  decision_support_rate: z.number().optional(),
+  estimated_net_impact: z.number().optional(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historyItemRowSchema = z.object({
@@ -2072,11 +2078,18 @@ export const historyItemRowSchema = z.object({
   lost_revenue_estimate: z.number(),
   forecast_qty: z.number(),
   forecast_error: z.number(),
+  decision: z.string().optional(),
 });
 
 export const historyExceptionsSchema = z.object({
   top_waste_items: z.array(historyItemRowSchema),
   top_stockout_items: z.array(historyItemRowSchema),
+});
+
+export const historyPatternSchema = z.object({
+  type: z.string(),
+  message: z.string(),
+  severity: z.enum(["positive", "warning", "critical"]),
 });
 
 export const operationsHistorySnapshotSchema = z.object({
@@ -2088,6 +2101,7 @@ export const operationsHistorySnapshotSchema = z.object({
   summary: historySummarySchema.nullable(),
   items: z.array(historyItemRowSchema),
   exceptions: historyExceptionsSchema,
+  patterns: z.array(historyPatternSchema).optional(),
   data_note: z.string().nullable().optional(),
 });
 
