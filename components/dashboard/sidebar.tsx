@@ -207,8 +207,6 @@ function SidebarLink({
   active: boolean;
   collapsed: boolean;
 }) {
-  const isCommand = item.label === "Command";
-
   return (
     <Link
       href={item.href}
@@ -220,9 +218,7 @@ function SidebarLink({
         ${
           active
             ? "bg-[#1C1C1F] text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
-            : isCommand
-              ? "text-[#CFA23A] hover:bg-[#1C1C1F]/60 hover:text-[#F3C865]"
-              : "text-text-secondary hover:bg-[#1C1C1F]/60 hover:text-text-primary"
+            : "text-text-secondary hover:bg-[#1C1C1F]/60 hover:text-text-primary"
         }`}
     >
       {active && (
@@ -233,9 +229,7 @@ function SidebarLink({
           ${
             active
               ? "bg-[#232327] text-brand-gold"
-              : isCommand
-                ? "bg-[#1C1C1F] text-[#CFA23A] shadow-[0_0_10px_rgba(168,130,31,0.12)]"
-                : "bg-[#1C1C1F] text-text-muted group-hover:text-text-secondary"
+              : "bg-[#1C1C1F] text-text-muted group-hover:text-text-secondary"
           }`}
       >
         {item.icon}
