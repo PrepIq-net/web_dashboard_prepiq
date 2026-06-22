@@ -181,10 +181,10 @@ export async function getPrepBatches(branchId: string) {
 // SERVICE FUNCTIONS - INGREDIENT DEMAND
 // ============================================================================
 
-export async function calculateIngredientDemand(branchId: string, date: string) {
+export async function calculateIngredientDemand(branchId: string, date: string, productId?: string) {
   return apiClientWithSchema(
     inventoryEndpoints.demand.calculate,
     ingredientDemandSchema,
-    { method: "POST", body: { branch_id: branchId, date } }
+    { method: "POST", body: { branch_id: branchId, date, ...(productId ? { product_id: productId } : {}) } }
   );
 }

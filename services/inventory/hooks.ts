@@ -198,8 +198,8 @@ export function usePrepBatches(branchId: string, enabled = true) {
 // HOOKS - INGREDIENT DEMAND
 // ============================================================================
 
-export function useIngredientDemand(branchId: string, date: string, enabled = true) {
+export function useIngredientDemand(branchId: string, date: string, productId?: string) {
   return useMutation({
-    mutationFn: () => calculateIngredientDemand(branchId, date),
+    mutationFn: () => calculateIngredientDemand(branchId, date, productId),
   });
 }

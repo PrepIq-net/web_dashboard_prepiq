@@ -45,6 +45,7 @@ import {
   updateRealTimeVelocity,
   updateBranchDayStatus,
   updatePrepPlanItem,
+  updateBranchDayNotes,
   updateStaffShiftChecklist,
   type AccessScopeQuery,
   type BranchDayTodayQuery,
@@ -67,6 +68,8 @@ import {
   type RiskSnapshotQuery,
   type OperationsHistoryQuery,
   type SalesWasteReportQuery,
+  type ItemHistoryQuery,
+  getItemHistory,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
   type ForecastConfidenceQuery,
@@ -235,6 +238,14 @@ export const productionIntelligenceQueryKeys = {
       params.target_date ?? "",
       params.window_days ?? "",
     ] as const,
+  itemHistory: (itemId: string, params: ItemHistoryQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "item-history",
+      itemId,
+      params.branch_id ?? "",
+      params.days ?? "",
+    ] as const,
   salesWasteReport: (params: SalesWasteReportQuery) =>
     [
       ...productionIntelligenceQueryKeys.root,
@@ -366,6 +377,16 @@ export function useUpdateBranchDayStatus() {
         }),
       });
     },
+  });
+}
+
+export function useUpdateBranchDayNotes() {
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      ...payload
+    }: { branchDayId: string; notes?: string; reaction?: string }) =>
+      updateBranchDayNotes(branchDayId, payload),
   });
 }
 
@@ -653,6 +674,14 @@ export function useOperationsHistorySnapshot(params: OperationsHistoryQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsHistory(params),
     queryFn: () => getOperationsHistorySnapshot(params),
     enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useItemHistory(itemId: string, params: ItemHistoryQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.itemHistory(itemId, params),
+    queryFn: () => getItemHistory(itemId, params),
+    enabled: Boolean(itemId && params.branch_id),
   });
 }
 

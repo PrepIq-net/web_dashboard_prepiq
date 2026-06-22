@@ -432,6 +432,12 @@ function RecipesTab({
                             <EditPencil className="h-4 w-4" />
                           </button>
                           <Link
+                            href={`/workspace/items/${item.id}?branch=${branchId}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
+                          >
+                            Track record
+                          </Link>
+                          <Link
                             href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
                           >

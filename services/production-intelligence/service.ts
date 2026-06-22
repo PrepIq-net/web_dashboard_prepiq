@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiClientWithSchema } from "@/lib/api/client";
+import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
   branchDayInitializePayloadSchema,
@@ -84,6 +84,8 @@ import {
   type VelocityUpdatePayload,
   type RiskSnapshot,
   type OperationsHistorySnapshot,
+  itemHistorySchema,
+  type ItemHistory,
 } from "@/services/production-intelligence/types";
 
 export type {
@@ -182,6 +184,19 @@ export async function getOperationsHistorySnapshot(
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.operationsHistory(), params),
     operationsHistorySnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export type ItemHistoryQuery = {
+  branch_id?: string;
+  days?: number;
+};
+
+export async function getItemHistory(itemId: string, params: ItemHistoryQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.itemHistory(itemId), params),
+    itemHistorySchema,
     { method: "GET" },
   );
 }
@@ -395,6 +410,16 @@ export async function updateBranchDayStatus(
       body,
     },
   );
+}
+
+export async function updateBranchDayNotes(
+  branchDayId: string,
+  payload: { notes?: string; reaction?: string },
+) {
+  return apiClient(productionIntelligenceEndpoints.branchDayNotes(branchDayId), {
+    method: "PATCH",
+    body: payload,
+  });
 }
 
 export async function lockBranchDayPlan(

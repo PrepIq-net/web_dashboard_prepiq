@@ -62,7 +62,7 @@ export const prepPlanItemSchema = z.object({
     predicted_quantity_needed: z.number(),
     confidence_score: z.number(),
     demand_trend: z.enum(["up", "down", "neutral"]).optional(),
-    risk: z.enum(["low", "medium", "high"]).optional(),
+    risk: z.string().optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
     risk_of_stockout: z.number(),
@@ -681,6 +681,8 @@ export const branchDayTodaySchema = z.object({
       }),
     )
     .optional(),
+  session_notes: z.string().optional(),
+  day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -2043,6 +2045,8 @@ export const historyTimelineEntrySchema = z.object({
   stockout_count: z.number(),
   revenue: z.number(),
   has_snapshot: z.boolean(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historySummarySchema = z.object({
@@ -2054,6 +2058,10 @@ export const historySummarySchema = z.object({
   revenue: z.number(),
   prep_items_planned: z.number(),
   lost_revenue_estimate: z.number(),
+  decision_support_rate: z.number().optional(),
+  estimated_net_impact: z.number().optional(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historyItemRowSchema = z.object({
@@ -2070,11 +2078,18 @@ export const historyItemRowSchema = z.object({
   lost_revenue_estimate: z.number(),
   forecast_qty: z.number(),
   forecast_error: z.number(),
+  decision: z.string().optional(),
 });
 
 export const historyExceptionsSchema = z.object({
   top_waste_items: z.array(historyItemRowSchema),
   top_stockout_items: z.array(historyItemRowSchema),
+});
+
+export const historyPatternSchema = z.object({
+  type: z.string(),
+  message: z.string(),
+  severity: z.enum(["positive", "warning", "critical"]),
 });
 
 export const operationsHistorySnapshotSchema = z.object({
@@ -2086,12 +2101,60 @@ export const operationsHistorySnapshotSchema = z.object({
   summary: historySummarySchema.nullable(),
   items: z.array(historyItemRowSchema),
   exceptions: historyExceptionsSchema,
+  patterns: z.array(historyPatternSchema).optional(),
   data_note: z.string().nullable().optional(),
 });
 
 export type OperationsHistorySnapshot = z.infer<
   typeof operationsHistorySnapshotSchema
 >;
+
+export const itemTimeSeriesRowSchema = z.object({
+  date: z.string(),
+  ai_forecast: z.number(),
+  planned_qty: z.number(),
+  actual_sales: z.number(),
+  waste_qty: z.number(),
+  waste_cost: z.number(),
+  revenue: z.number(),
+  lost_revenue_estimate: z.number(),
+  stockout_flag: z.boolean(),
+  decision: z.string().optional(),
+});
+
+export const itemHistorySummarySchema = z.object({
+  total_revenue: z.number(),
+  total_waste_cost: z.number(),
+  total_lost_revenue: z.number(),
+  avg_accuracy: z.number(),
+  stockout_days: z.number(),
+  days_tracked: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemAiInsightsSchema = z.object({
+  accuracy_trend: z.enum(["improving", "stable", "declining"]),
+  accuracy_14d: z.number(),
+  accuracy_prior_14d: z.number(),
+  avg_error_pct: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemHistorySchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  unit: z.string(),
+  days: z.number(),
+  summary: itemHistorySummarySchema.nullable(),
+  ai_insights: itemAiInsightsSchema.nullable(),
+  time_series: z.array(itemTimeSeriesRowSchema),
+  data_note: z.string().nullable().optional(),
+});
+
+export type ItemHistory = z.infer<typeof itemHistorySchema>;
+export type ItemTimeSeriesRow = z.infer<typeof itemTimeSeriesRowSchema>;
 
 export type IntegrationsSyncRetryQuery = {
   branch_id: string;
