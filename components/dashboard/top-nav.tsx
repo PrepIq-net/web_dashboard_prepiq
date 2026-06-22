@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, memo } from "react";
-import { Bell, LogOut, NavArrowDown, Search, User } from "iconoir-react";
+import { Bell, LogOut, NavArrowDown, Search, ProfileCircle, Settings } from "iconoir-react";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
@@ -215,35 +215,57 @@ const TopNavComponent = memo(function DashboardTopNav() {
             </button>
 
             {avatarMenuOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-[260px] rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-                <div className="border-b border-[#2A2A2E] pb-3">
-                  <p className="text-[13px] font-medium text-[#F5F5F7]">
-                    {user?.first_name} {user?.last_name}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-[#8E8E93]">
-                    {user?.email}
-                  </p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[#A8821F]">
-                    {user?.organization_role ?? "Member"}
-                  </p>
+              <div className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+                {/* Identity header */}
+                <div className="flex items-center gap-3 px-4 py-4 border-b border-[#2A2A2E]">
+                  <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-brand-gold/15 text-brand-gold font-semibold text-[13px] select-none">
+                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[#F5F5F7]">
+                      {user?.first_name} {user?.last_name}
+                    </p>
+                    <p className="truncate text-[11px] text-[#8E8E93] mt-0.5">
+                      {user?.email}
+                    </p>
+                    {user?.organization_role && (
+                      <span className="mt-1.5 inline-block rounded-md bg-brand-gold/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-brand-gold">
+                        {user.organization_role}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-3 space-y-1">
+
+                {/* Actions */}
+                <div className="p-2">
+                  <Link
+                    href="/workspace/profile"
+                    onClick={() => setAvatarMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] transition-colors"
+                  >
+                    <ProfileCircle className="h-4 w-4 shrink-0 text-[#8E8E93]" />
+                    <span>My Profile</span>
+                  </Link>
                   <Link
                     href="/workspace/settings"
-                    className="flex items-center gap-2 rounded-[8px] px-2 py-2 text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7]"
                     onClick={() => setAvatarMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] transition-colors"
                   >
-                    <User className="h-4 w-4" />
-                    Profile & Settings
+                    <Settings className="h-4 w-4 shrink-0 text-[#8E8E93]" />
+                    <span>Workspace Settings</span>
                   </Link>
+                </div>
+
+                {/* Sign out — separated */}
+                <div className="border-t border-[#2A2A2E] p-2">
                   <button
                     type="button"
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
-                    className="w-full rounded-[8px] px-2 py-2 text-left text-[12px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] inline-flex items-center gap-2"
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#C44949] transition-colors"
                   >
-                    <LogOut className="h-4 w-4" />
-                    {logoutMutation.isPending ? "Signing out..." : "Sign out"}
+                    <LogOut className="h-4 w-4 shrink-0" />
+                    <span>{logoutMutation.isPending ? "Signing out…" : "Sign out"}</span>
                   </button>
                 </div>
               </div>

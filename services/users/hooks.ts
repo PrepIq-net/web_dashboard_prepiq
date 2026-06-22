@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  changePassword,
   deleteAccount,
   forgotPassword,
   getAuthSessionState,
@@ -26,6 +27,7 @@ import {
   verifyOtp,
 } from "@/services/users/service";
 import type {
+  ChangePasswordPayload,
   DeleteAccountPayload,
   EmailPayload,
   GoogleLoginPayload,
@@ -212,6 +214,12 @@ export function useUploadUserPhoto() {
 export function useUploadUserDocument() {
   return useMutation({
     mutationFn: (verificationDocument: File) => uploadUserDocument(verificationDocument),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (payload: ChangePasswordPayload) => changePassword(payload),
   });
 }
 

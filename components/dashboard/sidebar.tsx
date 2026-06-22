@@ -21,7 +21,6 @@ import {
   Package,
   StatsReport,
   Group,
-  ProfileCircle,
 } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { PERMISSIONS } from "@/services/organizations/types";
@@ -157,11 +156,6 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/workspace/settings",
         icon: <Settings className="h-4 w-4" />,
         // Settings page internally filters tabs by role
-      },
-      {
-        label: "My Profile",
-        href: "/workspace/profile",
-        icon: <ProfileCircle className="h-4 w-4" />,
       },
     ],
   },

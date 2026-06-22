@@ -4,6 +4,8 @@ import { usersEndpoints } from "@/services/users/endpoints";
 import {
   apiMessageResponseSchema,
   comprehensiveUserSchema,
+  changePasswordPayloadSchema,
+  type ChangePasswordPayload,
   deleteAccountPayloadSchema,
   emailPayloadSchema,
   googleLoginPayloadSchema,
@@ -284,6 +286,15 @@ export async function uploadUserDocument(verificationDocument: File) {
       method: "POST",
       body: formData,
     },
+  );
+}
+
+export async function changePassword(payload: ChangePasswordPayload) {
+  const body = changePasswordPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    usersEndpoints.profile.changePassword,
+    apiMessageResponseSchema,
+    { method: "POST", body },
   );
 }
 

@@ -155,6 +155,11 @@ export const photoUploadResponseSchema = z.object({
   photo_url: z.string().nullable(),
 });
 
+export const changePasswordPayloadSchema = z.object({
+  current_password: z.string().min(1),
+  new_password: z.string().min(8),
+});
+
 export const deleteAccountPayloadSchema = z.object({
   reason_choice: z.enum(["PRIVACY", "NOT_USEFUL", "TOO_COMPLICATED", "OTHER"]),
   reason_details: z.string().max(500).optional(),
@@ -243,6 +248,7 @@ export type UpdateLocationDeprecatedResponse = z.infer<
 >;
 export type PhotoUploadResponse = z.infer<typeof photoUploadResponseSchema>;
 
+export type ChangePasswordPayload = z.infer<typeof changePasswordPayloadSchema>;
 export type DeleteAccountPayload = z.infer<typeof deleteAccountPayloadSchema>;
 
 export type UserRoleInfo = z.infer<typeof userRoleInfoSchema>;
