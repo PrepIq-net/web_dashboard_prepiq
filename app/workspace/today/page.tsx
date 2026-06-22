@@ -259,9 +259,7 @@ function TodayWorkspacePageContent() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const role = user?.organization_role ?? "";
-  const canAccess =
-    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
+  const canAccess = Boolean(user?.has_organization);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;

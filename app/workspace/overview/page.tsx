@@ -12,6 +12,7 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
+import { isOrgMember } from "@/lib/role-utils";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -105,8 +106,7 @@ export default function WorkspaceOverviewPage() {
   }, [branchId, defaultBranch?.id]);
 
   const role = user?.organization_role ?? "";
-  const canAccess =
-    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
+  const canAccess = isOrgMember(role);
   useEffect(() => {
     if (!userLoading && !canAccess) {
       router.replace("/");
