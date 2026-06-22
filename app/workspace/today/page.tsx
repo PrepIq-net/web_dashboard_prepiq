@@ -119,6 +119,41 @@ function velocityStatusTone(status?: string) {
   return "text-status-success";
 }
 
+const REACTION_MESSAGES: Record<string, string[]> = {
+  FIRED_UP: [
+    "That energy runs the whole team. Great shift.",
+    "This is the kind of day that builds momentum.",
+    "The kitchen felt it. Good work.",
+    "You showed up and it showed.",
+    "Days like this are what it is all for.",
+    "That was a real service. Well done.",
+  ],
+  GOOD: [
+    "Solid. Rest up, you earned it.",
+    "Not every day needs to be epic. This one worked.",
+    "Consistent work. The best kind.",
+    "Good work. Go rest.",
+    "A good day is a good day. Take that.",
+    "Steady and solid. Nice work.",
+  ],
+  MEH: [
+    "Not every service hits. Tomorrow is fresh.",
+    "Steady counts too. You were there.",
+    "Some days just drift through. That is fine.",
+    "You ran the shift. That is what matters.",
+    "Even flat days teach the model something.",
+    "Not everything needs to be great. You showed up.",
+  ],
+  ROUGH: [
+    "Rough ones pass. You got through it.",
+    "Hard services are the ones that build you.",
+    "Take care of yourself tonight.",
+    "You showed up on a hard day. That is not nothing.",
+    "Some days push back. You kept going.",
+    "It was a tough shift. Rest now.",
+  ],
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -360,6 +395,9 @@ function TodayWorkspacePageContent() {
   const [dayNote, setDayNote] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
   const [dayReaction, setDayReaction] = useState<"FIRED_UP" | "GOOD" | "MEH" | "ROUGH" | "">("");
+  const [ackMessage, setAckMessage] = useState("");
+  const [ackVisible, setAckVisible] = useState(false);
+  const [ackPending, setAckPending] = useState(false);
 
   const toggleItemExpand = (id: string) => {
     setExpandedItemIds((prev) => {
@@ -3172,12 +3210,6 @@ function TodayWorkspacePageContent() {
                     { value: "MEH",      emoji: "😐", label: "Meh" },
                     { value: "ROUGH",    emoji: "😮‍💨", label: "Rough one" },
                   ];
-                  const ack: Record<string, string> = {
-                    FIRED_UP: "That energy is everything. Great shift.",
-                    GOOD:     "Solid work. Rest up.",
-                    MEH:      "Steady is good too. Rest up.",
-                    ROUGH:    "Tough days pass. You showed up — that matters.",
-                  };
                   return (
                     <div>
                       <p className="text-sm font-semibold text-text-primary">
@@ -3197,11 +3229,25 @@ function TodayWorkspacePageContent() {
                               onClick={() => {
                                 const next = isActive ? "" : r.value;
                                 setDayReaction(next as typeof dayReaction);
+                                setAckVisible(false);
+                                setAckMessage("");
                                 if (!branchDay.id) return;
                                 updateBranchDayNotesMutation.mutate({
                                   branchDayId: branchDay.id,
                                   reaction: next,
                                 });
+                                if (next) {
+                                  const pool = REACTION_MESSAGES[next] ?? [];
+                                  const msg = pool[Math.floor(Math.random() * pool.length)] ?? "";
+                                  setAckPending(true);
+                                  setTimeout(() => {
+                                    setAckMessage(msg);
+                                    setAckPending(false);
+                                    setAckVisible(true);
+                                  }, 400 + Math.random() * 900);
+                                } else {
+                                  setAckPending(false);
+                                }
                               }}
                               className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 transition-all ${
                                 isActive
@@ -3217,9 +3263,16 @@ function TodayWorkspacePageContent() {
                           );
                         })}
                       </div>
-                      {activeReaction && (
-                        <p className="mt-3 text-sm text-text-secondary">
-                          {ack[activeReaction]}
+                      {ackPending && (
+                        <div className="mt-3 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:0ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:150ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:300ms]" />
+                        </div>
+                      )}
+                      {ackVisible && ackMessage && (
+                        <p className="mt-3 text-sm text-text-secondary animate-in fade-in slide-in-from-bottom-1 duration-300">
+                          {ackMessage}
                         </p>
                       )}
                     </div>
