@@ -49,6 +49,8 @@ export const PERMISSIONS = {
   MANAGE_ORG_SETTINGS: "MANAGE_ORG_SETTINGS",
   MANAGE_BILLING: "MANAGE_BILLING",
   MANAGE_BRANCHES: "MANAGE_BRANCHES",
+  VIEW_ALL_BRANCHES: "VIEW_ALL_BRANCHES",
+  ASSIGN_BRANCH_MANAGERS: "ASSIGN_BRANCH_MANAGERS",
   MANAGE_TEAM: "MANAGE_TEAM",
   VIEW_AUDIT_LOG: "VIEW_AUDIT_LOG",
   // Production & forecasting
@@ -64,6 +66,7 @@ export const PERMISSIONS = {
   ADJUST_INVENTORY: "ADJUST_INVENTORY",
   // Financial & reporting
   VIEW_FINANCIAL_DATA: "VIEW_FINANCIAL_DATA",
+  VIEW_ANALYTICS: "VIEW_ANALYTICS",
   VIEW_ESG_METRICS: "VIEW_ESG_METRICS",
   DOWNLOAD_REPORTS: "DOWNLOAD_REPORTS",
   VIEW_COMPLIANCE: "VIEW_COMPLIANCE",
@@ -85,6 +88,8 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   MANAGE_ORG_SETTINGS: "Manage Organization Settings",
   MANAGE_BILLING: "Manage Billing & Subscriptions",
   MANAGE_BRANCHES: "Manage Branches",
+  VIEW_ALL_BRANCHES: "View All Branches (Network)",
+  ASSIGN_BRANCH_MANAGERS: "Assign Branch Managers",
   MANAGE_TEAM: "Manage Team Members",
   VIEW_AUDIT_LOG: "View Audit Log",
   VIEW_FORECASTS: "View Forecasts",
@@ -97,6 +102,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   MANAGE_INVENTORY: "Manage Inventory",
   ADJUST_INVENTORY: "Adjust Inventory Quantities",
   VIEW_FINANCIAL_DATA: "View Financial Data",
+  VIEW_ANALYTICS: "View Analytics",
   VIEW_ESG_METRICS: "View ESG Metrics",
   DOWNLOAD_REPORTS: "Download Reports",
   VIEW_COMPLIANCE: "View Compliance Dashboards",
