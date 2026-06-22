@@ -56,6 +56,8 @@ export const productionIntelligenceEndpoints = {
   operationsRisk: () => `${BASE}/production-intelligence/operations/risk/`,
   operationsHistory: () =>
     `${BASE}/production-intelligence/operations/history/`,
+  itemHistory: (itemId: string) =>
+    `${BASE}/production-intelligence/items/${itemId}/history/`,
   operationsSurplus: () =>
     `${BASE}/production-intelligence/operations/surplus/`,
   operationsLiveSignals: () =>

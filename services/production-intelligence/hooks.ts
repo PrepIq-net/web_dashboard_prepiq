@@ -68,6 +68,8 @@ import {
   type RiskSnapshotQuery,
   type OperationsHistoryQuery,
   type SalesWasteReportQuery,
+  type ItemHistoryQuery,
+  getItemHistory,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
   type ForecastConfidenceQuery,
@@ -235,6 +237,14 @@ export const productionIntelligenceQueryKeys = {
       params.branch_id ?? "",
       params.target_date ?? "",
       params.window_days ?? "",
+    ] as const,
+  itemHistory: (itemId: string, params: ItemHistoryQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "item-history",
+      itemId,
+      params.branch_id ?? "",
+      params.days ?? "",
     ] as const,
   salesWasteReport: (params: SalesWasteReportQuery) =>
     [
@@ -664,6 +674,14 @@ export function useOperationsHistorySnapshot(params: OperationsHistoryQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsHistory(params),
     queryFn: () => getOperationsHistorySnapshot(params),
     enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useItemHistory(itemId: string, params: ItemHistoryQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.itemHistory(itemId, params),
+    queryFn: () => getItemHistory(itemId, params),
+    enabled: Boolean(itemId && params.branch_id),
   });
 }
 

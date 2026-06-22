@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
@@ -206,10 +207,10 @@ function HistoryContent() {
           </div>
         </div>
         {chronoTimeline.length ? (
-          <div className="flex items-end gap-1 overflow-x-auto pb-1">
+          <div className="flex items-end gap-0.5 overflow-x-auto pb-1">
             {chronoTimeline.map((day) => {
               const isActive = day.date === selectedDate;
-              const barHeight = Math.max(6, Math.round((day.forecast_accuracy / 100) * 72));
+              const barHeight = Math.max(4, Math.round((day.forecast_accuracy / 100) * 64));
               const barColor = isActive
                 ? "bg-brand-gold"
                 : day.stockout_count > 0
@@ -218,25 +219,34 @@ function HistoryContent() {
                     ? "bg-status-warning/60 hover:bg-status-warning/80"
                     : "bg-status-success/50 hover:bg-status-success/70";
               const reaction = day.day_reaction ? REACTION_DISPLAY[day.day_reaction] : null;
+              const weekday = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" });
               return (
                 <button
                   key={day.date}
                   type="button"
                   title={`${formatShortDate(day.date)} · ${day.forecast_accuracy.toFixed(0)}% accuracy${day.stockout_count ? ` · ${day.stockout_count} stockout` : ""}`}
                   onClick={() => setSelectedDate(day.date)}
-                  className="group flex min-w-8 flex-col items-center gap-1"
+                  className="group flex w-8 shrink-0 flex-col items-center"
                 >
-                  <div className="flex w-full flex-col items-center justify-end" style={{ height: 80 }}>
-                    {reaction && (
-                      <span className="text-[9px] opacity-0 group-hover:opacity-100 transition-opacity">{reaction.emoji}</span>
-                    )}
+                  {/* Emoji slot — fixed height so bars never shift */}
+                  <span
+                    aria-hidden="true"
+                    className={`block h-4 text-center text-[9px] leading-4 transition-opacity duration-150 ${reaction ? "opacity-0 group-hover:opacity-100" : "invisible"}`}
+                  >
+                    {reaction?.emoji ?? "·"}
+                  </span>
+                  {/* Bar column — fixed 72px height, bar grows from bottom */}
+                  <div className="flex h-18 w-full items-end justify-center">
                     <div
-                      className={`w-5 rounded-t-sm transition-all ${barColor} ${isActive ? "ring-2 ring-brand-gold ring-offset-1 ring-offset-surface-2" : ""}`}
                       style={{ height: barHeight }}
+                      className={`w-4 rounded-t-sm transition-colors ${barColor}`}
                     />
                   </div>
-                  <p className={`text-[9px] ${isActive ? "text-brand-gold font-semibold" : "text-text-muted"}`}>
-                    {new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })}
+                  {/* Selection dot */}
+                  <div className={`mt-0.5 h-1 w-1 rounded-full transition-colors ${isActive ? "bg-brand-gold" : "bg-transparent"}`} />
+                  {/* Label */}
+                  <p className={`mt-0.5 text-[9px] transition-colors ${isActive ? "font-semibold text-brand-gold" : "text-text-muted"}`}>
+                    {weekday}
                   </p>
                 </button>
               );
@@ -384,9 +394,12 @@ function HistoryContent() {
                   return (
                     <div key={item.item_id} className="flex items-center gap-4 px-5 py-3">
                       <span className={`shrink-0 w-5 text-center font-semibold ${outcome.cls}`}>{outcome.icon}</span>
-                      <p className="flex-1 min-w-0 text-sm font-medium text-text-primary truncate">
+                      <Link
+                        href={`/workspace/items/${item.item_id}?branch=${selectedBranchId}`}
+                        className="flex-1 min-w-0 text-sm font-medium text-text-primary truncate hover:text-brand-gold transition-colors"
+                      >
                         {item.item_title ?? "Unknown"}
-                      </p>
+                      </Link>
                       <div className="shrink-0 text-right">
                         <p className="text-xs text-text-muted">
                           {fmtQty(item.actual_sales, item.unit)} sold
@@ -424,7 +437,7 @@ function HistoryContent() {
                     :                          { label: "About even",          cls: "text-text-muted" };
                   return (
                     <div key={item.item_id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3">
-                      <p className="min-w-35 text-sm font-medium text-text-primary">{item.item_title ?? "—"}</p>
+                      <Link href={`/workspace/items/${item.item_id}?branch=${selectedBranchId}`} className="min-w-35 text-sm font-medium text-text-primary hover:text-brand-gold transition-colors">{item.item_title ?? "—"}</Link>
                       <div className="flex items-center gap-2 text-xs text-text-muted">
                         <span>AI: <span className="font-medium text-text-secondary">{fmtQty(aiQty, item.unit)}</span></span>
                         <span>→</span>

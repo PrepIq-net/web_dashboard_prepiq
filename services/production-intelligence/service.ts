@@ -84,6 +84,8 @@ import {
   type VelocityUpdatePayload,
   type RiskSnapshot,
   type OperationsHistorySnapshot,
+  itemHistorySchema,
+  type ItemHistory,
 } from "@/services/production-intelligence/types";
 
 export type {
@@ -182,6 +184,19 @@ export async function getOperationsHistorySnapshot(
   return apiClientWithSchema(
     withQuery(productionIntelligenceEndpoints.operationsHistory(), params),
     operationsHistorySnapshotSchema,
+    { method: "GET" },
+  );
+}
+
+export type ItemHistoryQuery = {
+  branch_id?: string;
+  days?: number;
+};
+
+export async function getItemHistory(itemId: string, params: ItemHistoryQuery) {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.itemHistory(itemId), params),
+    itemHistorySchema,
     { method: "GET" },
   );
 }

@@ -2050,6 +2050,12 @@ function TodayWorkspacePageContent() {
                         >
                           Deep dive ↗
                         </Link>
+                        <Link
+                          href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
+                          className="text-[11px] font-medium text-text-muted hover:text-brand-gold transition-colors"
+                        >
+                          Track record ↗
+                        </Link>
                       </div>
                     </div>
 
@@ -2315,6 +2321,12 @@ function TodayWorkspacePageContent() {
                                 className="text-[11px] font-medium text-brand-gold/70 transition-colors hover:text-brand-gold"
                               >
                                 Deep dive ↗
+                              </Link>
+                              <Link
+                                href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
+                                className="text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
+                              >
+                                Track record ↗
                               </Link>
                             </div>
                           </td>
@@ -3069,7 +3081,7 @@ function TodayWorkspacePageContent() {
                         <div key={row.item_id} className="flex items-center gap-4 px-5 py-3.5">
                           <span className={`shrink-0 w-5 text-center text-base ${outcome.cls}`}>{outcome.icon}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-text-primary">{row.item_title}</p>
+                            <Link href={`/workspace/items/${row.item_id}?branch=${safeBranchId}`} className="text-sm font-medium text-text-primary hover:text-brand-gold transition-colors">{row.item_title}</Link>
                             {outcome.sub && (
                               <p className="mt-0.5 text-xs text-text-muted">{outcome.sub}</p>
                             )}

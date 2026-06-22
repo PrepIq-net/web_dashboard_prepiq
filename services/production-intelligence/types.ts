@@ -2109,6 +2109,53 @@ export type OperationsHistorySnapshot = z.infer<
   typeof operationsHistorySnapshotSchema
 >;
 
+export const itemTimeSeriesRowSchema = z.object({
+  date: z.string(),
+  ai_forecast: z.number(),
+  planned_qty: z.number(),
+  actual_sales: z.number(),
+  waste_qty: z.number(),
+  waste_cost: z.number(),
+  revenue: z.number(),
+  lost_revenue_estimate: z.number(),
+  stockout_flag: z.boolean(),
+  decision: z.string().optional(),
+});
+
+export const itemHistorySummarySchema = z.object({
+  total_revenue: z.number(),
+  total_waste_cost: z.number(),
+  total_lost_revenue: z.number(),
+  avg_accuracy: z.number(),
+  stockout_days: z.number(),
+  days_tracked: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemAiInsightsSchema = z.object({
+  accuracy_trend: z.enum(["improving", "stable", "declining"]),
+  accuracy_14d: z.number(),
+  accuracy_prior_14d: z.number(),
+  avg_error_pct: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemHistorySchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  unit: z.string(),
+  days: z.number(),
+  summary: itemHistorySummarySchema.nullable(),
+  ai_insights: itemAiInsightsSchema.nullable(),
+  time_series: z.array(itemTimeSeriesRowSchema),
+  data_note: z.string().nullable().optional(),
+});
+
+export type ItemHistory = z.infer<typeof itemHistorySchema>;
+export type ItemTimeSeriesRow = z.infer<typeof itemTimeSeriesRowSchema>;
+
 export type IntegrationsSyncRetryQuery = {
   branch_id: string;
   connection_id?: string;
