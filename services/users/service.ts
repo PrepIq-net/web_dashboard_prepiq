@@ -267,7 +267,7 @@ export async function uploadUserPhoto(photo: File) {
 
   return apiClientWithSchema(
     usersEndpoints.profile.uploadPhoto,
-    photoUploadResponseSchema,
+    apiMessageResponseSchema,
     {
       method: "POST",
       body: formData,

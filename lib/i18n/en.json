@@ -89,7 +89,29 @@
     "settingUp": "Setting up",
     "loginSubtitle": "Please enter your details to sign in.",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "verifyEmailTitle": "Verify Email.",
+    "verifyCodeSentTo": "Enter the 6-digit code sent to {email}.",
+    "yourEmail": "your email",
+    "verifying": "Verifying...",
+    "verifyEmailButton": "Verify Email",
+    "didntReceive": "Didn't receive a code?",
+    "resendOtp": "Resend OTP",
+    "resendIn": "Resend in {count}s",
+    "resending": "Resending...",
+    "wrongEmail": "Wrong email?",
+    "createNewAccount": "Create new account",
+    "firstNamePlaceholder": "e.g. Marcus",
+    "lastNamePlaceholder": "e.g. Holloway",
+    "createAccountButton": "Create Account",
+    "accountCreated": "Account created. Please verify your email.",
+    "accountNotVerified": "Account not verified.",
+    "missingEmailContext": "Missing email context. Please register again.",
+    "enterAllDigits": "Enter all 6 digits.",
+    "otpResent": "A new OTP has been sent.",
+    "resendFailed": "Failed to resend OTP.",
+    "otpVerificationFailed": "OTP verification failed.",
+    "networkError": "Network error. Please try again."
   },
   "dashboard": {
     "sidebar": {
@@ -122,7 +144,14 @@
       "markAllRead": "Mark all read",
       "noNotifications": "No new notifications.",
       "notificationEmptyDetail": "You will see forecast, supplier, and compliance alerts here.",
-      "profileSettings": "Profile & Settings"
+      "profileSettings": "Profile & Settings",
+      "myProfile": "My Profile",
+      "workspaceSettings": "Workspace Settings",
+      "signOut": "Sign out",
+      "signingOut": "Signing out...",
+      "noAlertsToday": "No new alerts today.",
+      "alertsDescription": "Operational risks and AI insights will appear here in real-time.",
+      "viewAllNotifications": "View all notifications"
     },
     "home": {
       "gettingReady": "Getting things ready...",
@@ -378,6 +407,73 @@
       "youLedForecast": "When you led the forecast",
       "reviewPending": "Review summary is being prepared..."
     }
+  },
+  "profile": {
+    "title": "My Profile",
+    "eyebrow": "Account",
+    "description": "Manage your personal information, language preference, and account security.",
+    "insight": "Keeping your profile accurate helps your team identify and reach you quickly.",
+    "tab": {
+      "general": "General",
+      "security": "Security"
+    },
+    "personalInfo": {
+      "title": "Personal Information",
+      "description": "Your name, title, and profile photo.",
+      "changePhoto": "Change photo",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "jobTitle": "Job title",
+      "jobTitlePlaceholder": "e.g. Head Chef",
+      "phone": "Phone",
+      "phonePlaceholder": "+1 555 000 0000",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "saved": "Profile updated",
+      "saveFailed": "Failed to save changes"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the language for the interface, API responses, and email notifications.",
+      "current": "Current preference:",
+      "english": "English",
+      "french": "Français",
+      "syncedNote": "Synced to your account. Applies on all devices.",
+      "saving": "Saving...",
+      "saved": "Saved",
+      "updated": "Language updated",
+      "saveFailed": "Could not save language preference"
+    },
+    "security": {
+      "changePasswordTitle": "Change Password",
+      "changePasswordDescription": "Update your password. You will need your current password to make changes.",
+      "currentPassword": "Current password",
+      "currentPasswordPlaceholder": "Enter your current password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "Minimum 8 characters",
+      "confirmPassword": "Confirm new password",
+      "confirmPasswordPlaceholder": "Repeat new password",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "New password must be at least 8 characters",
+      "updating": "Updating...",
+      "updatePassword": "Update password",
+      "passwordUpdated": "Password updated successfully",
+      "accountStatusTitle": "Account Status",
+      "accountStatusDescription": "Your login credentials and verification state.",
+      "emailAddress": "Email address",
+      "phoneNumber": "Phone number",
+      "verified": "Verified",
+      "unverified": "Unverified"
+    }
+  },
+  "topNav": {
+    "myProfile": "My Profile",
+    "workspaceSettings": "Workspace Settings",
+    "signOut": "Sign out",
+    "signingOut": "Signing out...",
+    "noAlertsToday": "No new alerts today.",
+    "alertsDescription": "Operational risks and AI insights will appear here in real-time.",
+    "viewAllNotifications": "View all notifications"
   },
   "roles": {
     "ORG_OWNER": "Organization Owner",

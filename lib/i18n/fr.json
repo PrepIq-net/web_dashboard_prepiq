@@ -89,7 +89,29 @@
     "settingUp": "Configuration",
     "loginSubtitle": "Veuillez entrer vos informations pour vous connecter.",
     "showPassword": "Afficher le mot de passe",
-    "hidePassword": "Masquer le mot de passe"
+    "hidePassword": "Masquer le mot de passe",
+    "verifyEmailTitle": "Vérifier l'e-mail.",
+    "verifyCodeSentTo": "Entrez le code à 6 chiffres envoyé à {email}.",
+    "yourEmail": "votre e-mail",
+    "verifying": "Vérification...",
+    "verifyEmailButton": "Vérifier l'e-mail",
+    "didntReceive": "Vous n'avez pas reçu de code ?",
+    "resendOtp": "Renvoyer le code",
+    "resendIn": "Renvoyer dans {count}s",
+    "resending": "Envoi en cours...",
+    "wrongEmail": "Mauvais e-mail ?",
+    "createNewAccount": "Créer un nouveau compte",
+    "firstNamePlaceholder": "ex. Amara",
+    "lastNamePlaceholder": "ex. Diallo",
+    "createAccountButton": "Créer un compte",
+    "accountCreated": "Compte créé. Veuillez vérifier votre e-mail.",
+    "accountNotVerified": "Compte non vérifié.",
+    "missingEmailContext": "Contexte e-mail manquant. Veuillez vous réinscrire.",
+    "enterAllDigits": "Entrez les 6 chiffres.",
+    "otpResent": "Un nouveau code a été envoyé.",
+    "resendFailed": "Échec de l'envoi du code.",
+    "otpVerificationFailed": "Échec de la vérification du code.",
+    "networkError": "Erreur réseau. Veuillez réessayer."
   },
   "dashboard": {
     "sidebar": {
@@ -122,7 +144,14 @@
       "markAllRead": "Tout marquer comme lu",
       "noNotifications": "Pas de nouvelles notifications.",
       "notificationEmptyDetail": "Vous verrez ici les alertes de prévision, de fournisseur et de conformité.",
-      "profileSettings": "Profil et Paramètres"
+      "profileSettings": "Profil et Paramètres",
+      "myProfile": "Mon Profil",
+      "workspaceSettings": "Paramètres de l'espace de travail",
+      "signOut": "Se déconnecter",
+      "signingOut": "Déconnexion...",
+      "noAlertsToday": "Aucune nouvelle alerte aujourd'hui.",
+      "alertsDescription": "Les risques opérationnels et les informations IA apparaîtront ici en temps réel.",
+      "viewAllNotifications": "Voir toutes les notifications"
     },
     "home": {
       "gettingReady": "Préparation en cours...",
@@ -378,6 +407,73 @@
       "youLedForecast": "Quand vous avez devancé la prévision",
       "reviewPending": "Le résumé de fin de journée est en cours de préparation..."
     }
+  },
+  "profile": {
+    "title": "Mon Profil",
+    "eyebrow": "Compte",
+    "description": "Gérez vos informations personnelles, vos préférences de langue et la sécurité de votre compte.",
+    "insight": "Maintenir votre profil à jour aide votre équipe à vous identifier et à vous joindre rapidement.",
+    "tab": {
+      "general": "Général",
+      "security": "Sécurité"
+    },
+    "personalInfo": {
+      "title": "Informations personnelles",
+      "description": "Votre nom, titre et photo de profil.",
+      "changePhoto": "Changer la photo",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "jobTitle": "Titre du poste",
+      "jobTitlePlaceholder": "ex. Chef principal",
+      "phone": "Téléphone",
+      "phonePlaceholder": "+33 6 00 00 00 00",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "saved": "Profil mis à jour",
+      "saveFailed": "Échec de l'enregistrement"
+    },
+    "language": {
+      "title": "Langue",
+      "description": "Choisissez la langue pour l'interface, les réponses API et les notifications par e-mail.",
+      "current": "Préférence actuelle :",
+      "english": "English",
+      "french": "Français",
+      "syncedNote": "Synchronisé avec votre compte. S'applique sur tous les appareils.",
+      "saving": "Enregistrement...",
+      "saved": "Enregistré",
+      "updated": "Langue mise à jour",
+      "saveFailed": "Impossible d'enregistrer la préférence de langue"
+    },
+    "security": {
+      "changePasswordTitle": "Changer le mot de passe",
+      "changePasswordDescription": "Mettez à jour votre mot de passe. Vous aurez besoin de votre mot de passe actuel.",
+      "currentPassword": "Mot de passe actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Minimum 8 caractères",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "confirmPasswordPlaceholder": "Répétez le nouveau mot de passe",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "passwordTooShort": "Le nouveau mot de passe doit comporter au moins 8 caractères",
+      "updating": "Mise à jour...",
+      "updatePassword": "Mettre à jour le mot de passe",
+      "passwordUpdated": "Mot de passe mis à jour avec succès",
+      "accountStatusTitle": "Statut du compte",
+      "accountStatusDescription": "Vos identifiants et état de vérification.",
+      "emailAddress": "Adresse e-mail",
+      "phoneNumber": "Numéro de téléphone",
+      "verified": "Vérifié",
+      "unverified": "Non vérifié"
+    }
+  },
+  "topNav": {
+    "myProfile": "Mon Profil",
+    "workspaceSettings": "Paramètres de l'espace de travail",
+    "signOut": "Se déconnecter",
+    "signingOut": "Déconnexion...",
+    "noAlertsToday": "Aucune nouvelle alerte aujourd'hui.",
+    "alertsDescription": "Les risques opérationnels et les informations IA apparaîtront ici en temps réel.",
+    "viewAllNotifications": "Voir toutes les notifications"
   },
   "roles": {
     "ORG_OWNER": "Propriétaire de l'organisation",

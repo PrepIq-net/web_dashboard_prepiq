@@ -8,6 +8,7 @@ import { Honeypot } from "@/components/auth/honeypot";
 import { OtpInput } from "@/components/auth/otp-input";
 import { Button } from "@/components/ui/button";
 import { useResendOtp, useVerifyOtp } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 
 const RESEND_SECONDS = 60;
 
@@ -25,12 +26,13 @@ function maskEmail(email: string): string {
 }
 
 export function VerifyOtpForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
 
   const [otp, setOtp] = useState("");
-  const [nickname, setNickname] = useState(""); // Honeypot field
+  const [nickname, setNickname] = useState("");
   const [resendCountdown, setResendCountdown] = useState(RESEND_SECONDS);
 
   const isOtpComplete = useMemo(() => otp.length === 6, [otp]);
@@ -38,14 +40,10 @@ export function VerifyOtpForm() {
   const resendOtpMutation = useResendOtp();
 
   const resendLabel = useMemo(() => {
-    if (resendOtpMutation.isPending) {
-      return "Resending...";
-    }
-    if (resendCountdown > 0) {
-      return `Resend in ${resendCountdown}s`;
-    }
-    return "Resend OTP";
-  }, [resendCountdown, resendOtpMutation.isPending]);
+    if (resendOtpMutation.isPending) return t("auth.resending");
+    if (resendCountdown > 0) return t("auth.resendIn", { count: resendCountdown });
+    return t("auth.resendOtp");
+  }, [resendCountdown, resendOtpMutation.isPending, t]);
 
   useEffect(() => {
     if (resendCountdown === 0) {
@@ -61,48 +59,35 @@ export function VerifyOtpForm() {
 
   async function handleResend() {
     if (!email) {
-      toast.error("Missing email context. Please register again.");
+      toast.error(t("auth.missingEmailContext"));
       return;
     }
-
     try {
       await resendOtpMutation.mutateAsync({ email });
       setResendCountdown(RESEND_SECONDS);
-      toast.success("A new OTP has been sent.");
+      toast.success(t("auth.otpResent"));
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to resend OTP.",
-      );
+      toast.error(error instanceof Error ? error.message : t("auth.resendFailed"));
     }
   }
 
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    // Honeypot check
-    if (nickname) {
-      console.log("Bot detected via honeypot.");
-      return;
-    }
-
+    if (nickname) return;
     if (!email) {
-      toast.error("Missing email context. Please register again.");
+      toast.error(t("auth.missingEmailContext"));
       return;
     }
-
     if (!isOtpComplete) {
-      toast.error("Enter all 6 digits.");
+      toast.error(t("auth.enterAllDigits"));
       return;
     }
-
     try {
       await verifyOtpMutation.mutateAsync({ email, otp });
-      toast.success("Account verified successfully.");
+      toast.success(t("auth.otpVerified"));
       router.push(`/login?email=${encodeURIComponent(email)}&verified=1`);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "OTP verification failed.",
-      );
+      toast.error(error instanceof Error ? error.message : t("auth.otpVerificationFailed"));
     }
   }
 
@@ -110,14 +95,10 @@ export function VerifyOtpForm() {
     <div className="w-full max-w-md space-y-12 animate-fade-in">
       <div className="space-y-3 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-          Verify Email.
+          {t("auth.verifyEmailTitle")}
         </h1>
         <p className="text-lg text-text-secondary leading-relaxed">
-          Enter the 6-digit code sent to{" "}
-          <span className="font-medium text-text-primary">
-            {email ? maskEmail(email) : "your email"}
-          </span>
-          .
+          {t("auth.verifyCodeSentTo", { email: email ? maskEmail(email) : t("auth.yourEmail") })}
         </p>
       </div>
 
@@ -139,13 +120,11 @@ export function VerifyOtpForm() {
             disabled={!isOtpComplete || verifyOtpMutation.isPending}
             className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            {verifyOtpMutation.isPending ? "Verifying..." : "Verify Email"}
+            {verifyOtpMutation.isPending ? t("auth.verifying") : t("auth.verifyEmailButton")}
           </Button>
 
           <div className="flex flex-col items-center gap-4 text-sm">
-            <p className="text-text-muted italic">
-              Didn&apos;t receive a code?
-            </p>
+            <p className="text-text-muted italic">{t("auth.didntReceive")}</p>
             <button
               type="button"
               onClick={handleResend}
@@ -159,12 +138,9 @@ export function VerifyOtpForm() {
       </form>
 
       <p className="text-center text-sm text-text-secondary pt-8">
-        Wrong email?{" "}
-        <Link
-          href="/register"
-          className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
-        >
-          Create new account
+        {t("auth.wrongEmail")}{" "}
+        <Link href="/register" className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors">
+          {t("auth.createNewAccount")}
         </Link>
       </p>
     </div>
