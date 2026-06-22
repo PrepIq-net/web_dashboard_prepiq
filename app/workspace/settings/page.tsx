@@ -154,6 +154,17 @@ export default function SettingsPage() {
     (tab) => !tab.roles || !userRoleSlug || tab.roles.includes(userRoleSlug),
   );
 
+  // Once the role resolves, snap activeTab to the first tab the user can see.
+  // Without this a Member starts on "organization" (the default) even though
+  // that tab is hidden for them, which renders the org settings sub-component.
+  useEffect(() => {
+    if (userRoleSlug && !filteredTabs.some((t) => t.id === activeTab)) {
+      const fallback = filteredTabs[0]?.id;
+      if (fallback) setActiveTab(fallback);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRoleSlug]);
+
   return (
     <WorkspaceShell
       eyebrow="System"

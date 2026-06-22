@@ -68,7 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Command",
         href: "/workspace/command",
         icon: <Brain className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_FORECASTS,
+        permission: PERMISSIONS.VIEW_ANALYTICS,
       },
       {
         label: "Production",
