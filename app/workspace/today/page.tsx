@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -221,6 +221,21 @@ function signedQuantity(value: number, unit: string) {
   return `${prefix}${value.toFixed(2)} ${unit}`;
 }
 
+function signalLabel(key: string): string {
+  const map: Record<string, string> = {
+    reservation: "Reservations",
+    event: "Event",
+    weather: "Weather",
+    staffing: "Staffing",
+    kitchen_capacity: "Kitchen capacity",
+    delivery_mix: "Delivery mix",
+    traffic: "Traffic",
+    similar_day: "Similar days",
+    local_event: "Local event",
+  };
+  return map[key] ?? key;
+}
+
 const FALLBACK_DEMAND_SIGNALS = [
   {
     key: "similar_day",
@@ -339,6 +354,16 @@ function TodayWorkspacePageContent() {
   const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
   const [csvUploadStatus, setCsvUploadStatus] = useState<string | null>(null);
   const [showCsvImportBanner, setShowCsvImportBanner] = useState(false);
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+
+  const toggleItemExpand = (id: string) => {
+    setExpandedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const csvUploadSession = useCSVUploadSessionStore();
   const queryClient = useQueryClient();
@@ -1576,129 +1601,133 @@ function TodayWorkspacePageContent() {
 
       {isMorning && branchDay ? (
         <>
-          {/* ── Outlook banner — collapsible, secondary context ── */}
-          <details className="mb-8 group">
-            <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-4 bg-surface-2 px-5 py-4 list-none hover:border-surface-4/80 transition-colors">
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Today&apos;s outlook</p>
-                  <p className="mt-0.5 text-sm font-medium text-text-primary">
+          {/* ── Morning Brief — always visible, no click required ── */}
+          <div className="mb-8 pb-8 border-b border-surface-4/50">
+            <div className="flex flex-wrap items-start gap-8">
+              {/* Demand KPI + meter */}
+              <div className="shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Expected demand
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span
+                    className={`font-display text-4xl font-semibold tracking-[-0.5px] ${
+                      demandDeltaPct >= 2
+                        ? "text-status-success"
+                        : demandDeltaPct <= -2
+                          ? "text-status-warning"
+                          : "text-text-primary"
+                    }`}
+                  >
+                    {toPercent(demandDeltaPct)}
+                  </span>
+                  <span className="text-sm text-text-muted">
                     {demandDeltaPct <= -2
-                      ? `Quieter than usual · ${toPercent(demandDeltaPct)} expected demand`
+                      ? "quieter than usual"
                       : demandDeltaPct >= 2
-                        ? `Busier than usual · ${toPercent(demandDeltaPct)} expected demand`
-                        : "About normal today"}
-                    {" · "}
-                    <span className={prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}>
-                      {prepConfidenceRiskLabel === "Low" ? "Plan looks solid" : prepConfidenceRiskLabel === "Medium" ? "Review flagged items" : "Elevated risk — check alerts"}
-                    </span>
-                  </p>
+                        ? "busier than usual"
+                        : "about normal"}
+                  </span>
+                </div>
+                <div className="mt-3 relative h-[3px] w-40 rounded-full bg-surface-4">
+                  <div
+                    className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-brand-gold shadow-sm"
+                    style={{ left: `calc(${demandMeterPosition}% - 6px)` }}
+                  />
+                </div>
+                <div className="mt-1 flex w-40 justify-between text-[9px] text-text-muted/60">
+                  <span>Quiet</span>
+                  <span>Normal</span>
+                  <span>Busy</span>
                 </div>
               </div>
-              <span className="text-xs text-text-muted group-open:hidden">Show details ↓</span>
-              <span className="text-xs text-text-muted hidden group-open:inline">Hide ↑</span>
-            </summary>
 
-            {/* Single merged card — demand + reliability side by side, tight */}
-            <div className="mt-2 px-1">
-              <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-surface-4/60">
+              {/* Vertical divider */}
+              <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-                  {/* Left — how busy */}
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">How busy will it be?</p>
-                    <div className="mt-1.5 flex items-baseline gap-2">
-                      <span className={`font-display text-xl font-semibold ${demandDeltaPct >= 2 ? "text-status-success" : demandDeltaPct <= -2 ? "text-status-warning" : "text-text-primary"}`}>
-                        {toPercent(demandDeltaPct)}
+              {/* Signal chips + action sentence */}
+              <div className="flex-1 min-w-[180px]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Demand signals
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {demandSignals.slice(0, 4).map((signal) => (
+                    <span
+                      key={signal.key}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                    >
+                      {signal.label}
+                      <span className="font-semibold">
+                        {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
                       </span>
-                      <span className="text-xs text-text-muted">
-                        {demandDeltaPct <= -2 ? "quieter than usual" : demandDeltaPct >= 2 ? "busier than usual" : "about normal"}
-                      </span>
-                    </div>
+                    </span>
+                  ))}
+                </div>
+                {outlookActionSentence ? (
+                  <p className="mt-3 text-xs text-text-secondary">
+                    <span className="mr-1 font-semibold text-brand-gold">→</span>
+                    {outlookActionSentence}
+                  </p>
+                ) : null}
+              </div>
 
-                    {/* Slim demand meter */}
-                    <div className="mt-2 relative h-1 rounded-full bg-surface-4">
-                      <div
-                        className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-brand-gold"
-                        style={{ left: `calc(${demandMeterPosition}% - 5px)` }}
-                      />
-                    </div>
-                    <div className="mt-0.5 flex justify-between text-[9px] text-text-muted/70">
-                      <span>Quiet</span><span>Normal</span><span>Busy</span>
-                    </div>
+              {/* Vertical divider */}
+              <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-                    {/* Signal chips */}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {demandSignals.slice(0, 4).map((signal) => (
-                        <span
-                          key={signal.key}
-                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                        >
-                          {signal.label}
-                          <span className="font-semibold">
-                            {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-
-                    {outlookActionSentence ? (
-                      <p className="mt-2 text-[11px] text-text-secondary border-t border-surface-4/40 pt-2">
-                        <span className="font-semibold text-brand-gold">→ </span>
-                        {outlookActionSentence}
-                      </p>
-                    ) : null}
+              {/* Plan reliability */}
+              <div className="shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Plan reliability
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-display text-4xl font-semibold tracking-[-0.5px] text-text-primary">
+                    {percent(prepConfidenceGauge)}
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${
+                      prepConfidenceRiskLabel === "Low"
+                        ? "text-status-success"
+                        : prepConfidenceRiskLabel === "Medium"
+                          ? "text-status-warning"
+                          : "text-status-critical"
+                    }`}
+                  >
+                    {prepConfidenceRiskLabel === "Low"
+                      ? "Good shape"
+                      : prepConfidenceRiskLabel === "Medium"
+                        ? "Review items"
+                        : "Check alerts"}
+                  </span>
+                </div>
+                <div className="mt-2 h-[3px] w-40 overflow-hidden rounded-full bg-surface-4">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      prepConfidenceRiskLabel === "Low"
+                        ? "bg-status-success"
+                        : prepConfidenceRiskLabel === "Medium"
+                          ? "bg-status-warning"
+                          : "bg-status-critical"
+                    }`}
+                    style={{ width: percent(prepConfidenceGauge) }}
+                  />
+                </div>
+                <div className="mt-2 flex gap-6 text-[11px]">
+                  <div>
+                    <p className="text-text-muted">Needs attention</p>
+                    <p className="font-semibold text-text-primary">
+                      {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0}
+                    </p>
                   </div>
-
-                  {/* Right — plan reliability */}
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">Plan reliability</p>
-                    <div className="mt-1.5 flex items-baseline gap-2">
-                      <span className="font-display text-xl font-semibold text-text-primary">{percent(prepConfidenceGauge)}</span>
-                      <span className={`text-xs font-medium ${prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}`}>
-                        {prepConfidenceRiskLabel === "Low" ? "Good shape" : prepConfidenceRiskLabel === "Medium" ? "Review items" : "Check alerts"}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-4">
-                      <div
-                        className={`h-full rounded-full transition-all ${prepConfidenceRiskLabel === "Low" ? "bg-status-success" : prepConfidenceRiskLabel === "Medium" ? "bg-status-warning" : "bg-status-critical"}`}
-                        style={{ width: percent(prepConfidenceGauge) }}
-                      />
-                    </div>
-
-                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-                      <div>
-                        <p className="text-text-muted">Needs attention</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0} items
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">Tracked</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.demand_signal.tracked_items ?? rows.length} items
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">Forecast confidence</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.demand_signal.confidence_label ?? confidenceLabel(branchDay.demand_signal.forecast_confidence)}
-                          {" "}
-                          <span className="font-normal text-text-muted">({percent(branchDay.demand_signal.forecast_confidence)})</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">{t("today.outlook.vsTypical", { day: branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString(t("common.language") === "fr" ? "fr-FR" : "en-US", { weekday: "short" }) })}</p>
-                        <p className={`font-semibold ${demandDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}>
-                          {toPercent(demandDeltaPct)}
-                        </p>
-                      </div>
-                    </div>
+                  <div>
+                    <p className="text-text-muted">Tracked</p>
+                    <p className="font-semibold text-text-primary">
+                      {branchDay.demand_signal.tracked_items ?? rows.length}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-          </details>
+          </div>
 
           {/* ── Risk alerts — shown above the table when present ── */}
           {morningRiskAlerts.length > 0 && !isPlanLocked ? (
@@ -1758,8 +1787,8 @@ function TodayWorkspacePageContent() {
                 {/* Inline stats — no cards */}
                 <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-secondary">
                   <span>
-                    <span className="font-semibold text-text-primary">{section2Rows.length}</span>
-                    {" "}of {forecastRowsByDemand.length} items
+                    <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
+                    {" "}of {forecastRowsByDemand.length} reviewed
                   </span>
                   {(branchDay.morning_overview?.projected_margin_total ?? 0) > 0 ? (
                     <span>
@@ -1816,413 +1845,443 @@ function TodayWorkspacePageContent() {
               </p>
             ) : null}
 
-            <div className="mt-2 lg:hidden space-y-3">
-              {section2Rows.map(
-                ({ item, riskScore, planned, variance, impact }) => {
-                  const plannedQty = planned ?? item.suggested_quantity;
-                  const financials = buildFinancialSnapshot({
-                    plannedQty,
-                    predictedQty:
-                      item.forecast_context.predicted_quantity_needed,
-                    unit: item.unit,
-                    unitPrice: item.forecast_context.unit_price,
-                    unitCost: item.forecast_context.unit_cost,
-                    unitMargin: item.forecast_context.unit_margin,
-                  });
-                  const hasPricing =
-                    item.forecast_context.unit_price != null ||
-                    item.forecast_context.unit_cost != null ||
-                    item.forecast_context.unit_margin != null;
-                  return (
-                    <article
-                      key={`mobile-forecast-${item.id}`}
-                      className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          {item.product_image_url && (
-                            <img
-                              src={item.product_image_url}
-                              alt={item.product_title}
-                              className="h-12 w-12 rounded-lg object-cover border border-surface-4 shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                            />
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-text-primary">
-                              {item.product_title}
-                            </p>
-                            <p className="mt-1 text-xs text-text-muted">
-                              {popularityLabel(forecastRankById[item.id] ?? 999)}
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${riskTone(riskScore)}`}
-                        >
-                          {riskLabel(riskScore)}
-                        </span>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Suggested Prep</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {formatQuantity(item.suggested_quantity, item.unit)}
+            {/* ── Mobile cards ── */}
+            <div className="lg:hidden space-y-2">
+              {section2Rows.map(({ item, riskScore, planned, variance, impact }) => {
+                const plannedQty = planned ?? item.suggested_quantity;
+                const financials = buildFinancialSnapshot({
+                  plannedQty,
+                  predictedQty: item.forecast_context.predicted_quantity_needed,
+                  unit: item.unit,
+                  unitPrice: item.forecast_context.unit_price,
+                  unitCost: item.forecast_context.unit_cost,
+                  unitMargin: item.forecast_context.unit_margin,
+                });
+                const hasPricing =
+                  item.forecast_context.unit_price != null ||
+                  item.forecast_context.unit_cost != null ||
+                  item.forecast_context.unit_margin != null;
+                const isAccepted = item.decision === "ACCEPTED_AI" || item.accepted_suggestion;
+                const isOverride = item.decision === "CHEF_OVERRIDE";
+                const isExpanded = expandedItemIds.has(item.id);
+
+                return (
+                  <article
+                    key={`mobile-forecast-${item.id}`}
+                    className={`overflow-hidden rounded-xl border bg-surface-2 transition-colors ${
+                      isAccepted
+                        ? "border-l-[3px] border-l-status-success/70 border-status-success/30"
+                        : isOverride
+                          ? "border-l-[3px] border-l-status-warning/70 border-status-warning/30"
+                          : riskScore >= 0.45
+                            ? "border-l-[3px] border-l-status-critical/50 border-status-critical/25"
+                            : "border-surface-4"
+                    }`}
+                  >
+                    {/* Row 1: identity + risk badge */}
+                    <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                      <div className="flex items-start gap-3">
+                        {item.product_image_url && (
+                          <img
+                            src={item.product_image_url}
+                            alt={item.product_title}
+                            className="h-10 w-10 shrink-0 rounded-lg border border-surface-4 object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {item.product_title}
                           </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Expected Orders</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {Math.round(item.forecast_context.predicted_orders)}
+                          <p className="mt-0.5 text-xs text-text-muted">
+                            {popularityLabel(forecastRankById[item.id] ?? 999)}
                           </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Confidence</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {percent(item.forecast_context.confidence_score)}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Your Plan</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <input
-                              type="number"
-                              step={isDiscreteUnit(item.unit) ? 1 : 0.01}
-                              value={plannedQtyByItem[item.id] ?? ""}
-                              onChange={(event) =>
-                                onPlannedChange(
-                                  item.id,
-                                  event.target.value,
-                                  item.unit,
-                                )
-                              }
-                              disabled={isPlanLocked}
-                              className="h-8 w-20 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
-                            />
-                            <span className="text-[11px] text-text-muted">
-                              {item.unit}
-                            </span>
-                          </div>
                         </div>
                       </div>
-                      <p className="mt-2 text-xs text-text-muted">
-                        {variance == null || variance === 0
-                          ? "Matches suggestion"
-                          : variance > 0
-                            ? `${signedQuantity(variance, item.unit)} above suggestion`
-                            : `${signedQuantity(variance, item.unit)} below suggestion`}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskTone(riskScore)}`}>
+                        {riskLabel(riskScore)}
+                      </span>
+                    </div>
+
+                    {/* Row 2: AI suggests / Your plan — flat, no nested cards */}
+                    <div className="mt-3 grid grid-cols-2 divide-x divide-surface-4/60 border-y border-surface-4/60">
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          AI suggests
+                        </p>
+                        <p className="mt-1 font-display text-lg font-semibold text-text-primary">
+                          {formatQuantity(item.suggested_quantity, item.unit)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          ~{Math.round(item.forecast_context.predicted_orders)} orders ·{" "}
+                          {confidenceLabel(item.forecast_context.confidence_score)}
+                        </p>
+                      </div>
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Your plan
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step={isDiscreteUnit(item.unit) ? 1 : 0.01}
+                            value={plannedQtyByItem[item.id] ?? ""}
+                            onChange={(e) => onPlannedChange(item.id, e.target.value, item.unit)}
+                            disabled={isPlanLocked}
+                            className="h-8 w-20 rounded-lg border border-surface-4 bg-surface-3 px-2.5 text-sm font-semibold text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60"
+                          />
+                          <span className="text-xs text-text-muted">{item.unit}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          {variance == null || variance === 0
+                            ? "Matches suggestion"
+                            : variance > 0
+                              ? `${signedQuantity(variance, item.unit)} above`
+                              : `${signedQuantity(variance, item.unit)} below`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Row 3: actions */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() =>
-                            acceptSuggestion(
-                              item.id,
-                              item.suggested_quantity,
-                              item.unit,
-                            )
-                          }
+                          onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
                           disabled={isPlanLocked}
-                          className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
+                          className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                         >
-                          Use suggestion
+                          ✓ Accept
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            keepMyPlan(item.id, planned, item.unit)
-                          }
+                          onClick={() => keepMyPlan(item.id, planned, item.unit)}
                           disabled={isPlanLocked}
-                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
+                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                         >
-                          Keep my number
+                          Keep mine
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleItemExpand(item.id)}
+                          className="text-[11px] font-semibold text-brand-gold hover:text-brand-gold/80 transition-colors"
+                        >
+                          {isExpanded ? "Hide ↑" : "Why? ↓"}
                         </button>
                         <Link
                           href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
-                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
+                          className="text-[11px] font-medium text-brand-gold/70 hover:text-brand-gold transition-colors"
                         >
-                          Deep dive
+                          Deep dive ↗
                         </Link>
                       </div>
-                      {actionErrorByItem[item.id] ? (
-                        <p className="mt-2 text-xs text-status-critical">
-                          {actionErrorByItem[item.id]}
-                        </p>
-                      ) : backendDecisionFeedback(item) ? (
-                        <p
-                          className={`mt-2 text-xs ${
-                            backendDecisionFeedback(item)?.tone === "success"
-                              ? "text-status-success"
-                              : backendDecisionFeedback(item)?.tone === "warning"
-                                ? "text-status-warning"
-                                : "text-status-critical"
-                          }`}
-                        >
-                          {backendDecisionFeedback(item)?.message}
-                        </p>
-                      ) : null}
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
-                          Why this quantity?
-                        </summary>
-                        <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
-                          {/* Plain reasoning */}
-                          <div className="space-y-0.5">
-                            {item.forecast_context.reasoning.map((line) => (
-                              <p key={`mobile-${item.id}-${line}`}>{line}</p>
-                            ))}
-                          </div>
+                    </div>
 
-                          {/* Signal breakdown — what influenced this forecast */}
-                          {item.forecast_context.applied_signals ? (
-                            <div className="pt-2 border-t border-surface-4/40">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
-                                Signals that shaped this forecast
-                              </p>
-                              <div className="space-y-1">
-                                {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
-                                  const modifier = signal?.modifier ?? 0;
-                                  if (Math.abs(modifier) < 0.005) return null;
-                                  const direction = modifier > 0 ? "↑" : "↓";
-                                  const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
-                                  const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
-                                  const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
-                                  return (
-                                    <div key={key} className="flex items-center justify-between text-[11px]">
-                                      <span className="text-text-secondary">{label}</span>
-                                      <span className={`font-semibold ${tone}`}>{impact}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : null}
+                    {/* Decision feedback */}
+                    {actionErrorByItem[item.id] ? (
+                      <p className="px-4 pb-3 text-xs text-status-critical">
+                        {actionErrorByItem[item.id]}
+                      </p>
+                    ) : backendDecisionFeedback(item) ? (
+                      <p
+                        className={`px-4 pb-3 text-xs ${
+                          backendDecisionFeedback(item)?.tone === "success"
+                            ? "text-status-success"
+                            : "text-status-warning"
+                        }`}
+                      >
+                        {backendDecisionFeedback(item)?.message}
+                      </p>
+                    ) : null}
 
-                          {/* Financial impact */}
-                          {impact ? (
-                            <p className="pt-2 border-t border-surface-4/40">
-                              Margin impact estimate:{" "}
-                              <span
-                                className={
-                                  impact.margin_impact_estimate >= 0
-                                    ? "text-status-success"
-                                    : "text-status-critical"
-                                }
-                              >
-                                {formatSignedCurrency(
-                                  impact.margin_impact_estimate,
-                                )}
-                              </span>
-                            </p>
-                          ) : null}
-                          {hasPricing ? (
-                            <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
-                              {financials.revenueIfSold != null ? (
-                                <p>
-                                  If sold out:{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(financials.revenueIfSold)}
-                                  </span>{" "}
-                                  revenue
-                                  {financials.marginIfSold != null
-                                    ? ` · ${formatCurrency(financials.marginIfSold)} margin`
-                                    : ""}
-                                </p>
-                              ) : null}
-                              {financials.wasteIfAll != null ? (
-                                <p>
-                                  If wasted:{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(financials.wasteIfAll)}
-                                  </span>{" "}
-                                  in food cost.
-                                </p>
-                              ) : null}
-                              {financials.lostMarginIfStockout != null &&
-                              financials.shortfallQty > 0 ? (
-                                <p>
-                                  If you stock out by{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatQuantity(
-                                      financials.shortfallQty,
-                                      financials.unit,
-                                    )}
-                                  </span>
-                                  , you could lose{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(
-                                      financials.lostMarginIfStockout,
-                                    )}
-                                  </span>{" "}
-                                  margin.
-                                </p>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <p className="pt-2 border-t border-surface-4/40">
-                              Pricing data is missing. Add selling price and
-                              cost to unlock revenue and waste estimates.
-                            </p>
-                          )}
+                    {/* Why this quantity — toggleable, full-width */}
+                    {isExpanded ? (
+                      <div className="space-y-2.5 border-t border-surface-4/60 bg-surface-3/20 px-4 py-3 text-[11px] text-text-secondary">
+                        <div className="space-y-0.5">
+                          {item.forecast_context.reasoning.map((line) => (
+                            <p key={`mobile-r-${item.id}-${line}`}>{line}</p>
+                          ))}
                         </div>
-                      </details>
-                    </article>
-                  );
-                },
-              )}
+                        {item.forecast_context.applied_signals ? (
+                          <div className="border-t border-surface-4/40 pt-2">
+                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                              Signal adjustments
+                            </p>
+                            <div className="space-y-1">
+                              {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
+                                const modifier = signal?.modifier ?? 0;
+                                if (Math.abs(modifier) < 0.005) return null;
+                                return (
+                                  <div key={key} className="flex items-center justify-between">
+                                    <span className="text-text-secondary">{signalLabel(key)}</span>
+                                    <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
+                                      {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                        {impact ? (
+                          <p className="border-t border-surface-4/40 pt-2">
+                            Margin impact:{" "}
+                            <span className={`font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                              {formatSignedCurrency(impact.margin_impact_estimate)}
+                            </span>
+                          </p>
+                        ) : null}
+                        {hasPricing ? (
+                          <div className="space-y-0.5 border-t border-surface-4/40 pt-2">
+                            {financials.revenueIfSold != null && (
+                              <p>
+                                If sold out:{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
+                                revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                              </p>
+                            )}
+                            {financials.wasteIfAll != null && (
+                              <p>
+                                If wasted:{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
+                                in food cost.
+                              </p>
+                            )}
+                            {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
+                              <p>
+                                If you stock out by{" "}
+                                <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>,{" "}
+                                you could lose{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
+                                margin.
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="border-t border-surface-4/40 pt-2 text-text-muted">
+                            Add selling price and cost to unlock financial scenarios.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
 
-            <div className="mt-5 hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
-              <table className="w-full min-w-[980px]">
-                <thead className="border-b border-surface-4 bg-surface-3/35">
+            {/* ── Desktop table ── */}
+            <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+              <table className="w-full min-w-[860px]">
+                <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    <th className="w-[200px] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
                       Item
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Cook this much
+                      AI Suggests
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Expected orders
+                      Confidence
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      How sure
+                      Your Plan
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Risk
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Your quantity
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Decision
+                      {/* actions */}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-4/70">
-                  {section2Rows.map(
-                    ({ item, riskScore, planned, variance, impact }) => {
-                      const plannedQty = planned ?? item.suggested_quantity;
-                      const financials = buildFinancialSnapshot({
-                        plannedQty,
-                        predictedQty:
-                          item.forecast_context.predicted_quantity_needed,
-                        unit: item.unit,
-                        unitPrice: item.forecast_context.unit_price,
-                        unitCost: item.forecast_context.unit_cost,
-                        unitMargin: item.forecast_context.unit_margin,
-                      });
-                      const hasPricing =
-                        item.forecast_context.unit_price != null ||
-                        item.forecast_context.unit_cost != null ||
-                        item.forecast_context.unit_margin != null;
-                      return (
+                <tbody className="divide-y divide-surface-4/50">
+                  {section2Rows.map(({ item, riskScore, planned, variance, impact }) => {
+                    const plannedQty = planned ?? item.suggested_quantity;
+                    const financials = buildFinancialSnapshot({
+                      plannedQty,
+                      predictedQty: item.forecast_context.predicted_quantity_needed,
+                      unit: item.unit,
+                      unitPrice: item.forecast_context.unit_price,
+                      unitCost: item.forecast_context.unit_cost,
+                      unitMargin: item.forecast_context.unit_margin,
+                    });
+                    const hasPricing =
+                      item.forecast_context.unit_price != null ||
+                      item.forecast_context.unit_cost != null ||
+                      item.forecast_context.unit_margin != null;
+                    const isAccepted = item.decision === "ACCEPTED_AI" || item.accepted_suggestion;
+                    const isOverride = item.decision === "CHEF_OVERRIDE";
+                    const isExpanded = expandedItemIds.has(item.id);
+                    const accentClass = isAccepted
+                      ? "border-l-[3px] border-l-status-success/70"
+                      : isOverride
+                        ? "border-l-[3px] border-l-status-warning/70"
+                        : riskScore >= 0.45
+                          ? "border-l-[3px] border-l-status-critical/50"
+                          : "border-l-[3px] border-l-transparent";
+
+                    return (
+                      <Fragment key={item.id}>
                         <tr
-                          key={`forecast-${item.id}`}
-                          className="align-top hover:bg-surface-3/30"
+                          className={`align-top transition-colors hover:bg-surface-3/20 ${accentClass} ${
+                            isAccepted ? "bg-status-success/[0.025]" : isOverride ? "bg-status-warning/[0.025]" : ""
+                          }`}
                         >
+                          {/* Item */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               {item.product_image_url && (
                                 <img
                                   src={item.product_image_url}
                                   alt={item.product_title}
-                                  className="h-10 w-10 rounded-lg object-cover border border-surface-4 shrink-0"
+                                  className="h-9 w-9 shrink-0 rounded-lg border border-surface-4 object-cover"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                                 />
                               )}
                               <div>
-                                <p className="text-sm font-semibold text-text-primary">
+                                <p className="text-sm font-semibold leading-tight text-text-primary">
                                   {item.product_title}
                                 </p>
-                                <p className="mt-1 text-xs text-text-muted">
-                                  {popularityLabel(
-                                    forecastRankById[item.id] ?? 999,
-                                  )}
+                                <p className="mt-0.5 text-[11px] text-text-muted">
+                                  {popularityLabel(forecastRankById[item.id] ?? 999)}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm font-semibold text-text-primary">
-                            {formatQuantity(item.suggested_quantity, item.unit)}
+
+                          {/* AI Suggests */}
+                          <td className="px-4 py-4">
+                            <p className="font-display text-lg font-semibold text-text-primary">
+                              {formatQuantity(item.suggested_quantity, item.unit)}
+                            </p>
+                            <p className="mt-0.5 text-xs text-text-muted">
+                              ~{Math.round(item.forecast_context.predicted_orders)} orders
+                            </p>
                           </td>
-                          <td className="px-4 py-4 text-sm text-text-secondary">
-                            {Math.round(item.forecast_context.predicted_orders)}
-                          </td>
+
+                          {/* Confidence + Risk */}
                           <td className="px-4 py-4">
                             <p className="text-sm font-semibold text-text-primary">
                               {percent(item.forecast_context.confidence_score)}
                             </p>
-                            <p className="mt-1 text-xs text-text-muted">
-                              {confidenceLabel(
-                                item.forecast_context.confidence_score,
-                              )}
+                            <p className="mt-0.5 text-[11px] text-text-muted">
+                              {confidenceLabel(item.forecast_context.confidence_score)}
                             </p>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${riskTone(riskScore)}`}
-                            >
-                              {riskLabel(riskScore)}
+                            <span className={`mt-1.5 inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}>
+                              {riskLabel(riskScore)} risk
                             </span>
                           </td>
+
+                          {/* Your Plan */}
                           <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2">
                               <input
                                 type="number"
                                 step={isDiscreteUnit(item.unit) ? 1 : 0.01}
                                 value={plannedQtyByItem[item.id] ?? ""}
-                                onChange={(event) =>
-                                  onPlannedChange(
-                                    item.id,
-                                    event.target.value,
-                                    item.unit,
-                                  )
-                                }
+                                onChange={(e) => onPlannedChange(item.id, e.target.value, item.unit)}
                                 disabled={isPlanLocked}
-                                className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                                className="h-8 w-24 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm font-semibold text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60"
                               />
-                              <span className="text-xs text-text-muted">
-                                {item.unit}
-                              </span>
+                              <span className="text-xs text-text-muted">{item.unit}</span>
                             </div>
-                            <p className="mt-1 text-xs text-text-muted">
+                            <p className="mt-1 text-[11px] text-text-muted">
                               {variance == null || variance === 0
                                 ? "Matches suggestion"
                                 : variance > 0
                                   ? `${signedQuantity(variance, item.unit)} above`
                                   : `${signedQuantity(variance, item.unit)} below`}
                             </p>
-                            <details className="mt-1">
-                              <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
-                                Why this quantity?
-                              </summary>
-                              <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
-                                {/* Plain reasoning */}
-                                <div className="space-y-0.5">
-                                  {item.forecast_context.reasoning.map((line) => (
-                                    <p key={`${item.id}-${line}`}>{line}</p>
-                                  ))}
+                            {actionErrorByItem[item.id] ? (
+                              <p className="mt-1 text-[11px] text-status-critical">
+                                {actionErrorByItem[item.id]}
+                              </p>
+                            ) : backendDecisionFeedback(item) ? (
+                              <p
+                                className={`mt-1 text-[11px] ${
+                                  backendDecisionFeedback(item)?.tone === "success"
+                                    ? "text-status-success"
+                                    : "text-status-warning"
+                                }`}
+                              >
+                                {backendDecisionFeedback(item)?.message}
+                              </p>
+                            ) : null}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-4">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
+                              >
+                                ✓ Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => keepMyPlan(item.id, planned, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
+                              >
+                                Keep mine
+                              </button>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleItemExpand(item.id)}
+                                className="text-[11px] font-semibold text-brand-gold transition-colors hover:text-brand-gold/80"
+                              >
+                                {isExpanded ? "Hide ↑" : "Why this number? ↓"}
+                              </button>
+                              <Link
+                                href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
+                                className="text-[11px] font-medium text-brand-gold/70 transition-colors hover:text-brand-gold"
+                              >
+                                Deep dive ↗
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expand row — full-width reasoning panel */}
+                        {isExpanded ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="border-b border-surface-4/50 bg-surface-3/20 px-6 pb-5 pt-0"
+                            >
+                              <div className="grid grid-cols-1 gap-4 pt-3 text-[11px] text-text-secondary md:grid-cols-2 lg:grid-cols-3">
+                                {/* Reasoning */}
+                                <div>
+                                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                    Why this quantity
+                                  </p>
+                                  <div className="space-y-0.5">
+                                    {item.forecast_context.reasoning.map((line) => (
+                                      <p key={`r-${item.id}-${line}`}>{line}</p>
+                                    ))}
+                                  </div>
                                 </div>
 
-                                {/* Signal breakdown — what influenced this forecast */}
+                                {/* Signals */}
                                 {item.forecast_context.applied_signals ? (
-                                  <div className="pt-2 border-t border-surface-4/40">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
-                                      Signals that shaped this forecast
+                                  <div>
+                                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                      Signal adjustments
                                     </p>
                                     <div className="space-y-1">
                                       {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
                                         const modifier = signal?.modifier ?? 0;
                                         if (Math.abs(modifier) < 0.005) return null;
-                                        const direction = modifier > 0 ? "↑" : "↓";
-                                        const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
-                                        const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
-                                        const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
                                         return (
-                                          <div key={key} className="flex items-center justify-between text-[11px]">
-                                            <span className="text-text-secondary">{label}</span>
-                                            <span className={`font-semibold ${tone}`}>{impact}</span>
+                                          <div key={key} className="flex items-center justify-between">
+                                            <span className="text-text-secondary">{signalLabel(key)}</span>
+                                            <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
+                                              {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
+                                            </span>
                                           </div>
                                         );
                                       })}
@@ -2230,140 +2289,98 @@ function TodayWorkspacePageContent() {
                                   </div>
                                 ) : null}
 
-                                {/* Financial impact */}
-                                {impact ? (
-                                  <p className="pt-2 border-t border-surface-4/40">
-                                    Margin impact estimate:{" "}
-                                    <span
-                                      className={
-                                        impact.margin_impact_estimate >= 0
-                                          ? "text-status-success"
-                                          : "text-status-critical"
-                                      }
-                                    >
-                                      {formatSignedCurrency(
-                                        impact.margin_impact_estimate,
+                                {/* Financial */}
+                                <div>
+                                  {impact ? (
+                                    <div className="mb-3">
+                                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                        Margin impact
+                                      </p>
+                                      <p className={`text-sm font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                                        {formatSignedCurrency(impact.margin_impact_estimate)}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                  {hasPricing ? (
+                                    <div className="space-y-0.5">
+                                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                        Financial scenarios
+                                      </p>
+                                      {financials.revenueIfSold != null && (
+                                        <p>
+                                          If sold out:{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
+                                          revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                                        </p>
                                       )}
-                                    </span>
-                                  </p>
-                                ) : null}
-                                {hasPricing ? (
-                                  <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
-                                    {financials.revenueIfSold != null ? (
-                                      <p>
-                                        If sold out:{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.revenueIfSold,
-                                          )}
-                                        </span>{" "}
-                                        revenue
-                                        {financials.marginIfSold != null
-                                          ? ` · ${formatCurrency(
-                                              financials.marginIfSold,
-                                            )} margin`
-                                          : ""}
-                                      </p>
-                                    ) : null}
-                                    {financials.wasteIfAll != null ? (
-                                      <p>
-                                        If wasted:{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.wasteIfAll,
-                                          )}
-                                        </span>{" "}
-                                        in food cost.
-                                      </p>
-                                    ) : null}
-                                    {financials.lostMarginIfStockout != null &&
-                                    financials.shortfallQty > 0 ? (
-                                      <p>
-                                        If you stock out by{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatQuantity(
-                                            financials.shortfallQty,
-                                            financials.unit,
-                                          )}
-                                        </span>
-                                        , you could lose{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.lostMarginIfStockout,
-                                          )}
-                                        </span>{" "}
-                                        margin.
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                ) : (
-                                  <p className="pt-2 border-t border-surface-4/40">
-                                    Pricing data is missing. Add selling price and
-                                    cost to unlock revenue and waste estimates.
-                                  </p>
-                                )}
+                                      {financials.wasteIfAll != null && (
+                                        <p>
+                                          If wasted:{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
+                                          food cost.
+                                        </p>
+                                      )}
+                                      {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
+                                        <p>
+                                          Stockout by{" "}
+                                          <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>{" "}
+                                          → lose{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
+                                          margin.
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-text-muted">
+                                      Add selling price and cost to unlock financial scenarios.
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </details>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  acceptSuggestion(
-                                    item.id,
-                                    item.suggested_quantity,
-                                    item.unit,
-                                  )
-                                }
-                                disabled={isPlanLocked}
-                                className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
-                              >
-                                Use suggestion
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  keepMyPlan(item.id, planned, item.unit)
-                                }
-                                disabled={isPlanLocked}
-                                className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
-                              >
-                                Keep mine
-                              </button>
-                              <Link
-                                href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
-                                className="inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
-                              >
-                                Deep dive
-                              </Link>
-                            </div>
-                            {actionErrorByItem[item.id] ? (
-                              <p className="mt-1 text-xs text-status-critical">
-                                {actionErrorByItem[item.id]}
-                              </p>
-                            ) : backendDecisionFeedback(item) ? (
-                              <p
-                                className={`mt-1 text-xs ${
-                                  backendDecisionFeedback(item)?.tone ===
-                                  "success"
-                                    ? "text-status-success"
-                                    : backendDecisionFeedback(item)?.tone ===
-                                        "warning"
-                                      ? "text-status-warning"
-                                      : "text-status-critical"
-                                }`}
-                              >
-                                {backendDecisionFeedback(item)?.message}
-                              </p>
-                            ) : null}
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+
+            {/* ── Commit zone — progress + Lock/Start anchored at list bottom ── */}
+            <div className="mt-6 flex flex-col gap-3 border-t border-surface-4/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-text-secondary">
+                <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
+                {" "}of {forecastRowsByDemand.length} reviewed
+                {decisionSummary.reviewed < forecastRowsByDemand.length ? (
+                  <span className="ml-2 text-text-muted">
+                    · {forecastRowsByDemand.length - decisionSummary.reviewed} pending
+                  </span>
+                ) : (
+                  <span className="ml-2 text-status-success">· All reviewed</span>
+                )}
+                {!isPlanLocked && (
+                  <span className="ml-3 text-xs text-text-muted">Lock the plan to start service.</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={lockPlan}
+                  disabled={isPlanLocked || lockPlanMutation.isPending}
+                  className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-status-success/60 hover:text-status-success active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPlanLocked ? "Plan locked ✓" : lockPlanMutation.isPending ? "Locking..." : "Lock plan"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("START_LIVE")}
+                  disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
+                  className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {updateBranchDayStatusMutation.isPending ? "Starting..." : "Start service →"}
+                </button>
+              </div>
             </div>
           </section>
 
