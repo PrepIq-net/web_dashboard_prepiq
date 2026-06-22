@@ -62,7 +62,10 @@ export const prepPlanItemSchema = z.object({
     predicted_quantity_needed: z.number(),
     confidence_score: z.number(),
     demand_trend: z.enum(["up", "down", "neutral"]).optional(),
-    risk: z.enum(["low", "medium", "high"]).optional(),
+    risk: z.preprocess(
+      (v) => (typeof v === "string" ? v.toLowerCase() : v),
+      z.enum(["low", "medium", "high"]),
+    ).optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
     risk_of_stockout: z.number(),
@@ -682,6 +685,7 @@ export const branchDayTodaySchema = z.object({
     )
     .optional(),
   session_notes: z.string().optional(),
+  day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),
   created_at: z.string(),
   meta: z
     .object({

@@ -359,6 +359,7 @@ function TodayWorkspacePageContent() {
   const [showOkRows, setShowOkRows] = useState(false);
   const [dayNote, setDayNote] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
+  const [dayReaction, setDayReaction] = useState<"FIRED_UP" | "GOOD" | "MEH" | "ROUGH" | "">("");
 
   const toggleItemExpand = (id: string) => {
     setExpandedItemIds((prev) => {
@@ -3156,44 +3157,114 @@ function TodayWorkspacePageContent() {
                 </Link>
               </section>
 
-              {/* ── 7. ADD A NOTE ── */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Add a note about today
-                </p>
-                <p className="mt-1 text-xs text-text-muted">
-                  Special event? Staffing issue? Unexpected rush? Context you add here makes tomorrow's forecast sharper.
-                </p>
-                {noteSaved ? (
-                  <p className="mt-4 text-sm text-status-success">✓ Note saved — the model will factor this in.</p>
-                ) : (
-                  <div className="mt-3">
-                    <textarea
-                      rows={3}
-                      placeholder="e.g. Birthday party booking for 40 guests, kitchen was short-staffed, local event nearby drew extra foot traffic..."
-                      value={dayNote || branchDay.session_notes || ""}
-                      onChange={(e) => setDayNote(e.target.value)}
-                      className="w-full resize-none rounded-xl border border-surface-4 bg-surface-3 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
-                    />
-                    <div className="mt-2 flex items-center justify-between">
-                      <p className="text-[11px] text-text-muted">This goes into your training data, not shared externally.</p>
-                      <button
-                        type="button"
-                        disabled={!dayNote.trim() || updateBranchDayNotesMutation.isPending}
-                        onClick={() => {
-                          if (!branchDay.id || !dayNote.trim()) return;
-                          updateBranchDayNotesMutation.mutate(
-                            { branchDayId: branchDay.id, notes: dayNote.trim() },
-                            { onSuccess: () => setNoteSaved(true) },
+              {/* ── 7. HOW DID TODAY FEEL + NOTE ── */}
+              <section className="space-y-6">
+                {/* Reaction */}
+                {(() => {
+                  const activeReaction = dayReaction || branchDay.day_reaction || "";
+                  const reactions: {
+                    value: "FIRED_UP" | "GOOD" | "MEH" | "ROUGH";
+                    emoji: string;
+                    label: string;
+                  }[] = [
+                    { value: "FIRED_UP", emoji: "🔥", label: "Fired up" },
+                    { value: "GOOD",     emoji: "😊", label: "Good" },
+                    { value: "MEH",      emoji: "😐", label: "Meh" },
+                    { value: "ROUGH",    emoji: "😮‍💨", label: "Rough one" },
+                  ];
+                  const ack: Record<string, string> = {
+                    FIRED_UP: "That energy is everything. Great shift.",
+                    GOOD:     "Solid work. Rest up.",
+                    MEH:      "Steady is good too. Rest up.",
+                    ROUGH:    "Tough days pass. You showed up — that matters.",
+                  };
+                  return (
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">
+                        How are you leaving today?
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-muted">
+                        Not what happened — how <em>you</em> feel right now.
+                      </p>
+                      <div className="mt-3 flex gap-3">
+                        {reactions.map((r) => {
+                          const isActive = activeReaction === r.value;
+                          return (
+                            <button
+                              key={r.value}
+                              type="button"
+                              title={r.label}
+                              onClick={() => {
+                                const next = isActive ? "" : r.value;
+                                setDayReaction(next as typeof dayReaction);
+                                if (!branchDay.id) return;
+                                updateBranchDayNotesMutation.mutate({
+                                  branchDayId: branchDay.id,
+                                  reaction: next,
+                                });
+                              }}
+                              className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 transition-all ${
+                                isActive
+                                  ? "border-brand-gold bg-brand-gold/10 scale-105"
+                                  : "border-surface-4 bg-surface-3 hover:border-brand-gold/30 hover:bg-brand-gold/5"
+                              }`}
+                            >
+                              <span className="text-2xl leading-none">{r.emoji}</span>
+                              <span className={`text-[11px] font-medium ${isActive ? "text-brand-gold" : "text-text-muted"}`}>
+                                {r.label}
+                              </span>
+                            </button>
                           );
-                        }}
-                        className="inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {updateBranchDayNotesMutation.isPending ? "Saving…" : "Save note"}
-                      </button>
+                        })}
+                      </div>
+                      {activeReaction && (
+                        <p className="mt-3 text-sm text-text-secondary">
+                          {ack[activeReaction]}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
+
+                {/* Note */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                    Anything worth noting?
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    Special event, staffing issue, unexpected rush — context here makes tomorrow's forecast sharper.
+                  </p>
+                  {noteSaved ? (
+                    <p className="mt-4 text-sm text-status-success">✓ Saved — the model will factor this in.</p>
+                  ) : (
+                    <div className="mt-3">
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. Birthday party for 40 guests, short-staffed, local event nearby..."
+                        value={dayNote || branchDay.session_notes || ""}
+                        onChange={(e) => setDayNote(e.target.value)}
+                        className="w-full resize-none rounded-xl border border-surface-4 bg-surface-3 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                      />
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-[11px] text-text-muted">Not shared externally — goes into your training data.</p>
+                        <button
+                          type="button"
+                          disabled={!dayNote.trim() || updateBranchDayNotesMutation.isPending}
+                          onClick={() => {
+                            if (!branchDay.id || !dayNote.trim()) return;
+                            updateBranchDayNotesMutation.mutate(
+                              { branchDayId: branchDay.id, notes: dayNote.trim() },
+                              { onSuccess: () => setNoteSaved(true) },
+                            );
+                          }}
+                          className="inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {updateBranchDayNotesMutation.isPending ? "Saving…" : "Save note"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </section>
             </div>
             );

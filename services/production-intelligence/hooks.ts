@@ -372,8 +372,11 @@ export function useUpdateBranchDayStatus() {
 
 export function useUpdateBranchDayNotes() {
   return useMutation({
-    mutationFn: ({ branchDayId, notes }: { branchDayId: string; notes: string }) =>
-      updateBranchDayNotes(branchDayId, notes),
+    mutationFn: ({
+      branchDayId,
+      ...payload
+    }: { branchDayId: string; notes?: string; reaction?: string }) =>
+      updateBranchDayNotes(branchDayId, payload),
   });
 }
 

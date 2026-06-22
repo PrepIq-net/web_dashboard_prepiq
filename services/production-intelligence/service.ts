@@ -397,10 +397,13 @@ export async function updateBranchDayStatus(
   );
 }
 
-export async function updateBranchDayNotes(branchDayId: string, notes: string) {
+export async function updateBranchDayNotes(
+  branchDayId: string,
+  payload: { notes?: string; reaction?: string },
+) {
   return apiClient(productionIntelligenceEndpoints.branchDayNotes(branchDayId), {
     method: "PATCH",
-    body: { notes },
+    body: payload,
   });
 }
 
