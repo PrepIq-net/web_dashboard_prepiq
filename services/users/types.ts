@@ -134,6 +134,7 @@ export const userProfileSchema = z.object({
   organization_logo: z.string().nullable(),
   has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
+  preferred_language: z.enum(["en", "fr"]).optional().default("en"),
 });
 
 export const updateProfilePayloadSchema = z.object({
@@ -142,6 +143,7 @@ export const updateProfilePayloadSchema = z.object({
   first_name: z.string().max(100).optional(),
   last_name: z.string().max(100).optional(),
   profile_picture: z.instanceof(File).optional(),
+  preferred_language: z.enum(["en", "fr"]).optional(),
 });
 
 export const updateLocationDeprecatedResponseSchema = z.object({

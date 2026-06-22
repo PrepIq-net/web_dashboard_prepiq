@@ -49,6 +49,8 @@ function toFormData(payload: UpdateProfilePayload): FormData {
     formData.append("first_name", payload.first_name);
   if (payload.last_name !== undefined)
     formData.append("last_name", payload.last_name);
+  if (payload.preferred_language !== undefined)
+    formData.append("preferred_language", payload.preferred_language);
   if (payload.profile_picture !== undefined) {
     formData.append("profile_picture", payload.profile_picture);
   }
