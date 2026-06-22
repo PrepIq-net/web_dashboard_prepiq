@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiClientWithSchema } from "@/lib/api/client";
+import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import {
   branchDayInitializePayloadSchema,
@@ -395,6 +395,13 @@ export async function updateBranchDayStatus(
       body,
     },
   );
+}
+
+export async function updateBranchDayNotes(branchDayId: string, notes: string) {
+  return apiClient(productionIntelligenceEndpoints.branchDayNotes(branchDayId), {
+    method: "PATCH",
+    body: { notes },
+  });
 }
 
 export async function lockBranchDayPlan(

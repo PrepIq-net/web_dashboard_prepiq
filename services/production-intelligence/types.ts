@@ -681,6 +681,7 @@ export const branchDayTodaySchema = z.object({
       }),
     )
     .optional(),
+  session_notes: z.string().optional(),
   created_at: z.string(),
   meta: z
     .object({

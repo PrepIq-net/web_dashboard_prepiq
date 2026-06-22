@@ -45,6 +45,7 @@ import {
   updateRealTimeVelocity,
   updateBranchDayStatus,
   updatePrepPlanItem,
+  updateBranchDayNotes,
   updateStaffShiftChecklist,
   type AccessScopeQuery,
   type BranchDayTodayQuery,
@@ -366,6 +367,13 @@ export function useUpdateBranchDayStatus() {
         }),
       });
     },
+  });
+}
+
+export function useUpdateBranchDayNotes() {
+  return useMutation({
+    mutationFn: ({ branchDayId, notes }: { branchDayId: string; notes: string }) =>
+      updateBranchDayNotes(branchDayId, notes),
   });
 }
 
