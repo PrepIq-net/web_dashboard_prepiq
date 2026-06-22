@@ -159,17 +159,25 @@ export const autoGenerateRecipeResponseSchema = z.object({
 export type AutoGenerateRecipeResponse = z.infer<typeof autoGenerateRecipeResponseSchema>;
 
 // Ingredient demand (from /api/inventory/demand/calculate/)
+// Handles both branch-level and per-item (product_id) responses
 export const ingredientDemandSchema = z.object({
-  date: z.string(),
-  branch_id: z.string(),
+  date: z.string().optional(),
+  branch_id: z.string().optional(),
+  no_recipe: z.boolean().optional(),
+  item_name: z.string().nullable().optional(),
+  menu_item_id: z.string().optional(),
+  planned_quantity: z.number().optional(),
   ingredients: z.array(
     z.object({
-      ingredient_id: z.string(),
+      ingredient_id: z.string().optional(),
       ingredient_name: z.string(),
-      predicted_usage: z.string(),
+      predicted_usage: z.string().optional(),
+      quantity_for_plan: z.number().optional(),
+      per_serving: z.number().optional(),
+      waste_factor: z.number().optional(),
       unit: z.string(),
     })
   ),
-  items_with_no_recipe: z.array(z.string()),
+  items_with_no_recipe: z.array(z.string()).optional(),
 });
 export type IngredientDemand = z.infer<typeof ingredientDemandSchema>;

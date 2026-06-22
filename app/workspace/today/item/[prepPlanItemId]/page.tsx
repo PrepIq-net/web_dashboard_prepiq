@@ -34,6 +34,15 @@ function fmtPct(value: number) {
   return `${(Math.max(0, Math.min(1, value)) * 100).toFixed(0)}%`;
 }
 
+function fmtCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 function confidenceNarrative(score?: number | null): string {
   if (score == null) return "Not enough history to score confidence yet.";
   if (score >= 0.8)
@@ -88,6 +97,88 @@ function RiskBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+// ── Financial scenario card ──────────────────────────────────────────────────
+interface FinancialScenario {
+  label: string;
+  qty: number;
+  revenue: number | null;
+  wasteCost: number | null;
+  netProfit: number | null;
+  upside: string;
+  downside: string;
+  isHighlighted?: boolean;
+}
+
+function FinancialScenarios({
+  scenarios,
+  unit,
+  pricingReliable,
+}: {
+  scenarios: FinancialScenario[];
+  unit: string;
+  pricingReliable: boolean;
+}) {
+  return (
+    <section>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+        What could you make?
+      </p>
+      <p className="mt-1 text-xs text-text-muted">
+        {pricingReliable
+          ? "Revenue estimates based on your menu pricing."
+          : "Relative outcomes — add menu pricing for revenue figures."}
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {scenarios.map((s) => (
+          <div
+            key={s.label}
+            className={`rounded-xl border px-4 py-4 ${
+              s.isHighlighted
+                ? "border-brand-gold/40 bg-brand-gold/6"
+                : "border-surface-4 bg-surface-2"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-1">
+              <p className="text-xs font-semibold text-text-primary">{s.label}</p>
+              {s.isHighlighted && (
+                <span className="shrink-0 rounded-full bg-brand-gold/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-brand-gold">
+                  AI pick
+                </span>
+              )}
+            </div>
+            <p className="mt-2 font-display text-xl font-semibold tabular-nums text-text-primary">
+              {fmtQty(s.qty, unit)}
+            </p>
+            {s.revenue != null && (
+              <p className="mt-1 text-sm font-semibold text-status-success">
+                {fmtCurrency(s.revenue)} revenue
+              </p>
+            )}
+            {s.wasteCost != null && s.wasteCost > 0 && (
+              <p className="text-xs text-status-warning">
+                ~{fmtCurrency(s.wasteCost)} waste cost
+              </p>
+            )}
+            {s.netProfit != null && (
+              <p className="text-xs font-semibold text-text-primary">
+                ={fmtCurrency(s.netProfit)} net
+              </p>
+            )}
+            <div className="mt-3 space-y-1 border-t border-surface-4 pt-3">
+              {s.upside && (
+                <p className="text-[11px] text-status-success">{s.upside}</p>
+              )}
+              {s.downside && (
+                <p className="text-[11px] text-status-warning">{s.downside}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TrackRecord({
   history,
   unit,
@@ -116,7 +207,6 @@ function TrackRecord({
         Track record
       </p>
 
-      {/* Last similar day callout */}
       {lastSimilar && (
         <div className="mt-3 rounded-xl border border-surface-4 bg-surface-3/40 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
@@ -151,7 +241,6 @@ function TrackRecord({
         </div>
       )}
 
-      {/* Last N days table */}
       <div className="mt-4 overflow-hidden rounded-xl border border-surface-4">
         <table className="w-full text-xs">
           <thead className="border-b border-surface-4/80 bg-surface-3/40">
@@ -271,14 +360,101 @@ function DeepDiveContent() {
   const variance =
     suggestedQty != null && plannedQty != null ? plannedQty - suggestedQty : null;
 
-  // Weekday of the target date — for "last similar day" lookup
   const targetWeekday = new Date(targetDate + "T12:00:00").toLocaleDateString("en-US", {
     weekday: "long",
   });
 
   const dailyHistory: any[] = forecastMetrics?.daily_history ?? [];
 
-  // Load ingredient demand for this item on mount
+  // Pricing info from forecast context (optional — may not be set for all items)
+  const unitPrice: number | null = prepItem?.forecast_context?.unit_price ?? null;
+  const unitCost: number | null = prepItem?.forecast_context?.unit_cost ?? null;
+  const pricingReliable: boolean = prepItem?.forecast_context?.pricing_reliable ?? false;
+  const lowerBound: number | null = prepItem?.forecast_context?.lower_bound ?? null;
+  const upperBound: number | null = prepItem?.forecast_context?.upper_bound ?? null;
+  const stockoutRisk: number = prepItem?.forecast_context?.risk_of_stockout ?? 0;
+  const wasteRisk: number = prepItem?.forecast_context?.risk_of_waste ?? 0;
+
+  // Build financial scenarios from available data
+  const financialScenarios: FinancialScenario[] | null = useMemo(() => {
+    if (suggestedQty == null) return null;
+
+    const conservativeQty = lowerBound ?? Math.round(suggestedQty * 0.85);
+    const aggressiveQty = upperBound ?? Math.round(suggestedQty * 1.15);
+
+    function buildScenario(
+      label: string,
+      qty: number,
+      expectedSell: number,
+      opts: { isHighlighted?: boolean },
+    ): FinancialScenario {
+      const sold = Math.min(qty, expectedSell);
+      const leftover = Math.max(0, qty - sold);
+
+      const revenue = unitPrice && pricingReliable ? sold * unitPrice : null;
+      const wasteCost = unitCost && pricingReliable ? leftover * unitCost : null;
+      const netProfit =
+        revenue != null && wasteCost != null ? revenue - wasteCost : null;
+
+      const upside =
+        qty >= suggestedQty
+          ? stockoutRisk >= 0.3
+            ? "Covers high run-out risk"
+            : "Good coverage if demand spikes"
+          : "Lower waste if demand is soft";
+
+      const downside =
+        qty > suggestedQty
+          ? wasteRisk >= 0.3
+            ? `${fmtQty(leftover, unit)} may go unsold`
+            : "Small waste risk if demand is soft"
+          : stockoutRisk >= 0.3
+            ? "Risk of running short during service"
+            : "May miss late demand";
+
+      return { label, qty, revenue, wasteCost, netProfit, upside, downside, ...opts };
+    }
+
+    // Expected sell ≈ AI suggested (the most likely demand)
+    const expectedDemand = suggestedQty;
+
+    const scenarios: FinancialScenario[] = [
+      buildScenario("Conservative", conservativeQty, expectedDemand, {}),
+      buildScenario("Follow the AI", suggestedQty, expectedDemand, { isHighlighted: true }),
+      buildScenario("Extra buffer", aggressiveQty, expectedDemand, {}),
+    ];
+
+    // Insert "Your plan" only if meaningfully different from AI
+    if (
+      plannedQty != null &&
+      Math.abs(plannedQty - suggestedQty) >= 0.5 &&
+      plannedQty !== conservativeQty &&
+      plannedQty !== aggressiveQty
+    ) {
+      return [
+        buildScenario("Conservative", conservativeQty, expectedDemand, {}),
+        buildScenario("Follow the AI", suggestedQty, expectedDemand, { isHighlighted: true }),
+        buildScenario("Your plan", plannedQty, expectedDemand, {}),
+      ];
+    }
+
+    return scenarios;
+  }, [suggestedQty, plannedQty, unitPrice, unitCost, pricingReliable, lowerBound, upperBound, stockoutRisk, wasteRisk, unit]);
+
+  // Build fallback scenarios for ScenarioBarChart if backend didn't provide them
+  const chartScenarios = useMemo(() => {
+    const backendScenarios: any[] = advancedForecast?.scenarios ?? [];
+    if (backendScenarios.length) return backendScenarios;
+    if (suggestedQty == null) return [];
+    const lower = lowerBound ?? Math.round(suggestedQty * 0.85);
+    const upper = upperBound ?? Math.round(suggestedQty * 1.15);
+    return [
+      { name: "Conservative", forecast: lower, description: "Lower risk of waste" },
+      { name: "Extra buffer", forecast: upper, description: "Covers demand spikes" },
+    ];
+  }, [advancedForecast?.scenarios, suggestedQty, lowerBound, upperBound]);
+
+  // Load ingredient demand on mount (only once)
   useEffect(() => {
     if (!branchId || !productId || ingredientLoaded) return;
     ingredientDemandMutation
@@ -288,7 +464,7 @@ function DeepDiveContent() {
         setIngredientLoaded(true);
       })
       .catch(() => setIngredientLoaded(true));
-  }, [branchId, productId]);
+  }, [branchId, productId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDecision(qty: number, accepted: boolean) {
     if (!prepPlanItemId || isPlanLocked || submitState === "saving") return;
@@ -302,6 +478,8 @@ function DeepDiveContent() {
         },
       });
       setSubmitState("done");
+      // Reset after 2s so the chef can adjust again if needed
+      setTimeout(() => setSubmitState("idle"), 2000);
     } catch {
       setSubmitState("error");
     }
@@ -316,7 +494,6 @@ function DeepDiveContent() {
       description={`Forecast intelligence · ${targetDate}`}
       insight="Every signal behind this number is here. Use it to make a confident call."
     >
-      {/* Back nav */}
       <div className="mb-6 flex items-center gap-4">
         <Link
           href={`/workspace/today?branch_id=${branchId}&date=${targetDate}`}
@@ -338,28 +515,6 @@ function DeepDiveContent() {
           ============================================================ */}
           <div className="lg:col-span-2 space-y-8">
 
-            {/* ── Decision confirmed banner ── */}
-            {submitState === "done" && (
-              <div className="flex items-center justify-between rounded-xl border border-status-success/40 bg-status-success/10 px-5 py-4">
-                <p className="text-sm font-semibold text-status-success">
-                  Plan updated
-                </p>
-                <Link
-                  href={`/workspace/today?branch_id=${branchId}&date=${targetDate}`}
-                  className="text-xs font-semibold text-status-success hover:underline"
-                >
-                  Back to prep plan →
-                </Link>
-              </div>
-            )}
-            {submitState === "error" && (
-              <div className="rounded-xl border border-status-critical/40 bg-status-critical/10 px-5 py-3">
-                <p className="text-sm text-status-critical">
-                  Couldn't save — try again or update from the prep plan.
-                </p>
-              </div>
-            )}
-
             {/* ── 1. Why this number ── */}
             {(prepItem?.forecast_context?.reasoning?.length ||
               advancedForecast?.signal_contributions) ? (
@@ -368,7 +523,6 @@ function DeepDiveContent() {
                   Why this number
                 </p>
 
-                {/* Plain reasoning */}
                 {prepItem?.forecast_context?.reasoning?.length ? (
                   <ul className="mt-3 space-y-1.5">
                     {prepItem.forecast_context.reasoning.map((line: string, i: number) => (
@@ -380,7 +534,6 @@ function DeepDiveContent() {
                   </ul>
                 ) : null}
 
-                {/* Signal waterfall — how each driver moved the base number */}
                 {advancedForecast?.signal_contributions ? (
                   <div className="mt-5 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -418,7 +571,6 @@ function DeepDiveContent() {
                   </div>
                 ) : null}
 
-                {/* Applied signals (fallback if no waterfall) */}
                 {!advancedForecast?.signal_contributions &&
                 prepItem?.forecast_context?.applied_signals ? (
                   <div className="mt-4 space-y-1.5">
@@ -513,7 +665,6 @@ function DeepDiveContent() {
                   </div>
                 ) : null}
 
-                {/* Chef weight context */}
                 {advancedForecast?.chef_weight != null && (
                   <p className="mt-4 border-t border-surface-4 pt-3 text-xs text-text-muted">
                     Your overrides on this item carry{" "}
@@ -531,22 +682,35 @@ function DeepDiveContent() {
               </div>
             </section>
 
-            {/* ── 3. What if you prep differently ── */}
-            {advancedForecast?.scenarios?.length ? (
+            {/* ── 3. Scenario comparison (quantity) ── */}
+            {suggestedQty != null ? (
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                   What if you prep differently?
                 </p>
                 <p className="mt-1 text-xs text-text-muted">
-                  Compare outcomes across prep quantities.
+                  Compare prep quantities and expected outcomes.
                 </p>
                 <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-                  <ScenarioBarChart scenarios={advancedForecast.scenarios} />
+                  <ScenarioBarChart
+                    baseValue={suggestedQty}
+                    scenarios={chartScenarios}
+                    unitLabel={unit}
+                  />
                 </div>
               </section>
             ) : null}
 
-            {/* ── 4. Track record ── */}
+            {/* ── 4. Financial scenarios ── */}
+            {financialScenarios && financialScenarios.length > 0 ? (
+              <FinancialScenarios
+                scenarios={financialScenarios}
+                unit={unit}
+                pricingReliable={pricingReliable}
+              />
+            ) : null}
+
+            {/* ── 5. Track record ── */}
             {dailyHistory.length > 0 ? (
               <TrackRecord
                 history={dailyHistory}
@@ -582,7 +746,7 @@ function DeepDiveContent() {
                           : "—",
                     },
                     {
-                      label: "Data points",
+                      label: "Days tracked",
                       value: forecastMetrics.data_points ?? "—",
                     },
                   ].map((stat) => (
@@ -607,7 +771,7 @@ function DeepDiveContent() {
               </section>
             ) : null}
 
-            {/* ── 5. What you'll need ── */}
+            {/* ── 6. What you'll need ── */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                 What you&apos;ll need
@@ -641,13 +805,21 @@ function DeepDiveContent() {
                     <p className="text-sm text-text-muted">
                       Recipe exists but has no ingredient lines yet.
                     </p>
+                    {ingredientData.menu_item_id && (
+                      <Link
+                        href={`/workspace/inventory/recipes/${ingredientData.menu_item_id}?branch=${branchId}`}
+                        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10"
+                      >
+                        Edit recipe →
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div>
                     <div className="divide-y divide-surface-4">
-                      {ingredientData.ingredients.map((ing: any) => (
+                      {ingredientData.ingredients.map((ing: any, idx: number) => (
                         <div
-                          key={ing.ingredient_id}
+                          key={ing.ingredient_id ?? idx}
                           className="flex items-center justify-between px-5 py-3 hover:bg-surface-3/30 transition-colors"
                         >
                           <div>
@@ -674,7 +846,7 @@ function DeepDiveContent() {
                         </div>
                       ))}
                     </div>
-                    <div className="border-t border-surface-4 px-5 py-3 bg-surface-3/20">
+                    <div className="flex items-center justify-between border-t border-surface-4 bg-surface-3/20 px-5 py-3">
                       <p className="text-[11px] text-text-muted">
                         Based on{" "}
                         {ingredientData.planned_quantity != null
@@ -682,6 +854,14 @@ function DeepDiveContent() {
                           : "planned quantity"}{" "}
                         of {ingredientData.item_name ?? itemTitle}.
                       </p>
+                      {ingredientData.menu_item_id && (
+                        <Link
+                          href={`/workspace/inventory/recipes/${ingredientData.menu_item_id}?branch=${branchId}`}
+                          className="text-[11px] font-semibold text-brand-gold hover:underline"
+                        >
+                          Edit recipe →
+                        </Link>
+                      )}
                     </div>
                   </div>
                 )}
@@ -703,7 +883,7 @@ function DeepDiveContent() {
               </div>
               <div className="px-5 py-4 space-y-4">
 
-                {/* AI vs Your plan comparison */}
+                {/* AI vs Your plan */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
@@ -723,14 +903,13 @@ function DeepDiveContent() {
                   </div>
                 </div>
 
-                {/* Variance note */}
                 {variance != null && Math.abs(variance) >= 0.5 && (
                   <p className={`text-xs ${varianceLabel(variance, unit).tone}`}>
                     {varianceLabel(variance, unit).text}
                   </p>
                 )}
 
-                {/* Current decision state */}
+                {/* Decision status */}
                 {prepItem?.decision ? (
                   <div className="flex items-center justify-between border-t border-surface-4 pt-3">
                     <p className="text-xs text-text-muted">Status</p>
@@ -752,8 +931,20 @@ function DeepDiveContent() {
                   </div>
                 ) : null}
 
-                {/* Action buttons */}
-                {!isPlanLocked && submitState !== "done" && (
+                {/* Save feedback */}
+                {submitState === "done" && (
+                  <p className="text-xs font-semibold text-status-success">
+                    ✓ Plan saved
+                  </p>
+                )}
+                {submitState === "error" && (
+                  <p className="text-xs text-status-critical">
+                    Couldn't save — try again.
+                  </p>
+                )}
+
+                {/* Action buttons — always visible (reset to idle after save) */}
+                {!isPlanLocked && (
                   <div className="space-y-2 border-t border-surface-4 pt-3">
                     {suggestedQty != null && (
                       <button
@@ -762,11 +953,11 @@ function DeepDiveContent() {
                         disabled={submitState === "saving"}
                         className="w-full inline-flex h-9 items-center justify-center rounded-full border border-status-success/40 bg-status-success/15 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:opacity-60"
                       >
-                        {submitState === "saving" ? "Saving…" : `✓ Accept — prep ${fmtQty(suggestedQty, unit)}`}
+                        {submitState === "saving" ? "Saving…" : `✓ Accept — ${fmtQty(suggestedQty, unit)}`}
                       </button>
                     )}
 
-                    {/* Custom quantity entry */}
+                    {/* Override input — always available */}
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -788,7 +979,7 @@ function DeepDiveContent() {
                         disabled={!customQty || submitState === "saving"}
                         className="shrink-0 inline-flex h-9 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:opacity-50"
                       >
-                        Set
+                        Set override
                       </button>
                     </div>
                   </div>
@@ -831,7 +1022,7 @@ function DeepDiveContent() {
               </div>
             )}
 
-            {/* ── Quick stats from metrics ── */}
+            {/* ── Quick stats ── */}
             {forecastMetrics && (
               <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
@@ -849,7 +1040,9 @@ function DeepDiveContent() {
                   {forecastMetrics.stockout_rate != null && (
                     <div className="flex justify-between">
                       <span className="text-text-muted">Stockouts</span>
-                      <span className={`font-semibold ${forecastMetrics.stockout_rate > 0.05 ? "text-status-critical" : "text-text-primary"}`}>
+                      <span
+                        className={`font-semibold ${forecastMetrics.stockout_rate > 0.05 ? "text-status-critical" : "text-text-primary"}`}
+                      >
                         {(forecastMetrics.stockout_rate * 100).toFixed(1)}%
                       </span>
                     </div>
@@ -857,7 +1050,9 @@ function DeepDiveContent() {
                   {forecastMetrics.waste_rate != null && (
                     <div className="flex justify-between">
                       <span className="text-text-muted">Waste rate</span>
-                      <span className={`font-semibold ${forecastMetrics.waste_rate > 0.08 ? "text-status-warning" : "text-text-primary"}`}>
+                      <span
+                        className={`font-semibold ${forecastMetrics.waste_rate > 0.08 ? "text-status-warning" : "text-text-primary"}`}
+                      >
                         {(forecastMetrics.waste_rate * 100).toFixed(1)}%
                       </span>
                     </div>
@@ -879,7 +1074,6 @@ function DeepDiveContent() {
               </div>
             )}
 
-            {/* ── Full history link ── */}
             <Link
               href={`/workspace/forecast-intelligence/${productId}?branch_id=${branchId}&date=${targetDate}`}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-brand-gold/30 px-4 py-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10"

@@ -109,7 +109,7 @@ export function IngredientRequirements({ branchId, targetDate, orgId }: Props) {
           {/* Ingredient list */}
           <div className="divide-y divide-surface-4">
             {ingredients.map((ing) => {
-              const qty = parseFloat(ing.predicted_usage);
+              const qty = parseFloat(ing.predicted_usage ?? "0");
               const isHighQty = qty > 5;
               return (
                 <div
