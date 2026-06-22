@@ -29,8 +29,10 @@ function formatDate(iso: string) {
 }
 
 function TrendIcon({ trend }: { trend: string }) {
-  if (trend === "improving") return <span className="text-status-success">↑</span>;
-  if (trend === "declining") return <span className="text-status-critical">↓</span>;
+  if (trend === "improving")
+    return <span className="text-status-success">↑</span>;
+  if (trend === "declining")
+    return <span className="text-status-critical">↓</span>;
   return <span className="text-text-muted">→</span>;
 }
 
@@ -46,7 +48,11 @@ function ItemSparkline({
   const maxVal = useMemo(
     () =>
       Math.max(
-        ...timeSeries.flatMap((r) => [r.planned_qty, r.actual_sales, r.ai_forecast]),
+        ...timeSeries.flatMap((r) => [
+          r.planned_qty,
+          r.actual_sales,
+          r.ai_forecast,
+        ]),
         1,
       ),
     [timeSeries],
@@ -138,7 +144,9 @@ function ItemSparkline({
             <p>Planned: {fmtQty(timeSeries[hovered].planned_qty, unit)}</p>
             <p>Sold: {fmtQty(timeSeries[hovered].actual_sales, unit)}</p>
             {timeSeries[hovered].waste_qty > 0 && (
-              <p className="text-status-warning">Waste: {fmtQty(timeSeries[hovered].waste_qty, unit)}</p>
+              <p className="text-status-warning">
+                Waste: {fmtQty(timeSeries[hovered].waste_qty, unit)}
+              </p>
             )}
             {timeSeries[hovered].stockout_flag && (
               <p className="text-status-critical">Ran short</p>
@@ -203,12 +211,21 @@ function ItemHistoryContent() {
     const overrides: typeof ts = [];
     for (const r of ts) {
       if (r.stockout_flag) stockout.push(r);
-      else if (r.waste_qty > 0 && r.waste_qty / Math.max(r.planned_qty, 0.01) > 0.08)
+      else if (
+        r.waste_qty > 0 &&
+        r.waste_qty / Math.max(r.planned_qty, 0.01) > 0.08
+      )
         waste.push(r);
       else clean.push(r);
-      if (r.decision && r.decision.toUpperCase().includes("OVERRIDE")) overrides.push(r);
+      if (r.decision && r.decision.toUpperCase().includes("OVERRIDE"))
+        overrides.push(r);
     }
-    return { cleanRows: clean, wasteRows: waste, stockoutRows: stockout, overrideRows: overrides };
+    return {
+      cleanRows: clean,
+      wasteRows: waste,
+      stockoutRows: stockout,
+      overrideRows: overrides,
+    };
   }, [report?.time_series]);
 
   const unit = report?.unit ?? "";
@@ -253,7 +270,8 @@ function ItemHistoryContent() {
       {!isLoading && !summary && (
         <div className="mt-10 rounded-xl border border-surface-4 bg-surface-2 px-6 py-10 text-center">
           <p className="text-sm text-text-muted">
-            {report?.data_note ?? "No history data found for this item in the selected window."}
+            {report?.data_note ??
+              "No history data found for this item in the selected window."}
           </p>
         </div>
       )}
@@ -263,14 +281,40 @@ function ItemHistoryContent() {
           {/* ── KPI row ── */}
           <div className="mt-6 grid grid-cols-2 gap-px bg-surface-4/40 rounded-xl overflow-hidden sm:grid-cols-4">
             {[
-              { label: "Revenue", value: toCurrency(summary.total_revenue), sub: `${summary.days_tracked} service days` },
-              { label: "Waste cost", value: toCurrency(summary.total_waste_cost), sub: summary.total_waste_cost > 0 ? "Over-prep losses" : "No waste" },
-              { label: "Stockout days", value: String(summary.stockout_days), sub: summary.stockout_days > 0 ? `${toCurrency(summary.total_lost_revenue)} missed revenue` : "Never ran short" },
-              { label: "Avg accuracy", value: `${summary.avg_accuracy.toFixed(0)}%`, sub: "AI forecast vs actual" },
+              {
+                label: "Revenue",
+                value: toCurrency(summary.total_revenue),
+                sub: `${summary.days_tracked} service days`,
+              },
+              {
+                label: "Waste cost",
+                value: toCurrency(summary.total_waste_cost),
+                sub:
+                  summary.total_waste_cost > 0
+                    ? "Over-prep losses"
+                    : "No waste",
+              },
+              {
+                label: "Stockout days",
+                value: String(summary.stockout_days),
+                sub:
+                  summary.stockout_days > 0
+                    ? `${toCurrency(summary.total_lost_revenue)} missed revenue`
+                    : "Never ran short",
+              },
+              {
+                label: "Avg accuracy",
+                value: `${summary.avg_accuracy.toFixed(0)}%`,
+                sub: "AI forecast vs actual",
+              },
             ].map((k) => (
               <div key={k.label} className="bg-surface-2 px-5 py-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">{k.label}</p>
-                <p className="mt-2 font-display text-2xl font-semibold text-text-primary">{k.value}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {k.label}
+                </p>
+                <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
+                  {k.value}
+                </p>
                 <p className="mt-0.5 text-[11px] text-text-muted">{k.sub}</p>
               </div>
             ))}
@@ -287,16 +331,20 @@ function ItemHistoryContent() {
                   <p className="text-[11px] text-text-muted">Accuracy trend</p>
                   <p className="mt-0.5 text-sm font-semibold text-text-primary flex items-center gap-1">
                     <TrendIcon trend={insights.accuracy_trend} />
-                    {insights.accuracy_trend.charAt(0).toUpperCase() + insights.accuracy_trend.slice(1)}
+                    {insights.accuracy_trend.charAt(0).toUpperCase() +
+                      insights.accuracy_trend.slice(1)}
                   </p>
                   {insights.accuracy_prior_14d > 0 && (
                     <p className="mt-0.5 text-[11px] text-text-muted">
-                      {insights.accuracy_14d.toFixed(0)}% last 14 days vs {insights.accuracy_prior_14d.toFixed(0)}% prior
+                      {insights.accuracy_14d.toFixed(0)}% last 14 days vs{" "}
+                      {insights.accuracy_prior_14d.toFixed(0)}% prior
                     </p>
                   )}
                 </div>
                 <div>
-                  <p className="text-[11px] text-text-muted">Avg forecast error</p>
+                  <p className="text-[11px] text-text-muted">
+                    Avg forecast error
+                  </p>
                   <p className="mt-0.5 text-sm font-semibold text-text-primary">
                     {insights.avg_error_pct.toFixed(1)}% off
                   </p>
@@ -310,12 +358,15 @@ function ItemHistoryContent() {
                 </div>
                 {insights.override_count > 0 && (
                   <div>
-                    <p className="text-[11px] text-text-muted">Your overrides</p>
+                    <p className="text-[11px] text-text-muted">
+                      Your overrides
+                    </p>
                     <p className="mt-0.5 text-sm font-semibold text-text-primary">
                       {insights.override_count} times
                     </p>
                     <p className="mt-0.5 text-[11px] text-text-muted">
-                      {insights.override_win_count}/{insights.override_count} paid off
+                      {insights.override_win_count}/{insights.override_count}{" "}
+                      paid off
                     </p>
                   </div>
                 )}
@@ -358,7 +409,9 @@ function ItemHistoryContent() {
                       key={row.date}
                       className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3"
                     >
-                      <span className={`w-4 shrink-0 text-center font-semibold ${outcome.cls}`}>
+                      <span
+                        className={`w-4 shrink-0 text-center font-semibold ${outcome.cls}`}
+                      >
                         {outcome.icon}
                       </span>
                       <p className="w-28 shrink-0 text-xs text-text-muted">
@@ -366,13 +419,22 @@ function ItemHistoryContent() {
                       </p>
                       <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-text-muted">
                         <span>
-                          AI: <span className="font-medium text-text-secondary">{fmtQty(row.ai_forecast, unit)}</span>
+                          AI:{" "}
+                          <span className="font-medium text-text-secondary">
+                            {fmtQty(row.ai_forecast, unit)}
+                          </span>
                         </span>
                         <span>
-                          Planned: <span className="font-medium text-text-secondary">{fmtQty(row.planned_qty, unit)}</span>
+                          Planned:{" "}
+                          <span className="font-medium text-text-secondary">
+                            {fmtQty(row.planned_qty, unit)}
+                          </span>
                         </span>
                         <span>
-                          Sold: <span className="font-semibold text-text-primary">{fmtQty(row.actual_sales, unit)}</span>
+                          Sold:{" "}
+                          <span className="font-semibold text-text-primary">
+                            {fmtQty(row.actual_sales, unit)}
+                          </span>
                         </span>
                         {row.waste_qty > 0 && (
                           <span className="text-status-warning">
@@ -406,7 +468,9 @@ export default function ItemHistoryPage() {
   return (
     <Suspense
       fallback={
-        <div className="px-6 py-8 text-sm text-text-muted">Loading item history…</div>
+        <div className="px-6 py-8 text-sm text-text-muted">
+          Loading item history…
+        </div>
       }
     >
       <ItemHistoryContent />
