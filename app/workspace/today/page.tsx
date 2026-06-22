@@ -1493,8 +1493,8 @@ function TodayWorkspacePageContent() {
     <WorkspaceShell
       eyebrow="Today"
       title="Today's Kitchen"
-      description="Review today's prep targets, adjust quantities, and start service when you're ready."
-      insight="The more you accept or override suggestions each morning, the smarter the recommendations get over time."
+      description="Review your forecast, confirm production targets, and execute with precision."
+      insight="Each decision — accepted or overridden — sharpens the forecast. The system learns from every shift."
     >
       {/* Slim context bar — no heavy card */}
       <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
@@ -1542,7 +1542,7 @@ function TodayWorkspacePageContent() {
       </div>
 
       {todayQuery.isError ? (
-        <div className="mb-6 rounded-lg border-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
+        <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
           <p className="font-semibold">Day data not available.</p>
           <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
           {canInitializeDay && safeBranchId ? (
@@ -1706,10 +1706,10 @@ function TodayWorkspacePageContent() {
               {morningRiskAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
+                  className={`flex items-start justify-between gap-4 rounded-r-xl border-l-4 px-4 py-3 ${
                     alert.severity === "HIGH"
-                      ? "border-status-critical bg-status-critical/8"
-                      : "border-status-warning bg-status-warning/8"
+                      ? "border-l-status-critical bg-status-critical/8"
+                      : "border-l-status-warning bg-status-warning/8"
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -1719,10 +1719,10 @@ function TodayWorkspacePageContent() {
                     </p>
                     <p className="mt-0.5 text-sm text-text-secondary">
                       {alert.riskType === "STOCKOUT"
-                        ? "You might run out before service ends at your current plan."
+                        ? "Stockout risk. Your current plan falls short of projected demand."
                         : alert.riskType === "WASTE"
-                          ? "You may cook more than you can sell today."
-                          : "Your current plan could affect today's margin."}
+                          ? "Waste exposure detected. Demand signal is weaker than your current prep."
+                          : "Margin variance. Deviation from forecast affects estimated contribution."}
                     </p>
                   </div>
                   <button
@@ -2379,7 +2379,7 @@ function TodayWorkspacePageContent() {
           {/* ── Collapsed footer: network intelligence + decision summary ── */}
           <details className="mt-8 mb-4">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
-              More context ↓ (network signals, decision summary)
+              Network signals & decision summary
             </summary>
 
             <div className="mt-4 space-y-6">
@@ -2602,10 +2602,10 @@ function TodayWorkspacePageContent() {
               {liveSmartAlerts.map((alert) => (
                 <article
                   key={alert.id}
-                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
+                  className={`flex items-start justify-between gap-4 rounded-r-xl border-l-4 px-4 py-3 ${
                     alert.type === "SALES_SPIKE"
-                      ? "border-brand-gold bg-brand-gold/8"
-                      : "border-status-critical bg-status-critical/8"
+                      ? "border-l-brand-gold bg-brand-gold/8"
+                      : "border-l-status-critical bg-status-critical/8"
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -2803,15 +2803,14 @@ function TodayWorkspacePageContent() {
             )}
             {quietMode && !visibleLiveRows.length ? (
               <div className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4 text-sm text-text-muted">
-                Quiet mode is active. No HIGH/CRITICAL items need attention
-                right now.
+                Critical filter active — all items are within safe thresholds.
               </div>
             ) : null}
           </div>
 
           <details className="mt-4 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
-            <summary className="cursor-pointer text-sm font-semibold text-text-primary">
-              Fallback Actions (only when needed)
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
+              Manual log
             </summary>
             <div className="mt-3 space-y-3">
               {liveRows.map(({ item }) => (
@@ -2853,9 +2852,9 @@ function TodayWorkspacePageContent() {
       {isClosed && branchDay ? (
         <section className="mt-8">
           <div className="mb-8 border-b border-surface-4/60 pb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Day complete</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Day closed</p>
             <h3 className="mt-1 font-display text-2xl font-semibold text-text-primary">
-              How did today go?
+              Today's Outcome
             </h3>
           </div>
 
@@ -2863,7 +2862,7 @@ function TodayWorkspacePageContent() {
             <div className="space-y-8">
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  1. Daily Outcome
+                  Daily Outcome
                 </p>
                 <p className="mt-2 text-sm text-text-secondary">
                   {branchDay.review_phase.daily_outcome.title}
@@ -3028,7 +3027,7 @@ function TodayWorkspacePageContent() {
                 <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Graph #2 - Waste Distribution
+                      Waste Distribution
                     </p>
                     <div className="mt-4 space-y-3">
                       {branchDay.review_phase.daily_outcome.waste_distribution
@@ -3061,7 +3060,7 @@ function TodayWorkspacePageContent() {
 
                   <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                     <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Graph #3 - Last 7 Days Forecast Accuracy
+                      Forecast Accuracy — Last 7 Days
                     </p>
                     {branchDay.review_phase.daily_outcome
                       .forecast_accuracy_trend.length ? (
@@ -3132,7 +3131,7 @@ function TodayWorkspacePageContent() {
 
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Key insights
+                  Key Insights
                 </p>
                 <div className="mt-3 space-y-2">
                   {branchDay.review_phase.key_insights.insights.map(
@@ -3150,7 +3149,7 @@ function TodayWorkspacePageContent() {
 
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  3. Item Performance
+                  Item Performance
                 </p>
                 <div className="mt-3 overflow-x-auto border-y border-surface-4/70">
                   <table className="w-full min-w-[920px]">
@@ -3175,7 +3174,7 @@ function TodayWorkspacePageContent() {
                           Stockout
                         </th>
                         <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Impact
+                          Margin Impact
                         </th>
                       </tr>
                     </thead>
@@ -3217,7 +3216,7 @@ function TodayWorkspacePageContent() {
               {/* ── 4. Learning Signals — what today taught the system ── */}
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  4. What today taught the system
+                  Model Learning
                 </p>
 
                 {/* Block 1 — plain-English data counters */}
@@ -3258,7 +3257,7 @@ function TodayWorkspacePageContent() {
 
                 {/* Block 2 — you vs the forecast */}
                 <div className="mt-6">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">You vs the forecast</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Your execution vs forecast</p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="border-b sm:border-b-0 sm:border-r border-surface-4/60 pb-3 sm:pb-0 sm:pr-4">
                       <p className="text-xs text-text-muted">How often you adjusted</p>
@@ -3275,22 +3274,22 @@ function TodayWorkspacePageContent() {
                       <p className="mt-0.5 text-[11px] text-text-muted">how close your plan was to actual demand</p>
                     </div>
                     <div className="pb-3 sm:pb-0 sm:pl-0">
-                      <p className="text-xs text-text-muted">When you beat the AI</p>
+                      <p className="text-xs text-text-muted">When you led the forecast</p>
                       <p className="mt-1 font-display text-2xl font-semibold text-status-success">
                         {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustments_improved_outcome_rate.toFixed(1)}%
                       </p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">of your overrides led to a better outcome</p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">of your overrides improved the outcome</p>
                     </div>
                   </div>
 
                   {/* Chef beats AI highlight */}
                   {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 0 ? (
                     <p className="mt-3 text-sm text-status-success border-t border-surface-4/40 pt-3">
-                      You outperformed the forecast on{" "}
+                      Outperformed forecast on{" "}
                       <span className="font-semibold">
                         {branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows}
                       </span>{" "}
-                      {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) === 1 ? "item" : "items"} today — your instincts are being factored into future suggestions.
+                      {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) === 1 ? "item" : "items"} today. Those overrides are weighted into tomorrow's model.
                     </p>
                   ) : null}
                 </div>
@@ -3357,7 +3356,7 @@ function TodayWorkspacePageContent() {
                             <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.forecast_error, row.unit)}</td>
                             <td className="px-3 py-2 text-sm text-text-secondary">{signedQuantity(row.chef_adjustment, row.unit)}</td>
                             <td className={`px-3 py-2 text-sm ${row.service_outcome === "IMPROVED_BY_CHEF" ? "text-status-success" : "text-status-warning"}`}>
-                              {row.service_outcome === "IMPROVED_BY_CHEF" ? "Chef better" : "Forecast better"}
+                              {row.service_outcome === "IMPROVED_BY_CHEF" ? "Execution led" : "Forecast led"}
                             </td>
                           </tr>
                         ))}
@@ -3370,7 +3369,7 @@ function TodayWorkspacePageContent() {
               {/* ── 5. What tomorrow looks like ── */}
               <section className="border-t border-surface-4/60 pt-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  5. What tomorrow looks like
+                  Tomorrow's Outlook
                 </p>
 
                 {/* Tomorrow focus actions */}
@@ -3443,9 +3442,9 @@ function TodayWorkspacePageContent() {
 
       <ConfirmActionModal
         open={confirmAction === "START_LIVE"}
-        title="Start Live Service?"
-        description="This switches Today into live execution mode and enables rapid production logging."
-        confirmLabel="Start Live Service"
+        title="Start Service?"
+        description="Service begins. Live monitoring activates and production logs open."
+        confirmLabel="Start Service"
         isConfirming={updateBranchDayStatusMutation.isPending}
         onClose={() => setConfirmAction(null)}
         onConfirm={startLiveService}
@@ -3453,8 +3452,8 @@ function TodayWorkspacePageContent() {
 
       <ConfirmActionModal
         open={confirmAction === "CLOSE_DAY"}
-        title="Close Service Day?"
-        description="This finalizes today and runs the end-of-day review summary."
+        title="Close Day?"
+        description="End-of-day summary will be generated. Today closes and cannot be re-opened."
         confirmLabel="Close Day"
         tone="critical"
         isConfirming={updateBranchDayStatusMutation.isPending}

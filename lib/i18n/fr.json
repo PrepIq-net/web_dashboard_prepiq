@@ -269,8 +269,8 @@
   },
   "today": {
     "title": "Cuisine du jour",
-    "description": "Examinez les objectifs de préparation d'aujourd'hui, ajustez les quantités et commencez le service quand vous êtes prêt.",
-    "insight": "Plus vous acceptez ou ignorez les suggestions chaque matin, plus les recommandations deviennent intelligentes au fil du temps.",
+    "description": "Examinez vos prévisions, confirmez les objectifs de production et exécutez avec précision.",
+    "insight": "Chaque décision — acceptée ou modifiée — affine les prévisions. Le système apprend à chaque service.",
     "outlook": {
       "title": "Perspectives d'aujourd'hui",
       "quieter": "Plus calme que d'habitude",
@@ -330,6 +330,22 @@
       "keepMine": "Garder ma quantité",
       "deepDive": "Analyse approfondie"
     },
+    "morning": {
+      "lockFirst": "Verrouillez le plan avant de commencer le service.",
+      "moreContext": "Signaux réseau & résumé des décisions",
+      "nothingNotable": "Rien de notable dans les autres cuisines ce matin.",
+      "decisionSummary": "Vos décisions jusqu'à présent",
+      "reviewed": "Examinés",
+      "usedSuggestion": "Suggestion acceptée",
+      "ownNumber": "Votre propre chiffre",
+      "wasteExposure": "Exposition au gaspillage",
+      "forecastImpact": "Impact sur la prévision"
+    },
+    "alert": {
+      "stockoutRisk": "Risque de rupture. Votre plan actuel est inférieur à la demande projetée.",
+      "wasteRisk": "Surproduction détectée. Le signal de demande est plus faible que votre préparation actuelle.",
+      "marginRisk": "Variation de marge. L'écart par rapport à la prévision affecte la contribution estimée."
+    },
     "live": {
       "status": "Le service est en cours",
       "monitor": "Moniteur de cuisine",
@@ -342,7 +358,25 @@
       "onTrack": "En bonne voie",
       "keepEye": "À surveiller",
       "needsAction": "Action requise",
-      "remaining": "restant"
+      "remaining": "restant",
+      "manualLog": "Saisie manuelle",
+      "criticalFilterActive": "Filtre critique actif — tous les articles sont dans les seuils normaux.",
+      "csvImportComplete": "Données de ventes mises à jour depuis le CSV — les totaux en direct incluent les lignes importées."
+    },
+    "closed": {
+      "dayComplete": "Journée clôturée",
+      "outcome": "Résultat du jour",
+      "dailyOutcome": "Résultat quotidien",
+      "wasteDistribution": "Distribution du gaspillage",
+      "forecastAccuracyTrend": "Précision des prévisions — 7 derniers jours",
+      "keyInsights": "Informations clés",
+      "itemPerformance": "Performance par article",
+      "modelLearning": "Apprentissage du modèle",
+      "tomorrowOutlook": "Perspectives de demain",
+      "vsLastSameDay": "% vs même jour la semaine dernière",
+      "yourExecutionVsForecast": "Votre exécution vs prévision",
+      "youLedForecast": "Quand vous avez devancé la prévision",
+      "reviewPending": "Le résumé de fin de journée est en cours de préparation..."
     }
   },
   "roles": {

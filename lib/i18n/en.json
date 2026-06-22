@@ -269,8 +269,8 @@
   },
   "today": {
     "title": "Today's Kitchen",
-    "description": "Review today's prep targets, adjust quantities, and start service when you're ready.",
-    "insight": "The more you accept or override suggestions each morning, the smarter the recommendations get over time.",
+    "description": "Review your forecast, confirm production targets, and execute with precision.",
+    "insight": "Each decision — accepted or overridden — sharpens the forecast. The system learns from every shift.",
     "outlook": {
       "title": "Today's outlook",
       "quieter": "Quieter than usual",
@@ -330,6 +330,22 @@
       "keepMine": "Keep mine",
       "deepDive": "Deep dive"
     },
+    "morning": {
+      "lockFirst": "Lock the plan first, then start service.",
+      "moreContext": "Network signals & decision summary",
+      "nothingNotable": "Nothing notable from other branches this morning.",
+      "decisionSummary": "Your decisions so far",
+      "reviewed": "Reviewed",
+      "usedSuggestion": "Used suggestion",
+      "ownNumber": "Your own number",
+      "wasteExposure": "Waste exposure",
+      "forecastImpact": "Forecast impact"
+    },
+    "alert": {
+      "stockoutRisk": "Stockout risk. Your current plan falls short of projected demand.",
+      "wasteRisk": "Waste exposure detected. Demand signal is weaker than your current prep.",
+      "marginRisk": "Margin variance. Deviation from forecast affects estimated contribution."
+    },
     "live": {
       "status": "Service is live",
       "monitor": "Kitchen monitor",
@@ -342,7 +358,25 @@
       "onTrack": "On track",
       "keepEye": "Keep an eye on",
       "needsAction": "Needs action",
-      "remaining": "remaining"
+      "remaining": "remaining",
+      "manualLog": "Manual log",
+      "criticalFilterActive": "Critical filter active — all items are within safe thresholds.",
+      "csvImportComplete": "Sales data updated from CSV — live totals include the imported rows."
+    },
+    "closed": {
+      "dayComplete": "Day closed",
+      "outcome": "Today's Outcome",
+      "dailyOutcome": "Daily Outcome",
+      "wasteDistribution": "Waste Distribution",
+      "forecastAccuracyTrend": "Forecast Accuracy — Last 7 Days",
+      "keyInsights": "Key Insights",
+      "itemPerformance": "Item Performance",
+      "modelLearning": "Model Learning",
+      "tomorrowOutlook": "Tomorrow's Outlook",
+      "vsLastSameDay": "% vs last same weekday",
+      "yourExecutionVsForecast": "Your execution vs forecast",
+      "youLedForecast": "When you led the forecast",
+      "reviewPending": "Review summary is being prepared..."
     }
   },
   "roles": {
