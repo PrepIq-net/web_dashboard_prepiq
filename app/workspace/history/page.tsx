@@ -104,26 +104,35 @@ function HistoryContent() {
     if (!isLoading && !canAccess) router.replace("/");
   }, [isLoading, canAccess, router]);
 
-  const historyQuery = useOperationsHistorySnapshot({
+  // Chart query — never includes target_date so clicking bars never shifts the window
+  const timelineQuery = useOperationsHistorySnapshot({
+    branch_id: selectedBranchId,
+    window_days: windowDays,
+  });
+
+  // Day-detail query — separate request, only changes the summary/items/patterns below
+  const dayDetailQuery = useOperationsHistorySnapshot({
     branch_id: selectedBranchId,
     target_date: selectedDate || undefined,
     window_days: windowDays,
   });
 
-  const report    = historyQuery.data;
-  const summary   = report?.summary ?? null;
-  const items     = report?.items ?? EMPTY_LIST;
-  const patterns  = report?.patterns ?? EMPTY_LIST;
+  const summary   = dayDetailQuery.data?.summary ?? null;
+  const items     = dayDetailQuery.data?.items ?? EMPTY_LIST;
+  const patterns  = timelineQuery.data?.patterns ?? EMPTY_LIST;
 
-  // Timeline oldest→newest for the bar chart
+  // Timeline bars always come from the stable (no-target_date) query
   const chronoTimeline = useMemo(
-    () => [...(report?.timeline ?? [])].reverse(),
-    [report?.timeline],
+    () => [...(timelineQuery.data?.timeline ?? [])].reverse(),
+    [timelineQuery.data?.timeline],
   );
 
+  // Auto-select the most recent date when the chart first loads
   useEffect(() => {
-    if (!selectedDate && report?.anchor_date) setSelectedDate(report.anchor_date);
-  }, [report?.anchor_date, selectedDate]);
+    if (!selectedDate && timelineQuery.data?.anchor_date) {
+      setSelectedDate(timelineQuery.data.anchor_date);
+    }
+  }, [timelineQuery.data?.anchor_date, selectedDate]);
 
   const grade = summary ? computeGrade(summary.forecast_accuracy, summary.stockout_count) : null;
 
@@ -198,7 +207,7 @@ function HistoryContent() {
       <section className="mt-8 rounded-2xl border border-surface-4 bg-surface-2 p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-            Forecast accuracy — last {report?.window_days ?? windowDays} days
+            Forecast accuracy — last {timelineQuery.data?.window_days ?? windowDays} days
           </p>
           <div className="flex items-center gap-3 text-[10px] text-text-muted">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-status-success/70" /> Clean</span>
@@ -254,7 +263,7 @@ function HistoryContent() {
           </div>
         ) : (
           <p className="text-sm text-text-muted py-6 text-center">
-            {historyQuery.isLoading ? "Loading history…" : "No service days in this window yet."}
+            {timelineQuery.isLoading ? "Loading history…" : "No service days in this window yet."}
           </p>
         )}
       </section>
@@ -454,18 +463,18 @@ function HistoryContent() {
           )}
         </section>
       ) : (
-        report && !historyQuery.isLoading && (
+        !dayDetailQuery.isLoading && (
           <div className="mt-10 py-12 text-center">
             <p className="text-sm text-text-muted">
-              {report.data_note ?? "Select a day from the chart above."}
+              {dayDetailQuery.data?.data_note ?? "Select a day from the chart above."}
             </p>
           </div>
         )
       )}
 
-      {report?.data_note && summary && (
+      {dayDetailQuery.data?.data_note && summary && (
         <div className="mt-4 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3 text-xs text-text-muted">
-          {report.data_note}
+          {dayDetailQuery.data.data_note}
         </div>
       )}
     </WorkspaceShell>
