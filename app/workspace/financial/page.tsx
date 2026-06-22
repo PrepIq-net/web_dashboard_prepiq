@@ -1,4 +1,5 @@
 "use client";
+import { isOrgManagement } from "@/lib/role-utils";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -97,12 +98,7 @@ export default function FinancialPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const canAccess = [
-    "ORG_OWNER",
-    "OPS_DIRECTOR",
-    "GM",
-    "BRANCH_MANAGER",
-  ].includes(role);
+  const canAccess = isOrgManagement(role);
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");

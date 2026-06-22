@@ -6,50 +6,73 @@ import {
   Mail,
   ArrowRight,
   UserPlus,
-  Check,
   NavArrowDown,
   Database,
   Eye,
 } from "iconoir-react";
-
-const ROLE_OPTIONS = [
-  {
-    value: "CHEF",
-    label: "Kitchen Lead",
-    description: "Full production access — logs prep, waste, and batch output.",
-  },
-  {
-    value: "MANAGER",
-    label: "Manager",
-    description: "Branch-level oversight — views reports and manages staff.",
-  },
-  {
-    value: "STAFF",
-    label: "Staff",
-    description: "Read-only prep lists — sees daily targets, no editing.",
-  },
-];
+import {
+  useCurrentUserProfile,
+  useCreateInvite,
+  useStaffInviteContext,
+} from "@/services";
+import {
+  SYSTEM_ROLE_OPTIONS,
+  SYSTEM_ROLE_SLUG,
+  SystemRoleSlug,
+} from "@/services/organizations/types";
 
 type SalesAccessAnswer = "yes" | "no" | null;
 
+type StaffRoleOption = {
+  value: SystemRoleSlug;
+  label: string;
+  description: string;
+  requiresBranch: boolean;
+};
+
 export default function StaffInvitePage() {
   const router = useRouter();
+  const { data: user } = useCurrentUserProfile();
+  const orgId = user?.organization_id ?? "";
+  const inviteContext = useStaffInviteContext(orgId);
+  const inviteMutation = useCreateInvite(orgId);
+
   const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("CHEF");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [role, setRole] = useState<SystemRoleSlug | "">("");
+
+  const defaultRole: SystemRoleSlug =
+    salesAccess === "yes" ? SYSTEM_ROLE_SLUG.ADMIN : SYSTEM_ROLE_SLUG.MEMBER;
+  const roleOptions: StaffRoleOption[] =
+    inviteContext.data?.roles
+      .map((roleOption) => ({
+        value: roleOption.role,
+        label: roleOption.label,
+        description: roleOption.permission_hints.join(", ") || roleOption.label,
+        requiresBranch: roleOption.requires_branch,
+      }))
+      .filter((option) => !option.requiresBranch) ??
+    SYSTEM_ROLE_OPTIONS.map((option) => ({
+      value: option.value,
+      label: option.label,
+      description: option.label,
+      requiresBranch: false,
+    }));
+  const selectedRole = roleOptions.find(
+    (option) => option.value === (role || defaultRole),
+  );
 
   async function handleSendInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !email.includes("@")) return;
-    setIsSubmitting(true);
-    // TODO: wire to useCreateInvite hook
-    setTimeout(() => {
-      router.push("/setup/pricing");
-    }, 900);
-  }
+    if (!email.trim() || !email.includes("@") || !orgId) return;
 
-  const selectedRole = ROLE_OPTIONS.find((r) => r.value === role);
+    await inviteMutation.mutateAsync({
+      email: email.trim(),
+      role: role || defaultRole,
+    });
+
+    router.push("/setup/pricing");
+  }
 
   // Step 1 — ask if they have someone who handles sales data
   if (salesAccess === null) {
@@ -63,18 +86,19 @@ export default function StaffInvitePage() {
             </span>
           </div>
 
-          <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
+          <h1 className="font-display text-[40px] leading-12 font-semibold text-[#F5F5F7] mb-3">
             Does someone else handle your sales data?
           </h1>
-          <p className="text-[16px] leading-[24px] text-[#8E8E93] mb-10 max-w-sm">
-            If a team member manages your POS or exports, they can connect it directly — no need to share credentials.
+          <p className="text-[16px] leading-6 text-[#8E8E93] mb-10 max-w-sm">
+            If a team member manages your POS or exports, they can connect it
+            directly — no need to share credentials.
           </p>
 
           <div className="space-y-3 mb-8">
             <button
               type="button"
               onClick={() => setSalesAccess("yes")}
-              className="w-full text-left rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
+              className="w-full text-left rounded-xl border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
             >
               <div className="flex items-start gap-4">
                 <span className="mt-0.5 shrink-0 text-[#5A5A60] group-hover:text-[#A8821F] transition-colors">
@@ -84,7 +108,7 @@ export default function StaffInvitePage() {
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
                     Yes — invite them to connect sales data
                   </p>
-                  <p className="text-[13px] leading-[20px] text-[#8E8E93]">
+                  <p className="text-[13px] leading-5 text-[#8E8E93]">
                     They'll get access to connect the POS or upload CSV exports.
                   </p>
                 </div>
@@ -94,7 +118,7 @@ export default function StaffInvitePage() {
             <button
               type="button"
               onClick={() => setSalesAccess("no")}
-              className="w-full text-left rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
+              className="w-full text-left rounded-xl border border-[#2E2E33] bg-[#1C1C1F] hover:border-[#3A3A3F] px-5 py-4 transition-all duration-150 focus:outline-none group"
             >
               <div className="flex items-start gap-4">
                 <span className="mt-0.5 shrink-0 text-[#5A5A60] group-hover:text-[#A8821F] transition-colors">
@@ -104,8 +128,9 @@ export default function StaffInvitePage() {
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
                     No — I handle it myself
                   </p>
-                  <p className="text-[13px] leading-[20px] text-[#8E8E93]">
-                    Invite your kitchen lead instead so they can log prep and waste from day one.
+                  <p className="text-[13px] leading-5 text-[#8E8E93]">
+                    Invite your kitchen lead instead so they can log prep and
+                    waste from day one.
                   </p>
                 </div>
               </div>
@@ -125,7 +150,6 @@ export default function StaffInvitePage() {
   }
 
   // Step 2 — invite form (same for both paths, role differs)
-  const defaultRole = salesAccess === "yes" ? "MANAGER" : "CHEF";
   const headline =
     salesAccess === "yes"
       ? "Invite your data manager."
@@ -151,10 +175,10 @@ export default function StaffInvitePage() {
           </span>
         </div>
 
-        <h1 className="font-display text-[40px] leading-[48px] font-semibold text-[#F5F5F7] mb-3">
+        <h1 className="font-display text-[40px] leading-12 font-semibold text-[#F5F5F7] mb-3">
           {headline}
         </h1>
-        <p className="text-[16px] leading-[24px] text-[#8E8E93] mb-10 max-w-sm">
+        <p className="text-[16px] leading-6 text-[#8E8E93] mb-10 max-w-sm">
           {subtext}
         </p>
 
@@ -180,7 +204,7 @@ export default function StaffInvitePage() {
                     ? "manager@yourrestaurant.com"
                     : "lead@yourrestaurant.com"
                 }
-                className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] pl-10 pr-4 text-[14px] text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
+                className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-lg pl-10 pr-4 text-[14px] text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
                 required
               />
             </div>
@@ -193,10 +217,10 @@ export default function StaffInvitePage() {
             <div className="relative">
               <select
                 value={role || defaultRole}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
+                onChange={(e) => setRole(e.target.value as SystemRoleSlug)}
+                className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-lg px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
               >
-                {ROLE_OPTIONS.map((opt) => (
+                {roleOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -207,7 +231,7 @@ export default function StaffInvitePage() {
               </span>
             </div>
             {selectedRole && (
-              <p className="text-[12px] leading-[18px] text-[#5A5A60] px-1">
+              <p className="text-[12px] leading-4.5 text-[#5A5A60] px-1">
                 {selectedRole.description}
               </p>
             )}
@@ -216,10 +240,10 @@ export default function StaffInvitePage() {
           <div className="pt-2 space-y-3">
             <button
               type="submit"
-              disabled={!email.trim() || isSubmitting}
-              className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-[14px] font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
+              disabled={!email.trim() || inviteMutation.isPending}
+              className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-[14px] font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors duration-150"
             >
-              {isSubmitting ? (
+              {inviteMutation.isPending ? (
                 "Sending invite..."
               ) : (
                 <>
@@ -232,7 +256,7 @@ export default function StaffInvitePage() {
             <button
               type="button"
               onClick={() => router.push("/setup/pricing")}
-              className="w-full h-12 border border-[#2E2E33] bg-transparent hover:bg-[#1C1C1F] text-[#8E8E93] hover:text-[#C7C7CC] text-[14px] font-medium rounded-[8px] transition-colors duration-150"
+              className="w-full h-12 border border-[#2E2E33] bg-transparent hover:bg-[#1C1C1F] text-[#8E8E93] hover:text-[#C7C7CC] text-[14px] font-medium rounded-lg transition-colors duration-150"
             >
               Skip — choose plan first
             </button>

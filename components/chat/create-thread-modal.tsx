@@ -70,7 +70,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
       return (
         member.label.toLowerCase().includes(q) ||
         member.email.toLowerCase().includes(q) ||
-        member.role.toLowerCase().includes(q)
+        member.role?.toLowerCase().includes(q)
       );
     });
   }, [memberSearch, members]);

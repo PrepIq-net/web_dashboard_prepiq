@@ -1,4 +1,5 @@
 "use client";
+import { isOrgManagement } from "@/lib/role-utils";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -46,7 +47,7 @@ export default function BranchesPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const canAccess = ["OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
+  const canAccess = isOrgManagement(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(

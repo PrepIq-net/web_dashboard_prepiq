@@ -5,6 +5,7 @@ import type {
   AddOrganizationMemberPayload,
   OrganizationRegisterPayload,
   OrganizationFinancialOverviewQuery,
+  RoleCreateUpdatePayload,
 } from "./types";
 import { usersQueryKeys } from "../users/hooks";
 import { branchKeys } from "../branches/hooks";
@@ -14,7 +15,15 @@ export const organizationKeys = {
   lists: () => [...organizationKeys.all, "list"] as const,
   details: (id: string) => [...organizationKeys.all, "detail", id] as const,
   members: (id: string) => [...organizationKeys.all, "members", id] as const,
-  financialOverview: (id: string, params?: OrganizationFinancialOverviewQuery) =>
+  permissions: (id: string) =>
+    [...organizationKeys.all, "permissions", id] as const,
+  roles: (id: string) => [...organizationKeys.all, "roles", id] as const,
+  roleDetail: (id: string, roleId: string) =>
+    [...organizationKeys.all, "role", id, roleId] as const,
+  financialOverview: (
+    id: string,
+    params?: OrganizationFinancialOverviewQuery,
+  ) =>
     [
       ...organizationKeys.all,
       "financial-overview",
@@ -98,8 +107,16 @@ export function useAddOrganizationMember(id: string) {
 export function useUpdateOrganizationMember(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      organizationService.updateOrganizationMember(id, userId, { role }),
+    mutationFn: ({
+      userId,
+      custom_role_slug,
+    }: {
+      userId: string;
+      custom_role_slug: string;
+    }) =>
+      organizationService.updateOrganizationMember(id, userId, {
+        custom_role_slug,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
       toast.success("Member role updated.");
@@ -133,7 +150,81 @@ export function useOrganizationFinancialOverview(
 ) {
   return useQuery({
     queryKey: organizationKeys.financialOverview(id, params),
-    queryFn: () => organizationService.getOrganizationFinancialOverview(id, params),
+    queryFn: () =>
+      organizationService.getOrganizationFinancialOverview(id, params),
     enabled: Boolean(id) && enabled,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RBAC Permissions & Roles
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useOrganizationPermissions(id: string) {
+  return useQuery({
+    queryKey: organizationKeys.permissions(id),
+    queryFn: () => organizationService.getOrganizationPermissions(id),
+    enabled: !!id,
+  });
+}
+
+export function useOrganizationRoles(id: string) {
+  return useQuery({
+    queryKey: organizationKeys.roles(id),
+    queryFn: () => organizationService.getOrganizationRoles(id),
+    enabled: !!id,
+  });
+}
+
+export function useCreateOrganizationRole(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: RoleCreateUpdatePayload) =>
+      organizationService.createOrganizationRole(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.roles(id) });
+      toast.success("Role created successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create role.");
+    },
+  });
+}
+
+export function useUpdateOrganizationRole(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      roleId,
+      payload,
+    }: {
+      roleId: string;
+      payload: RoleCreateUpdatePayload;
+    }) => organizationService.updateOrganizationRole(id, roleId, payload),
+    onSuccess: (_role) => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.roles(id) });
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.roleDetail(id, _role.id),
+      });
+      toast.success("Role updated successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update role.");
+    },
+  });
+}
+
+export function useDeleteOrganizationRole(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (roleId: string) =>
+      organizationService.deleteOrganizationRole(id, roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.roles(id) });
+      toast.success("Role deleted successfully.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete role.");
+    },
   });
 }

@@ -1,4 +1,5 @@
 "use client";
+import { isOrgManagement } from "@/lib/role-utils";
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -67,7 +68,7 @@ function SalesWasteItemContent() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const role = user?.organization_role ?? "";
-  const canAccess = ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const canAccess = isOrgManagement(role);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");

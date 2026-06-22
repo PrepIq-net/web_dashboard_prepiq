@@ -65,14 +65,7 @@ function HistoryContent() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const role = user?.organization_role ?? "";
-  const canAccess = [
-    "ORG_OWNER",
-    "ORG_ADMIN",
-    "OPS_DIRECTOR",
-    "GM",
-    "BRANCH_MANAGER",
-    "STAFF_OPERATOR",
-  ].includes(role);
+  const canAccess = Boolean(user?.has_organization);
 
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
   const branchesQuery = useBranches(user?.organization_id ?? "");

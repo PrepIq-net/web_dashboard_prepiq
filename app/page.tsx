@@ -56,15 +56,13 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
 
-  const organizationRole = user?.organization_role ?? "";
-  const isBranchManagerMode =
-    organizationRole === "BRANCH_MANAGER" || organizationRole === "GM";
-  const isChefMode = organizationRole === "STAFF_OPERATOR";
-  const isFinanceMode =
-    organizationRole === "AUDITOR" || organizationRole === "ACCOUNTANT";
+  const organizationRole = (user?.organization_role ?? "").toLowerCase();
+  const isOwnerMode = organizationRole.includes("super");
+  const isOpsManagerMode = organizationRole === "admin";
+  const isBranchManagerMode = organizationRole === "member";
+  const isChefMode = false;
+  const isFinanceMode = false;
   const isBranchExecutionMode = isBranchManagerMode || isChefMode;
-  const isOwnerMode = ["ORG_OWNER", "ORG_ADMIN"].includes(organizationRole);
-  const isOpsManagerMode = organizationRole === "OPS_DIRECTOR";
   const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
   const isOrganizationIntelligenceMode = isOrgOverviewMode || isFinanceMode;
 
@@ -147,7 +145,7 @@ function HomeContent() {
   const shouldRedirectToToday =
     !isLoading &&
     Boolean(user?.has_organization) &&
-    user?.organization_role === "STAFF_OPERATOR";
+    organizationRole === "member";
   const shouldRedirectToBranchSetup =
     !isLoading &&
     Boolean(user?.has_organization) &&

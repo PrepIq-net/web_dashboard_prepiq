@@ -1,4 +1,5 @@
 "use client";
+import { isOrgManagement } from "@/lib/role-utils";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -112,8 +113,8 @@ export default function StaffPerformancePage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const canAccess = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
-  const canManageStaff = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
+  const canAccess = isOrgManagement(role);
+  const canManageStaff = isOrgManagement(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
