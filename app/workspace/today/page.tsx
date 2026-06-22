@@ -1627,23 +1627,37 @@ function TodayWorkspacePageContent() {
       </div>
 
       {todayQuery.isError ? (
-        <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
-          <p className="font-semibold">Day data not available.</p>
-          <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
-          {canInitializeDay && safeBranchId ? (
-            <button
-              type="button"
-              onClick={() =>
-                initializeMutation.mutate({
-                  branch_id: safeBranchId,
-                  date: targetDate,
-                })
-              }
-              className="mt-2 inline-flex h-8 items-center rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10"
-            >
-              Initialize Day
-            </button>
-          ) : null}
+        <div className={`mb-6 rounded-r-lg border-l-4 px-4 py-3 text-xs transition-colors ${
+          initializeMutation.isPending
+            ? "border-l-brand-gold bg-brand-gold/8 text-brand-gold"
+            : "border-l-status-warning bg-status-warning/8 text-status-warning"
+        }`}>
+          {initializeMutation.isPending ? (
+            <div className="flex items-center gap-2">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin shrink-0" />
+              <p className="font-semibold">Setting up your day&hellip;</p>
+            </div>
+          ) : (
+            <>
+              <p className="font-semibold">Day data not available.</p>
+              <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+              {canInitializeDay && safeBranchId ? (
+                <button
+                  type="button"
+                  disabled={initializeMutation.isPending}
+                  onClick={() =>
+                    initializeMutation.mutate({
+                      branch_id: safeBranchId,
+                      date: targetDate,
+                    })
+                  }
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Initialize Day
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
 

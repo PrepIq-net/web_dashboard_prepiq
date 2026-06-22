@@ -62,10 +62,7 @@ export const prepPlanItemSchema = z.object({
     predicted_quantity_needed: z.number(),
     confidence_score: z.number(),
     demand_trend: z.enum(["up", "down", "neutral"]).optional(),
-    risk: z
-      .enum(["low", "medium", "high", "LOW", "MEDIUM", "HIGH"])
-      .transform((v) => v.toLowerCase() as "low" | "medium" | "high")
-      .optional(),
+    risk: z.string().optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
     risk_of_stockout: z.number(),
