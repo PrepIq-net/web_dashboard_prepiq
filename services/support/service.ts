@@ -80,14 +80,16 @@ export async function getSystemStatus(): Promise<SystemStatus> {
 }
 
 export async function getHelpArticles(): Promise<HelpArticle[]> {
-  return apiClient(supportEndpoints.helpArticles);
+  const data = await apiClient<HelpArticle[] | { results: HelpArticle[] }>(supportEndpoints.helpArticles);
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function searchHelpArticles(query: string): Promise<HelpArticle[]> {
-  return apiClient(supportEndpoints.searchHelp, {
+  const data = await apiClient<HelpArticle[] | { results: HelpArticle[] }>(supportEndpoints.searchHelp, {
     method: "POST",
     body: { query },
   });
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function getSupportStats(): Promise<SupportStats> {

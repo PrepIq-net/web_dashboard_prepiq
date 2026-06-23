@@ -480,11 +480,11 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
             Language
           </h3>
         </div>
-        <div className="max-w-xs">
+        <div>
           <p className="text-xs text-text-muted mb-3">
             Interface language for this organization's workspace.
           </p>
-          <LanguageSwitcher className="w-full" />
+          <LanguageSwitcher />
         </div>
       </section>
     </div>
