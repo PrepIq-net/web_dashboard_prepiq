@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { Plus, NavArrowLeft, NavArrowRight, Xmark, Shop } from "iconoir-react";
+import { Plus, NavArrowLeft, NavArrowRight, Xmark, Shop, Search } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
   useBranches,
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
+  useCatalogItems,
 } from "@/services";
 import {
   usePlanningCalendar,
@@ -98,49 +99,236 @@ function impactTone(impact: number): string {
 
 const DEFAULT_EVENT_TYPE: EventType = "RESERVATION";
 
+const INPUT_CLS =
+  "w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none";
+
+const LABEL_CLS =
+  "mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted";
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3">
+      <div className="relative shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only"
+        />
+        <div className={`h-5 w-9 rounded-full transition-colors ${checked ? "bg-brand-gold" : "bg-surface-4"}`} />
+        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
+      </div>
+      <span className="text-sm text-text-secondary">{label}</span>
+    </label>
+  );
+}
+
+function ItemPicker({
+  orgId,
+  selected,
+  onChange,
+}: {
+  orgId: string;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const { data: items = [], isLoading } = useCatalogItems(orgId, !!orgId);
+
+  const filtered = items.filter((item) =>
+    item.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (id: string) => {
+    onChange(
+      selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]
+    );
+  };
+
+  return (
+    <div>
+      <label className={LABEL_CLS}>
+        Affected menu items
+        {selected.length > 0 ? (
+          <span className="ml-1.5 rounded-full bg-status-success/20 px-1.5 py-0.5 text-[9px] font-bold text-status-success">
+            {selected.length} selected
+          </span>
+        ) : null}
+      </label>
+      <p className="mb-2 text-[11px] text-text-muted">
+        The forecast engine will boost predicted demand for these items when this promotion is active.
+      </p>
+
+      {/* Search */}
+      <div className="relative mb-2">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search items..."
+          className="w-full rounded-xl border border-surface-4 bg-surface-2 py-2 pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
+        />
+      </div>
+
+      {/* List */}
+      <div className="max-h-36 overflow-y-auto rounded-xl border border-surface-4 bg-surface-1">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="py-4 text-center text-xs text-text-muted">
+            {items.length === 0 ? "No items in catalog yet." : "No items match."}
+          </p>
+        ) : (
+          filtered.map((item) => {
+            const isSelected = selected.includes(item.id);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => toggle(item.id)}
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-surface-2 ${
+                  isSelected ? "bg-status-success/5" : ""
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] transition-colors ${
+                    isSelected
+                      ? "border-status-success bg-status-success text-white"
+                      : "border-surface-4"
+                  }`}
+                >
+                  {isSelected ? "✓" : ""}
+                </span>
+                <span className="text-sm text-text-primary">{item.title}</span>
+                {item.unit ? (
+                  <span className="ml-auto text-[10px] text-text-muted">{item.unit}</span>
+                ) : null}
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CreateEventModal({
   defaultDate,
   branchId,
+  orgId,
   onClose,
 }: {
   defaultDate: string;
   branchId: string;
+  orgId: string;
   onClose: () => void;
 }) {
   const createMutation = useCreatePlanningEvent();
-  const [form, setForm] = useState<{
-    title: string;
-    event_type: EventType;
-    start_date: string;
-    start_time: string;
-    end_time: string;
-    description: string;
-    expected_demand_impact: string;
-    all_branches: boolean;
-  }>({
+
+  const [form, setForm] = useState({
     title: "",
-    event_type: DEFAULT_EVENT_TYPE,
+    event_type: DEFAULT_EVENT_TYPE as EventType,
     start_date: defaultDate,
     start_time: "09:00",
     end_time: "17:00",
     description: "",
     expected_demand_impact: "",
     all_branches: false,
+    // Promotion sub-fields
+    promotion_name: "",
+    expected_uplift: "",
+    discount_type: "PERCENTAGE",
+    promotion_channel: "IN_STORE",
+    // Reservation sub-fields
+    guest_count: "",
+    reservation_type: "OTHER",
+    confirmed: false,
+    // Closure sub-fields
+    closure_reason: "",
+    full_day: true,
+    // Delivery sub-fields
+    supplier_name: "",
+    // Operational note
+    note_content: "",
   });
+
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  const set = (key: string, value: string | boolean) =>
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const buildDetails = (): Record<string, unknown> => {
+    switch (form.event_type) {
+      case "PROMOTION":
+        return {
+          promotion_name: form.promotion_name || form.title,
+          discount_type: form.discount_type,
+          discount_value: "0",
+          promotion_channel: form.promotion_channel,
+          expected_uplift: form.expected_uplift !== "" ? Number(form.expected_uplift) / 100 : null,
+          is_recurring: false,
+          affected_items: selectedItemIds,
+        };
+      case "RESERVATION":
+        return {
+          guest_count: Number(form.guest_count) || 1,
+          reservation_type: form.reservation_type,
+          service_period: "ALL_DAY",
+          confirmed: form.confirmed,
+        };
+      case "CLOSURE":
+        return {
+          reason: form.closure_reason || "Closed",
+          partial_day: !form.full_day,
+          full_day: form.full_day,
+        };
+      case "DELIVERY":
+        return {
+          supplier_name: form.supplier_name,
+          delivery_date: form.start_date,
+          items: [],
+          delivery_status: "PENDING",
+        };
+      case "OPERATIONAL_NOTE":
+        return {
+          note_type: "OTHER",
+          content: form.note_content || form.description,
+        };
+      default:
+        return {};
+    }
+  };
 
   const handleSubmit = () => {
     if (!form.title.trim()) {
       setError("Title is required.");
       return;
     }
+    if (form.event_type === "RESERVATION" && !form.guest_count) {
+      setError("Guest count is required for reservations.");
+      return;
+    }
+    if (form.event_type === "DELIVERY" && !form.supplier_name.trim()) {
+      setError("Supplier name is required for deliveries.");
+      return;
+    }
     setError("");
 
     const startDt = `${form.start_date}T${form.start_time}:00`;
     const endDt = `${form.start_date}T${form.end_time}:00`;
+    const details = buildDetails();
 
     const payload: CreateCalendarEventPayload = {
       title: form.title.trim(),
@@ -154,6 +342,7 @@ function CreateEventModal({
         form.expected_demand_impact !== ""
           ? Number(form.expected_demand_impact) / 100
           : null,
+      ...(Object.keys(details).length > 0 ? { details } : {}),
     };
 
     createMutation.mutate(payload, { onSuccess: onClose });
@@ -183,136 +372,280 @@ function CreateEventModal({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="space-y-4 px-6 py-5">
-          {error ? (
-            <p className="rounded-lg border border-status-critical/30 bg-status-critical/10 px-3 py-2 text-xs text-status-critical">
-              {error}
-            </p>
-          ) : null}
+        {/* Body — scrollable */}
+        <div className="max-h-[70vh] overflow-y-auto">
+          <div className="space-y-4 px-6 py-5">
+            {error ? (
+              <p className="rounded-lg border border-status-critical/30 bg-status-critical/10 px-3 py-2 text-xs text-status-critical">
+                {error}
+              </p>
+            ) : null}
 
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              Title
-            </label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              placeholder="e.g. Wedding Reception — 80 guests"
-              className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
+            {/* Title */}
+            <div>
+              <label className={LABEL_CLS}>Title</label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => set("title", e.target.value)}
+                placeholder="e.g. Wedding Reception — 80 guests"
+                className={INPUT_CLS}
+              />
+            </div>
+
+            {/* Event type */}
+            <div>
+              <label className={LABEL_CLS}>Type</label>
+              <select
+                value={form.event_type}
+                onChange={(e) => {
+                  set("event_type", e.target.value as EventType);
+                  setSelectedItemIds([]);
+                }}
+                className={INPUT_CLS}
+              >
+                {eventTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {EVENT_TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date + time row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={LABEL_CLS}>Date</label>
+                <input
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => set("start_date", e.target.value)}
+                  className={INPUT_CLS}
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>Start</label>
+                <input
+                  type="time"
+                  value={form.start_time}
+                  onChange={(e) => set("start_time", e.target.value)}
+                  className={INPUT_CLS}
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>End</label>
+                <input
+                  type="time"
+                  value={form.end_time}
+                  onChange={(e) => set("end_time", e.target.value)}
+                  className={INPUT_CLS}
+                />
+              </div>
+            </div>
+
+            {/* ── Type-specific sub-fields ── */}
+
+            {form.event_type === "PROMOTION" ? (
+              <div className="space-y-4 rounded-xl border border-status-success/20 bg-status-success/5 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-status-success">
+                  Promotion details
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL_CLS}>Promotion name</label>
+                    <input
+                      type="text"
+                      value={form.promotion_name}
+                      onChange={(e) => set("promotion_name", e.target.value)}
+                      placeholder="e.g. Happy Hour"
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Expected uplift (%)</label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      value={form.expected_uplift}
+                      onChange={(e) => set("expected_uplift", e.target.value)}
+                      placeholder="e.g. 20"
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL_CLS}>Discount type</label>
+                    <select
+                      value={form.discount_type}
+                      onChange={(e) => set("discount_type", e.target.value)}
+                      className={INPUT_CLS}
+                    >
+                      <option value="PERCENTAGE">Percentage</option>
+                      <option value="FIXED">Fixed amount</option>
+                      <option value="BOGO">Buy one get one</option>
+                      <option value="FREE_ITEM">Free item</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Channel</label>
+                    <select
+                      value={form.promotion_channel}
+                      onChange={(e) => set("promotion_channel", e.target.value)}
+                      className={INPUT_CLS}
+                    >
+                      <option value="IN_STORE">In-store</option>
+                      <option value="ONLINE">Online</option>
+                      <option value="SOCIAL_MEDIA">Social media</option>
+                      <option value="ALL">All channels</option>
+                    </select>
+                  </div>
+                </div>
+
+                <ItemPicker
+                  orgId={orgId}
+                  selected={selectedItemIds}
+                  onChange={setSelectedItemIds}
+                />
+              </div>
+            ) : null}
+
+            {form.event_type === "RESERVATION" ? (
+              <div className="space-y-4 rounded-xl border border-brand-gold/20 bg-brand-gold/5 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-gold">
+                  Reservation details
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL_CLS}>Guest count</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={form.guest_count}
+                      onChange={(e) => set("guest_count", e.target.value)}
+                      placeholder="e.g. 40"
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Type</label>
+                    <select
+                      value={form.reservation_type}
+                      onChange={(e) => set("reservation_type", e.target.value)}
+                      className={INPUT_CLS}
+                    >
+                      <option value="WEDDING">Wedding</option>
+                      <option value="CORPORATE">Corporate</option>
+                      <option value="BIRTHDAY">Birthday</option>
+                      <option value="CONFERENCE">Conference</option>
+                      <option value="PRIVATE_DINING">Private dining</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <Toggle
+                  checked={form.confirmed}
+                  onChange={(v) => set("confirmed", v)}
+                  label="Reservation confirmed"
+                />
+              </div>
+            ) : null}
+
+            {form.event_type === "CLOSURE" ? (
+              <div className="space-y-4 rounded-xl border border-status-critical/20 bg-status-critical/5 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-status-critical">
+                  Closure details
+                </p>
+                <div>
+                  <label className={LABEL_CLS}>Reason</label>
+                  <input
+                    type="text"
+                    value={form.closure_reason}
+                    onChange={(e) => set("closure_reason", e.target.value)}
+                    placeholder="e.g. Public holiday, maintenance..."
+                    className={INPUT_CLS}
+                  />
+                </div>
+                <Toggle
+                  checked={form.full_day}
+                  onChange={(v) => set("full_day", v)}
+                  label="Full-day closure"
+                />
+              </div>
+            ) : null}
+
+            {form.event_type === "DELIVERY" ? (
+              <div className="space-y-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-400">
+                  Delivery details
+                </p>
+                <div>
+                  <label className={LABEL_CLS}>Supplier name</label>
+                  <input
+                    type="text"
+                    value={form.supplier_name}
+                    onChange={(e) => set("supplier_name", e.target.value)}
+                    placeholder="e.g. Metro Foods"
+                    className={INPUT_CLS}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {form.event_type === "OPERATIONAL_NOTE" ? (
+              <div className="space-y-4 rounded-xl border border-surface-4 bg-surface-2 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
+                  Note details
+                </p>
+                <div>
+                  <label className={LABEL_CLS}>Note content</label>
+                  <textarea
+                    rows={3}
+                    value={form.note_content}
+                    onChange={(e) => set("note_content", e.target.value)}
+                    placeholder="Enter operational note..."
+                    className="w-full resize-none rounded-xl border border-surface-4 bg-surface-1 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {/* Demand impact */}
+            <div>
+              <label className={LABEL_CLS}>Expected demand impact (%)</label>
+              <input
+                type="number"
+                step="1"
+                value={form.expected_demand_impact}
+                onChange={(e) => set("expected_demand_impact", e.target.value)}
+                placeholder="e.g. 25 for +25%, −40 for −40%"
+                className={INPUT_CLS}
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className={LABEL_CLS}>Notes (optional)</label>
+              <textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="Any context the forecast engine should know..."
+                className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
+              />
+            </div>
+
+            {/* All branches toggle */}
+            <Toggle
+              checked={form.all_branches}
+              onChange={(v) => set("all_branches", v)}
+              label="Apply to all branches"
             />
           </div>
-
-          {/* Event type */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              Type
-            </label>
-            <select
-              value={form.event_type}
-              onChange={(e) => set("event_type", e.target.value)}
-              className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary focus:border-brand-gold/50 focus:outline-none"
-            >
-              {eventTypes.map((t) => (
-                <option key={t} value={t}>
-                  {EVENT_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date + time row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Date
-              </label>
-              <input
-                type="date"
-                value={form.start_date}
-                onChange={(e) => set("start_date", e.target.value)}
-                className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary focus:border-brand-gold/50 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Start
-              </label>
-              <input
-                type="time"
-                value={form.start_time}
-                onChange={(e) => set("start_time", e.target.value)}
-                className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary focus:border-brand-gold/50 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                End
-              </label>
-              <input
-                type="time"
-                value={form.end_time}
-                onChange={(e) => set("end_time", e.target.value)}
-                className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary focus:border-brand-gold/50 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Demand impact */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              Expected demand impact (%)
-            </label>
-            <input
-              type="number"
-              step="1"
-              value={form.expected_demand_impact}
-              onChange={(e) => set("expected_demand_impact", e.target.value)}
-              placeholder="e.g. 25 for +25%, −40 for −40%"
-              className="w-full rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              Notes (optional)
-            </label>
-            <textarea
-              rows={2}
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              placeholder="Any context the forecast engine should know..."
-              className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
-            />
-          </div>
-
-          {/* All branches toggle */}
-          <label className="flex cursor-pointer items-center gap-3">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={form.all_branches}
-                onChange={(e) => set("all_branches", e.target.checked)}
-                className="sr-only"
-              />
-              <div
-                className={`h-5 w-9 rounded-full transition-colors ${
-                  form.all_branches ? "bg-brand-gold" : "bg-surface-4"
-                }`}
-              />
-              <div
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                  form.all_branches ? "translate-x-4" : "translate-x-0.5"
-                }`}
-              />
-            </div>
-            <span className="text-sm text-text-secondary">
-              Apply to all branches
-            </span>
-          </label>
         </div>
 
         {/* Footer */}
@@ -721,6 +1054,7 @@ function PlanningPageContent() {
         <CreateEventModal
           defaultDate={selectedDate}
           branchId={safeBranchId}
+          orgId={user?.organization_id ?? ""}
           onClose={() => setCreateModalOpen(false)}
         />
       ) : null}

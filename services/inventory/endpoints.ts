@@ -1,4 +1,10 @@
 export const inventoryEndpoints = {
+  // Catalog items (org-scoped master catalog — used for promotion item selection)
+  catalogItems: {
+    list: (organizationId: string) =>
+      `/api/catalog/items/?organization_id=${organizationId}&page_size=200`,
+  },
+
   // Ingredients (org-scoped, filter by organization_id query param)
   ingredients: {
     list: (organizationId: string) => `/api/inventory/ingredients/?organization_id=${organizationId}`,

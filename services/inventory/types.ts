@@ -4,6 +4,19 @@ import { z } from "zod";
 // SCHEMAS — match actual backend serializer field names
 // ============================================================================
 
+// Catalog items — org-scoped master item list used for promotion item selection
+export const catalogItemSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  item_type: z.string().optional(),
+  unit: z.string().optional(),
+});
+export const catalogItemsResponseSchema = z.object({
+  count: z.number(),
+  results: z.array(catalogItemSchema),
+});
+export type CatalogItem = z.infer<typeof catalogItemSchema>;
+
 export const ingredientSchema = z.object({
   id: z.string(),
   organization: z.string(),

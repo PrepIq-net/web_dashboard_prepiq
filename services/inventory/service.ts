@@ -1,6 +1,7 @@
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { inventoryEndpoints } from "./endpoints";
 import {
+  catalogItemsResponseSchema,
   ingredientSchema,
   ingredientsResponseSchema,
   menuItemSchema,
@@ -22,6 +23,18 @@ export type IngredientPayload = {
   shelf_life_days?: number | null;
   is_perishable: boolean;
 };
+
+// ============================================================================
+// SERVICE FUNCTIONS - CATALOG ITEMS
+// ============================================================================
+
+export async function getCatalogItems(organizationId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.catalogItems.list(organizationId),
+    catalogItemsResponseSchema,
+    { method: "GET" }
+  );
+}
 
 // ============================================================================
 // SERVICE FUNCTIONS - INGREDIENTS
