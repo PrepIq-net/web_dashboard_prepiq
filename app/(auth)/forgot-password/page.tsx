@@ -10,11 +10,15 @@ import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useForgotPassword } from "@/services";
+import { useTranslation } from "@/lib/i18n";
+import { AuthHeaderBadge } from "@/components/auth/auth-header-badge";
+import { AuthFooter } from "@/components/auth/auth-footer";
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [nickname, setNickname] = useState(""); // Honeypot field
+  const [nickname, setNickname] = useState("");
 
   const forgotPasswordMutation = useForgotPassword();
 
@@ -33,14 +37,10 @@ export default function ForgotPasswordPage() {
       // as confirmed by the backend implementation.
       const params = new URLSearchParams();
       params.set("email", email);
-      toast.success("Check your email for recovery instructions.");
+      toast.success(t("auth.recoveryEmailSent"));
       router.push(`/forgot-password/verify?${params.toString()}`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Network error. Please try again.",
-      );
+      toast.error(error instanceof Error ? error.message : t("auth.networkError"));
     }
   }
 
@@ -52,21 +52,17 @@ export default function ForgotPasswordPage() {
 
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">
-              Security Protocol
-            </p>
-          </div>
+          <AuthHeaderBadge labelKey="auth.securityProtocol" />
         </header>
 
         <section className="relative z-10 flex-1 flex flex-col items-center">
           <div className="w-full max-w-md space-y-12 animate-fade-in">
             <div className="space-y-3 text-center">
               <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-                Reset Password.
+                {t("auth.resetPasswordTitle")}
               </h1>
               <p className="text-lg text-text-secondary leading-relaxed">
-                Enter your work email to receive recovery instructions.
+                {t("auth.resetPasswordSubtitle")}
               </p>
             </div>
 
@@ -79,9 +75,9 @@ export default function ForgotPasswordPage() {
 
               <div className="space-y-6">
                 <Input
-                  label="Registered Email"
+                  label={t("auth.registeredEmail")}
                   type="email"
-                  placeholder="name@organization.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   leadingIcon={<Mail />}
                   autoComplete="email"
                   value={email}
@@ -98,9 +94,7 @@ export default function ForgotPasswordPage() {
                   disabled={forgotPasswordMutation.isPending}
                   className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  {forgotPasswordMutation.isPending
-                    ? "Sending Pulse..."
-                    : "Send Reset Link"}
+                  {forgotPasswordMutation.isPending ? t("auth.sendingPulse") : t("auth.sendResetLink")}
                 </Button>
 
                 <Link
@@ -108,32 +102,14 @@ export default function ForgotPasswordPage() {
                   className="flex items-center justify-center gap-2 py-4 text-sm font-medium text-text-muted hover:text-brand-gold transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Sign In
+                  {t("auth.backToSignIn")}
                 </Link>
               </div>
             </form>
           </div>
         </section>
 
-        <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
-          <p className="text-xs text-text-muted">
-            PrepIQ Infrastructure &copy; 2026.
-          </p>
-          <div className="flex gap-6">
-            <Link
-              href="/terms"
-              className="text-xs text-text-muted hover:text-text-primary"
-            >
-              Terms
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-xs text-text-muted hover:text-text-primary"
-            >
-              Privacy
-            </Link>
-          </div>
-        </footer>
+        <AuthFooter />
       </div>
     </main>
   );
