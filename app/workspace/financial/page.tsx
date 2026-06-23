@@ -385,90 +385,24 @@ export default function FinancialPage() {
 
       {activeTab === "OVERVIEW" ? (
         <div className="space-y-8">
-          {/* What PrepIQ delivered */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              What PrepIQ delivered
-            </p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              {timeframeLabel}
-            </h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Forecast accuracy</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toPercent(impactReport?.accuracy_pct ?? 0)}
+          {/* Hero: the two numbers managers care about most */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Revenue · {branchFilter === "ALL" || !financialData?.branch_name ? "all branches" : financialData.branch_name}
               </p>
-              <p className="mt-2 text-xs text-text-muted">How often we got it right</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste reduced</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toCurrency(impactReport?.waste_reduced ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">Period improvement</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Stockouts avoided</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {impactReport?.stockouts_avoided ?? 0}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">Events prevented</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Revenue protected</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toCurrency(impactReport?.revenue_protected ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">Estimated impact</p>
-            </article>
-          </div>
-
-          {/* P&L */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Revenue &amp; margins
-            </p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              {branchFilter === "ALL" || !financialData?.branch_name
-                ? "All branches"
-                : financialData.branch_name}
-            </h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Revenue</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
+              <p className="mt-3 font-display text-4xl font-semibold text-status-success tracking-tight">
                 {toCurrency(summary?.revenue ?? 0)}
               </p>
-              <p className="mt-2 text-xs text-text-muted">{formatDelta(summary?.revenue_delta_pct)}</p>
+              <p className="mt-3 text-xs text-text-muted">{formatDelta(summary?.revenue_delta_pct)}</p>
             </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Food cost</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {toCurrency(summary?.food_cost ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">{formatDelta(summary?.food_cost_delta_pct)}</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste cost</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-critical">
-                {toCurrency(summary?.waste_cost ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">{formatDelta(summary?.waste_cost_delta_pct)}</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Gross margin</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toCurrency(summary?.gross_margin ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-text-muted">{formatDelta(summary?.gross_margin_delta_pct)}</p>
-            </article>
-            <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Margin %</p>
-              <p className="mt-2 font-display text-2xl font-semibold text-brand-gold">
+              <p className="mt-3 font-display text-4xl font-semibold text-brand-gold tracking-tight">
                 {toPercent(summary?.margin_pct ?? 0)}
+              </p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {toCurrency(summary?.gross_margin ?? 0)} gross
               </p>
               <p className="mt-2 text-xs text-text-muted">
                 {summary?.margin_pct_delta != null
@@ -478,34 +412,84 @@ export default function FinancialPage() {
             </article>
           </div>
 
-          {/* Stockout losses */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Stockout losses
+          {/* Supporting P&L — compact inline, no cards */}
+          <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-surface-4/60 pb-6 text-sm">
+            <span className="text-text-muted">
+              Food cost{" "}
+              <span className="font-semibold text-text-primary">
+                {toCurrency(summary?.food_cost ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.food_cost_delta_pct)}
+              </span>
+            </span>
+            <span className="text-text-muted">
+              Waste{" "}
+              <span className="font-semibold text-status-critical">
+                {toCurrency(summary?.waste_cost ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.waste_cost_delta_pct)}
+              </span>
+            </span>
+            <span className="text-text-muted">
+              Gross margin{" "}
+              <span className="font-semibold text-status-success">
+                {toCurrency(summary?.gross_margin ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.gross_margin_delta_pct)}
+              </span>
+            </span>
+          </div>
+
+          {/* PrepIQ impact + stockout losses — inline, scannable */}
+          <div className="rounded-xl border border-surface-4/60 bg-surface-2 px-5 py-4 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              What PrepIQ delivered · {timeframeLabel}
             </p>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Lost revenue</p>
-                <p className="mt-2 font-display text-2xl font-semibold text-status-critical">
-                  {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
-                </p>
-                <p className="mt-2 text-xs text-text-muted">{formatDelta(stockoutImpact?.lost_revenue_delta_pct)}</p>
-              </article>
-              <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Stockout events</p>
-                <p className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                  {stockoutImpact?.stockout_events ?? 0}
-                </p>
-                <p className="mt-2 text-xs text-text-muted">Service interruptions</p>
-              </article>
-              <article className="rounded-xl border border-surface-4 bg-surface-2 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Revenue protected</p>
-                <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                  {toCurrency(stockoutImpact?.revenue_protected ?? 0)}
-                </p>
-                <p className="mt-2 text-xs text-text-muted">{formatDelta(stockoutImpact?.revenue_protected_delta_pct)}</p>
-              </article>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toPercent(impactReport?.accuracy_pct ?? 0)}
+                </span>{" "}
+                forecast accuracy
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toCurrency(impactReport?.waste_reduced ?? 0)}
+                </span>{" "}
+                waste reduced
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-text-primary">
+                  {impactReport?.stockouts_avoided ?? 0}
+                </span>{" "}
+                stockouts avoided
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toCurrency(impactReport?.revenue_protected ?? 0)}
+                </span>{" "}
+                revenue protected
+              </span>
             </div>
+            {(stockoutImpact?.lost_revenue ?? 0) > 0 || (stockoutImpact?.stockout_events ?? 0) > 0 ? (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-surface-4/50 pt-3 text-sm">
+                <span className="text-text-muted">
+                  <span className="font-semibold text-status-critical">
+                    {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
+                  </span>{" "}
+                  lost to stockouts
+                </span>
+                <span className="text-text-muted">
+                  <span className="font-semibold text-text-primary">
+                    {stockoutImpact?.stockout_events ?? 0}
+                  </span>{" "}
+                  stockout events
+                </span>
+              </div>
+            ) : null}
           </div>
 
           {/* Biggest waste + best performers */}
