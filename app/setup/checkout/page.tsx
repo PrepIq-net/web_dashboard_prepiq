@@ -23,6 +23,7 @@ import {
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
 import { useBranches, useCurrentUserProfile } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 import type { Branch } from "@/services/branches/types";
 import type { SubscriptionPlan } from "@/services/payment/types";
 
@@ -46,6 +47,7 @@ function asStringArray(value: unknown): string[] {
 }
 
 export default function CheckoutPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
@@ -173,7 +175,7 @@ export default function CheckoutPage() {
         <div className="flex flex-col items-center gap-4">
           <Spinner size="lg" />
           <p className="text-text-secondary animate-pulse">
-            Initializing secure checkout...
+            {t("setup.checkout.initializing")}
           </p>
         </div>
       </div>
@@ -190,13 +192,13 @@ export default function CheckoutPage() {
             className="flex items-center gap-2 text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors group"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-            Back to pricing
+            {t("setup.checkout.backToPricing")}
           </button>
 
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-4 w-4 text-brand-gold" />
             <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-brand-gold">
-              Secure Checkout
+              {t("setup.checkout.secureCheckout")}
             </span>
           </div>
         </div>
@@ -210,12 +212,12 @@ export default function CheckoutPage() {
             <section className="space-y-6">
               <div>
                 <h1 className="font-display text-[32px] leading-tight font-semibold mb-2">
-                  {isTransition ? "Complete Your Upgrade" : "Subscription Details"}
+                  {isTransition ? t("setup.checkout.completeUpgrade") : t("setup.checkout.detailsTitle")}
                 </h1>
                 <p className="text-text-muted text-[15px]">
                   {isTransition
-                    ? `Transitioning your ${selectedBranchName} branch to the ${selectedPlan?.name} plan.`
-                    : `Setting up ${selectedPlan?.name || "your plan"} for your organization.`}
+                    ? t("setup.checkout.transitioning", { branch: selectedBranchName, plan: selectedPlan?.name ?? "" })
+                    : t("setup.checkout.settingUp", { plan: selectedPlan?.name || "your plan" })}
                 </p>
               </div>
 
@@ -227,11 +229,9 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <h4 className="text-[15px] font-semibold text-brand-gold font-display">
-                      Upgrade Transition Detected
+                      {t("setup.checkout.upgradeTransitionDetected")}
                     </h4>
-                    <p className="text-[13px] text-text-secondary leading-relaxed mt-1">
-                      You are currently on the <b>{currentSubPlanName}</b> plan. By proceeding, your new <b>{selectedPlan?.name}</b> tier will activate immediately, replacing your existing subscription window for this branch.
-                    </p>
+                    <p className="text-[13px] text-text-secondary leading-relaxed mt-1" dangerouslySetInnerHTML={{ __html: t("setup.checkout.upgradeTransitionDesc", { currentPlan: `<b>${currentSubPlanName}</b>`, newPlan: `<b>${selectedPlan?.name}</b>` }) }} />
                   </div>
                 </div>
               )}
@@ -244,8 +244,7 @@ export default function CheckoutPage() {
                         {selectedPlan.name}
                       </h2>
                       <p className="text-text-muted text-[13px] mt-1">
-                        {selectedPlan.tagline ||
-                          "Your selected operations tier"}
+                        {selectedPlan.tagline || t("setup.checkout.selectedTier")}
                       </p>
                     </div>
                     <div className="text-right">
@@ -254,8 +253,8 @@ export default function CheckoutPage() {
                       </p>
                       <p className="text-text-muted text-[12px] uppercase tracking-wider">
                         {billingCycle === "MONTHLY"
-                          ? "Billed Monthly"
-                          : "Billed Yearly"}
+                          ? t("setup.checkout.billedMonthly")
+                          : t("setup.checkout.billedYearly")}
                       </p>
                     </div>
                   </div>
@@ -276,11 +275,11 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-2.5">
                         <MultiplePages className="h-4 w-4 text-text-muted" />
                         <span className="text-[13px] text-text-secondary">
-                          Branch capacity
+                          {t("setup.checkout.branchCapacity")}
                         </span>
                       </div>
                       <span className="text-[13px] font-medium">
-                        Up to {selectedPlan.plan_limits.MAX_BRANCHES} branches
+                        {t("setup.checkout.upToBranches", { limit: selectedPlan.plan_limits.MAX_BRANCHES })}
                       </span>
                     </div>
                   )}
@@ -295,35 +294,35 @@ export default function CheckoutPage() {
                   1
                 </div>
                 <h2 className="text-[18px] font-semibold font-display">
-                  Business Information
+                  {t("setup.checkout.businessInfo")}
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Business Name"
+                  label={t("setup.checkout.businessNameLabel")}
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="e.g. PrepIQ Kitchens"
+                  placeholder={t("setup.checkout.businessNamePlaceholder")}
                 />
                 <Input
-                  label="Billing Email"
+                  label={t("setup.checkout.billingEmailLabel")}
                   type="email"
                   value={billingEmail}
                   onChange={(e) => setBillingEmail(e.target.value)}
-                  placeholder="finance@yourcompany.com"
+                  placeholder={t("setup.checkout.billingEmailPlaceholder")}
                 />
                 <Input
-                  label="Phone Number"
+                  label={t("setup.checkout.phoneNumberLabel")}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+256 700 000 000"
+                  placeholder={t("setup.checkout.phoneNumberPlaceholder")}
                 />
                 <Select
-                  label="Target Branch"
+                  label={t("setup.checkout.targetBranchLabel")}
                   options={branches.map((b) => ({
                     value: b.id,
-                    label: `${b.name}${b.is_primary ? " (Primary)" : ""}`,
+                    label: `${b.name}${b.is_primary ? ` ${t("setup.checkout.primary")}` : ""}`,
                   }))}
                   value={selectedBranchId}
                   onChange={setSelectedBranchId}
@@ -338,7 +337,7 @@ export default function CheckoutPage() {
                   2
                 </div>
                 <h2 className="text-[18px] font-semibold font-display">
-                  Payment Method
+                  {t("setup.checkout.paymentMethod")}
                 </h2>
               </div>
 
@@ -362,10 +361,10 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[15px]">
-                      Credit / Debit Card
+                      {t("setup.checkout.card")}
                     </p>
                     <p className="text-[12px] text-text-muted mt-0.5">
-                      Secure payment via Stripe
+                      {t("setup.checkout.cardDesc")}
                     </p>
                   </div>
                 </button>
@@ -381,16 +380,16 @@ export default function CheckoutPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="h-6 flex items-center text-[10px] font-bold uppercase tracking-widest text-[#B8962E]">
-                      M-Pesa / Mobile
+                      {t("setup.checkout.mpesa")}
                     </div>
                     {paymentMethod === "MOBILE_MONEY" && (
                       <DoubleCheck className="h-4 w-4 text-brand-gold" />
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-[15px]">Mobile Money</p>
+                    <p className="font-semibold text-[15px]">{t("setup.checkout.mobileMoney")}</p>
                     <p className="text-[12px] text-text-muted mt-0.5">
-                      Pay via PawaPay
+                      {t("setup.checkout.mobileMoneyDesc")}
                     </p>
                   </div>
                 </button>
@@ -404,7 +403,7 @@ export default function CheckoutPage() {
               <div className="bg-surface-2 border border-border-default rounded-card overflow-hidden">
                 <div className="p-6 border-b border-chart-grid bg-surface-3/50">
                   <h3 className="text-[12px] font-bold uppercase tracking-[0.15em] text-text-muted">
-                    Order Summary
+                    {t("setup.checkout.orderSummary")}
                   </h3>
                 </div>
 
@@ -412,20 +411,20 @@ export default function CheckoutPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-[14px]">
                       <span className="text-text-secondary">
-                        {selectedPlan?.name} plan
+                        {t("setup.checkout.planPlan", { plan: selectedPlan?.name ?? "" })}
                       </span>
                       <span className="font-medium">
                         {formatCurrency(price)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px]">
-                      <span className="text-text-secondary">Billing cycle</span>
+                      <span className="text-text-secondary">{t("setup.checkout.billingCycleLabel")}</span>
                       <span className="font-medium">
-                        {billingCycle.toLowerCase()}
+                        {billingCycle === "MONTHLY" ? t("setup.checkout.billedMonthly") : t("setup.checkout.billedYearly")}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px]">
-                      <span className="text-text-secondary">Tax (VAT 0%)</span>
+                      <span className="text-text-secondary">{t("setup.checkout.taxLabel")}</span>
                       <span className="font-medium">$0.00</span>
                     </div>
                   </div>
@@ -434,14 +433,14 @@ export default function CheckoutPage() {
                     <div className="flex justify-between items-end">
                       <div>
                         <p className="text-[12px] font-bold uppercase tracking-wider text-text-muted">
-                          Total Due Today
+                          {t("setup.checkout.totalDueToday")}
                         </p>
                         <p className="text-[34px] font-semibold text-text-primary leading-none mt-2 font-display">
                           {formatCurrency(price)}
                         </p>
                       </div>
                       <p className="text-[12px] text-text-muted pb-1">
-                        {billingCycle === "MONTHLY" ? "per month" : "per year"}
+                        {billingCycle === "MONTHLY" ? t("setup.checkout.perMonth") : t("setup.checkout.perYear")}
                       </p>
                     </div>
                   </div>
@@ -465,24 +464,14 @@ export default function CheckoutPage() {
                       {checkoutMutation.isPending ? (
                         <span className="flex items-center gap-2">
                           <Spinner size="sm" />
-                          Processing...
+                          {t("setup.checkout.processing")}
                         </span>
                       ) : (
-                        `Pay ${formatCurrency(price)}`
+                        t("setup.checkout.pay", { amount: formatCurrency(price) })
                       )}
                     </Button>
 
-                    <p className="mt-4 text-[11px] text-center text-text-muted leading-relaxed">
-                      By proceeding, you agree to PrepIQ&apos;s{" "}
-                      <a href="#" className="underline hover:text-brand-gold">
-                        Terms of Service
-                      </a>{" "}
-                      and{" "}
-                      <a href="#" className="underline hover:text-brand-gold">
-                        Privacy Policy
-                      </a>
-                      . Payments are non-refundable.
-                    </p>
+                    <p className="mt-4 text-[11px] text-center text-text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: t("setup.checkout.termsPrivacy").replace("PrepIQ's Terms of Service", `<a href="#" class="underline hover:text-brand-gold">PrepIQ's Terms of Service</a>`).replace("Privacy Policy", `<a href="#" class="underline hover:text-brand-gold">Privacy Policy</a>`) }} />
                   </div>
                 </div>
 
@@ -490,7 +479,7 @@ export default function CheckoutPage() {
                   <CreditCard className="h-6" />
                   <div className="h-4 w-px bg-border-default" />
                   <span className="text-[10px] font-bold uppercase tracking-widest">
-                    PCI Compliant
+                    {t("setup.checkout.pciCompliant")}
                   </span>
                 </div>
               </div>
@@ -499,12 +488,10 @@ export default function CheckoutPage() {
                 <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0 mt-1" />
                 <div>
                   <h4 className="text-[14px] font-semibold font-display">
-                    Intelligence Shield
+                    {t("setup.checkout.shieldTitle")}
                   </h4>
                   <p className="text-[12px] text-text-muted mt-1 leading-relaxed">
-                    Your data is encrypted and processed in isolated VPCs.
-                    Subscription management is handled via authorized payment
-                    providers only.
+                    {t("setup.checkout.shieldDesc")}
                   </p>
                 </div>
               </div>

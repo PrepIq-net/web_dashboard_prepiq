@@ -10,12 +10,14 @@ import {
   Check,
   InfoCircle,
 } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 type Option = "pos" | "csv" | "skip";
 
 const POS_SYSTEMS = ["Square", "Toast", "Lightspeed", "Clover", "Shopify POS"];
 
 export default function SalesSetupPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [selected, setSelected] = useState<Option | null>(null);
 
@@ -33,22 +35,20 @@ export default function SalesSetupPage() {
         <div className="flex items-center gap-2 mb-10">
           <span className="h-px w-6 bg-[#A8821F]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Sales Data
+            {t("setup.sales.step")}
           </span>
         </div>
 
         {/* Headline */}
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-3">
-          How do you track sales?
+          {t("setup.sales.question")}
         </h1>
 
         {/* Context */}
         <div className="flex items-start gap-3 bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] px-4 py-3.5 mb-8">
           <InfoCircle className="h-4 w-4 text-[#3A6EA5] shrink-0 mt-0.5" />
           <p className="text-[13px] leading-[20px] text-[#C7C7CC]">
-            PrepIQ uses historical sales to generate production forecasts. The
-            more data you provide, the more accurate your prep quantities will
-            be.
+            {t("setup.sales.infoText")}
           </p>
         </div>
 
@@ -60,9 +60,9 @@ export default function SalesSetupPage() {
             selected={selected === "pos"}
             onSelect={() => setSelected("pos")}
             icon={<PlugTypeA className="h-5 w-5" />}
-            badge="Recommended"
-            title="Connect POS system"
-            description="Pull 30–90 days of sales automatically. Items are created from your POS catalog."
+            badge={t("setup.sales.recommended")}
+            title={t("setup.sales.connectPos")}
+            description={t("setup.sales.connectPosDesc")}
             detail={
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {POS_SYSTEMS.map((pos) => (
@@ -83,11 +83,11 @@ export default function SalesSetupPage() {
             selected={selected === "csv"}
             onSelect={() => setSelected("csv")}
             icon={<CloudUpload className="h-5 w-5" />}
-            title="Upload sales CSV"
-            description="Export from your current system and upload. We'll map the columns for you."
+            title={t("setup.sales.uploadCsv")}
+            description={t("setup.sales.uploadCsvDesc")}
             detail={
               <p className="text-[11px] text-[#5A5A60] mt-2 font-mono">
-                Supported: .csv
+                {t("setup.sales.supportedCsv")}
               </p>
             }
           />
@@ -98,8 +98,8 @@ export default function SalesSetupPage() {
             selected={selected === "skip"}
             onSelect={() => setSelected("skip")}
             icon={<WarningTriangle className="h-5 w-5" />}
-            title="Skip for now"
-            description="You can add data later, but forecasts will be unavailable until then."
+            title={t("setup.branch.skip")}
+            description={t("setup.sales.skipDesc")}
             intent="warning"
           />
         </div>
@@ -110,7 +110,7 @@ export default function SalesSetupPage() {
           disabled={!selected}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
-          {selected === "skip" ? "Skip — show me the forecast anyway" : "Continue"}
+          {selected === "skip" ? t("setup.sales.skipSubmit") : t("setup.sales.continue")}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
