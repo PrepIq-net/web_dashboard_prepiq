@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Xmark } from "iconoir-react";
 
 type ModalShellProps = {
@@ -25,6 +26,12 @@ export function ModalShell({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [showScrollUp, setShowScrollUp] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  // Track client mount so we can safely call createPortal
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -70,11 +77,11 @@ export function ModalShell({
     return () => window.clearTimeout(timer);
   }, [open, updateScrollIndicators, children]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm"
       onClick={onClose}
       role="presentation"
     >
@@ -169,4 +176,8 @@ export function ModalShell({
       </div>
     </div>
   );
+
+  // Portal renders at document.body — escapes any ancestor transform/filter/backdrop-filter
+  // that would otherwise trap position:fixed inside a sub-stacking-context.
+  return createPortal(modal, document.body);
 }
