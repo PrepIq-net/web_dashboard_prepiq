@@ -51,8 +51,8 @@ export function useCatalogItems(organizationId: string, enabled = true) {
     queryKey: inventoryQueryKeys.catalogItems(organizationId),
     queryFn: () => getCatalogItems(organizationId),
     enabled: enabled && Boolean(organizationId),
-    select: (data) => data.results,
-    staleTime: 5 * 60 * 1000, // catalog changes infrequently
+    select: (data) => data.data.results,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

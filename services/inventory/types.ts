@@ -5,6 +5,7 @@ import { z } from "zod";
 // ============================================================================
 
 // Catalog items — org-scoped master item list used for promotion item selection
+// Catalog uses StandardResultsSetPagination: {success, data: {count, results}}
 export const catalogItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
@@ -12,8 +13,11 @@ export const catalogItemSchema = z.object({
   unit: z.string().optional(),
 });
 export const catalogItemsResponseSchema = z.object({
-  count: z.number(),
-  results: z.array(catalogItemSchema),
+  success: z.boolean().optional(),
+  data: z.object({
+    count: z.number(),
+    results: z.array(catalogItemSchema),
+  }),
 });
 export type CatalogItem = z.infer<typeof catalogItemSchema>;
 

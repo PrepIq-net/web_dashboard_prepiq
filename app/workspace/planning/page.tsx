@@ -1,7 +1,16 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { Plus, NavArrowLeft, NavArrowRight, Xmark, Shop, Search } from "iconoir-react";
+import {
+  Plus,
+  NavArrowLeft,
+  NavArrowRight,
+  Xmark,
+  Shop,
+  Search,
+  EditPencil,
+  WarningTriangle,
+} from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
@@ -12,8 +21,10 @@ import {
 } from "@/services";
 import {
   usePlanningCalendar,
+  usePlanningEvent,
   usePlanningForecastContext,
   useCreatePlanningEvent,
+  useUpdatePlanningEvent,
   useDeletePlanningEvent,
 } from "@/services/planning/hooks";
 import type {
@@ -413,6 +424,14 @@ function CreateEventModal({
             </div>
 
             {/* Date + time row */}
+            {form.start_date && form.start_date < toIso(new Date()) ? (
+              <div className="flex items-start gap-2 rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2">
+                <WarningTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning" />
+                <p className="text-[11px] text-status-warning">
+                  This date is in the past. The event will be logged but won&apos;t affect future forecasts.
+                </p>
+              </div>
+            ) : null}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={LABEL_CLS}>Date</label>
@@ -672,6 +691,216 @@ function CreateEventModal({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Edit event modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Active",
+  DRAFT: "Draft",
+  CANCELLED: "Cancelled",
+  COMPLETED: "Completed",
+};
+
+function EditEventModal({
+  eventId,
+  onClose,
+}: {
+  eventId: string;
+  onClose: () => void;
+}) {
+  const { data: event, isLoading } = usePlanningEvent(eventId);
+  const updateMutation = useUpdatePlanningEvent();
+
+  const [form, setForm] = useState({
+    title: "",
+    status: "ACTIVE",
+    start_date: "",
+    start_time: "09:00",
+    end_time: "17:00",
+    expected_demand_impact: "",
+    description: "",
+  });
+  const [initialized, setInitialized] = useState(false);
+
+  // Populate form once event detail arrives
+  if (event && !initialized) {
+    const start = new Date(event.start_datetime);
+    const end = new Date(event.end_datetime);
+    setForm({
+      title: event.title,
+      status: event.status,
+      start_date: toIso(start),
+      start_time: start.toTimeString().slice(0, 5),
+      end_time: end.toTimeString().slice(0, 5),
+      expected_demand_impact:
+        event.expected_demand_impact != null
+          ? String(Math.round(event.expected_demand_impact * 100))
+          : "",
+      description: "",
+    });
+    setInitialized(true);
+  }
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSubmit = () => {
+    const startDt = `${form.start_date}T${form.start_time}:00`;
+    const endDt = `${form.start_date}T${form.end_time}:00`;
+    updateMutation.mutate(
+      {
+        eventId,
+        payload: {
+          title: form.title.trim(),
+          status: form.status as "ACTIVE" | "CANCELLED" | "COMPLETED" | "DRAFT",
+          start_datetime: startDt,
+          end_datetime: endDt,
+          expected_demand_impact:
+            form.expected_demand_impact !== ""
+              ? Number(form.expected_demand_impact) / 100
+              : null,
+          ...(form.description.trim() ? { description: form.description.trim() } : {}),
+        },
+      },
+      { onSuccess: onClose }
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border border-surface-4 bg-[#141416] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-surface-4 px-6 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Edit Event
+            </p>
+            <h2 className="font-display text-lg font-semibold text-text-primary">
+              Update details
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted hover:text-text-primary transition-colors"
+          >
+            <Xmark className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 py-5">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className={LABEL_CLS}>Title</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => set("title", e.target.value)}
+                  className={INPUT_CLS}
+                />
+              </div>
+
+              <div>
+                <label className={LABEL_CLS}>Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => set("status", e.target.value)}
+                  className={INPUT_CLS}
+                >
+                  {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+                {form.status === "CANCELLED" ? (
+                  <p className="mt-1 text-[11px] text-status-critical">
+                    Cancelled events are hidden from the forecast engine.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className={LABEL_CLS}>Date</label>
+                  <input
+                    type="date"
+                    value={form.start_date}
+                    onChange={(e) => set("start_date", e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>Start</label>
+                  <input
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) => set("start_time", e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                </div>
+                <div>
+                  <label className={LABEL_CLS}>End</label>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) => set("end_time", e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={LABEL_CLS}>Demand impact (%)</label>
+                <input
+                  type="number"
+                  step="1"
+                  value={form.expected_demand_impact}
+                  onChange={(e) => set("expected_demand_impact", e.target.value)}
+                  placeholder="e.g. 25 for +25%"
+                  className={INPUT_CLS}
+                />
+              </div>
+
+              <div>
+                <label className={LABEL_CLS}>Update note (optional)</label>
+                <textarea
+                  rows={2}
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  placeholder="Reason for change..."
+                  className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-surface-4 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-sm text-text-secondary hover:text-text-primary transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={updateMutation.isPending || isLoading}
+            className="inline-flex h-9 items-center rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {updateMutation.isPending ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Day detail panel
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -680,13 +909,16 @@ function DayPanel({
   events,
   branchId,
   onCreateClick,
+  onEditClick,
 }: {
   date: string;
   events: CalendarEventList[];
   branchId: string;
   onCreateClick: () => void;
+  onEditClick: (eventId: string) => void;
 }) {
   const deleteMutation = useDeletePlanningEvent();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const forecastQuery = usePlanningForecastContext(
     { branch_id: branchId, date },
     !!branchId && !!date,
@@ -778,7 +1010,7 @@ function DayPanel({
           events.map((event) => (
             <div
               key={event.id}
-              className="group rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 transition-colors hover:border-surface-4/80"
+              className="rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 transition-colors hover:border-surface-4/80"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -793,6 +1025,11 @@ function DayPanel({
                         className={`text-[10px] font-semibold ${impactTone(event.expected_demand_impact)}`}
                       >
                         {formatImpact(event.expected_demand_impact)}
+                      </span>
+                    ) : null}
+                    {event.status === "CANCELLED" ? (
+                      <span className="text-[9px] font-semibold text-text-muted line-through">
+                        cancelled
                       </span>
                     ) : null}
                   </div>
@@ -812,14 +1049,48 @@ function DayPanel({
                     {event.branch_name ? ` · ${event.branch_name}` : " · All branches"}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(event.id)}
-                  disabled={deleteMutation.isPending}
-                  className="shrink-0 h-6 w-6 flex items-center justify-center rounded-md text-text-muted opacity-0 group-hover:opacity-100 hover:text-status-critical hover:bg-status-critical/10 transition-all disabled:opacity-30"
-                >
-                  <Xmark className="h-3 w-3" />
-                </button>
+                {/* Actions */}
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onEditClick(event.id)}
+                    className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
+                    title="Edit event"
+                  >
+                    <EditPencil className="h-3 w-3" />
+                  </button>
+                  {confirmDeleteId === event.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          deleteMutation.mutate(event.id);
+                          setConfirmDeleteId(null);
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(event.id)}
+                      className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
+                      title="Delete event"
+                    >
+                      <Xmark className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -838,6 +1109,7 @@ function PlanningPageContent() {
   const [month, setMonth] = useState(() => monthStart(new Date()));
   const [selectedDate, setSelectedDate] = useState(today);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -1044,6 +1316,7 @@ function PlanningPageContent() {
               events={selectedDayEvents}
               branchId={safeBranchId}
               onCreateClick={() => setCreateModalOpen(true)}
+              onEditClick={(id) => setEditingEventId(id)}
             />
           )}
         </div>
@@ -1056,6 +1329,14 @@ function PlanningPageContent() {
           branchId={safeBranchId}
           orgId={user?.organization_id ?? ""}
           onClose={() => setCreateModalOpen(false)}
+        />
+      ) : null}
+
+      {/* Edit modal */}
+      {editingEventId ? (
+        <EditEventModal
+          eventId={editingEventId}
+          onClose={() => setEditingEventId(null)}
         />
       ) : null}
     </WorkspaceShell>
