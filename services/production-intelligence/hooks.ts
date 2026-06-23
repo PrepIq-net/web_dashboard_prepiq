@@ -45,6 +45,7 @@ import {
   updateRealTimeVelocity,
   updateBranchDayStatus,
   updatePrepPlanItem,
+  updateBranchDayNotes,
   updateStaffShiftChecklist,
   type AccessScopeQuery,
   type BranchDayTodayQuery,
@@ -67,6 +68,8 @@ import {
   type RiskSnapshotQuery,
   type OperationsHistoryQuery,
   type SalesWasteReportQuery,
+  type ItemHistoryQuery,
+  getItemHistory,
   type AdvancedForecastPayload,
   type ForecastScenariosQuery,
   type ForecastConfidenceQuery,
@@ -91,6 +94,7 @@ import type {
   SalesManualQuickEntryPayload,
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
+  IntegrationsSyncRetryQuery,
 } from "@/services/production-intelligence/types";
 
 export const productionIntelligenceQueryKeys = {
@@ -204,6 +208,14 @@ export const productionIntelligenceQueryKeys = {
       "integrations-overview",
       params.organization_id,
     ] as const,
+  integrationsSyncRetry: (params: IntegrationsSyncRetryQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "integrations-sync-retry",
+      params.branch_id,
+      params.connection_id,
+      params.provider_code,
+    ] as const,
   operationsProduction: (params: OperationsProductionQuery) =>
     [
       ...productionIntelligenceQueryKeys.root,
@@ -225,6 +237,14 @@ export const productionIntelligenceQueryKeys = {
       params.branch_id ?? "",
       params.target_date ?? "",
       params.window_days ?? "",
+    ] as const,
+  itemHistory: (itemId: string, params: ItemHistoryQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "item-history",
+      itemId,
+      params.branch_id ?? "",
+      params.days ?? "",
     ] as const,
   salesWasteReport: (params: SalesWasteReportQuery) =>
     [
@@ -357,6 +377,16 @@ export function useUpdateBranchDayStatus() {
         }),
       });
     },
+  });
+}
+
+export function useUpdateBranchDayNotes() {
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      ...payload
+    }: { branchDayId: string; notes?: string; reaction?: string }) =>
+      updateBranchDayNotes(branchDayId, payload),
   });
 }
 
@@ -623,14 +653,6 @@ export function useStaffAccountability(params: StaffAccountabilityQuery) {
   });
 }
 
-export function useIntegrationsOverview(params: IntegrationsOverviewQuery) {
-  return useQuery({
-    queryKey: productionIntelligenceQueryKeys.integrationsOverview(params),
-    queryFn: () => getIntegrationsOverview(params),
-    enabled: Boolean(params.organization_id),
-  });
-}
-
 export function useOperationsProduction(params: OperationsProductionQuery) {
   return useQuery({
     queryKey: productionIntelligenceQueryKeys.operationsProduction(params),
@@ -652,6 +674,14 @@ export function useOperationsHistorySnapshot(params: OperationsHistoryQuery) {
     queryKey: productionIntelligenceQueryKeys.operationsHistory(params),
     queryFn: () => getOperationsHistorySnapshot(params),
     enabled: Boolean(params.branch_id),
+  });
+}
+
+export function useItemHistory(itemId: string, params: ItemHistoryQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.itemHistory(itemId, params),
+    queryFn: () => getItemHistory(itemId, params),
+    enabled: Boolean(itemId && params.branch_id),
   });
 }
 
@@ -736,44 +766,70 @@ export function useRealTimeVelocity() {
   });
 }
 
-export function useRetryIntegrationsSync() {
+export function useIntegrationsOverview(params: IntegrationsOverviewQuery) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.integrationsOverview(params),
+    queryFn: () => getIntegrationsOverview(params),
+    enabled: !!params.organization_id,
+  });
+}
+
+export function useIntegrationsSyncRetry() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: () => retryIntegrationsSync(),
+    mutationFn: (payload: {
+      branch_id: string;
+      connection_id?: string;
+      provider_code?: string;
+    }) => retryIntegrationsSync(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          ...productionIntelligenceQueryKeys.root,
-          "integrations-overview",
-        ],
+        queryKey: productionIntelligenceQueryKeys.root,
       });
     },
   });
 }
 
-export function useStartSquareOAuth() {
+export function useSquareOAuthStart() {
   return useMutation({
     mutationFn: (payload: SquareOAuthStartPayload) => startSquareOAuth(payload),
   });
 }
 
-export function useStartToastOAuth() {
+export function useToastOAuthStart() {
   return useMutation({
     mutationFn: (payload: ToastOAuthStartPayload) => startToastOAuth(payload),
   });
 }
 
-export function useStartLoyverseOAuth() {
+export function useLoyverseOAuthStart() {
   return useMutation({
     mutationFn: (payload: LoyverseOAuthStartPayload) =>
       startLoyverseOAuth(payload),
   });
 }
 
-export function useStartCloverOAuth() {
+export function useCloverOAuthStart() {
   return useMutation({
-    mutationFn: (payload: CloverOAuthStartPayload) =>
-      startCloverOAuth(payload),
+    mutationFn: (payload: CloverOAuthStartPayload) => startCloverOAuth(payload),
+  });
+}
+
+export function useRetryIntegrationsSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: {
+      branch_id: string;
+      connection_id?: string;
+      provider_code?: string;
+    }) => retryIntegrationsSync(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.root,
+      });
+    },
   });
 }
 

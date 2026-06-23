@@ -9,8 +9,10 @@ import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useResetPassword } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 
 export function ResetPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -25,7 +27,7 @@ export function ResetPasswordForm() {
 
   useEffect(() => {
     if (!email || !otp) {
-      toast.error("Invalid reset link. Please start the process again.");
+      toast.error(t("auth.invalidResetLink"));
     }
   }, [email, otp]);
 
@@ -39,31 +41,19 @@ export function ResetPasswordForm() {
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match.");
+      toast.error(t("auth.resetPasswordsMismatch"));
       return;
     }
-
     if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+      toast.error(t("auth.resetPasswordTooShort"));
       return;
     }
-
     try {
-      await resetPasswordMutation.mutateAsync({
-        email,
-        otp,
-        new_password: newPassword,
-      });
-      toast.success("Password reset successfully. Redirecting to login...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+      await resetPasswordMutation.mutateAsync({ email, otp, new_password: newPassword });
+      toast.success(t("auth.passwordResetSuccess"));
+      setTimeout(() => router.push("/login"), 2000);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Reset failed. Please try again.",
-      );
+      toast.error(error instanceof Error ? error.message : t("auth.resetFailed"));
     }
   }
 
@@ -71,10 +61,10 @@ export function ResetPasswordForm() {
     <div className="w-full max-w-md space-y-12 animate-fade-in">
       <div className="space-y-3 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-          New Identity.
+          {t("auth.newIdentityTitle")}
         </h1>
         <p className="text-lg text-text-secondary leading-relaxed">
-          Set a strong, unique password for your workspace access.
+          {t("auth.newIdentitySubtitle")}
         </p>
       </div>
 
@@ -87,9 +77,9 @@ export function ResetPasswordForm() {
 
         <div className="space-y-6">
           <Input
-            label="New Password"
+            label={t("auth.newPassword")}
             type={showPassword ? "text" : "password"}
-            placeholder="Min. 8 characters"
+            placeholder={t("auth.minChars")}
             leadingIcon={<Lock />}
             autoComplete="new-password"
             value={newPassword}
@@ -108,9 +98,9 @@ export function ResetPasswordForm() {
           />
 
           <Input
-            label="Confirm Identity"
+            label={t("auth.confirmIdentity")}
             type={showPassword ? "text" : "password"}
-            placeholder="Re-enter password"
+            placeholder={t("auth.reenterPassword")}
             leadingIcon={<Lock />}
             autoComplete="new-password"
             value={confirmPassword}
@@ -127,9 +117,7 @@ export function ResetPasswordForm() {
             disabled={resetPasswordMutation.isPending || !email || !otp}
             className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            {resetPasswordMutation.isPending
-              ? "Updating Identity..."
-              : "Finalize Reset"}
+            {resetPasswordMutation.isPending ? t("auth.updatingIdentity") : t("auth.finalizeReset")}
           </Button>
         </div>
       </form>

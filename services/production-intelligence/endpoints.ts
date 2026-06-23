@@ -22,6 +22,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branch-day/${branchDayId}/lock-plan/`,
   branchDayAlertIgnore: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/alerts/ignore/`,
+  branchDayNotes: (branchDayId: string) =>
+    `${BASE}/production-intelligence/branch-day/${branchDayId}/notes/`,
   prepPlanEvaluate: () => `${BASE}/production-intelligence/prep-plan/evaluate/`,
   prepPlanDetail: (prepPlanItemId: string) =>
     `${BASE}/production-intelligence/prep-plan/${prepPlanItemId}/`,
@@ -51,10 +53,11 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/operations/production/`,
   operationsSalesWaste: () =>
     `${BASE}/production-intelligence/operations/sales-waste/`,
-  operationsRisk: () =>
-    `${BASE}/production-intelligence/operations/risk/`,
+  operationsRisk: () => `${BASE}/production-intelligence/operations/risk/`,
   operationsHistory: () =>
     `${BASE}/production-intelligence/operations/history/`,
+  itemHistory: (itemId: string) =>
+    `${BASE}/production-intelligence/items/${itemId}/history/`,
   operationsSurplus: () =>
     `${BASE}/production-intelligence/operations/surplus/`,
   operationsLiveSignals: () =>

@@ -134,6 +134,7 @@ export const userProfileSchema = z.object({
   organization_logo: z.string().nullable(),
   has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
+  preferred_language: z.enum(["en", "fr"]).optional().default("en"),
 });
 
 export const updateProfilePayloadSchema = z.object({
@@ -142,6 +143,7 @@ export const updateProfilePayloadSchema = z.object({
   first_name: z.string().max(100).optional(),
   last_name: z.string().max(100).optional(),
   profile_picture: z.instanceof(File).optional(),
+  preferred_language: z.enum(["en", "fr"]).optional(),
 });
 
 export const updateLocationDeprecatedResponseSchema = z.object({
@@ -151,6 +153,11 @@ export const updateLocationDeprecatedResponseSchema = z.object({
 export const photoUploadResponseSchema = z.object({
   message: z.string(),
   photo_url: z.string().nullable(),
+});
+
+export const changePasswordPayloadSchema = z.object({
+  current_password: z.string().min(1),
+  new_password: z.string().min(8),
 });
 
 export const deleteAccountPayloadSchema = z.object({
@@ -241,6 +248,7 @@ export type UpdateLocationDeprecatedResponse = z.infer<
 >;
 export type PhotoUploadResponse = z.infer<typeof photoUploadResponseSchema>;
 
+export type ChangePasswordPayload = z.infer<typeof changePasswordPayloadSchema>;
 export type DeleteAccountPayload = z.infer<typeof deleteAccountPayloadSchema>;
 
 export type UserRoleInfo = z.infer<typeof userRoleInfoSchema>;

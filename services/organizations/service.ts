@@ -6,9 +6,16 @@ import {
   organizationMemberSchema,
   organizationRegisterPayloadSchema,
   organizationFinancialOverviewSchema,
+  permissionSchema,
+  roleSchema,
+  roleCreateUpdatePayloadSchema,
   type AddOrganizationMemberPayload,
+  type UpdateOrganizationMemberPayload,
   type OrganizationFinancialOverviewQuery,
   type OrganizationRegisterPayload,
+  type Permission,
+  type Role,
+  type RoleCreateUpdatePayload,
 } from "./types";
 import { z } from "zod";
 
@@ -154,6 +161,21 @@ export async function removeOrganizationMember(id: string, userId: string) {
   );
 }
 
+export async function updateOrganizationMember(
+  id: string,
+  userId: string,
+  payload: UpdateOrganizationMemberPayload,
+) {
+  return apiClientWithSchema(
+    organizationsEndpoints.updateMember(id, userId),
+    organizationMemberSchema,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
 export async function getOrganizationFinancialOverview(
   id: string,
   params: OrganizationFinancialOverviewQuery = {},
@@ -171,4 +193,80 @@ export async function getOrganizationFinancialOverview(
   return apiClientWithSchema(url, organizationFinancialOverviewSchema, {
     method: "GET",
   });
+}
+
+export async function getOrganizationPermissions(
+  id: string,
+): Promise<Permission[]> {
+  const response = await apiClientWithSchema(
+    organizationsEndpoints.permissions(id),
+    z.union([
+      z.array(permissionSchema),
+      z.object({
+        success: z.boolean().optional(),
+        data: z.array(permissionSchema),
+      }),
+    ]),
+    {
+      method: "GET",
+    },
+  );
+
+  return Array.isArray(response) ? response : response.data;
+}
+
+export async function getOrganizationRoles(id: string): Promise<Role[]> {
+  const response = await apiClientWithSchema(
+    organizationsEndpoints.roles(id),
+    z.union([
+      z.array(roleSchema),
+      z.object({
+        success: z.boolean().optional(),
+        data: z.array(roleSchema),
+      }),
+    ]),
+    {
+      method: "GET",
+    },
+  );
+
+  return Array.isArray(response) ? response : response.data;
+}
+
+export async function createOrganizationRole(
+  id: string,
+  payload: RoleCreateUpdatePayload,
+): Promise<Role> {
+  return apiClientWithSchema(organizationsEndpoints.roles(id), roleSchema, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function updateOrganizationRole(
+  id: string,
+  roleId: string,
+  payload: RoleCreateUpdatePayload,
+): Promise<Role> {
+  return apiClientWithSchema(
+    organizationsEndpoints.roleDetail(id, roleId),
+    roleSchema,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export async function deleteOrganizationRole(
+  id: string,
+  roleId: string,
+): Promise<{ message: string }> {
+  return apiClientWithSchema(
+    organizationsEndpoints.roleDetail(id, roleId),
+    z.object({ message: z.string() }),
+    {
+      method: "DELETE",
+    },
+  );
 }

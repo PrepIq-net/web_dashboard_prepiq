@@ -92,6 +92,15 @@ export async function apiClient<T>(
 
   const requestHeaders = new Headers(headers ?? {});
 
+  // Forward UI language to backend so responses are localised
+  if (
+    typeof window !== "undefined" &&
+    !requestHeaders.has("X-Language")
+  ) {
+    const lang = localStorage.getItem("prepiq_lang") ?? "en";
+    requestHeaders.set("X-Language", lang);
+  }
+
   if (
     body !== undefined &&
     !requestHeaders.has("Content-Type") &&

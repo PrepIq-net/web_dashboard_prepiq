@@ -1,4 +1,5 @@
 "use client";
+import { isOrgManagement, isOrgLeadership } from "@/lib/role-utils";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -82,16 +83,8 @@ export default function PurchasingPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const canAccess = [
-    "AUDITOR",
-    "ACCOUNTANT",
-    "OPS_DIRECTOR",
-    "ORG_OWNER",
-    "ORG_ADMIN",
-    "BRANCH_MANAGER",
-    "GM",
-  ].includes(role);
-  const isReadOnlyBranchManager = role === "BRANCH_MANAGER" || role === "GM";
+  const canAccess = isOrgManagement(role);
+  const isReadOnlyBranchManager = !isOrgLeadership(role);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));

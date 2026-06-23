@@ -6,6 +6,7 @@ import { ReactNode, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { createQueryClient } from "@/lib/api/query-client";
 import { SidebarStateProvider } from "@/components/dashboard/sidebar-state";
+import { LanguageProvider } from "@/lib/i18n/language-context";
 
 type ProvidersProps = {
   children: ReactNode;
@@ -15,6 +16,7 @@ export function Providers({ children }: ProvidersProps) {
   const [queryClient] = useState(() => createQueryClient());
 
   return (
+    <LanguageProvider>
     <QueryClientProvider client={queryClient}>
       <IconoirProvider
         iconProps={{
@@ -55,5 +57,6 @@ export function Providers({ children }: ProvidersProps) {
         </SidebarStateProvider>
       </IconoirProvider>
     </QueryClientProvider>
+    </LanguageProvider>
   );
 }

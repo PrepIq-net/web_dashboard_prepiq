@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import {
   useProductionIntelligenceAccessScope,
-  useStartLoyverseOAuth,
+  useLoyverseOAuthStart,
 } from "@/services/production-intelligence/hooks";
 
 export default function LoyverseConnectPage() {
@@ -24,7 +24,7 @@ export default function LoyverseConnectPage() {
   } = useProductionIntelligenceAccessScope();
 
   const [branchId, setBranchId] = useState("");
-  const loyverseOAuth = useStartLoyverseOAuth();
+  const loyverseOAuth = useLoyverseOAuthStart();
 
   const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
 

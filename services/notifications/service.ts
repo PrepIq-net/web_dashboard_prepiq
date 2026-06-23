@@ -4,8 +4,32 @@ import { notificationEndpoints } from "@/services/notifications/endpoints";
 import {
   markNotificationsPayloadSchema,
   notificationsResponseSchema,
+  notificationPreferenceSchema,
+  notificationPreferencesResponseSchema,
   type MarkNotificationsPayload,
+  type NotificationPreference,
 } from "@/services/notifications/types";
+
+export async function getNotificationPreferences() {
+  return apiClientWithSchema(
+    notificationEndpoints.preferences(),
+    notificationPreferencesResponseSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function updateNotificationPreferences(preferences: Partial<NotificationPreference>[]) {
+  return apiClientWithSchema(
+    notificationEndpoints.preferences(),
+    z.any(),
+    {
+      method: "POST",
+      body: { preferences },
+    },
+  );
+}
 
 export async function getNotifications(params?: {
   status?: string;

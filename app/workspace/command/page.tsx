@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile } from "@/services";
+import { isOrgManagement, isOrgLeadership, isOrgMember } from "@/lib/role-utils";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -66,20 +67,13 @@ export default function CommandPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
 
-  const isStaffOperator = role === "STAFF_OPERATOR";
-  const isBranchManagerRole = role === "BRANCH_MANAGER" || role === "GM";
-  const isFinanceRole = role === "AUDITOR" || role === "ACCOUNTANT";
-  const isOpsRole = role === "OPS_DIRECTOR";
-  const isOwnerRole = role === "ORG_OWNER" || role === "ORG_ADMIN";
+  const isStaffOperator = isOrgMember(role);
+  const isBranchManagerRole = false;
+  const isFinanceRole = false;
+  const isOpsRole = false;
+  const isOwnerRole = isOrgLeadership(role);
 
-  const allowedCommandRoles = [
-    "ORG_OWNER",
-    "ORG_ADMIN",
-    "OPS_DIRECTOR",
-    "AUDITOR",
-    "ACCOUNTANT",
-  ];
-  const canUseCommand = allowedCommandRoles.includes(role);
+  const canUseCommand = isOrgManagement(role);
 
   const controlTowerQuery = useExecutiveControlTower(
     undefined,

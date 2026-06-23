@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -28,6 +28,7 @@ import {
   useLockBranchDayPlan,
   useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
+  useUpdateBranchDayNotes,
   useUpdatePrepPlanItem,
   useAdvancedForecast,
   useForecastMetrics,
@@ -117,6 +118,41 @@ function velocityStatusTone(status?: string) {
   if (status === "LOW_DEMAND") return "text-status-warning";
   return "text-status-success";
 }
+
+const REACTION_MESSAGES: Record<string, string[]> = {
+  FIRED_UP: [
+    "That energy runs the whole team. Great shift.",
+    "This is the kind of day that builds momentum.",
+    "The kitchen felt it. Good work.",
+    "You showed up and it showed.",
+    "Days like this are what it is all for.",
+    "That was a real service. Well done.",
+  ],
+  GOOD: [
+    "Solid. Rest up, you earned it.",
+    "Not every day needs to be epic. This one worked.",
+    "Consistent work. The best kind.",
+    "Good work. Go rest.",
+    "A good day is a good day. Take that.",
+    "Steady and solid. Nice work.",
+  ],
+  MEH: [
+    "Not every service hits. Tomorrow is fresh.",
+    "Steady counts too. You were there.",
+    "Some days just drift through. That is fine.",
+    "You ran the shift. That is what matters.",
+    "Even flat days teach the model something.",
+    "Not everything needs to be great. You showed up.",
+  ],
+  ROUGH: [
+    "Rough ones pass. You got through it.",
+    "Hard services are the ones that build you.",
+    "Take care of yourself tonight.",
+    "You showed up on a hard day. That is not nothing.",
+    "Some days push back. You kept going.",
+    "It was a tough shift. Rest now.",
+  ],
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -221,6 +257,21 @@ function signedQuantity(value: number, unit: string) {
   return `${prefix}${value.toFixed(2)} ${unit}`;
 }
 
+function signalLabel(key: string): string {
+  const map: Record<string, string> = {
+    reservation: "Reservations",
+    event: "Event",
+    weather: "Weather",
+    staffing: "Staffing",
+    kitchen_capacity: "Kitchen capacity",
+    delivery_mix: "Delivery mix",
+    traffic: "Traffic",
+    similar_day: "Similar days",
+    local_event: "Local event",
+  };
+  return map[key] ?? key;
+}
+
 const FALLBACK_DEMAND_SIGNALS = [
   {
     key: "similar_day",
@@ -259,9 +310,7 @@ function TodayWorkspacePageContent() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const role = user?.organization_role ?? "";
-  const canAccess =
-    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
+  const canAccess = Boolean(user?.has_organization);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
@@ -341,6 +390,23 @@ function TodayWorkspacePageContent() {
   const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
   const [csvUploadStatus, setCsvUploadStatus] = useState<string | null>(null);
   const [showCsvImportBanner, setShowCsvImportBanner] = useState(false);
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [showOkRows, setShowOkRows] = useState(false);
+  const [dayNote, setDayNote] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [dayReaction, setDayReaction] = useState<"FIRED_UP" | "GOOD" | "MEH" | "ROUGH" | "">("");
+  const [ackMessage, setAckMessage] = useState("");
+  const [ackVisible, setAckVisible] = useState(false);
+  const [ackPending, setAckPending] = useState(false);
+
+  const toggleItemExpand = (id: string) => {
+    setExpandedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const csvUploadSession = useCSVUploadSessionStore();
   const queryClient = useQueryClient();
@@ -395,6 +461,7 @@ function TodayWorkspacePageContent() {
   const evaluateMutation = useEvaluatePrepPlan();
   const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
+  const updateBranchDayNotesMutation = useUpdateBranchDayNotes();
   const createProductionLogMutation = useCreateProductionLog({
     skipInvalidate: true,
   });
@@ -1257,6 +1324,22 @@ function TodayWorkspacePageContent() {
       ).length,
     [liveRows],
   );
+
+  // Tier rows for live monitor: critical → watch → ok
+  const { criticalRows, watchRows, okRows } = useMemo(() => {
+    const crit: typeof liveRows = [];
+    const watch: typeof liveRows = [];
+    const ok: typeof liveRows = [];
+    for (const row of liveRows) {
+      const sr = row.monitor?.risk_engine?.stockout_risk ?? "LOW";
+      const wr = row.monitor?.risk_engine?.waste_risk ?? "LOW";
+      if (sr === "HIGH") crit.push(row);
+      else if (sr === "MEDIUM" || wr === "HIGH" || wr === "MEDIUM") watch.push(row);
+      else ok.push(row);
+    }
+    return { criticalRows: crit, watchRows: watch, okRows: ok };
+  }, [liveRows]);
+
   const demandDeltaPct = useMemo(
     () =>
       branchDay
@@ -1495,8 +1578,8 @@ function TodayWorkspacePageContent() {
     <WorkspaceShell
       eyebrow="Today"
       title="Today's Kitchen"
-      description="Review today's prep targets, adjust quantities, and start service when you're ready."
-      insight="The more you accept or override suggestions each morning, the smarter the recommendations get over time."
+      description="Review your forecast, confirm production targets, and execute with precision."
+      insight="Each decision — accepted or overridden — sharpens the forecast. The system learns from every shift."
     >
       {/* Slim context bar — no heavy card */}
       <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
@@ -1544,23 +1627,37 @@ function TodayWorkspacePageContent() {
       </div>
 
       {todayQuery.isError ? (
-        <div className="mb-6 rounded-lg border-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
-          <p className="font-semibold">Day data not available.</p>
-          <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
-          {canInitializeDay && safeBranchId ? (
-            <button
-              type="button"
-              onClick={() =>
-                initializeMutation.mutate({
-                  branch_id: safeBranchId,
-                  date: targetDate,
-                })
-              }
-              className="mt-2 inline-flex h-8 items-center rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10"
-            >
-              Initialize Day
-            </button>
-          ) : null}
+        <div className={`mb-6 rounded-r-lg border-l-4 px-4 py-3 text-xs transition-colors ${
+          initializeMutation.isPending
+            ? "border-l-brand-gold bg-brand-gold/8 text-brand-gold"
+            : "border-l-status-warning bg-status-warning/8 text-status-warning"
+        }`}>
+          {initializeMutation.isPending ? (
+            <div className="flex items-center gap-2">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin shrink-0" />
+              <p className="font-semibold">Setting up your day&hellip;</p>
+            </div>
+          ) : (
+            <>
+              <p className="font-semibold">Day data not available.</p>
+              <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+              {canInitializeDay && safeBranchId ? (
+                <button
+                  type="button"
+                  disabled={initializeMutation.isPending}
+                  onClick={() =>
+                    initializeMutation.mutate({
+                      branch_id: safeBranchId,
+                      date: targetDate,
+                    })
+                  }
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Initialize Day
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
 
@@ -1578,129 +1675,133 @@ function TodayWorkspacePageContent() {
 
       {isMorning && branchDay ? (
         <>
-          {/* ── Outlook banner — collapsible, secondary context ── */}
-          <details className="mb-8 group">
-            <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-4 bg-surface-2 px-5 py-4 list-none hover:border-surface-4/80 transition-colors">
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Today&apos;s outlook</p>
-                  <p className="mt-0.5 text-sm font-medium text-text-primary">
+          {/* ── Morning Brief — always visible, no click required ── */}
+          <div className="mb-8 pb-8 border-b border-surface-4/50">
+            <div className="flex flex-wrap items-start gap-8">
+              {/* Demand KPI + meter */}
+              <div className="shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Expected demand
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span
+                    className={`font-display text-4xl font-semibold tracking-[-0.5px] ${
+                      demandDeltaPct >= 2
+                        ? "text-status-success"
+                        : demandDeltaPct <= -2
+                          ? "text-status-warning"
+                          : "text-text-primary"
+                    }`}
+                  >
+                    {toPercent(demandDeltaPct)}
+                  </span>
+                  <span className="text-sm text-text-muted">
                     {demandDeltaPct <= -2
-                      ? `Quieter than usual · ${toPercent(demandDeltaPct)} expected demand`
+                      ? "quieter than usual"
                       : demandDeltaPct >= 2
-                        ? `Busier than usual · ${toPercent(demandDeltaPct)} expected demand`
-                        : "About normal today"}
-                    {" · "}
-                    <span className={prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}>
-                      {prepConfidenceRiskLabel === "Low" ? "Plan looks solid" : prepConfidenceRiskLabel === "Medium" ? "Review flagged items" : "Elevated risk — check alerts"}
-                    </span>
-                  </p>
+                        ? "busier than usual"
+                        : "about normal"}
+                  </span>
+                </div>
+                <div className="mt-3 relative h-[3px] w-40 rounded-full bg-surface-4">
+                  <div
+                    className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-brand-gold shadow-sm"
+                    style={{ left: `calc(${demandMeterPosition}% - 6px)` }}
+                  />
+                </div>
+                <div className="mt-1 flex w-40 justify-between text-[9px] text-text-muted/60">
+                  <span>Quiet</span>
+                  <span>Normal</span>
+                  <span>Busy</span>
                 </div>
               </div>
-              <span className="text-xs text-text-muted group-open:hidden">Show details ↓</span>
-              <span className="text-xs text-text-muted hidden group-open:inline">Hide ↑</span>
-            </summary>
 
-            {/* Single merged card — demand + reliability side by side, tight */}
-            <div className="mt-2 px-1">
-              <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-surface-4/60">
+              {/* Vertical divider */}
+              <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-                  {/* Left — how busy */}
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">How busy will it be?</p>
-                    <div className="mt-1.5 flex items-baseline gap-2">
-                      <span className={`font-display text-xl font-semibold ${demandDeltaPct >= 2 ? "text-status-success" : demandDeltaPct <= -2 ? "text-status-warning" : "text-text-primary"}`}>
-                        {toPercent(demandDeltaPct)}
+              {/* Signal chips + action sentence */}
+              <div className="flex-1 min-w-[180px]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Demand signals
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {demandSignals.slice(0, 4).map((signal) => (
+                    <span
+                      key={signal.key}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                    >
+                      {signal.label}
+                      <span className="font-semibold">
+                        {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
                       </span>
-                      <span className="text-xs text-text-muted">
-                        {demandDeltaPct <= -2 ? "quieter than usual" : demandDeltaPct >= 2 ? "busier than usual" : "about normal"}
-                      </span>
-                    </div>
+                    </span>
+                  ))}
+                </div>
+                {outlookActionSentence ? (
+                  <p className="mt-3 text-xs text-text-secondary">
+                    <span className="mr-1 font-semibold text-brand-gold">→</span>
+                    {outlookActionSentence}
+                  </p>
+                ) : null}
+              </div>
 
-                    {/* Slim demand meter */}
-                    <div className="mt-2 relative h-1 rounded-full bg-surface-4">
-                      <div
-                        className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-brand-gold"
-                        style={{ left: `calc(${demandMeterPosition}% - 5px)` }}
-                      />
-                    </div>
-                    <div className="mt-0.5 flex justify-between text-[9px] text-text-muted/70">
-                      <span>Quiet</span><span>Normal</span><span>Busy</span>
-                    </div>
+              {/* Vertical divider */}
+              <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-                    {/* Signal chips */}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {demandSignals.slice(0, 4).map((signal) => (
-                        <span
-                          key={signal.key}
-                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                        >
-                          {signal.label}
-                          <span className="font-semibold">
-                            {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-
-                    {outlookActionSentence ? (
-                      <p className="mt-2 text-[11px] text-text-secondary border-t border-surface-4/40 pt-2">
-                        <span className="font-semibold text-brand-gold">→ </span>
-                        {outlookActionSentence}
-                      </p>
-                    ) : null}
+              {/* Plan reliability */}
+              <div className="shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Plan reliability
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2">
+                  <span className="font-display text-4xl font-semibold tracking-[-0.5px] text-text-primary">
+                    {percent(prepConfidenceGauge)}
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${
+                      prepConfidenceRiskLabel === "Low"
+                        ? "text-status-success"
+                        : prepConfidenceRiskLabel === "Medium"
+                          ? "text-status-warning"
+                          : "text-status-critical"
+                    }`}
+                  >
+                    {prepConfidenceRiskLabel === "Low"
+                      ? "Good shape"
+                      : prepConfidenceRiskLabel === "Medium"
+                        ? "Review items"
+                        : "Check alerts"}
+                  </span>
+                </div>
+                <div className="mt-2 h-[3px] w-40 overflow-hidden rounded-full bg-surface-4">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      prepConfidenceRiskLabel === "Low"
+                        ? "bg-status-success"
+                        : prepConfidenceRiskLabel === "Medium"
+                          ? "bg-status-warning"
+                          : "bg-status-critical"
+                    }`}
+                    style={{ width: percent(prepConfidenceGauge) }}
+                  />
+                </div>
+                <div className="mt-2 flex gap-6 text-[11px]">
+                  <div>
+                    <p className="text-text-muted">Needs attention</p>
+                    <p className="font-semibold text-text-primary">
+                      {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0}
+                    </p>
                   </div>
-
-                  {/* Right — plan reliability */}
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">Plan reliability</p>
-                    <div className="mt-1.5 flex items-baseline gap-2">
-                      <span className="font-display text-xl font-semibold text-text-primary">{percent(prepConfidenceGauge)}</span>
-                      <span className={`text-xs font-medium ${prepConfidenceRiskLabel === "Low" ? "text-status-success" : prepConfidenceRiskLabel === "Medium" ? "text-status-warning" : "text-status-critical"}`}>
-                        {prepConfidenceRiskLabel === "Low" ? "Good shape" : prepConfidenceRiskLabel === "Medium" ? "Review items" : "Check alerts"}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-4">
-                      <div
-                        className={`h-full rounded-full transition-all ${prepConfidenceRiskLabel === "Low" ? "bg-status-success" : prepConfidenceRiskLabel === "Medium" ? "bg-status-warning" : "bg-status-critical"}`}
-                        style={{ width: percent(prepConfidenceGauge) }}
-                      />
-                    </div>
-
-                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-                      <div>
-                        <p className="text-text-muted">Needs attention</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0} items
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">Tracked</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.demand_signal.tracked_items ?? rows.length} items
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">Forecast confidence</p>
-                        <p className="font-semibold text-text-primary">
-                          {branchDay.demand_signal.confidence_label ?? confidenceLabel(branchDay.demand_signal.forecast_confidence)}
-                          {" "}
-                          <span className="font-normal text-text-muted">({percent(branchDay.demand_signal.forecast_confidence)})</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-text-muted">{t("today.outlook.vsTypical", { day: branchDay.demand_signal.typical_day_label ?? new Date(branchDay.date).toLocaleDateString(t("common.language") === "fr" ? "fr-FR" : "en-US", { weekday: "short" }) })}</p>
-                        <p className={`font-semibold ${demandDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}>
-                          {toPercent(demandDeltaPct)}
-                        </p>
-                      </div>
-                    </div>
+                  <div>
+                    <p className="text-text-muted">Tracked</p>
+                    <p className="font-semibold text-text-primary">
+                      {branchDay.demand_signal.tracked_items ?? rows.length}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-          </details>
+          </div>
 
           {/* ── Risk alerts — shown above the table when present ── */}
           {morningRiskAlerts.length > 0 && !isPlanLocked ? (
@@ -1708,10 +1809,10 @@ function TodayWorkspacePageContent() {
               {morningRiskAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
+                  className={`flex items-start justify-between gap-4 rounded-r-xl border-l-4 px-4 py-3 ${
                     alert.severity === "HIGH"
-                      ? "border-status-critical bg-status-critical/8"
-                      : "border-status-warning bg-status-warning/8"
+                      ? "border-l-status-critical bg-status-critical/8"
+                      : "border-l-status-warning bg-status-warning/8"
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -1721,10 +1822,10 @@ function TodayWorkspacePageContent() {
                     </p>
                     <p className="mt-0.5 text-sm text-text-secondary">
                       {alert.riskType === "STOCKOUT"
-                        ? "You might run out before service ends at your current plan."
+                        ? "Stockout risk. Your current plan falls short of projected demand."
                         : alert.riskType === "WASTE"
-                          ? "You may cook more than you can sell today."
-                          : "Your current plan could affect today's margin."}
+                          ? "Waste exposure detected. Demand signal is weaker than your current prep."
+                          : "Margin variance. Deviation from forecast affects estimated contribution."}
                     </p>
                   </div>
                   <button
@@ -1760,8 +1861,8 @@ function TodayWorkspacePageContent() {
                 {/* Inline stats — no cards */}
                 <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-secondary">
                   <span>
-                    <span className="font-semibold text-text-primary">{section2Rows.length}</span>
-                    {" "}of {forecastRowsByDemand.length} items
+                    <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
+                    {" "}of {forecastRowsByDemand.length} reviewed
                   </span>
                   {(branchDay.morning_overview?.projected_margin_total ?? 0) > 0 ? (
                     <span>
@@ -1818,413 +1919,455 @@ function TodayWorkspacePageContent() {
               </p>
             ) : null}
 
-            <div className="mt-2 lg:hidden space-y-3">
-              {section2Rows.map(
-                ({ item, riskScore, planned, variance, impact }) => {
-                  const plannedQty = planned ?? item.suggested_quantity;
-                  const financials = buildFinancialSnapshot({
-                    plannedQty,
-                    predictedQty:
-                      item.forecast_context.predicted_quantity_needed,
-                    unit: item.unit,
-                    unitPrice: item.forecast_context.unit_price,
-                    unitCost: item.forecast_context.unit_cost,
-                    unitMargin: item.forecast_context.unit_margin,
-                  });
-                  const hasPricing =
-                    item.forecast_context.unit_price != null ||
-                    item.forecast_context.unit_cost != null ||
-                    item.forecast_context.unit_margin != null;
-                  return (
-                    <article
-                      key={`mobile-forecast-${item.id}`}
-                      className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          {item.product_image_url && (
-                            <img
-                              src={item.product_image_url}
-                              alt={item.product_title}
-                              className="h-12 w-12 rounded-lg object-cover border border-surface-4 shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                            />
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-text-primary">
-                              {item.product_title}
-                            </p>
-                            <p className="mt-1 text-xs text-text-muted">
-                              {popularityLabel(forecastRankById[item.id] ?? 999)}
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${riskTone(riskScore)}`}
-                        >
-                          {riskLabel(riskScore)}
-                        </span>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Suggested Prep</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {formatQuantity(item.suggested_quantity, item.unit)}
+            {/* ── Mobile cards ── */}
+            <div className="lg:hidden space-y-2">
+              {section2Rows.map(({ item, riskScore, planned, variance, impact }) => {
+                const plannedQty = planned ?? item.suggested_quantity;
+                const financials = buildFinancialSnapshot({
+                  plannedQty,
+                  predictedQty: item.forecast_context.predicted_quantity_needed,
+                  unit: item.unit,
+                  unitPrice: item.forecast_context.unit_price,
+                  unitCost: item.forecast_context.unit_cost,
+                  unitMargin: item.forecast_context.unit_margin,
+                });
+                const hasPricing =
+                  item.forecast_context.unit_price != null ||
+                  item.forecast_context.unit_cost != null ||
+                  item.forecast_context.unit_margin != null;
+                const isAccepted = item.decision === "ACCEPTED_AI" || item.accepted_suggestion;
+                const isOverride = item.decision === "CHEF_OVERRIDE";
+                const isExpanded = expandedItemIds.has(item.id);
+
+                return (
+                  <article
+                    key={`mobile-forecast-${item.id}`}
+                    className={`overflow-hidden rounded-xl border bg-surface-2 transition-colors ${
+                      isAccepted
+                        ? "border-l-[3px] border-l-status-success/70 border-status-success/30"
+                        : isOverride
+                          ? "border-l-[3px] border-l-status-warning/70 border-status-warning/30"
+                          : riskScore >= 0.45
+                            ? "border-l-[3px] border-l-status-critical/50 border-status-critical/25"
+                            : "border-surface-4"
+                    }`}
+                  >
+                    {/* Row 1: identity + risk badge */}
+                    <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                      <div className="flex items-start gap-3">
+                        {item.product_image_url && (
+                          <img
+                            src={item.product_image_url}
+                            alt={item.product_title}
+                            className="h-10 w-10 shrink-0 rounded-lg border border-surface-4 object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {item.product_title}
                           </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Expected Orders</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {Math.round(item.forecast_context.predicted_orders)}
+                          <p className="mt-0.5 text-xs text-text-muted">
+                            {popularityLabel(forecastRankById[item.id] ?? 999)}
                           </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Confidence</p>
-                          <p className="mt-1 font-semibold text-text-primary">
-                            {percent(item.forecast_context.confidence_score)}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-3 py-2">
-                          <p className="text-text-muted">Your Plan</p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <input
-                              type="number"
-                              step={isDiscreteUnit(item.unit) ? 1 : 0.01}
-                              value={plannedQtyByItem[item.id] ?? ""}
-                              onChange={(event) =>
-                                onPlannedChange(
-                                  item.id,
-                                  event.target.value,
-                                  item.unit,
-                                )
-                              }
-                              disabled={isPlanLocked}
-                              className="h-8 w-20 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
-                            />
-                            <span className="text-[11px] text-text-muted">
-                              {item.unit}
-                            </span>
-                          </div>
                         </div>
                       </div>
-                      <p className="mt-2 text-xs text-text-muted">
-                        {variance == null || variance === 0
-                          ? "Matches suggestion"
-                          : variance > 0
-                            ? `${signedQuantity(variance, item.unit)} above suggestion`
-                            : `${signedQuantity(variance, item.unit)} below suggestion`}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskTone(riskScore)}`}>
+                        {riskLabel(riskScore)}
+                      </span>
+                    </div>
+
+                    {/* Row 2: AI suggests / Your plan — flat, no nested cards */}
+                    <div className="mt-3 grid grid-cols-2 divide-x divide-surface-4/60 border-y border-surface-4/60">
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          AI suggests
+                        </p>
+                        <p className="mt-1 font-display text-lg font-semibold text-text-primary">
+                          {formatQuantity(item.suggested_quantity, item.unit)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          ~{Math.round(item.forecast_context.predicted_orders)} orders ·{" "}
+                          {confidenceLabel(item.forecast_context.confidence_score)}
+                        </p>
+                      </div>
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Your plan
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step={isDiscreteUnit(item.unit) ? 1 : 0.01}
+                            value={plannedQtyByItem[item.id] ?? ""}
+                            onChange={(e) => onPlannedChange(item.id, e.target.value, item.unit)}
+                            disabled={isPlanLocked}
+                            className="h-8 w-20 rounded-lg border border-surface-4 bg-surface-3 px-2.5 text-sm font-semibold text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60"
+                          />
+                          <span className="text-xs text-text-muted">{item.unit}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          {variance == null || variance === 0
+                            ? "Matches suggestion"
+                            : variance > 0
+                              ? `${signedQuantity(variance, item.unit)} above`
+                              : `${signedQuantity(variance, item.unit)} below`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Row 3: actions */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() =>
-                            acceptSuggestion(
-                              item.id,
-                              item.suggested_quantity,
-                              item.unit,
-                            )
-                          }
+                          onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
                           disabled={isPlanLocked}
-                          className="inline-flex h-8 items-center rounded-full border border-status-success/40 px-3 text-xs font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
+                          className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                         >
-                          Use suggestion
+                          ✓ Accept
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            keepMyPlan(item.id, planned, item.unit)
-                          }
+                          onClick={() => keepMyPlan(item.id, planned, item.unit)}
                           disabled={isPlanLocked}
-                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
+                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                         >
-                          Keep my number
+                          Keep mine
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleItemExpand(item.id)}
+                          className="text-[11px] font-semibold text-brand-gold hover:text-brand-gold/80 transition-colors"
+                        >
+                          {isExpanded ? "Hide ↑" : "Why? ↓"}
                         </button>
                         <Link
                           href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
-                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/45 px-3 text-xs font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
+                          className="text-[11px] font-medium text-brand-gold/70 hover:text-brand-gold transition-colors"
                         >
-                          Deep dive
+                          Deep dive ↗
+                        </Link>
+                        <Link
+                          href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
+                          className="text-[11px] font-medium text-text-muted hover:text-brand-gold transition-colors"
+                        >
+                          Track record ↗
                         </Link>
                       </div>
-                      {actionErrorByItem[item.id] ? (
-                        <p className="mt-2 text-xs text-status-critical">
-                          {actionErrorByItem[item.id]}
-                        </p>
-                      ) : backendDecisionFeedback(item) ? (
-                        <p
-                          className={`mt-2 text-xs ${
-                            backendDecisionFeedback(item)?.tone === "success"
-                              ? "text-status-success"
-                              : backendDecisionFeedback(item)?.tone === "warning"
-                                ? "text-status-warning"
-                                : "text-status-critical"
-                          }`}
-                        >
-                          {backendDecisionFeedback(item)?.message}
-                        </p>
-                      ) : null}
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
-                          Why this quantity?
-                        </summary>
-                        <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
-                          {/* Plain reasoning */}
-                          <div className="space-y-0.5">
-                            {item.forecast_context.reasoning.map((line) => (
-                              <p key={`mobile-${item.id}-${line}`}>{line}</p>
-                            ))}
-                          </div>
+                    </div>
 
-                          {/* Signal breakdown — what influenced this forecast */}
-                          {item.forecast_context.applied_signals ? (
-                            <div className="pt-2 border-t border-surface-4/40">
-                              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
-                                Signals that shaped this forecast
-                              </p>
-                              <div className="space-y-1">
-                                {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
-                                  const modifier = signal?.modifier ?? 0;
-                                  if (Math.abs(modifier) < 0.005) return null;
-                                  const direction = modifier > 0 ? "↑" : "↓";
-                                  const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
-                                  const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
-                                  const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
-                                  return (
-                                    <div key={key} className="flex items-center justify-between text-[11px]">
-                                      <span className="text-text-secondary">{label}</span>
-                                      <span className={`font-semibold ${tone}`}>{impact}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : null}
+                    {/* Decision feedback */}
+                    {actionErrorByItem[item.id] ? (
+                      <p className="px-4 pb-3 text-xs text-status-critical">
+                        {actionErrorByItem[item.id]}
+                      </p>
+                    ) : backendDecisionFeedback(item) ? (
+                      <p
+                        className={`px-4 pb-3 text-xs ${
+                          backendDecisionFeedback(item)?.tone === "success"
+                            ? "text-status-success"
+                            : "text-status-warning"
+                        }`}
+                      >
+                        {backendDecisionFeedback(item)?.message}
+                      </p>
+                    ) : null}
 
-                          {/* Financial impact */}
-                          {impact ? (
-                            <p className="pt-2 border-t border-surface-4/40">
-                              Margin impact estimate:{" "}
-                              <span
-                                className={
-                                  impact.margin_impact_estimate >= 0
-                                    ? "text-status-success"
-                                    : "text-status-critical"
-                                }
-                              >
-                                {formatSignedCurrency(
-                                  impact.margin_impact_estimate,
-                                )}
-                              </span>
-                            </p>
-                          ) : null}
-                          {hasPricing ? (
-                            <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
-                              {financials.revenueIfSold != null ? (
-                                <p>
-                                  If sold out:{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(financials.revenueIfSold)}
-                                  </span>{" "}
-                                  revenue
-                                  {financials.marginIfSold != null
-                                    ? ` · ${formatCurrency(financials.marginIfSold)} margin`
-                                    : ""}
-                                </p>
-                              ) : null}
-                              {financials.wasteIfAll != null ? (
-                                <p>
-                                  If wasted:{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(financials.wasteIfAll)}
-                                  </span>{" "}
-                                  in food cost.
-                                </p>
-                              ) : null}
-                              {financials.lostMarginIfStockout != null &&
-                              financials.shortfallQty > 0 ? (
-                                <p>
-                                  If you stock out by{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatQuantity(
-                                      financials.shortfallQty,
-                                      financials.unit,
-                                    )}
-                                  </span>
-                                  , you could lose{" "}
-                                  <span className="font-semibold text-text-primary">
-                                    {formatCurrency(
-                                      financials.lostMarginIfStockout,
-                                    )}
-                                  </span>{" "}
-                                  margin.
-                                </p>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <p className="pt-2 border-t border-surface-4/40">
-                              Pricing data is missing. Add selling price and
-                              cost to unlock revenue and waste estimates.
-                            </p>
-                          )}
+                    {/* Why this quantity — toggleable, full-width */}
+                    {isExpanded ? (
+                      <div className="space-y-2.5 border-t border-surface-4/60 bg-surface-3/20 px-4 py-3 text-[11px] text-text-secondary">
+                        <div className="space-y-0.5">
+                          {item.forecast_context.reasoning.map((line) => (
+                            <p key={`mobile-r-${item.id}-${line}`}>{line}</p>
+                          ))}
                         </div>
-                      </details>
-                    </article>
-                  );
-                },
-              )}
+                        {item.forecast_context.applied_signals ? (
+                          <div className="border-t border-surface-4/40 pt-2">
+                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                              Signal adjustments
+                            </p>
+                            <div className="space-y-1">
+                              {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
+                                const modifier = signal?.modifier ?? 0;
+                                if (Math.abs(modifier) < 0.005) return null;
+                                return (
+                                  <div key={key} className="flex items-center justify-between">
+                                    <span className="text-text-secondary">{signalLabel(key)}</span>
+                                    <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
+                                      {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                        {impact ? (
+                          <p className="border-t border-surface-4/40 pt-2">
+                            Margin impact:{" "}
+                            <span className={`font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                              {formatSignedCurrency(impact.margin_impact_estimate)}
+                            </span>
+                          </p>
+                        ) : null}
+                        {hasPricing ? (
+                          <div className="space-y-0.5 border-t border-surface-4/40 pt-2">
+                            {financials.revenueIfSold != null && (
+                              <p>
+                                If sold out:{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
+                                revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                              </p>
+                            )}
+                            {financials.wasteIfAll != null && (
+                              <p>
+                                If wasted:{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
+                                in food cost.
+                              </p>
+                            )}
+                            {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
+                              <p>
+                                If you stock out by{" "}
+                                <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>,{" "}
+                                you could lose{" "}
+                                <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
+                                margin.
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="border-t border-surface-4/40 pt-2 text-text-muted">
+                            Add selling price and cost to unlock financial scenarios.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
 
-            <div className="mt-5 hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
-              <table className="w-full min-w-[980px]">
-                <thead className="border-b border-surface-4 bg-surface-3/35">
+            {/* ── Desktop table ── */}
+            <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+              <table className="w-full min-w-[860px]">
+                <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    <th className="w-[200px] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
                       Item
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Cook this much
+                      AI Suggests
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Expected orders
+                      Confidence
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      How sure
+                      Your Plan
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Risk
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Your quantity
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Decision
+                      {/* actions */}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-4/70">
-                  {section2Rows.map(
-                    ({ item, riskScore, planned, variance, impact }) => {
-                      const plannedQty = planned ?? item.suggested_quantity;
-                      const financials = buildFinancialSnapshot({
-                        plannedQty,
-                        predictedQty:
-                          item.forecast_context.predicted_quantity_needed,
-                        unit: item.unit,
-                        unitPrice: item.forecast_context.unit_price,
-                        unitCost: item.forecast_context.unit_cost,
-                        unitMargin: item.forecast_context.unit_margin,
-                      });
-                      const hasPricing =
-                        item.forecast_context.unit_price != null ||
-                        item.forecast_context.unit_cost != null ||
-                        item.forecast_context.unit_margin != null;
-                      return (
+                <tbody className="divide-y divide-surface-4/50">
+                  {section2Rows.map(({ item, riskScore, planned, variance, impact }) => {
+                    const plannedQty = planned ?? item.suggested_quantity;
+                    const financials = buildFinancialSnapshot({
+                      plannedQty,
+                      predictedQty: item.forecast_context.predicted_quantity_needed,
+                      unit: item.unit,
+                      unitPrice: item.forecast_context.unit_price,
+                      unitCost: item.forecast_context.unit_cost,
+                      unitMargin: item.forecast_context.unit_margin,
+                    });
+                    const hasPricing =
+                      item.forecast_context.unit_price != null ||
+                      item.forecast_context.unit_cost != null ||
+                      item.forecast_context.unit_margin != null;
+                    const isAccepted = item.decision === "ACCEPTED_AI" || item.accepted_suggestion;
+                    const isOverride = item.decision === "CHEF_OVERRIDE";
+                    const isExpanded = expandedItemIds.has(item.id);
+                    const accentClass = isAccepted
+                      ? "border-l-[3px] border-l-status-success/70"
+                      : isOverride
+                        ? "border-l-[3px] border-l-status-warning/70"
+                        : riskScore >= 0.45
+                          ? "border-l-[3px] border-l-status-critical/50"
+                          : "border-l-[3px] border-l-transparent";
+
+                    return (
+                      <Fragment key={item.id}>
                         <tr
-                          key={`forecast-${item.id}`}
-                          className="align-top hover:bg-surface-3/30"
+                          className={`align-top transition-colors hover:bg-surface-3/20 ${accentClass} ${
+                            isAccepted ? "bg-status-success/[0.025]" : isOverride ? "bg-status-warning/[0.025]" : ""
+                          }`}
                         >
+                          {/* Item */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               {item.product_image_url && (
                                 <img
                                   src={item.product_image_url}
                                   alt={item.product_title}
-                                  className="h-10 w-10 rounded-lg object-cover border border-surface-4 shrink-0"
+                                  className="h-9 w-9 shrink-0 rounded-lg border border-surface-4 object-cover"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                                 />
                               )}
                               <div>
-                                <p className="text-sm font-semibold text-text-primary">
+                                <p className="text-sm font-semibold leading-tight text-text-primary">
                                   {item.product_title}
                                 </p>
-                                <p className="mt-1 text-xs text-text-muted">
-                                  {popularityLabel(
-                                    forecastRankById[item.id] ?? 999,
-                                  )}
+                                <p className="mt-0.5 text-[11px] text-text-muted">
+                                  {popularityLabel(forecastRankById[item.id] ?? 999)}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm font-semibold text-text-primary">
-                            {formatQuantity(item.suggested_quantity, item.unit)}
+
+                          {/* AI Suggests */}
+                          <td className="px-4 py-4">
+                            <p className="font-display text-lg font-semibold text-text-primary">
+                              {formatQuantity(item.suggested_quantity, item.unit)}
+                            </p>
+                            <p className="mt-0.5 text-xs text-text-muted">
+                              ~{Math.round(item.forecast_context.predicted_orders)} orders
+                            </p>
                           </td>
-                          <td className="px-4 py-4 text-sm text-text-secondary">
-                            {Math.round(item.forecast_context.predicted_orders)}
-                          </td>
+
+                          {/* Confidence + Risk */}
                           <td className="px-4 py-4">
                             <p className="text-sm font-semibold text-text-primary">
                               {percent(item.forecast_context.confidence_score)}
                             </p>
-                            <p className="mt-1 text-xs text-text-muted">
-                              {confidenceLabel(
-                                item.forecast_context.confidence_score,
-                              )}
+                            <p className="mt-0.5 text-[11px] text-text-muted">
+                              {confidenceLabel(item.forecast_context.confidence_score)}
                             </p>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${riskTone(riskScore)}`}
-                            >
-                              {riskLabel(riskScore)}
+                            <span className={`mt-1.5 inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}>
+                              {riskLabel(riskScore)} risk
                             </span>
                           </td>
+
+                          {/* Your Plan */}
                           <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2">
                               <input
                                 type="number"
                                 step={isDiscreteUnit(item.unit) ? 1 : 0.01}
                                 value={plannedQtyByItem[item.id] ?? ""}
-                                onChange={(event) =>
-                                  onPlannedChange(
-                                    item.id,
-                                    event.target.value,
-                                    item.unit,
-                                  )
-                                }
+                                onChange={(e) => onPlannedChange(item.id, e.target.value, item.unit)}
                                 disabled={isPlanLocked}
-                                className="h-8 w-28 rounded-full border border-surface-4 bg-surface-3 px-3 text-xs text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                                className="h-8 w-24 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm font-semibold text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60"
                               />
-                              <span className="text-xs text-text-muted">
-                                {item.unit}
-                              </span>
+                              <span className="text-xs text-text-muted">{item.unit}</span>
                             </div>
-                            <p className="mt-1 text-xs text-text-muted">
+                            <p className="mt-1 text-[11px] text-text-muted">
                               {variance == null || variance === 0
                                 ? "Matches suggestion"
                                 : variance > 0
                                   ? `${signedQuantity(variance, item.unit)} above`
                                   : `${signedQuantity(variance, item.unit)} below`}
                             </p>
-                            <details className="mt-1">
-                              <summary className="cursor-pointer text-[11px] font-semibold text-brand-gold">
-                                Why this quantity?
-                              </summary>
-                              <div className="mt-2 space-y-2 text-[11px] text-text-secondary">
-                                {/* Plain reasoning */}
-                                <div className="space-y-0.5">
-                                  {item.forecast_context.reasoning.map((line) => (
-                                    <p key={`${item.id}-${line}`}>{line}</p>
-                                  ))}
+                            {actionErrorByItem[item.id] ? (
+                              <p className="mt-1 text-[11px] text-status-critical">
+                                {actionErrorByItem[item.id]}
+                              </p>
+                            ) : backendDecisionFeedback(item) ? (
+                              <p
+                                className={`mt-1 text-[11px] ${
+                                  backendDecisionFeedback(item)?.tone === "success"
+                                    ? "text-status-success"
+                                    : "text-status-warning"
+                                }`}
+                              >
+                                {backendDecisionFeedback(item)?.message}
+                              </p>
+                            ) : null}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-4">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => acceptSuggestion(item.id, item.suggested_quantity, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
+                              >
+                                ✓ Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => keepMyPlan(item.id, planned, item.unit)}
+                                disabled={isPlanLocked}
+                                className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
+                              >
+                                Keep mine
+                              </button>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleItemExpand(item.id)}
+                                className="text-[11px] font-semibold text-brand-gold transition-colors hover:text-brand-gold/80"
+                              >
+                                {isExpanded ? "Hide ↑" : "Why this number? ↓"}
+                              </button>
+                              <Link
+                                href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
+                                className="text-[11px] font-medium text-brand-gold/70 transition-colors hover:text-brand-gold"
+                              >
+                                Deep dive ↗
+                              </Link>
+                              <Link
+                                href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
+                                className="text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
+                              >
+                                Track record ↗
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expand row — full-width reasoning panel */}
+                        {isExpanded ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="border-b border-surface-4/50 bg-surface-3/20 px-6 pb-5 pt-0"
+                            >
+                              <div className="grid grid-cols-1 gap-4 pt-3 text-[11px] text-text-secondary md:grid-cols-2 lg:grid-cols-3">
+                                {/* Reasoning */}
+                                <div>
+                                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                    Why this quantity
+                                  </p>
+                                  <div className="space-y-0.5">
+                                    {item.forecast_context.reasoning.map((line) => (
+                                      <p key={`r-${item.id}-${line}`}>{line}</p>
+                                    ))}
+                                  </div>
                                 </div>
 
-                                {/* Signal breakdown — what influenced this forecast */}
+                                {/* Signals */}
                                 {item.forecast_context.applied_signals ? (
-                                  <div className="pt-2 border-t border-surface-4/40">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
-                                      Signals that shaped this forecast
+                                  <div>
+                                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                      Signal adjustments
                                     </p>
                                     <div className="space-y-1">
                                       {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
                                         const modifier = signal?.modifier ?? 0;
                                         if (Math.abs(modifier) < 0.005) return null;
-                                        const direction = modifier > 0 ? "↑" : "↓";
-                                        const impact = `${direction} ${(Math.abs(modifier) * 100).toFixed(1)}%`;
-                                        const tone = modifier > 0 ? "text-status-success" : "text-status-warning";
-                                        const label = key === "reservation" ? "Reservations" : key === "event" ? "Event" : key === "weather" ? "Weather" : key === "staffing" ? "Staffing" : key === "kitchen_capacity" ? "Kitchen capacity" : key === "delivery_mix" ? "Delivery mix" : key === "traffic" ? "Traffic" : key;
                                         return (
-                                          <div key={key} className="flex items-center justify-between text-[11px]">
-                                            <span className="text-text-secondary">{label}</span>
-                                            <span className={`font-semibold ${tone}`}>{impact}</span>
+                                          <div key={key} className="flex items-center justify-between">
+                                            <span className="text-text-secondary">{signalLabel(key)}</span>
+                                            <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
+                                              {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
+                                            </span>
                                           </div>
                                         );
                                       })}
@@ -2232,140 +2375,98 @@ function TodayWorkspacePageContent() {
                                   </div>
                                 ) : null}
 
-                                {/* Financial impact */}
-                                {impact ? (
-                                  <p className="pt-2 border-t border-surface-4/40">
-                                    Margin impact estimate:{" "}
-                                    <span
-                                      className={
-                                        impact.margin_impact_estimate >= 0
-                                          ? "text-status-success"
-                                          : "text-status-critical"
-                                      }
-                                    >
-                                      {formatSignedCurrency(
-                                        impact.margin_impact_estimate,
+                                {/* Financial */}
+                                <div>
+                                  {impact ? (
+                                    <div className="mb-3">
+                                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                        Margin impact
+                                      </p>
+                                      <p className={`text-sm font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                                        {formatSignedCurrency(impact.margin_impact_estimate)}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                  {hasPricing ? (
+                                    <div className="space-y-0.5">
+                                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                        Financial scenarios
+                                      </p>
+                                      {financials.revenueIfSold != null && (
+                                        <p>
+                                          If sold out:{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
+                                          revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                                        </p>
                                       )}
-                                    </span>
-                                  </p>
-                                ) : null}
-                                {hasPricing ? (
-                                  <div className="pt-2 border-t border-surface-4/40 space-y-0.5">
-                                    {financials.revenueIfSold != null ? (
-                                      <p>
-                                        If sold out:{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.revenueIfSold,
-                                          )}
-                                        </span>{" "}
-                                        revenue
-                                        {financials.marginIfSold != null
-                                          ? ` · ${formatCurrency(
-                                              financials.marginIfSold,
-                                            )} margin`
-                                          : ""}
-                                      </p>
-                                    ) : null}
-                                    {financials.wasteIfAll != null ? (
-                                      <p>
-                                        If wasted:{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.wasteIfAll,
-                                          )}
-                                        </span>{" "}
-                                        in food cost.
-                                      </p>
-                                    ) : null}
-                                    {financials.lostMarginIfStockout != null &&
-                                    financials.shortfallQty > 0 ? (
-                                      <p>
-                                        If you stock out by{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatQuantity(
-                                            financials.shortfallQty,
-                                            financials.unit,
-                                          )}
-                                        </span>
-                                        , you could lose{" "}
-                                        <span className="font-semibold text-text-primary">
-                                          {formatCurrency(
-                                            financials.lostMarginIfStockout,
-                                          )}
-                                        </span>{" "}
-                                        margin.
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                ) : (
-                                  <p className="pt-2 border-t border-surface-4/40">
-                                    Pricing data is missing. Add selling price and
-                                    cost to unlock revenue and waste estimates.
-                                  </p>
-                                )}
+                                      {financials.wasteIfAll != null && (
+                                        <p>
+                                          If wasted:{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
+                                          food cost.
+                                        </p>
+                                      )}
+                                      {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
+                                        <p>
+                                          Stockout by{" "}
+                                          <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>{" "}
+                                          → lose{" "}
+                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
+                                          margin.
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-text-muted">
+                                      Add selling price and cost to unlock financial scenarios.
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </details>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  acceptSuggestion(
-                                    item.id,
-                                    item.suggested_quantity,
-                                    item.unit,
-                                  )
-                                }
-                                disabled={isPlanLocked}
-                                className="inline-flex h-7 items-center rounded-full border border-status-success/40 px-3 text-[11px] font-medium text-status-success transition-colors hover:bg-status-success/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
-                              >
-                                Use suggestion
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  keepMyPlan(item.id, planned, item.unit)
-                                }
-                                disabled={isPlanLocked}
-                                className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-[11px] font-medium text-text-primary transition-colors hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
-                              >
-                                Keep mine
-                              </button>
-                              <Link
-                                href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
-                                className="inline-flex h-7 items-center rounded-full border border-brand-gold/45 px-3 text-[11px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/10"
-                              >
-                                Deep dive
-                              </Link>
-                            </div>
-                            {actionErrorByItem[item.id] ? (
-                              <p className="mt-1 text-xs text-status-critical">
-                                {actionErrorByItem[item.id]}
-                              </p>
-                            ) : backendDecisionFeedback(item) ? (
-                              <p
-                                className={`mt-1 text-xs ${
-                                  backendDecisionFeedback(item)?.tone ===
-                                  "success"
-                                    ? "text-status-success"
-                                    : backendDecisionFeedback(item)?.tone ===
-                                        "warning"
-                                      ? "text-status-warning"
-                                      : "text-status-critical"
-                                }`}
-                              >
-                                {backendDecisionFeedback(item)?.message}
-                              </p>
-                            ) : null}
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+
+            {/* ── Commit zone — progress + Lock/Start anchored at list bottom ── */}
+            <div className="mt-6 flex flex-col gap-3 border-t border-surface-4/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-text-secondary">
+                <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
+                {" "}of {forecastRowsByDemand.length} reviewed
+                {decisionSummary.reviewed < forecastRowsByDemand.length ? (
+                  <span className="ml-2 text-text-muted">
+                    · {forecastRowsByDemand.length - decisionSummary.reviewed} pending
+                  </span>
+                ) : (
+                  <span className="ml-2 text-status-success">· All reviewed</span>
+                )}
+                {!isPlanLocked && (
+                  <span className="ml-3 text-xs text-text-muted">Lock the plan to start service.</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={lockPlan}
+                  disabled={isPlanLocked || lockPlanMutation.isPending}
+                  className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-status-success/60 hover:text-status-success active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPlanLocked ? "Plan locked ✓" : lockPlanMutation.isPending ? "Locking..." : "Lock plan"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("START_LIVE")}
+                  disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
+                  className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {updateBranchDayStatusMutation.isPending ? "Starting..." : "Start service →"}
+                </button>
+              </div>
             </div>
           </section>
 
@@ -2381,7 +2482,7 @@ function TodayWorkspacePageContent() {
           {/* ── Collapsed footer: network intelligence + decision summary ── */}
           <details className="mt-8 mb-4">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
-              More context ↓ (network signals, decision summary)
+              Network signals & decision summary
             </summary>
 
             <div className="mt-4 space-y-6">
@@ -2443,25 +2544,20 @@ function TodayWorkspacePageContent() {
 
       {isLive && branchDay ? (
         <section className="mt-8">
-          {/* Live header — title + secondary actions */}
+          {/* Live header */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success">
-                <span className="mr-2 inline-block h-2 w-2 rounded-full bg-status-success animate-pulse" />
-                Service is live
-              </p>
-              <h3 className="mt-1 font-display text-2xl font-semibold text-text-primary">
-                Kitchen monitor
-              </h3>
+            <div className="flex items-center gap-3">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-status-success animate-pulse" />
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-status-success">
+                  Service is live
+                </p>
+                <h3 className="font-display text-2xl font-semibold text-text-primary">
+                  Kitchen monitor
+                </h3>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setQuietMode((prev) => !prev)}
-                className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
-              >
-                {quietMode ? "Show all items" : "Critical only"}
-              </button>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setCsvModalOpen(true)}
@@ -2473,9 +2569,9 @@ function TodayWorkspacePageContent() {
                 type="button"
                 onClick={() => setConfirmAction("CLOSE_DAY")}
                 disabled={updateBranchDayStatusMutation.isPending}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {updateBranchDayStatusMutation.isPending ? "Closing..." : "Close day"}
+                {updateBranchDayStatusMutation.isPending ? "Closing…" : "Close day"}
               </button>
             </div>
           </div>
@@ -2599,786 +2695,517 @@ function TodayWorkspacePageContent() {
             </div>
           </ModalShell>
 
-          {liveSmartAlerts.length ? (
-            <div className="mb-6 space-y-2">
-              {liveSmartAlerts.map((alert) => (
-                <article
-                  key={alert.id}
-                  className={`flex items-start justify-between gap-4 rounded-xl px-4 py-3 ${
-                    alert.type === "SALES_SPIKE"
-                      ? "border-brand-gold bg-brand-gold/8"
-                      : "border-status-critical bg-status-critical/8"
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${alert.type === "SALES_SPIKE" ? "text-brand-gold" : "text-status-critical"}`}>
-                      {alert.product_title} · {alert.type === "SALES_SPIKE" ? "Demand surge" : alert.type === "STOCKOUT_RISK" ? "Running low" : "Waste risk"}
-                    </p>
-                    <p className="mt-0.5 text-sm text-text-primary">{alert.message}</p>
-                    {alert.type === "STOCKOUT_RISK" && typeof alert.details.runout_minutes === "number" ? (
-                      <p className="mt-0.5 text-xs text-text-muted">
-                        May run out in {Math.round(Number(alert.details.runout_minutes))} min · Prep time {Number(alert.details.prep_time_minutes || 0).toFixed(0)} min
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-xs text-text-secondary">{alert.suggested_action}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {alert.type === "STOCKOUT_RISK" ? (
-                      <button
-                        type="button"
-                        onClick={() => handlePrepareMoreAlert(alert)}
-                        className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/10 px-3 text-xs font-semibold text-status-success hover:bg-status-success/20"
-                      >
-                        Cook more
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        ignoreLiveAlert(alert.id, {
-                          prep_plan_item_id: alert.prep_plan_item_id,
-                          type: alert.type,
-                        })
-                      }
-                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted hover:bg-surface-3"
+          {/* ── TIER 1: NEEDS ACTION ── */}
+          {criticalRows.length > 0 ? (
+            <div className="mb-7">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-status-critical animate-pulse" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-critical">
+                  Needs action · {criticalRows.length}
+                </p>
+              </div>
+              <div className="space-y-3">
+                {criticalRows.map(({ item, monitor, planned, additional, sold, remaining }) => {
+                  const totalPrepared = planned + additional;
+                  const pctRemaining = totalPrepared > 0 ? Math.round((remaining / totalPrepared) * 100) : 0;
+                  const runoutMin = typeof monitor?.risk_engine?.runout_minutes === "number"
+                    ? Math.round(monitor.risk_engine.runout_minutes) : null;
+                  const prepTimeMin = Math.round(monitor?.risk_engine?.prep_time_minutes ?? 0);
+                  const startBatchNow = Boolean(monitor?.risk_engine?.start_new_batch_now);
+                  const suggestedAdditional = Math.max(0, Number(
+                    monitor?.should_prepare_more_qty ?? monitor?.suggested_additional_qty ?? 0,
+                  ));
+
+                  return (
+                    <article
+                      key={item.id}
+                      className="rounded-xl border border-status-critical/35 bg-surface-2 p-5"
                     >
-                      Dismiss
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mb-6 flex items-center gap-2 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
-              <span className="h-2 w-2 rounded-full bg-status-success" />
-              <p className="text-sm text-status-success">All clear — no urgent issues right now.</p>
-            </div>
-          )}
-
-          {/* ── Hero stats — large, scannable ── */}
-          <div className="mb-8 grid grid-cols-3 gap-px bg-surface-4/40 rounded-xl overflow-hidden">
-            <div className="bg-[#141416] px-6 py-6 text-center">
-              <p className="font-display text-4xl font-semibold text-status-success">
-                {Math.max(liveRows.length - stockoutWatchCount - overproductionWatchCount, 0)}
-              </p>
-              <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-status-success/70">On track</p>
-            </div>
-            <div className="bg-[#141416] px-6 py-6 text-center">
-              <p className="font-display text-4xl font-semibold text-status-warning">
-                {overproductionWatchCount}
-              </p>
-              <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-status-warning/70">Keep an eye on</p>
-            </div>
-            <div className="bg-[#141416] px-6 py-6 text-center">
-              <p className={`font-display text-4xl font-semibold ${stockoutWatchCount > 0 ? "text-status-critical" : "text-text-muted"}`}>
-                {stockoutWatchCount}
-              </p>
-              <p className={`mt-2 text-xs font-medium uppercase tracking-[0.12em] ${stockoutWatchCount > 0 ? "text-status-critical/70" : "text-text-muted"}`}>Needs action</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {visibleLiveRows.map(
-              ({ item, monitor, planned, additional, sold, remaining }) => {
-                const stockoutRisk =
-                  monitor?.risk_engine?.stockout_risk ?? "LOW";
-                const wasteRisk = monitor?.risk_engine?.waste_risk ?? "LOW";
-                const isRisk = stockoutRisk === "HIGH";
-                const isWatch =
-                  !isRisk &&
-                  (stockoutRisk === "MEDIUM" ||
-                    wasteRisk === "HIGH" ||
-                    wasteRisk === "MEDIUM");
-                const toneClass = isRisk
-                  ? "border-status-critical/40 bg-status-critical/10 text-status-critical"
-                  : isWatch
-                    ? "border-status-warning/40 bg-status-warning/10 text-status-warning"
-                    : "border-status-success/40 bg-status-success/10 text-status-success";
-                const statusLabel = isRisk
-                  ? "Needs attention"
-                  : isWatch
-                    ? "Watch"
-                    : "On track";
-                const runoutMin =
-                  typeof monitor?.risk_engine?.runout_minutes === "number"
-                    ? Math.round(monitor.risk_engine.runout_minutes)
-                    : null;
-                const prepTimeMin = Math.round(
-                  monitor?.risk_engine?.prep_time_minutes ?? 0,
-                );
-                const startBatchNow = Boolean(
-                  monitor?.risk_engine?.start_new_batch_now,
-                );
-                const suggestedAdditional = Math.max(
-                  0,
-                  Number(
-                    monitor?.should_prepare_more_qty ??
-                      monitor?.suggested_additional_qty ??
-                      0,
-                  ),
-                );
-
-                // Build micro-action sentence
-                let microAction: string | null = null;
-                if (isRisk && runoutMin !== null) {
-                  microAction = startBatchNow
-                    ? `Start a new batch now — you'll run out in ${runoutMin} min and prep takes ${prepTimeMin} min`
-                    : `Cook +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} now — may run out in ${runoutMin} min`;
-                } else if (isRisk) {
-                  microAction = `Cook more now — demand is outpacing your current stock`;
-                } else if (isWatch && wasteRisk === "HIGH") {
-                  microAction = `Hold off on more batches — sales are slower than expected.`;
-                } else if (isWatch && stockoutRisk === "MEDIUM") {
-                  microAction = `Keep an eye on this — you may need +${formatQuantity(Math.max(1, suggestedAdditional), item.unit)} before the rush`;
-                }
-
-                return (
-                  <article
-                    key={item.id}
-                    className={`rounded-xl border px-5 py-5 ${isRisk ? "border-status-critical/40 bg-status-critical/5" : isWatch ? "border-status-warning/30 bg-surface-2" : "border-surface-4/60 bg-surface-2"}`}
-                  >
-                    {/* Urgency banner — only when critical */}
-                    {isRisk ? (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-status-critical/40 bg-status-critical/15 px-3 py-2">
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-status-critical animate-pulse" />
-                        <p className="text-sm font-semibold text-status-critical">
-                          {runoutMin !== null
-                            ? startBatchNow
-                              ? `Start a batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
-                              : `May run out in ${runoutMin} min`
-                            : "Demand is outpacing stock — cook more now"}
-                        </p>
+                      {/* Item name + countdown */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display text-xl font-semibold text-text-primary">
+                            {item.product_title}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-0.5 text-sm text-text-muted">
+                            <span>{formatQuantity(sold, item.unit)} sold</span>
+                            <span>{formatQuantity(totalPrepared, item.unit)} prepared</span>
+                          </div>
+                        </div>
+                        {runoutMin !== null && (
+                          <div className="shrink-0 rounded-xl border border-status-critical/40 bg-status-critical/10 px-4 py-2.5 text-center">
+                            <p className="font-display text-3xl font-semibold tabular-nums text-status-critical leading-none">
+                              {runoutMin}
+                            </p>
+                            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-status-critical/70">
+                              min left
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    ) : null}
 
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Left: item name + secondary stats */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold text-text-primary">{item.product_title}</p>
-                        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-muted">
-                          <span>Prepared: {formatQuantity(planned + additional, item.unit)}</span>
-                          <span>Sold: {formatQuantity(sold, item.unit)}</span>
-                          {runoutMin !== null && !isRisk ? (
-                            <span>Runout ~{runoutMin} min</span>
-                          ) : null}
+                      {/* Stock bar */}
+                      <div className="mt-4 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-text-muted">
+                            {formatQuantity(remaining, item.unit)} remaining
+                          </span>
+                          <span className="font-semibold text-status-critical">
+                            {pctRemaining}% left
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-surface-4">
+                          <div
+                            className="h-2 rounded-full bg-status-critical transition-all duration-500"
+                            style={{ width: `${pctRemaining}%` }}
+                          />
                         </div>
                       </div>
 
-                      {/* Right: remaining quantity — the focal point */}
-                      <div className="text-right shrink-0">
-                        <p className={`font-display text-3xl font-semibold ${isRisk ? "text-status-critical" : isWatch ? "text-status-warning" : "text-text-primary"}`}>
-                          {formatQuantity(remaining, item.unit)}
+                      {/* Action row */}
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-status-critical">
+                          {startBatchNow && runoutMin !== null
+                            ? `Start a batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
+                            : runoutMin !== null
+                              ? `Cook more — demand at this rate runs stock out in ${runoutMin} min`
+                              : "Demand is outpacing stock — cook more now"}
                         </p>
-                        <p className="mt-0.5 text-xs text-text-muted">remaining</p>
-                        <span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Micro-action */}
-                    {microAction ? (
-                      <div className={`mt-4 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${isRisk ? "border-status-critical/30 bg-status-critical/10" : "border-status-warning/30 bg-status-warning/10"}`}>
-                        <p className={`text-xs font-medium ${isRisk ? "text-status-critical" : "text-status-warning"}`}>
-                          {microAction}
-                        </p>
-                        {isRisk && suggestedAdditional > 0 ? (
+                        <div className="flex items-center gap-2">
+                          {suggestedAdditional > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                logProduction(
+                                  item.id,
+                                  Math.max(1, isDiscreteUnit(item.unit)
+                                    ? Math.round(suggestedAdditional)
+                                    : suggestedAdditional),
+                                  "Demand spike",
+                                )
+                              }
+                              className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
+                            >
+                              + Prepare {formatQuantity(Math.max(1, suggestedAdditional), item.unit)}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => logProduction(item.id, 1, "Demand spike")}
+                              className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
+                            >
+                              + Cook more
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() =>
-                              logProduction(
-                                item.id,
-                                Math.max(1, isDiscreteUnit(item.unit) ? Math.round(suggestedAdditional) : suggestedAdditional),
-                                "Demand spike",
-                              )
-                            }
-                            className="shrink-0 inline-flex h-8 items-center rounded-full bg-status-success/15 border border-status-success/40 px-3 text-xs font-semibold text-status-success hover:bg-status-success/25 active:scale-[0.98]"
+                            onClick={() => quickTapSale(item.id, item, 1)}
+                            className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
                           >
-                            Prepare +{formatQuantity(Math.max(1, suggestedAdditional), item.unit)}
+                            +1 sold
                           </button>
-                        ) : null}
+                        </div>
                       </div>
-                    ) : null}
-                  </article>
-                );
-              },
-            )}
-            {quietMode && !visibleLiveRows.length ? (
-              <div className="rounded-xl border border-surface-4 bg-surface-2 px-4 py-4 text-sm text-text-muted">
-                Quiet mode is active. No HIGH/CRITICAL items need attention
-                right now.
+                    </article>
+                  );
+                })}
               </div>
-            ) : null}
-          </div>
-
-          <details className="mt-4 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
-            <summary className="cursor-pointer text-sm font-semibold text-text-primary">
-              Fallback Actions (only when needed)
-            </summary>
-            <div className="mt-3 space-y-3">
-              {liveRows.map(({ item }) => (
-                <div
-                  key={`fallback-${item.id}`}
-                  className="flex flex-wrap items-center gap-2"
-                >
-                  <p className="min-w-[160px] text-xs font-medium text-text-primary">
-                    {item.product_title}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => logProduction(item.id, 1)}
-                    className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-primary hover:bg-surface-3"
-                  >
-                    + Add Production
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quickTapSale(item.id, item, 1)}
-                    className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
-                  >
-                    +1 Sold
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quickTapSale(item.id, item, 5)}
-                    className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
-                  >
-                    +5 Sold
-                  </button>
-                </div>
-              ))}
             </div>
-          </details>
+          ) : null}
+
+          {/* ── TIER 2: KEEP AN EYE ON ── */}
+          {watchRows.length > 0 ? (
+            <div className="mb-7">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-status-warning" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-warning">
+                  Keep an eye on · {watchRows.length}
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4">
+                {watchRows.map(({ item, monitor, planned, additional, sold, remaining }) => {
+                  const totalPrepared = planned + additional;
+                  const pctRemaining = totalPrepared > 0 ? Math.round((remaining / totalPrepared) * 100) : 0;
+                  const wasteRisk = monitor?.risk_engine?.waste_risk ?? "LOW";
+                  const runoutMin = typeof monitor?.risk_engine?.runout_minutes === "number"
+                    ? Math.round(monitor.risk_engine.runout_minutes) : null;
+                  const note = wasteRisk === "HIGH"
+                    ? "Slow sales — hold off on more batches"
+                    : runoutMin !== null && runoutMin < 45
+                      ? `May need more in ~${runoutMin} min`
+                      : "Running steady";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 border-l-[3px] border-l-status-warning/60 pl-4 pr-4 py-4"
+                    >
+                      {/* Name + bar */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary leading-tight">
+                          {item.product_title}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-1.5 w-24 shrink-0 rounded-full bg-surface-4">
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-500 ${pctRemaining < 25 ? "bg-status-critical" : "bg-status-warning"}`}
+                              style={{ width: `${pctRemaining}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-text-muted">
+                            {formatQuantity(remaining, item.unit)} left
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Note */}
+                      <p className="hidden sm:block text-xs text-status-warning max-w-[180px] text-right leading-tight">
+                        {note}
+                      </p>
+
+                      {/* Log buttons */}
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => quickTapSale(item.id, item, 1)}
+                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3 active:scale-[0.97]"
+                        >
+                          +1 sold
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => logProduction(item.id, 1)}
+                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10 active:scale-[0.97]"
+                        >
+                          + batch
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {/* ── TIER 3: ON TRACK (collapsed) ── */}
+          {okRows.length > 0 ? (
+            <div className="mb-7">
+              <button
+                type="button"
+                onClick={() => setShowOkRows((p) => !p)}
+                className="flex w-full items-center justify-between rounded-xl border border-surface-4/60 bg-surface-2 px-5 py-3.5 text-left transition-colors hover:border-surface-4"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-status-success" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    On track · {okRows.length} items
+                  </span>
+                </div>
+                <span className="text-xs text-text-muted">
+                  {showOkRows ? "Hide" : "Show all ↓"}
+                </span>
+              </button>
+
+              {showOkRows && (
+                <div className="mt-1 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
+                  {okRows.map(({ item, planned, additional, sold, remaining }) => {
+                    const totalPrepared = planned + additional;
+                    const pctRemaining = totalPrepared > 0 ? Math.round((remaining / totalPrepared) * 100) : 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-4 px-5 py-3"
+                      >
+                        <p className="flex-1 min-w-0 truncate text-sm text-text-secondary">
+                          {item.product_title}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 w-16 shrink-0 rounded-full bg-surface-4">
+                            <div
+                              className="h-1 rounded-full bg-surface-4/60 transition-all duration-500"
+                              style={{ width: `${pctRemaining}%` }}
+                            />
+                          </div>
+                          <span className="w-14 text-right text-xs text-text-muted">
+                            {formatQuantity(remaining, item.unit)}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => quickTapSale(item.id, item, 1)}
+                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
+                          >
+                            +1
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => logProduction(item.id, 1)}
+                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
+                          >
+                            +batch
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {/* ── ALL CLEAR ── */}
+          {criticalRows.length === 0 && watchRows.length === 0 && (
+            <div className="mb-7 flex items-center gap-3 rounded-xl border border-status-success/30 bg-status-success/5 px-5 py-4">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-status-success" />
+              <p className="text-sm text-status-success">
+                All clear — every item is running to plan.
+              </p>
+            </div>
+          )}
         </section>
       ) : null}
 
       {isClosed && branchDay ? (
         <section className="mt-8">
-          <div className="mb-8 border-b border-surface-4/60 pb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Day complete</p>
-            <h3 className="mt-1 font-display text-2xl font-semibold text-text-primary">
-              How did today go?
-            </h3>
-          </div>
+          {branchDay.review_phase ? (() => {
+            const rp = branchDay.review_phase!;
+            const accuracy = rp.daily_outcome.metrics.forecast_accuracy.value;
+            const wasteCost = rp.daily_outcome.metrics.waste_cost.value;
+            const stockouts = rp.daily_outcome.metrics.stockouts.value;
+            const revenueProtected = rp.daily_outcome.metrics.revenue_protected.value;
+            const wasteDelta = rp.daily_outcome.metrics.waste_cost.comparison;
+            const accDelta = rp.daily_outcome.metrics.forecast_accuracy.comparison;
 
-          {branchDay.review_phase ? (
-            <div className="space-y-8">
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  1. Daily Outcome
-                </p>
-                <p className="mt-2 text-sm text-text-secondary">
-                  {branchDay.review_phase.daily_outcome.title}
-                </p>
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Forecast Accuracy
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-success">
-                      {branchDay.review_phase.daily_outcome.metrics.forecast_accuracy.value.toFixed(
-                        1,
-                      )}
-                      %
-                    </p>
-                    {branchDay.review_phase.daily_outcome.metrics
-                      .forecast_accuracy.comparison ? (
-                      <p
-                        className={`mt-2 text-xs ${comparisonTone(
-                          branchDay.review_phase.daily_outcome.metrics
-                            .forecast_accuracy.comparison.direction,
-                          "up",
-                        )}`}
-                      >
-                        {branchDay.review_phase.daily_outcome.metrics
-                          .forecast_accuracy.comparison.direction === "up"
-                          ? "↑"
-                          : branchDay.review_phase.daily_outcome.metrics
-                                .forecast_accuracy.comparison.direction ===
-                              "down"
-                            ? "↓"
-                            : "→"}{" "}
-                        {Math.abs(
-                          branchDay.review_phase.daily_outcome.metrics
-                            .forecast_accuracy.comparison.delta_pct,
-                        ).toFixed(1)}
-                        % vs last same weekday
-                      </p>
-                    ) : null}
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Waste Cost
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-critical">
-                      {formatCurrency(
-                        branchDay.review_phase.daily_outcome.metrics.waste_cost
-                          .value,
-                      )}
-                    </p>
-                    {branchDay.review_phase.daily_outcome.metrics.waste_cost
-                      .comparison ? (
-                      <p
-                        className={`mt-2 text-xs ${comparisonTone(
-                          branchDay.review_phase.daily_outcome.metrics
-                            .waste_cost.comparison.direction,
-                          "down",
-                        )}`}
-                      >
-                        {branchDay.review_phase.daily_outcome.metrics.waste_cost
-                          .comparison.direction === "up"
-                          ? "↑"
-                          : branchDay.review_phase.daily_outcome.metrics
-                                .waste_cost.comparison.direction === "down"
-                            ? "↓"
-                            : "→"}{" "}
-                        {Math.abs(
-                          branchDay.review_phase.daily_outcome.metrics
-                            .waste_cost.comparison.delta_pct,
-                        ).toFixed(1)}
-                        % vs last same weekday
-                      </p>
-                    ) : null}
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Stockouts
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-text-primary">
-                      {
-                        branchDay.review_phase.daily_outcome.metrics.stockouts
-                          .value
-                      }{" "}
-                      items
-                    </p>
-                  </article>
-                  <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Revenue Protected
-                    </p>
-                    <p className="mt-2 font-display text-2xl text-status-success">
-                      {formatCurrency(
-                        branchDay.review_phase.daily_outcome.metrics
-                          .revenue_protected.value,
-                      )}
-                    </p>
-                  </article>
-                </div>
+            const grade =
+              accuracy >= 85 && stockouts === 0 ? "Great day"
+              : accuracy >= 75 && stockouts <= 1 ? "Good day"
+              : accuracy >= 60 ? "Solid day"
+              : "Tough one";
+            const gradeClass =
+              grade === "Great day" ? "text-status-success"
+              : grade === "Good day" ? "text-status-success"
+              : grade === "Solid day" ? "text-status-warning"
+              : "text-status-critical";
+            const gradeSub =
+              grade === "Great day"
+                ? `${accuracy.toFixed(0)}% accuracy and no stockouts. Clean service.`
+                : grade === "Good day"
+                  ? `${accuracy.toFixed(0)}% accuracy. ${stockouts === 0 ? "No stockouts." : `${stockouts} stockout${stockouts > 1 ? "s" : ""}.`}`
+                  : grade === "Solid day"
+                    ? `${accuracy.toFixed(0)}% accuracy. Room to improve on a few items.`
+                    : `Service can be unpredictable. Here's what to learn from it.`;
 
-                <div className="mt-5">
-                  {/* Demand vs Production — compact grouped bars */}
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-text-primary">Demand vs Production</p>
-                    <div className="flex items-center gap-3 text-[11px] text-text-muted">
-                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-brand-gold/60" />Planned</span>
-                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-status-warning/70" />Produced</span>
-                      <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-status-success/70" />Sold</span>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    {branchDay.review_phase.daily_outcome.demand_vs_production
-                      .slice(0, 6)
-                      .map((row) => {
-                        const maxValue = Math.max(row.planned_production, row.actual_production, row.actual_sales, 1);
-                        const sellThrough = row.actual_production > 0 ? Math.round((row.actual_sales / row.actual_production) * 100) : 0;
-                        const hasWaste = row.actual_production > row.actual_sales;
-                        return (
-                          <div key={row.item_id} className="group">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="text-xs font-medium text-text-primary">{row.item_title}</p>
-                              <div className="flex items-center gap-2 text-[11px]">
-                                <span className={`font-semibold ${sellThrough >= 90 ? "text-status-success" : sellThrough >= 70 ? "text-status-warning" : "text-status-critical"}`}>
-                                  {sellThrough}% sold
-                                </span>
-                                {hasWaste ? (
-                                  <span className="text-status-critical">
-                                    {formatQuantity(row.actual_production - row.actual_sales, row.unit)} waste
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                            {/* Stacked bar — all three on same track */}
-                            <div className="relative h-5 rounded bg-surface-4 overflow-hidden">
-                              {/* Planned */}
-                              <div
-                                className="absolute inset-y-0 left-0 rounded bg-brand-gold/25"
-                                style={{ width: `${(row.planned_production / maxValue) * 100}%` }}
-                              />
-                              {/* Produced */}
-                              <div
-                                className="absolute inset-y-0 left-0 rounded bg-status-warning/50"
-                                style={{ width: `${(row.actual_production / maxValue) * 100}%` }}
-                              />
-                              {/* Sold */}
-                              <div
-                                className="absolute inset-y-0 left-0 rounded bg-status-success/70"
-                                style={{ width: `${(row.actual_sales / maxValue) * 100}%` }}
-                              />
-                              {/* Values overlay */}
-                              <div className="absolute inset-0 flex items-center px-2 gap-3 text-[10px] font-medium text-white/80">
-                                <span>{formatQuantity(row.planned_production, row.unit)}</span>
-                                <span>→ {formatQuantity(row.actual_production, row.unit)}</span>
-                                <span>→ {formatQuantity(row.actual_sales, row.unit)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
+            // Override items — from training_rows where chef_adjustment is meaningful
+            const overrideItems = rp.learning_signals.training_rows.filter(
+              (row) => Math.abs(row.chef_adjustment) >= 0.5,
+            );
 
-                <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Graph #2 - Waste Distribution
-                    </p>
-                    <div className="mt-4 space-y-3">
-                      {branchDay.review_phase.daily_outcome.waste_distribution
-                        .length ? (
-                        branchDay.review_phase.daily_outcome.waste_distribution
-                          .slice(0, 6)
-                          .map((row) => (
-                            <div key={row.item_id}>
-                              <div className="mb-1 flex justify-between text-xs text-text-muted">
-                                <span>{row.item_title}</span>
-                                <span>{row.share_pct.toFixed(1)}%</span>
-                              </div>
-                              <div className="h-2 rounded bg-surface-4">
-                                <div
-                                  className="h-2 rounded bg-status-critical/75"
-                                  style={{
-                                    width: `${Math.max(2, row.share_pct)}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))
-                      ) : (
-                        <p className="text-sm text-text-muted">
-                          No waste distribution available for this day.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                      Graph #3 - Last 7 Days Forecast Accuracy
-                    </p>
-                    {branchDay.review_phase.daily_outcome
-                      .forecast_accuracy_trend.length ? (
-                      <div className="mt-4">
-                        {(() => {
-                          const trend =
-                            branchDay.review_phase.daily_outcome
-                              .forecast_accuracy_trend;
-                          const width = 520;
-                          const height = 180;
-                          const maxAcc = Math.max(
-                            ...trend.map((row) => row.accuracy),
-                            100,
-                          );
-                          const minAcc = Math.min(
-                            ...trend.map((row) => row.accuracy),
-                            0,
-                          );
-                          const span = Math.max(1, maxAcc - minAcc);
-                          const xStep =
-                            trend.length > 1
-                              ? width / (trend.length - 1)
-                              : width;
-                          const points = trend.map((row, index) => {
-                            const x = index * xStep;
-                            const y =
-                              height -
-                              ((row.accuracy - minAcc) / span) * (height - 20) -
-                              10;
-                            return `${x},${y}`;
-                          });
-                          return (
-                            <>
-                              <svg
-                                viewBox={`0 0 ${width} ${height}`}
-                                className="h-44 w-full"
-                              >
-                                <polyline
-                                  points={points.join(" ")}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={2.5}
-                                  className="text-status-success"
-                                />
-                              </svg>
-                              <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] text-text-muted">
-                                {trend.map((row) => (
-                                  <div key={row.date}>
-                                    <p>{row.date.slice(5)}</p>
-                                    <p className="font-semibold text-text-secondary">
-                                      {row.accuracy.toFixed(1)}%
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <p className="mt-4 text-sm text-text-muted">
-                        Not enough historical snapshots yet.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Key insights
-                </p>
-                <div className="mt-3 space-y-2">
-                  {branchDay.review_phase.key_insights.insights.map(
-                    (insight, index) => (
-                      <p
-                        key={`${index}-${insight}`}
-                        className="text-sm text-text-secondary border-b border-surface-4/40 pb-2 last:border-0"
-                      >
-                        {index + 1}. {insight}
-                      </p>
-                    ),
-                  )}
-                </div>
-              </section>
-
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  3. Item Performance
-                </p>
-                <div className="mt-3 overflow-x-auto border-y border-surface-4/70">
-                  <table className="w-full min-w-[920px]">
-                    <thead>
-                      <tr className="border-b border-surface-4/70">
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Item
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Forecast
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Prepared
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Sold
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Waste
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Stockout
-                        </th>
-                        <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                          Impact
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-surface-4/55">
-                      {branchDay.review_phase.item_performance.rows.map(
-                        (row) => (
-                          <tr key={row.item_id}>
-                            <td className="px-3 py-3 text-sm font-medium text-text-primary">
-                              {row.item_title}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-text-secondary">
-                              {formatQuantity(row.forecast, row.unit)}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-text-secondary">
-                              {formatQuantity(row.prepared, row.unit)}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-text-secondary">
-                              {formatQuantity(row.sold, row.unit)}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-status-critical">
-                              {formatQuantity(row.waste, row.unit)}
-                            </td>
-                            <td className="px-3 py-3 text-sm text-text-secondary">
-                              {row.stockout ? "Yes" : "No"}
-                            </td>
-                            <td
-                              className={`px-3 py-3 text-sm ${row.impact >= 0 ? "text-status-success" : "text-status-critical"}`}
-                            >
-                              {formatSignedCurrency(row.impact)}
-                            </td>
-                          </tr>
-                        ),
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              {/* ── 4. Learning Signals — what today taught the system ── */}
-              <section>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  4. What today taught the system
-                </p>
-
-                {/* Block 1 — plain-English data counters */}
-                <div className="mt-4 grid grid-cols-2 gap-0 sm:grid-cols-4 border-y border-surface-4/60">
-                  {[
-                    {
-                      label: "Data points collected",
-                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.rows ?? 0,
-                      sub: "items tracked today",
-                      color: "text-text-primary",
-                    },
-                    {
-                      label: "Your overrides",
-                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.chef_override_rows ?? 0,
-                      sub: "times you changed the plan",
-                      color: "text-text-primary",
-                    },
-                    {
-                      label: "Waste events",
-                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.waste_rows ?? 0,
-                      sub: "items with leftover",
-                      color: (branchDay.review_phase.learning_signals.ml_learning_signals?.waste_rows ?? 0) > 0 ? "text-status-critical" : "text-status-success",
-                    },
-                    {
-                      label: "Stockout events",
-                      value: branchDay.review_phase.learning_signals.ml_learning_signals?.stockout_rows ?? 0,
-                      sub: "items that ran out",
-                      color: (branchDay.review_phase.learning_signals.ml_learning_signals?.stockout_rows ?? 0) > 0 ? "text-status-warning" : "text-status-success",
-                    },
-                  ].map((stat) => (
-                    <div key={stat.label} className="px-4 py-4 border-r border-surface-4/60 last:border-r-0">
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{stat.label}</p>
-                      <p className={`mt-1 font-display text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">{stat.sub}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Block 2 — you vs the forecast */}
-                <div className="mt-6">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">You vs the forecast</p>
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="border-b sm:border-b-0 sm:border-r border-surface-4/60 pb-3 sm:pb-0 sm:pr-4">
-                      <p className="text-xs text-text-muted">How often you adjusted</p>
-                      <p className="mt-1 font-display text-2xl font-semibold text-text-primary">
-                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustment_rate.toFixed(1)}%
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">of items you changed from the suggestion</p>
-                    </div>
-                    <div className="border-b sm:border-b-0 sm:border-r border-surface-4/60 pb-3 sm:pb-0 sm:pr-4">
-                      <p className="text-xs text-text-muted">Your accuracy</p>
-                      <p className={`mt-1 font-display text-2xl font-semibold ${branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score >= 75 ? "text-status-success" : branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score >= 55 ? "text-status-warning" : "text-status-critical"}`}>
-                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_accuracy_score.toFixed(1)}%
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">how close your plan was to actual demand</p>
-                    </div>
-                    <div className="pb-3 sm:pb-0 sm:pl-0">
-                      <p className="text-xs text-text-muted">When you beat the AI</p>
-                      <p className="mt-1 font-display text-2xl font-semibold text-status-success">
-                        {branchDay.review_phase.learning_signals.chef_behavior_learning.chef_adjustments_improved_outcome_rate.toFixed(1)}%
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">of your overrides led to a better outcome</p>
-                    </div>
-                  </div>
-
-                  {/* Chef beats AI highlight */}
-                  {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 0 ? (
-                    <p className="mt-3 text-sm text-status-success border-t border-surface-4/40 pt-3">
-                      You outperformed the forecast on{" "}
-                      <span className="font-semibold">
-                        {branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows}
-                      </span>{" "}
-                      {(branchDay.review_phase.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) === 1 ? "item" : "items"} today — your instincts are being factored into future suggestions.
+            return (
+            <div className="space-y-10">
+              {/* ── 1. HEADLINE ── */}
+              <div className="flex flex-col gap-3 border-b border-surface-4/60 pb-8 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    Day closed · {new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                  </p>
+                  <h3 className={`mt-1 font-display text-4xl font-semibold ${gradeClass}`}>
+                    {grade}
+                  </h3>
+                  <p className="mt-1.5 text-sm text-text-secondary">{gradeSub}</p>
+                  {rp.key_insights?.insights?.length ? (
+                    <p className="mt-2 text-sm text-text-muted italic">
+                      "{rp.key_insights.insights[0]}"
                     </p>
                   ) : null}
                 </div>
+              </div>
 
-                {/* Block 3 — revenue lost to stockouts */}
-                {branchDay.review_phase.learning_signals.revenue_loss_signals.length ? (
-                  <div className="mt-6">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Revenue lost to stockouts</p>
-                    <div className="mt-2 overflow-x-auto border-y border-surface-4/60">
-                      <table className="w-full min-w-[560px]">
-                        <thead>
-                          <tr className="border-b border-surface-4/70">
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Item</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Ran out at</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Pace/hr</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Est. lost sales</th>
-                            <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Est. lost revenue</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-4/55">
-                          {branchDay.review_phase.learning_signals.revenue_loss_signals.map((row) => (
-                            <tr key={`${row.item_id}-${row.stockout_time}`}>
-                              <td className="px-3 py-2 text-sm text-text-primary">{row.item_title}</td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">
-                                {new Date(row.stockout_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">{row.sales_velocity_per_hour.toFixed(1)}</td>
-                              <td className="px-3 py-2 text-sm text-text-secondary">{row.estimated_lost_sales.toFixed(1)}</td>
-                              <td className="px-3 py-2 text-sm font-semibold text-status-critical">{formatCurrency(row.estimated_lost_revenue)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              {/* ── 2. KPI BAR ── */}
+              <div className="grid grid-cols-2 gap-px bg-surface-4/40 rounded-xl overflow-hidden sm:grid-cols-4">
+                {[
+                  {
+                    label: "AI accuracy",
+                    value: `${accuracy.toFixed(0)}%`,
+                    sub: accDelta
+                      ? `${accDelta.direction === "up" ? "↑" : accDelta.direction === "down" ? "↓" : "→"} ${Math.abs(accDelta.delta_pct).toFixed(0)}% vs last ${new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}`
+                      : "vs last same day",
+                    tone: accuracy >= 80 ? "text-status-success" : accuracy >= 65 ? "text-status-warning" : "text-status-critical",
+                  },
+                  {
+                    label: "Waste cost",
+                    value: formatCurrency(wasteCost),
+                    sub: wasteDelta
+                      ? `${wasteDelta.direction === "up" ? "↑ worse" : wasteDelta.direction === "down" ? "↓ better" : "→ same"} vs last same day`
+                      : null,
+                    tone: wasteCost === 0 ? "text-status-success" : wasteDelta?.direction === "down" ? "text-status-success" : "text-status-warning",
+                  },
+                  {
+                    label: "Revenue protected",
+                    value: formatCurrency(revenueProtected),
+                    sub: "from avoiding stockouts",
+                    tone: revenueProtected > 0 ? "text-status-success" : "text-text-muted",
+                  },
+                  {
+                    label: "Stockouts",
+                    value: stockouts === 0 ? "None" : `${stockouts}`,
+                    sub: stockouts === 0 ? "Clean service today" : `${stockouts} item${stockouts > 1 ? "s" : ""} ran out`,
+                    tone: stockouts === 0 ? "text-status-success" : "text-status-critical",
+                  },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="bg-surface-2 px-5 py-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">{kpi.label}</p>
+                    <p className={`mt-2 font-display text-2xl font-semibold ${kpi.tone}`}>{kpi.value}</p>
+                    {kpi.sub && <p className="mt-1 text-[11px] text-text-muted">{kpi.sub}</p>}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 3. ITEM SCORECARD ── */}
+              {rp.item_performance?.rows?.length ? (
+                <section>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                    How each item did
+                  </p>
+                  <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
+                    {rp.item_performance.rows.map((row) => {
+                      const isStockout = row.stockout;
+                      const wasteRatio = row.prepared > 0 ? row.waste / row.prepared : 0;
+                      const hasWaste = !isStockout && wasteRatio > 0.08;
+                      const outcome = isStockout
+                        ? { icon: "⚡", label: "Ran short", cls: "text-status-critical", sub: row.lost_revenue_estimate > 0 ? `~${formatCurrency(row.lost_revenue_estimate)} missed revenue` : null }
+                        : hasWaste
+                          ? { icon: "○", label: "Had waste", cls: "text-status-warning", sub: `${formatQuantity(row.waste, row.unit)} leftover` }
+                          : { icon: "✓", label: "Sold clean", cls: "text-status-success", sub: null };
+                      return (
+                        <div key={row.item_id} className="flex items-center gap-4 px-5 py-3.5">
+                          <span className={`shrink-0 w-5 text-center text-base ${outcome.cls}`}>{outcome.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <Link href={`/workspace/items/${row.item_id}?branch=${safeBranchId}`} className="text-sm font-medium text-text-primary hover:text-brand-gold transition-colors">{row.item_title}</Link>
+                            {outcome.sub && (
+                              <p className="mt-0.5 text-xs text-text-muted">{outcome.sub}</p>
+                            )}
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-xs text-text-muted">
+                              {formatQuantity(row.sold, row.unit)} sold
+                            </p>
+                            {row.prepared > 0 && (
+                              <p className="text-xs text-text-muted">
+                                of {formatQuantity(row.prepared, row.unit)} prepped
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
+
+              {/* ── 4. AI VS YOU ── */}
+              {overrideItems.length > 0 ? (
+                <section>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                    Where you diverged from the AI
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    {overrideItems.length === 1
+                      ? "1 item where you changed the plan."
+                      : `${overrideItems.length} items where you changed the plan.`}{" "}
+                    Here's how it played out.
+                  </p>
+                  <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
+                    {overrideItems.map((row) => {
+                      const won = row.service_outcome === "IMPROVED_BY_CHEF";
+                      return (
+                        <div key={row.item_id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3.5">
+                          <p className="min-w-[140px] text-sm font-medium text-text-primary">{row.item_title}</p>
+                          <div className="flex items-center gap-2 text-xs text-text-muted">
+                            <span>AI: <span className="font-medium text-text-secondary">{formatQuantity(row.forecast_qty, row.unit)}</span></span>
+                            <span className="text-text-muted">→</span>
+                            <span>You: <span className="font-medium text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</span></span>
+                            <span className="text-text-muted">→</span>
+                            <span>Sold: <span className="font-semibold text-text-primary">{formatQuantity(row.actual_sales, row.unit)}</span></span>
+                          </div>
+                          <span className={`ml-auto shrink-0 text-xs font-semibold ${won ? "text-status-success" : "text-status-warning"}`}>
+                            {won ? "✓ Your call paid off" : "AI was closer"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {(rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 0 && (
+                    <p className="mt-3 text-xs text-status-success">
+                      Your overrides improved outcomes on{" "}
+                      <span className="font-semibold">{rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows}</span>{" "}
+                      item{(rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 1 ? "s" : ""} — those signals are weighted into tomorrow's model.
+                    </p>
+                  )}
+                </section>
+              ) : null}
+
+              {/* ── 5. WHAT THE MODEL LEARNED ── */}
+              <section>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  What the model learned today
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-0 rounded-xl border border-surface-4 bg-surface-2 overflow-hidden sm:grid-cols-4 divide-x divide-surface-4/60">
+                  {[
+                    {
+                      value: rp.learning_signals.ml_learning_signals?.rows ?? rp.learning_signals.training_rows.length,
+                      label: "Training signals",
+                      sub: "items tracked",
+                    },
+                    {
+                      value: rp.learning_signals.ml_learning_signals?.chef_override_rows ?? overrideItems.length,
+                      label: "Your overrides",
+                      sub: "plan changes",
+                    },
+                    {
+                      value: rp.learning_signals.ml_learning_signals?.waste_rows ?? 0,
+                      label: "Waste events",
+                      sub: "items with leftover",
+                    },
+                    {
+                      value: rp.learning_signals.ml_learning_signals?.stockout_rows ?? stockouts,
+                      label: "Stockouts",
+                      sub: "items that ran out",
+                    },
+                  ].map((s) => (
+                    <div key={s.label} className="px-5 py-4">
+                      <p className="font-display text-2xl font-semibold text-text-primary">{s.value}</p>
+                      <p className="mt-0.5 text-xs font-medium text-text-secondary">{s.label}</p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">{s.sub}</p>
                     </div>
-                  </div>
-                ) : null}
-
-                {/* Block 4 — raw training data, collapsed */}
-                <details className="mt-4 group">
-                  <summary className="cursor-pointer flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
-                    <span className="group-open:hidden">▶</span>
-                    <span className="hidden group-open:inline">▼</span>
-                    Raw training data
-                  </summary>
-                  <div className="mt-3 overflow-x-auto border-t border-surface-4/60 pt-3">
-                    <table className="w-full min-w-[1080px]">
-                      <thead>
-                        <tr className="border-b border-surface-4/70">
-                          {["Item","Forecast","Chef Plan","Additional","Actual Sales","Waste","Stockout","Forecast Error","Chef Adjustment","Outcome"].map((h) => (
-                            <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-4/55">
-                        {branchDay.review_phase.learning_signals.training_rows.map((row) => (
-                          <tr key={row.item_id}>
-                            <td className="px-3 py-2 text-sm text-text-primary">{row.item_title}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.forecast_qty, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.additional_qty, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.actual_sales, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-status-critical">{formatQuantity(row.waste, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{row.stockouts ? "Yes" : "No"}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{formatQuantity(row.forecast_error, row.unit)}</td>
-                            <td className="px-3 py-2 text-sm text-text-secondary">{signedQuantity(row.chef_adjustment, row.unit)}</td>
-                            <td className={`px-3 py-2 text-sm ${row.service_outcome === "IMPROVED_BY_CHEF" ? "text-status-success" : "text-status-warning"}`}>
-                              {row.service_outcome === "IMPROVED_BY_CHEF" ? "Chef better" : "Forecast better"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </details>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-text-muted">
+                  Today's data is feeding into tomorrow's forecast. The model improves with every service.
+                </p>
               </section>
 
-              {/* ── 5. What tomorrow looks like ── */}
-              <section className="border-t border-surface-4/60 pt-6">
+              {/* ── 6. TOMORROW ── */}
+              <section className="rounded-xl border border-brand-gold/30 bg-brand-gold/5 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  5. What tomorrow looks like
+                  Before you come in tomorrow
                 </p>
-
-                {/* Tomorrow focus actions */}
-                {branchDay.review_phase.learning_signals.tomorrow_actions.length ? (
-                  <ul className="mt-4 space-y-2">
-                    {branchDay.review_phase.learning_signals.tomorrow_actions.map((action) => (
+                <p className="mt-2 text-sm font-medium text-text-primary">
+                  {rp.tomorrow_early_signal.message}
+                </p>
+                {rp.tomorrow_early_signal.expected_demand_change_pct !== 0 && (
+                  <p className="mt-1 text-xs text-text-muted">
+                    Demand expected to be{" "}
+                    <span className={`font-semibold ${rp.tomorrow_early_signal.expected_demand_change_pct > 0 ? "text-status-success" : "text-status-warning"}`}>
+                      {rp.tomorrow_early_signal.expected_demand_change_pct > 0 ? "+" : ""}{rp.tomorrow_early_signal.expected_demand_change_pct.toFixed(0)}%
+                    </span>{" "}
+                    {rp.tomorrow_early_signal.weekday ? `vs a typical ${rp.tomorrow_early_signal.weekday}` : "vs baseline"}
+                    {rp.tomorrow_early_signal.sample_size ? ` · based on ${rp.tomorrow_early_signal.sample_size} similar days` : ""}
+                  </p>
+                )}
+                {rp.learning_signals.tomorrow_actions?.length ? (
+                  <ul className="mt-4 space-y-2 border-t border-brand-gold/20 pt-4">
+                    {rp.learning_signals.tomorrow_actions.map((action) => (
                       <li key={action} className="flex items-start gap-2 text-sm text-text-secondary">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gold" />
                         {action}
@@ -3386,33 +3213,147 @@ function TodayWorkspacePageContent() {
                     ))}
                   </ul>
                 ) : null}
+                <Link
+                  href={`/workspace/today?branch_id=${branchDay.branch_id}&date=${rp.tomorrow_early_signal.target_date}`}
+                  className="mt-4 inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15"
+                >
+                  Preview tomorrow's plan →
+                </Link>
+              </section>
 
-                {/* Tomorrow early signal */}
-                <div className="mt-4 rounded-xl border border-brand-gold/30 bg-brand-gold/8 px-5 py-4">
-                  <p className="text-sm font-semibold text-text-primary">
-                    {branchDay.review_phase.tomorrow_early_signal.message}
+              {/* ── 7. HOW DID TODAY FEEL + NOTE ── */}
+              <section className="space-y-6">
+                {/* Reaction */}
+                {(() => {
+                  const activeReaction = dayReaction || branchDay.day_reaction || "";
+                  const reactions: {
+                    value: "FIRED_UP" | "GOOD" | "MEH" | "ROUGH";
+                    emoji: string;
+                    label: string;
+                  }[] = [
+                    { value: "FIRED_UP", emoji: "🔥", label: "Fired up" },
+                    { value: "GOOD",     emoji: "😊", label: "Good" },
+                    { value: "MEH",      emoji: "😐", label: "Meh" },
+                    { value: "ROUGH",    emoji: "😮‍💨", label: "Rough one" },
+                  ];
+                  return (
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">
+                        How are you leaving today?
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-muted">
+                        Not what happened — how <em>you</em> feel right now.
+                      </p>
+                      <div className="mt-3 flex gap-3">
+                        {reactions.map((r) => {
+                          const isActive = activeReaction === r.value;
+                          return (
+                            <button
+                              key={r.value}
+                              type="button"
+                              title={r.label}
+                              onClick={() => {
+                                const next = isActive ? "" : r.value;
+                                setDayReaction(next as typeof dayReaction);
+                                setAckVisible(false);
+                                setAckMessage("");
+                                if (!branchDay.id) return;
+                                updateBranchDayNotesMutation.mutate({
+                                  branchDayId: branchDay.id,
+                                  reaction: next,
+                                });
+                                if (next) {
+                                  const pool = REACTION_MESSAGES[next] ?? [];
+                                  const msg = pool[Math.floor(Math.random() * pool.length)] ?? "";
+                                  setAckPending(true);
+                                  setTimeout(() => {
+                                    setAckMessage(msg);
+                                    setAckPending(false);
+                                    setAckVisible(true);
+                                  }, 400 + Math.random() * 900);
+                                } else {
+                                  setAckPending(false);
+                                }
+                              }}
+                              className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 transition-all ${
+                                isActive
+                                  ? "border-brand-gold bg-brand-gold/10 scale-105"
+                                  : "border-surface-4 bg-surface-3 hover:border-brand-gold/30 hover:bg-brand-gold/5"
+                              }`}
+                            >
+                              <span className="text-2xl leading-none">{r.emoji}</span>
+                              <span className={`text-[11px] font-medium ${isActive ? "text-brand-gold" : "text-text-muted"}`}>
+                                {r.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {ackPending && (
+                        <div className="mt-3 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:0ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:150ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:300ms]" />
+                        </div>
+                      )}
+                      {ackVisible && ackMessage && (
+                        <p className="mt-3 text-sm text-text-secondary animate-in fade-in slide-in-from-bottom-1 duration-300">
+                          {ackMessage}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Note */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                    Anything worth noting?
                   </p>
-                  <p className="mt-1.5 text-xs text-text-muted">
-                    {branchDay.review_phase.tomorrow_early_signal.target_date}
-                    {branchDay.review_phase.tomorrow_early_signal.weekday
-                      ? ` · ${branchDay.review_phase.tomorrow_early_signal.weekday}`
-                      : ""}
-                    {" · "}
-                    Demand change:{" "}
-                    <span className={branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct >= 0 ? "text-status-success font-semibold" : "text-status-critical font-semibold"}>
-                      {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct >= 0 ? "+" : ""}
-                      {branchDay.review_phase.tomorrow_early_signal.expected_demand_change_pct.toFixed(1)}%
-                    </span>
+                  <p className="mt-1 text-xs text-text-muted">
+                    Special event, staffing issue, unexpected rush — context here makes tomorrow's forecast sharper.
                   </p>
+                  {noteSaved ? (
+                    <p className="mt-4 text-sm text-status-success">✓ Saved — the model will factor this in.</p>
+                  ) : (
+                    <div className="mt-3">
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. Birthday party for 40 guests, short-staffed, local event nearby..."
+                        value={dayNote || branchDay.session_notes || ""}
+                        onChange={(e) => setDayNote(e.target.value)}
+                        className="w-full resize-none rounded-xl border border-surface-4 bg-surface-3 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
+                      />
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-[11px] text-text-muted">Not shared externally — goes into your training data.</p>
+                        <button
+                          type="button"
+                          disabled={!dayNote.trim() || updateBranchDayNotesMutation.isPending}
+                          onClick={() => {
+                            if (!branchDay.id || !dayNote.trim()) return;
+                            updateBranchDayNotesMutation.mutate(
+                              { branchDayId: branchDay.id, notes: dayNote.trim() },
+                              { onSuccess: () => setNoteSaved(true) },
+                            );
+                          }}
+                          className="inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {updateBranchDayNotesMutation.isPending ? "Saving…" : "Save note"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
-          ) : (
-            <div className="py-12 text-center">
+            );
+          })() : (
+            <div className="py-16 text-center">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/20 mb-3">
                 <div className="h-5 w-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
               </div>
-              <p className="text-sm text-text-muted">Review summary is being prepared...</p>
+              <p className="text-sm text-text-muted">Preparing your day summary…</p>
+              <p className="mt-1 text-xs text-text-muted">This takes a few seconds.</p>
             </div>
           )}
         </section>
@@ -3445,9 +3386,9 @@ function TodayWorkspacePageContent() {
 
       <ConfirmActionModal
         open={confirmAction === "START_LIVE"}
-        title="Start Live Service?"
-        description="This switches Today into live execution mode and enables rapid production logging."
-        confirmLabel="Start Live Service"
+        title="Start Service?"
+        description="Service begins. Live monitoring activates and production logs open."
+        confirmLabel="Start Service"
         isConfirming={updateBranchDayStatusMutation.isPending}
         onClose={() => setConfirmAction(null)}
         onConfirm={startLiveService}
@@ -3455,8 +3396,8 @@ function TodayWorkspacePageContent() {
 
       <ConfirmActionModal
         open={confirmAction === "CLOSE_DAY"}
-        title="Close Service Day?"
-        description="This finalizes today and runs the end-of-day review summary."
+        title="Close Day?"
+        description="End-of-day summary will be generated. Today closes and cannot be re-opened."
         confirmLabel="Close Day"
         tone="critical"
         isConfirming={updateBranchDayStatusMutation.isPending}

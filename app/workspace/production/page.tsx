@@ -11,6 +11,7 @@ import {
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { isOrgLeadership, isOrgManagement, isOrgMember } from "@/lib/role-utils";
 
 type LocalLog = {
   id: string;
@@ -129,13 +130,12 @@ export default function ProductionPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
-  const isOwner = role === "ORG_OWNER";
-  const isOrgAdmin = role === "ORG_ADMIN";
-  const isStaffOperator = role === "STAFF_OPERATOR";
-  const isBranchManager = role === "BRANCH_MANAGER" || role === "GM";
-  const isOpsDirector = role === "OPS_DIRECTOR";
-  const canViewProduction =
-    isOwner || isOrgAdmin || isStaffOperator || isBranchManager || isOpsDirector;
+  const isOwner = isOrgLeadership(role);
+  const isOrgAdmin = isOrgManagement(role) && !isOrgLeadership(role);
+  const isStaffOperator = isOrgMember(role);
+  const isBranchManager = false;
+  const isOpsDirector = false;
+  const canViewProduction = Boolean(user?.has_organization);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;

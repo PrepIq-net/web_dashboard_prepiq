@@ -17,6 +17,7 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
+import { isOrgMember } from "@/lib/role-utils";
 import {
   useIngredients,
   useMenuItems,
@@ -51,16 +52,13 @@ export default function InventoryPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const role = user?.organization_role ?? "";
-  const canAccess = [
-    "STAFF_OPERATOR", "BRANCH_MANAGER", "GM",
-    "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN",
-  ].includes(role);
+  const canAccess = Boolean(user?.has_organization);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const scopedBranchIds = new Set(accessibleBranches.map((b) => b.id));
   const scopedBranches =
-    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM"
+    isOrgMember(role)
       ? branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true))
       : branches;
 
@@ -396,9 +394,9 @@ function RecipesTab({
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {item.image_url ? (
+                          {item.image ? (
                             <img
-                              src={item.image_url}
+                              src={item.image}
                               alt={item.name}
                               className="h-9 w-9 rounded-lg object-cover border border-surface-4 shrink-0"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -433,6 +431,12 @@ function RecipesTab({
                           >
                             <EditPencil className="h-4 w-4" />
                           </button>
+                          <Link
+                            href={`/workspace/items/${item.id}?branch=${branchId}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
+                          >
+                            Track record
+                          </Link>
                           <Link
                             href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
@@ -513,10 +517,10 @@ function RecipeDetail({
       </div>
 
       {/* Item image */}
-      {menuItem?.image_url && (
+      {menuItem?.image && (
         <div className="mb-4 overflow-hidden rounded-xl border border-surface-4 bg-surface-3 h-40">
           <img
-            src={menuItem.image_url}
+            src={menuItem.image}
             alt={menuItem.name}
             className="h-full w-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}

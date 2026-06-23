@@ -1,4 +1,5 @@
 "use client";
+import { isOrgLeadership } from "@/lib/role-utils";
 
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -26,14 +27,6 @@ import {
 import { Branch } from "@/services/branches/types";
 import { Invoice, SubscriptionList } from "@/services/payment/types";
 import { useState } from "react";
-
-const BILLING_ROLES = [
-  "ORG_OWNER",
-  "ORG_ADMIN",
-  "OPS_DIRECTOR",
-  "AUDITOR",
-  "ACCOUNTANT",
-];
 
 const PLAN_RANK: Record<string, number> = {
   CORE: 1,
@@ -69,7 +62,7 @@ export default function BillingPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const role = user?.organization_role ?? "";
-  const canAccess = BILLING_ROLES.includes(role);
+  const canAccess = isOrgLeadership(role);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 

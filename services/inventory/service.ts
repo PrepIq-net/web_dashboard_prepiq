@@ -66,24 +66,38 @@ export async function getMenuItems(branchId: string) {
 export type MenuItemPayload = {
   name: string;
   category?: string;
-  image_url?: string;
+  image?: File | null;
   instructions?: string;
   is_active?: boolean;
 };
 
 export async function createMenuItem(branchId: string, data: MenuItemPayload) {
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value instanceof File ? value : String(value));
+    }
+  });
+
   return apiClientWithSchema(
     inventoryEndpoints.menuItems.create(branchId),
     menuItemSchema,
-    { method: "POST", body: data }
+    { method: "POST", body: formData }
   );
 }
 
 export async function updateMenuItem(branchId: string, menuItemId: string, data: Partial<MenuItemPayload>) {
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value instanceof File ? value : String(value));
+    }
+  });
+
   return apiClientWithSchema(
     inventoryEndpoints.menuItems.update(branchId, menuItemId),
     menuItemSchema,
-    { method: "PATCH", body: data }
+    { method: "PATCH", body: formData }
   );
 }
 
@@ -167,10 +181,10 @@ export async function getPrepBatches(branchId: string) {
 // SERVICE FUNCTIONS - INGREDIENT DEMAND
 // ============================================================================
 
-export async function calculateIngredientDemand(branchId: string, date: string) {
+export async function calculateIngredientDemand(branchId: string, date: string, productId?: string) {
   return apiClientWithSchema(
     inventoryEndpoints.demand.calculate,
     ingredientDemandSchema,
-    { method: "POST", body: { branch_id: branchId, date } }
+    { method: "POST", body: { branch_id: branchId, date, ...(productId ? { product_id: productId } : {}) } }
   );
 }

@@ -62,7 +62,7 @@ export const prepPlanItemSchema = z.object({
     predicted_quantity_needed: z.number(),
     confidence_score: z.number(),
     demand_trend: z.enum(["up", "down", "neutral"]).optional(),
-    risk: z.enum(["low", "medium", "high"]).optional(),
+    risk: z.string().optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
     risk_of_stockout: z.number(),
@@ -77,18 +77,23 @@ export const prepPlanItemSchema = z.object({
     forecast_engine_input: z.record(z.string(), z.unknown()).optional(),
     forecast_engine_output: z.record(z.string(), z.unknown()).optional(),
     reasoning: z.array(z.string()),
-    applied_signals: z.record(z.string(), z.object({
-      modifier: z.number(),
-      source: z.string().optional(),
-      special_event_flag: z.boolean().optional(),
-      condition: z.string().optional(),
-      temp_bucket: z.string().optional(),
-      is_rain: z.boolean().optional(),
-      estimated_staff_count: z.number().nullable().optional(),
-      capacity_pct: z.number().nullable().optional(),
-      delivery_ratio: z.number().nullable().optional(),
-      multiplier: z.number().optional(),
-    })).optional(),
+    applied_signals: z
+      .record(
+        z.string(),
+        z.object({
+          modifier: z.number(),
+          source: z.string().optional(),
+          special_event_flag: z.boolean().optional(),
+          condition: z.string().optional(),
+          temp_bucket: z.string().optional(),
+          is_rain: z.boolean().optional(),
+          estimated_staff_count: z.number().nullable().optional(),
+          capacity_pct: z.number().nullable().optional(),
+          delivery_ratio: z.number().nullable().optional(),
+          multiplier: z.number().optional(),
+        }),
+      )
+      .optional(),
   }),
   live_monitor: z
     .object({
@@ -676,6 +681,8 @@ export const branchDayTodaySchema = z.object({
       }),
     )
     .optional(),
+  session_notes: z.string().optional(),
+  day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),
   created_at: z.string(),
   meta: z
     .object({
@@ -1662,7 +1669,9 @@ export const forecastMetricsResponseSchema = z.object({
     .optional(),
   data_points: z.number().optional(),
 });
-export type ForecastMetricsResponse = z.infer<typeof forecastMetricsResponseSchema>;
+export type ForecastMetricsResponse = z.infer<
+  typeof forecastMetricsResponseSchema
+>;
 
 export const chefSkillScoreResponseSchema = z.object({
   overall_skill_score: z.number().nullable().optional(),
@@ -1672,7 +1681,9 @@ export const chefSkillScoreResponseSchema = z.object({
   recommendation: z.string().optional(),
   metrics: z.record(z.string(), z.unknown()).optional(),
 });
-export type ChefSkillScoreResponse = z.infer<typeof chefSkillScoreResponseSchema>;
+export type ChefSkillScoreResponse = z.infer<
+  typeof chefSkillScoreResponseSchema
+>;
 
 export const dataQualityReportSchema = z.object({
   overall_quality_score: z.number().nullable().optional(),
@@ -1718,7 +1729,9 @@ export const velocityUpdateResponseSchema = z.object({
   forecast_qty: z.number().optional(),
   window_minutes: z.number().optional(),
 });
-export type VelocityUpdateResponse = z.infer<typeof velocityUpdateResponseSchema>;
+export type VelocityUpdateResponse = z.infer<
+  typeof velocityUpdateResponseSchema
+>;
 
 export const advancedForecastPayloadSchema = z.object({
   branch_id: z.string().uuid(),
@@ -1734,14 +1747,18 @@ export const forecastScenariosQuerySchema = z.object({
   item_id: z.string().uuid(),
   target_date: z.string().optional(),
 });
-export type ForecastScenariosQuery = z.infer<typeof forecastScenariosQuerySchema>;
+export type ForecastScenariosQuery = z.infer<
+  typeof forecastScenariosQuerySchema
+>;
 
 export const forecastConfidenceQuerySchema = z.object({
   branch_id: z.string().uuid(),
   item_id: z.string().uuid(),
   target_date: z.string().optional(),
 });
-export type ForecastConfidenceQuery = z.infer<typeof forecastConfidenceQuerySchema>;
+export type ForecastConfidenceQuery = z.infer<
+  typeof forecastConfidenceQuerySchema
+>;
 
 export const forecastMetricsQuerySchema = z.object({
   branch_id: z.string().uuid(),
@@ -1772,9 +1789,7 @@ export const velocityUpdatePayloadSchema = z.object({
   timestamp: z.string().optional(),
   window_minutes: z.number().optional(),
 });
-export type VelocityUpdatePayload = z.infer<
-  typeof velocityUpdatePayloadSchema
->;
+export type VelocityUpdatePayload = z.infer<typeof velocityUpdatePayloadSchema>;
 
 export const salesWasteTopItemSchema = z.object({
   item_id: z.string(),
@@ -2030,6 +2045,8 @@ export const historyTimelineEntrySchema = z.object({
   stockout_count: z.number(),
   revenue: z.number(),
   has_snapshot: z.boolean(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historySummarySchema = z.object({
@@ -2041,6 +2058,10 @@ export const historySummarySchema = z.object({
   revenue: z.number(),
   prep_items_planned: z.number(),
   lost_revenue_estimate: z.number(),
+  decision_support_rate: z.number().optional(),
+  estimated_net_impact: z.number().optional(),
+  day_reaction: z.string().optional(),
+  session_notes: z.string().optional(),
 });
 
 export const historyItemRowSchema = z.object({
@@ -2057,11 +2078,18 @@ export const historyItemRowSchema = z.object({
   lost_revenue_estimate: z.number(),
   forecast_qty: z.number(),
   forecast_error: z.number(),
+  decision: z.string().optional(),
 });
 
 export const historyExceptionsSchema = z.object({
   top_waste_items: z.array(historyItemRowSchema),
   top_stockout_items: z.array(historyItemRowSchema),
+});
+
+export const historyPatternSchema = z.object({
+  type: z.string(),
+  message: z.string(),
+  severity: z.enum(["positive", "warning", "critical"]),
 });
 
 export const operationsHistorySnapshotSchema = z.object({
@@ -2073,9 +2101,63 @@ export const operationsHistorySnapshotSchema = z.object({
   summary: historySummarySchema.nullable(),
   items: z.array(historyItemRowSchema),
   exceptions: historyExceptionsSchema,
+  patterns: z.array(historyPatternSchema).optional(),
   data_note: z.string().nullable().optional(),
 });
 
 export type OperationsHistorySnapshot = z.infer<
   typeof operationsHistorySnapshotSchema
 >;
+
+export const itemTimeSeriesRowSchema = z.object({
+  date: z.string(),
+  ai_forecast: z.number(),
+  planned_qty: z.number(),
+  actual_sales: z.number(),
+  waste_qty: z.number(),
+  waste_cost: z.number(),
+  revenue: z.number(),
+  lost_revenue_estimate: z.number(),
+  stockout_flag: z.boolean(),
+  decision: z.string().optional(),
+});
+
+export const itemHistorySummarySchema = z.object({
+  total_revenue: z.number(),
+  total_waste_cost: z.number(),
+  total_lost_revenue: z.number(),
+  avg_accuracy: z.number(),
+  stockout_days: z.number(),
+  days_tracked: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemAiInsightsSchema = z.object({
+  accuracy_trend: z.enum(["improving", "stable", "declining"]),
+  accuracy_14d: z.number(),
+  accuracy_prior_14d: z.number(),
+  avg_error_pct: z.number(),
+  override_count: z.number(),
+  override_win_count: z.number(),
+});
+
+export const itemHistorySchema = z.object({
+  item_id: z.string(),
+  item_title: z.string().nullable(),
+  unit: z.string(),
+  days: z.number(),
+  summary: itemHistorySummarySchema.nullable(),
+  ai_insights: itemAiInsightsSchema.nullable(),
+  time_series: z.array(itemTimeSeriesRowSchema),
+  data_note: z.string().nullable().optional(),
+});
+
+export type ItemHistory = z.infer<typeof itemHistorySchema>;
+export type ItemTimeSeriesRow = z.infer<typeof itemTimeSeriesRowSchema>;
+
+export type IntegrationsSyncRetryQuery = {
+  branch_id: string;
+  connection_id?: string;
+  provider_code?: string;
+};
