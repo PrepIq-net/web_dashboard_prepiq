@@ -39,16 +39,7 @@ type FinancialBranchRow = {
   marginPctDelta?: number | null;
 };
 
-type FinancialTab =
-  | "OVERVIEW"
-  | "WASTE"
-  | "STOCKOUT"
-  | "ACCURACY"
-  | "PROFIT"
-  | "BRANCHES"
-  | "TRENDS";
-
-type ProfitSort = "REVENUE" | "MARGIN";
+type FinancialTab = "OVERVIEW" | "BRANCHES" | "ACCURACY" | "TRENDS";
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -103,7 +94,6 @@ export default function FinancialPage() {
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
-  const [profitSort, setProfitSort] = useState<ProfitSort>("REVENUE");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const financialQuery = useOrganizationFinancialOverview(
@@ -193,15 +183,11 @@ export default function FinancialPage() {
     return [...branchRows].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
   }, [branchRows]);
 
-  const sortedProfitability = useMemo(() => {
-    const rows = [...itemProfitability];
-    if (profitSort === "MARGIN") {
-      rows.sort((a, b) => b.margin_pct - a.margin_pct || b.revenue - a.revenue);
-    } else {
-      rows.sort((a, b) => b.revenue - a.revenue);
-    }
-    return rows.slice(0, 6);
-  }, [itemProfitability, profitSort]);
+  const topProfitItems = useMemo(() => {
+    return [...itemProfitability]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 3);
+  }, [itemProfitability]);
 
   const exportTrendCsv = () => {
     const rows = costTrends.map((row) => [
@@ -311,10 +297,10 @@ export default function FinancialPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Financial"
-      title="Financial Intelligence"
-      description="Operational financial performance across revenue, food cost, and waste."
-      insight="Connect kitchen execution to margin performance in real time."
+      eyebrow="Executive"
+      title="Business Intelligence"
+      description="Organization-wide P&L: revenue, margins, and PrepIQ financial impact."
+      insight="Use this page to compare branch performance and understand your overall business health."
     >
       <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
@@ -371,11 +357,8 @@ export default function FinancialPage() {
           <div className="flex flex-wrap gap-2">
             {[
               { id: "OVERVIEW", label: "Overview" },
-              { id: "WASTE", label: "Waste" },
-              { id: "STOCKOUT", label: "Stockouts" },
-              { id: "ACCURACY", label: "Forecast Impact" },
-              { id: "PROFIT", label: "Item Profitability" },
               { id: "BRANCHES", label: "Branches" },
+              { id: "ACCURACY", label: "Forecast Impact" },
               { id: "TRENDS", label: "Trends" },
             ].map((tab) => (
               <button
@@ -396,56 +379,57 @@ export default function FinancialPage() {
       </section>
 
       {activeTab === "OVERVIEW" ? (
-        <section className="mt-8">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            PrepIQ Impact Report
-          </p>
-          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            {timeframeLabel}
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-10">
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Forecast Accuracy
+        <section className="mt-8 space-y-8">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              PrepIQ Impact Report
             </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toPercent(impactReport?.accuracy_pct ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Average accuracy</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Waste Reduced
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(impactReport?.waste_reduced ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Period improvement</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Stockouts Avoided
-            </p>
-            <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-              {impactReport?.stockouts_avoided ?? 0}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Events prevented</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Revenue Protected
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(impactReport?.revenue_protected ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Estimated impact</p>
-          </article>
-        </div>
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Financial Overview
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              {timeframeLabel}
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Forecast Accuracy
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toPercent(impactReport?.accuracy_pct ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">Average accuracy</p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Waste Reduced
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(impactReport?.waste_reduced ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">Period improvement</p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Stockouts Avoided
+              </p>
+              <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
+                {impactReport?.stockouts_avoided ?? 0}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">Events prevented</p>
+            </article>
+            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                Revenue Protected
+              </p>
+              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                {toCurrency(impactReport?.revenue_protected ?? 0)}
+              </p>
+              <p className="mt-3 text-xs text-text-muted">Estimated impact</p>
+            </article>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Financial Overview
             </p>
             <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
               {timeframeLabel}
@@ -519,92 +503,13 @@ export default function FinancialPage() {
                   : "—"}
               </p>
             </article>
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "WASTE" ? (
-        <section className="mt-10">
-          <div>
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Waste Cost Analysis
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {timeframeLabel}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Total Waste
-                </p>
-                <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
-                  {toCurrency(wasteAnalysis?.total_waste_cost ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(summary?.waste_cost_delta_pct)}
-                </p>
-              </article>
-
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Waste Rate
-                </p>
-                <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
-                  {toPercent(wasteAnalysis?.waste_rate_pct ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">Share of revenue</p>
-              </article>
-            </div>
-
-            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Waste Items
-              </p>
-              <div className="space-y-3">
-                {(wasteAnalysis?.top_items ?? []).length ? (
-                  wasteAnalysis?.top_items.map((item) => (
-                    <Link
-                      key={item.item_id}
-                      href={`/workspace/sales-waste?item=${item.item_id}${
-                        financialData?.branch_id
-                          ? `&branch=${financialData.branch_id}`
-                          : ""
-                      }${financialData?.end_date ? `&date=${financialData.end_date}` : ""}`}
-                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3 transition-colors hover:border-brand-gold/50 hover:bg-surface-3"
-                    >
-                      <span className="text-sm font-medium text-text-secondary">
-                        {item.item_title}
-                      </span>
-                      <span className="text-sm font-semibold text-status-warning">
-                        {toCurrency(item.waste_cost)}
-                      </span>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-text-muted">
-                    No waste events recorded.
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
-        </section>
-      ) : null}
 
-      {activeTab === "STOCKOUT" ? (
-        <section className="mt-10">
           <div>
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Stockout Revenue Loss
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {timeframeLabel}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Stockout Impact
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
                   Lost Revenue
@@ -616,7 +521,6 @@ export default function FinancialPage() {
                   {formatDelta(stockoutImpact?.lost_revenue_delta_pct)}
                 </p>
               </article>
-
               <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
                   Stockout Events
@@ -624,14 +528,11 @@ export default function FinancialPage() {
                 <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
                   {stockoutImpact?.stockout_events ?? 0}
                 </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  Service interruptions
-                </p>
+                <p className="mt-3 text-xs text-text-muted">Service interruptions</p>
               </article>
-
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 sm:col-span-2">
+              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Revenue Protected by PrepIQ
+                  Revenue Protected
                 </p>
                 <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
                   {toCurrency(stockoutImpact?.revenue_protected ?? 0)}
@@ -641,14 +542,24 @@ export default function FinancialPage() {
                 </p>
               </article>
             </div>
+          </div>
 
-            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Stockouts
-              </p>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                  Top Waste Sources
+                </p>
+                <Link
+                  href={`/workspace/sales-waste${financialData?.branch_id ? `?branch=${financialData.branch_id}` : ""}`}
+                  className="text-xs text-text-muted hover:text-brand-gold transition-colors"
+                >
+                  See full breakdown →
+                </Link>
+              </div>
               <div className="space-y-3">
-                {(stockoutImpact?.top_items ?? []).length ? (
-                  stockoutImpact?.top_items.map((item) => (
+                {(wasteAnalysis?.top_items ?? []).slice(0, 3).length ? (
+                  (wasteAnalysis?.top_items ?? []).slice(0, 3).map((item) => (
                     <div
                       key={item.item_id}
                       className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3"
@@ -656,17 +567,92 @@ export default function FinancialPage() {
                       <span className="text-sm font-medium text-text-secondary">
                         {item.item_title}
                       </span>
-                      <span className="text-sm font-semibold text-status-critical">
-                        {toCurrency(item.lost_revenue)}
+                      <span className="text-sm font-semibold text-status-warning">
+                        {toCurrency(item.waste_cost)}
                       </span>
                     </div>
                   ))
                 ) : (
+                  <p className="text-sm text-text-muted">No waste events recorded.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
+                Top Profit Drivers
+              </p>
+              <div className="space-y-3">
+                {topProfitItems.length ? (
+                  topProfitItems.map((row) => (
+                    <div
+                      key={row.item_id}
+                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3"
+                    >
+                      <span className="text-sm font-medium text-text-secondary">
+                        {row.item_title}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-text-muted">
+                          {toCurrency(row.revenue)}
+                        </span>
+                        <span className="text-xs font-semibold text-brand-gold">
+                          {toPercent(row.margin_pct)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
                   <p className="text-sm text-text-muted">
-                    No stockouts detected.
+                    No profitability data available.
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "BRANCHES" ? (
+        <section className="mt-10">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+            {topBranches.map((branch) => (
+              <article
+                key={branch.id}
+                className="bg-surface-2 rounded-xl p-6 border border-surface-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+                  {branch.branch}
+                </p>
+                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                  {toCurrency(branch.revenue)}
+                </p>
+                <p className="mt-3 text-xs text-text-muted">
+                  Margin {toPercent(branch.marginPct)}
+                </p>
+              </article>
+            ))}
+          </div>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Branch Performance
+            </p>
+            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
+              Revenue, Cost, and Margin Breakdown
+            </h3>
+          </div>
+
+          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <NativeTable
+                table={branchTable}
+                tableClassName="w-full min-w-[860px]"
+                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
+                bodyClassName="divide-y divide-surface-4"
+                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
+                cellClassName="px-6 py-4"
+              />
             </div>
           </div>
         </section>
@@ -716,143 +702,6 @@ export default function FinancialPage() {
                 Avoided lost revenue
               </p>
             </article>
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "PROFIT" ? (
-        <section className="mt-10">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Item Profitability
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Top Profit Drivers
-            </h3>
-          </div>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {[
-              { id: "REVENUE", label: "Top Revenue" },
-              { id: "MARGIN", label: "Top Margin %" },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setProfitSort(option.id as ProfitSort)}
-                className={`inline-flex h-9 items-center px-3 rounded-lg text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
-                  profitSort === option.id
-                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px]">
-                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Revenue
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Food Cost
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin %
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-4">
-                  {sortedProfitability.length ? (
-                    sortedProfitability.map((row) => (
-                      <tr
-                        key={row.item_id}
-                        className="transition-all duration-200 hover:bg-surface-3/50"
-                      >
-                        <td className="px-6 py-4 text-sm font-semibold text-text-primary">
-                          {row.item_title}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {toCurrency(row.revenue)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {toCurrency(row.food_cost)}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-status-success">
-                          {toCurrency(row.gross_margin)}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-brand-gold">
-                          {toPercent(row.margin_pct)}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-6 text-sm text-text-muted"
-                      >
-                        No profitability data available for this period.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "BRANCHES" ? (
-        <section className="mt-10">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-            {topBranches.map((branch) => (
-              <article
-                key={branch.id}
-                className="bg-surface-2 rounded-xl p-6 border border-surface-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  {branch.branch}
-                </p>
-                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                  {toCurrency(branch.revenue)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  Margin {toPercent(branch.marginPct)}
-                </p>
-              </article>
-            ))}
-          </div>
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Branch Performance
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Revenue, Cost, and Margin Breakdown
-            </h3>
-          </div>
-
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <NativeTable
-                table={branchTable}
-                tableClassName="w-full min-w-[860px]"
-                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-                bodyClassName="divide-y divide-surface-4"
-                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-                cellClassName="px-6 py-4"
-              />
-            </div>
           </div>
         </section>
       ) : null}
