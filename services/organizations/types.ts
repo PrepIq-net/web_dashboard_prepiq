@@ -79,6 +79,9 @@ export const PERMISSIONS = {
   // Donations / ESG
   APPROVE_DONATIONS: "APPROVE_DONATIONS",
   VIEW_DONATION_HISTORY: "VIEW_DONATION_HISTORY",
+  // Planning calendar
+  VIEW_CALENDAR: "VIEW_CALENDAR",
+  MANAGE_CALENDAR: "MANAGE_CALENDAR",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -112,6 +115,8 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   ACCESS_GLOBAL_CHAT: "Access Global Chat",
   APPROVE_DONATIONS: "Approve Donations",
   VIEW_DONATION_HISTORY: "View Donation History",
+  VIEW_CALENDAR: "View Planning Calendar",
+  MANAGE_CALENDAR: "Manage Planning Calendar Events",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
