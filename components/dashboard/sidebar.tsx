@@ -9,7 +9,6 @@ import {
   Settings,
   Clock,
   NavArrowLeft,
-  Brain,
   ChatBubble,
   Shop,
   GraphUp,
@@ -53,22 +52,16 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Operations",
     items: [
       {
-        label: "Overview",
+        label: "Dashboard",
         href: "/",
         icon: <Home className="h-4 w-4" />,
-        // Everyone can see the home/overview
+        // Everyone can see the home/dashboard
       },
       {
         label: "Today",
         href: "/workspace/today",
         icon: <Clock className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_FORECASTS,
-      },
-      {
-        label: "Command",
-        href: "/workspace/command",
-        icon: <Brain className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_ANALYTICS,
       },
       {
         label: "Production",

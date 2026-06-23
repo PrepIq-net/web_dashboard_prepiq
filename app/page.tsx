@@ -26,6 +26,7 @@ import { OpsView } from "@/components/dashboard/home/ops-view";
 import { OwnerView } from "@/components/dashboard/home/owner-view";
 import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
 import { ChefView } from "@/components/dashboard/home/chef-view";
+import { CommandSection } from "@/components/dashboard/home/command-section";
 import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
@@ -557,6 +558,14 @@ function HomeContent() {
                 </p>
               </section>
             )}
+
+            {isOrgOverviewMode &&
+              !shouldShowBranchRequiredState &&
+              !shouldShowSalesSourceRequiredState && (
+                <div className="mt-16 border-t border-surface-4 pt-16">
+                  <CommandSection />
+                </div>
+              )}
 
             <InsightFooter insight={subtleInsight} />
           </div>
