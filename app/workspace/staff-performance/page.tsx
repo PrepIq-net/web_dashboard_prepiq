@@ -1,5 +1,6 @@
 "use client";
-import { isOrgManagement } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -111,10 +112,9 @@ function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
 export default function StaffPerformancePage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = isOrgManagement(role);
-  const canManageStaff = isOrgManagement(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
+  const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");

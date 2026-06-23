@@ -991,6 +991,9 @@ export const executiveControlTowerBranchSchema = z.object({
   surplus_pct: z.number().optional(),
   staff_activity_status: z.string().optional(),
   compliance_badge: z.string().optional(),
+  day_status: z.string().nullable().optional(),
+  plan_locked: z.boolean().default(false).optional(),
+  forecast_confidence: z.number().nullable().optional(),
 });
 
 export const executiveControlTowerSnapshotSchema = z.object({

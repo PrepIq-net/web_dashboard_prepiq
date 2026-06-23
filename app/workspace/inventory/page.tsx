@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, EditPencil, ArrowRight } from "iconoir-react";
 import {
   createColumnHelper,
@@ -17,7 +17,8 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
-import { isOrgMember } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useIngredients,
   useMenuItems,
@@ -46,21 +47,33 @@ const menuItemColumnHelper = createColumnHelper<MenuItem>();
 const prepBatchColumnHelper = createColumnHelper<PrepBatch>();
 
 export default function InventoryPage() {
+  return (
+    <Suspense>
+      <InventoryPageContent />
+    </Suspense>
+  );
+}
+
+function InventoryPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlBranchId = searchParams.get("branch") ?? "";
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const role = user?.organization_role ?? "";
-  const canAccess = Boolean(user?.has_organization);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_INVENTORY);
+  const canSeeAllBranches =
+    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
+    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const scopedBranchIds = new Set(accessibleBranches.map((b) => b.id));
-  const scopedBranches =
-    isOrgMember(role)
-      ? branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true))
-      : branches;
+  const scopedBranches = canSeeAllBranches
+    ? branches
+    : branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true));
 
   const defaultBranch =
     scopedBranches.find((b) => b.id === accessScope?.default_branch_id) ??
@@ -72,8 +85,14 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<TabId>("ingredients");
 
   useEffect(() => {
-    if (!branchId && defaultBranch?.id) setBranchId(defaultBranch.id);
-  }, [defaultBranch?.id, branchId]);
+    // If the URL specifies a branch the user can access, jump straight to it.
+    // Otherwise fall back to the default branch once it resolves.
+    if (urlBranchId && scopedBranches.some((b) => b.id === urlBranchId)) {
+      setBranchId(urlBranchId);
+    } else if (!branchId && defaultBranch?.id) {
+      setBranchId(defaultBranch.id);
+    }
+  }, [urlBranchId, scopedBranches, defaultBranch?.id, branchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) router.replace("/");

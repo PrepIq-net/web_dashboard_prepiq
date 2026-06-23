@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile, useMyOrganizations } from "@/services";
 import {
@@ -63,13 +64,16 @@ import type { OrganizationMember, Role } from "@/services/organizations/types";
 import {
   SYSTEM_ROLE_OPTIONS,
   SYSTEM_ROLE_SLUG,
+  PERMISSIONS,
   resolveMemberRoleLabel,
 } from "@/services/organizations/types";
+import { resolvePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
+import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -80,54 +84,89 @@ type SettingsTab =
   | "integrations"
   | "notifications"
   | "security"
-  | "data-ai";
+  | "data-ai"
+  | "support";
 
 interface TabItem {
   id: SettingsTab;
   label: string;
   icon: React.ReactNode;
-  roles?: string[];
+  permission?: string;
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("organization");
+  return (
+    <Suspense>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+const VALID_SETTINGS_TABS: SettingsTab[] = [
+  "organization",
+  "branches",
+  "users-roles",
+  "integrations",
+  "notifications",
+  "security",
+  "data-ai",
+  "support",
+];
+
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabFromUrl = searchParams.get("tab") as SettingsTab | null;
+  const branchFromUrl = searchParams.get("branch") ?? undefined;
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    if (tabFromUrl && VALID_SETTINGS_TABS.includes(tabFromUrl)) return tabFromUrl;
+    return "organization";
+  });
   const { data: user } = useCurrentUserProfile();
+
+  // When the user changes branch inside IntegrationsSettings, update the URL so
+  // navigating away and back still shows the same branch.
+  function handleIntegrationBranchChange(branchId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("branch", branchId);
+    params.set("tab", "integrations");
+    router.replace(`/workspace/settings?${params.toString()}`, { scroll: false });
+  }
   const { data: organizations } = useMyOrganizations();
   const org = organizations?.[0];
+
+  const userPermissions = resolvePermissions(user);
 
   const tabs: TabItem[] = [
     {
       id: "organization",
       label: "Organization",
       icon: <Building className="h-4 w-4" />,
-      // Super Admin only — org settings are sensitive
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
+      permission: PERMISSIONS.MANAGE_ORG_SETTINGS,
     },
     {
       id: "branches",
       label: "Branches",
       icon: <Shop className="h-4 w-4" />,
-      // Super Admin and Admin can manage branches
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
+      permission: PERMISSIONS.MANAGE_BRANCHES,
     },
     {
       id: "users-roles",
       label: "Users & Roles",
       icon: <Group className="h-4 w-4" />,
-      // Only Super Admin manages team membership
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
+      permission: PERMISSIONS.MANAGE_TEAM,
     },
     {
       id: "integrations",
       label: "Integrations",
       icon: <CloudSync className="h-4 w-4" />,
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
+      permission: PERMISSIONS.MANAGE_INTEGRATIONS,
     },
     {
       id: "notifications",
       label: "Notifications",
       icon: <BellNotification className="h-4 w-4" />,
-      // All roles can manage their own notifications
     },
     {
       id: "security",
@@ -139,34 +178,27 @@ export default function SettingsPage() {
       label: "Data & AI Preferences",
       icon: <Brain className="h-4 w-4" />,
     },
+    {
+      id: "support",
+      label: "Support",
+      icon: <HelpCircle className="h-4 w-4" />,
+    },
   ];
 
-  // organization_role now returns the custom role name (e.g. "Super Admin").
-  // For tab visibility we match against the slug stored in the profile.
-  // The API returns organization_role as name; we fall back to showing all
-  // tabs when role info isn't loaded yet (avoids flash of empty nav).
-  const userRoleSlug = (() => {
-    const name = user?.organization_role?.toLowerCase();
-    if (!name) return null;
-    if (name.includes("super")) return SYSTEM_ROLE_SLUG.SUPER_ADMIN;
-    if (name === "admin") return SYSTEM_ROLE_SLUG.ADMIN;
-    return SYSTEM_ROLE_SLUG.MEMBER;
-  })();
-
   const filteredTabs = tabs.filter(
-    (tab) => !tab.roles || !userRoleSlug || tab.roles.includes(userRoleSlug),
+    (tab) => !tab.permission || userPermissions.has(tab.permission),
   );
 
-  // Once the role resolves, snap activeTab to the first tab the user can see.
-  // Without this a Member starts on "organization" (the default) even though
-  // that tab is hidden for them, which renders the org settings sub-component.
+  // Once permissions resolve, snap activeTab to the first tab the user can see.
+  // Without this a user starts on "organization" (the default) even if that
+  // tab is hidden for them, which would render the org settings component.
   useEffect(() => {
-    if (userRoleSlug && !filteredTabs.some((t) => t.id === activeTab)) {
+    if (user && !filteredTabs.some((t) => t.id === activeTab)) {
       const fallback = filteredTabs[0]?.id;
       if (fallback) setActiveTab(fallback);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRoleSlug]);
+  }, [user]);
 
   return (
     <WorkspaceShell
@@ -202,15 +234,6 @@ export default function SettingsPage() {
             ))}
           </nav>
 
-          <div className="mt-6 pt-4 border-t border-[#1C1C1F]">
-            <Link
-              href="/workspace/support"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary transition-all duration-200"
-            >
-              <HelpCircle className="h-4 w-4 text-text-muted" />
-              Support
-            </Link>
-          </div>
         </aside>
 
         {/* Content Panel */}
@@ -221,16 +244,22 @@ export default function SettingsPage() {
           {activeTab === "branches" && <BranchSettings orgId={org?.id} />}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
-            <IntegrationsSettings orgId={org?.id} />
+            <IntegrationsSettings
+              orgId={org?.id}
+              focusedBranchId={branchFromUrl}
+              onBranchChange={handleIntegrationBranchChange}
+            />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
-          {/* Add more tabs content here as they are implemented */}
+          {activeTab === "support" && <SupportTabContent />}
+          {/* Placeholder for tabs not yet built */}
           {![
             "organization",
             "branches",
             "users-roles",
             "integrations",
             "notifications",
+            "support",
           ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
@@ -491,115 +520,219 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
   );
 }
 
-function IntegrationsSettings({ orgId }: { orgId?: string }) {
-  const { isLoading } = useIntegrationsOverview({
-    organization_id: orgId || "00000000-0000-0000-0000-000000000000",
+const POS_SYSTEMS = [
+  { id: "square", name: "Square" },
+  { id: "toast", name: "Toast" },
+  { id: "clover", name: "Clover" },
+  { id: "loyverse", name: "Loyverse" },
+  { id: "lightspeed", name: "Lightspeed" },
+];
+
+function IntegrationsSettings({
+  orgId,
+  focusedBranchId,
+  onBranchChange,
+}: {
+  orgId?: string;
+  focusedBranchId?: string;
+  onBranchChange?: (branchId: string) => void;
+}) {
+  const branchesQuery = useBranches(orgId ?? "");
+  const branches = branchesQuery.data ?? [];
+
+  const [selectedBranchId, setSelectedBranchId] = useState(focusedBranchId ?? "");
+  const initDone = useRef(false);
+
+  // Initialize exactly once when branches first load — never resets on user changes.
+  useEffect(() => {
+    if (initDone.current || branches.length === 0) return;
+    initDone.current = true;
+    const preferred =
+      focusedBranchId && branches.some((b) => b.id === focusedBranchId)
+        ? focusedBranchId
+        : branches[0].id;
+    setSelectedBranchId(preferred);
+  }, [branches, focusedBranchId]);
+
+  const integrationsQuery = useIntegrationsOverview({
+    organization_id: orgId ?? "00000000-0000-0000-0000-000000000000",
+    branch_id: selectedBranchId || "00000000-0000-0000-0000-000000000000",
   });
+
   const squareOAuth = useSquareOAuthStart();
   const toastOAuth = useToastOAuthStart();
   const loyverseOAuth = useLoyverseOAuthStart();
   const cloverOAuth = useCloverOAuthStart();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
-      </div>
-    );
+  const summary = integrationsQuery.data?.summary;
+  // API now filters by branch_id, so the first (and only) item is our branch.
+  const branchStatus =
+    integrationsQuery.data?.branches.find((b) => b.branch_id === selectedBranchId) ??
+    integrationsQuery.data?.branches?.[0];
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId);
+  const isConnected = branchStatus?.status === "CONNECTED";
+  const isFocusedBranchWithIssue =
+    !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
+
+  function handleBranchChange(branchId: string) {
+    setSelectedBranchId(branchId);
+    onBranchChange?.(branchId);
   }
 
-  const posSystems = [
-    {
-      id: "toast",
-      name: "Toast",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "square",
-      name: "Square",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "clover",
-      name: "Clover",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "lightspeed",
-      name: "Lightspeed",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-  ];
-
-  const handleConnect = (id: string) => {
-    const branch_id = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for now
-    if (id === "square") {
+  const handleConnect = (posId: string) => {
+    const branch_id = selectedBranchId || "00000000-0000-0000-0000-000000000000";
+    if (posId === "square") {
       squareOAuth.mutate({ branch_id });
-    } else if (id === "toast") {
-      toastOAuth.mutate({
-        branch_id,
-        client_id: "placeholder",
-        client_secret: "placeholder",
-      });
-    } else if (id === "loyverse") {
+    } else if (posId === "toast") {
+      toastOAuth.mutate({ branch_id, client_id: "placeholder", client_secret: "placeholder" });
+    } else if (posId === "loyverse") {
       loyverseOAuth.mutate({ branch_id });
-    } else if (id === "clover") {
+    } else if (posId === "clover") {
       cloverOAuth.mutate({ branch_id });
     } else {
-      toast.error(`${id} connection not implemented yet.`);
+      toast.error(`${posId} connection not implemented yet.`);
     }
   };
 
   return (
     <div className="space-y-10">
+      {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary">
-          Integrations
-        </h2>
+        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
         <p className="text-sm text-text-muted mt-1">
-          Connect your POS, accounting, and reservation systems to PrepIQ.
+          Connect your POS and accounting systems to PrepIQ — per branch.
         </p>
       </div>
 
+      {/* Org-wide summary chips */}
+      {summary && (
+        <div className="flex flex-wrap gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-status-ok" />
+            {summary.active_connections} of {summary.total_branches} branches connected
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
+            {summary.health_pct}% sync health
+          </span>
+        </div>
+      )}
+
+      {/* Branch picker */}
+      <Select
+        label="Integration for"
+        options={branches.map((b) => ({ value: b.id, label: b.name }))}
+        value={selectedBranchId}
+        onChange={handleBranchChange}
+        placeholder={branches.length === 0 ? "Loading branches…" : "Select branch"}
+        disabled={branches.length === 0}
+        className="max-w-xs"
+      />
+
+      {/* Selected branch status */}
+      {integrationsQuery.isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+          Loading…
+        </div>
+      ) : branchStatus ? (
+        <div
+          className={`flex items-center justify-between rounded-2xl border px-5 py-4 ${
+            isConnected
+              ? "border-status-ok/25 bg-status-ok/6"
+              : "border-status-critical/25 bg-status-critical/6"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? "bg-status-ok" : "bg-status-critical"
+              }`}
+            />
+            <div>
+              <p className="text-sm font-medium text-text-primary">
+                {selectedBranch?.name ?? "Branch"} —{" "}
+                {isConnected ? "POS connected" : "No POS connected"}
+              </p>
+              {branchStatus.last_sync && (
+                <p className="text-xs text-text-muted mt-0.5">
+                  Last sync:{" "}
+                  {new Date(branchStatus.last_sync).toLocaleString([], {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+          {isConnected && (
+            <Badge variant="outline" className="text-[10px] text-status-ok border-status-ok/40">
+              Active
+            </Badge>
+          )}
+        </div>
+      ) : selectedBranch ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-surface-4 px-5 py-4 text-sm text-text-muted">
+          <span className="h-2 w-2 rounded-full bg-text-muted/30" />
+          No integration data for {selectedBranch.name} yet.
+        </div>
+      ) : null}
+
+      {/* Context banner — shown when arriving from dashboard with a POS issue */}
+      {isFocusedBranchWithIssue && (
+        <div className="flex items-start gap-3 rounded-xl border border-status-warning/30 bg-status-warning/8 px-4 py-4">
+          <InfoCircle className="h-4 w-4 text-status-warning shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              POS issue detected for {selectedBranch?.name}
+            </p>
+            <p className="text-xs text-text-muted mt-1 leading-relaxed">
+              Sales data isn&apos;t syncing for this branch. Connect a POS system below.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* POS Systems */}
       <section className="space-y-6">
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <Shop className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
             POS Systems
           </h3>
+          {selectedBranch && (
+            <span className="ml-auto text-xs text-text-muted">
+              {isConnected ? `${selectedBranch.name} is connected` : `Connect for ${selectedBranch.name}`}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {posSystems.map((pos) => (
+          {POS_SYSTEMS.map((pos) => (
             <div
               key={pos.id}
               className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
             >
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
-                  {pos.icon}
+                  <Shop className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="font-medium text-text-primary">{pos.name}</p>
-                  <Badge
-                    variant="outline"
-                    className="mt-1 text-[10px] opacity-60"
-                  >
-                    {pos.status}
+                  <Badge variant="outline" className="mt-1 text-[10px] opacity-60">
+                    {isConnected ? "Connected" : "Not connected"}
                   </Badge>
                 </div>
               </div>
-              <Button
-                variant="secondary"
-                onClick={() => handleConnect(pos.id)}
-                className="h-9 px-4 text-xs font-semibold"
-              >
-                Connect
-              </Button>
+              {!isConnected && (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleConnect(pos.id)}
+                  disabled={!selectedBranchId}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Connect
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -616,8 +749,8 @@ function IntegrationsSettings({ orgId }: { orgId?: string }) {
         <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
           <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
           <p className="text-sm text-text-muted max-w-xs mx-auto">
-            QuickBooks, Xero, and OpenTable integrations are currently in
-            private beta. Contact support to join the waitlist.
+            QuickBooks, Xero, and OpenTable integrations are currently in private beta.
+            Contact support to join the waitlist.
           </p>
         </div>
       </section>

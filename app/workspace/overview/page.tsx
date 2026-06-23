@@ -12,7 +12,8 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
-import { isOrgMember } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -105,8 +106,8 @@ export default function WorkspaceOverviewPage() {
     }
   }, [branchId, defaultBranch?.id]);
 
-  const role = user?.organization_role ?? "";
-  const canAccess = isOrgMember(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) || permissions.has(PERMISSIONS.MANAGE_BRANCHES);
   useEffect(() => {
     if (!userLoading && !canAccess) {
       router.replace("/");

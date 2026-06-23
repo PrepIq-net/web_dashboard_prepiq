@@ -22,6 +22,7 @@ import {
   Group,
 } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
+import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import type { UserProfile } from "@/services/users/types";
 
@@ -154,38 +155,6 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Permission resolution
-// The user profile carries organization_role (custom role name string).
-// We approximate permissions from role name since the profile endpoint doesn't
-// return the full permission set. Granular permission checks happen on the
-// backend; this is purely a UI hint to avoid showing irrelevant nav items.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function resolvePermissionsFromRole(roleName?: string | null): Set<string> {
-  const name = (roleName ?? "").toLowerCase();
-
-  // Super Admin / Admin — full access
-  if (name.includes("super") || name === "admin") {
-    return new Set(Object.values(PERMISSIONS));
-  }
-
-  // Member — operational day-to-day
-  return new Set([
-    PERMISSIONS.VIEW_FORECASTS,
-    PERMISSIONS.APPROVE_PREP_PLANS,
-    PERMISSIONS.OVERRIDE_PREP_PLANS,
-    PERMISSIONS.CREATE_PRODUCTION_BATCH,
-    PERMISSIONS.LOG_WASTE,
-    PERMISSIONS.VIEW_INVENTORY,
-    PERMISSIONS.ADJUST_INVENTORY,
-    PERMISSIONS.VIEW_POS_DATA,
-    PERMISSIONS.RESPOND_TO_CUSTOMERS,
-    PERMISSIONS.ACCESS_GLOBAL_CHAT,
-    PERMISSIONS.VIEW_DONATION_HISTORY,
-    PERMISSIONS.VIEW_PRODUCTION_REPORTS,
-  ]);
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
@@ -248,7 +217,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebarState();
 
-  const permissions = resolvePermissionsFromRole(user?.organization_role);
+  const permissions = resolvePermissions(user);
 
   const normalizedPath =
     pathname.endsWith("/") && pathname !== "/"
