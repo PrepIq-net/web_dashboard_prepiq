@@ -33,7 +33,7 @@ function greeting(firstName: string | null | undefined): string {
 }
 
 function alertHref(alert: AlertEntry): string {
-  const branchParam = `?branch=${alert.branch_id}`;
+  const param = `?branch=${alert.branch_id}`;
   switch (alert.type) {
     case "UNMAPPED_SALES":
       return "/workspace/sales-waste";
@@ -42,11 +42,11 @@ function alertHref(alert: AlertEntry): string {
       return "/workspace/settings?tab=integrations";
     case "SALES_VELOCITY_DROP":
     case "SALES_VELOCITY_SURGE":
-      return `/workspace/today${branchParam}`;
+      return `/workspace/today${param}`;
     case "BRANCH_UNDERPERFORMING":
-      return `/workspace/branches${branchParam}`;
+      return `/workspace/branches${param}`;
     case "WASTE_RISK":
-      return `/workspace/sales-waste${branchParam}`;
+      return `/workspace/sales-waste${param}`;
     default:
       return "/workspace/today";
   }
@@ -57,22 +57,33 @@ function branchCTA(branch: BranchEntry): { label: string; href: string } {
   if (branch.compliance_badge === "RED")
     return { label: "Intervene", href: `/workspace/branches${param}` };
   if (Number(branch.waste_pct ?? 0) >= 5)
-    return { label: "Review Waste", href: `/workspace/sales-waste${param}` };
-  return { label: "View Today", href: `/workspace/today${param}` };
+    return { label: "Review waste", href: `/workspace/sales-waste${param}` };
+  return { label: "View today", href: `/workspace/today${param}` };
 }
 
-function dayStatusLabel(status: string | null | undefined): string {
-  if (status === "LIVE") return "Live service";
-  if (status === "CLOSED") return "Day closed";
-  if (status === "MORNING") return "Morning planning";
-  return "Not started";
+function branchStatusLine(branch: BranchEntry): string {
+  const parts: string[] = [];
+  if (branch.day_status === "LIVE") parts.push("Live service");
+  else if (branch.day_status === "MORNING") parts.push("Morning planning");
+  else if (branch.day_status === "CLOSED") parts.push("Closed");
+  else parts.push("Not started");
+
+  parts.push(branch.plan_locked ? "Plan locked" : "Plan pending");
+
+  if (branch.staff_activity_status === "ACTIVE") parts.push("Staff active");
+  else if (branch.staff_activity_status === "IDLE") parts.push("Staff idle");
+  else parts.push("No staff sync");
+
+  return parts.join(" · ");
 }
 
-function dayStatusColor(status: string | null | undefined): string {
-  if (status === "LIVE") return "text-status-success";
-  if (status === "CLOSED") return "text-text-disabled";
-  if (status === "MORNING") return "text-status-warning";
-  return "text-text-muted";
+// A branch is "at risk" if the status line contains signals that need attention
+function branchNeedsAttention(branch: BranchEntry): boolean {
+  return (
+    branch.compliance_badge === "RED" ||
+    !branch.plan_locked ||
+    branch.staff_activity_status === "NO_SYNC"
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,7 +99,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
     return d.toISOString().slice(0, 10);
   }, []);
 
-  // undefined = today; CommandSection uses the same key → shared cache, no double-fetch
+  // undefined = today; same key as CommandSection → shared React Query cache
   const ctToday = useExecutiveControlTower(undefined, Boolean(user?.organization_id));
   const ctYesterday = useExecutiveControlTower(
     { target_date: yesterdayDate },
@@ -103,12 +114,19 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
   const alerts = tower?.alerts ?? [];
   const branchGrid = tower?.branch_grid ?? [];
 
+  // Sort: RED first (needs attention), then alphabetical
   const sortedBranches = useMemo(() => {
-    const order: Record<string, number> = { RED: 0, AMBER: 1, GREEN: 2 };
+    const badgeOrder: Record<string, number> = { RED: 0, AMBER: 1, GREEN: 2 };
     return [...branchGrid].sort(
-      (a, b) => (order[a.compliance_badge ?? ""] ?? 1) - (order[b.compliance_badge ?? ""] ?? 1),
+      (a, b) =>
+        (badgeOrder[a.compliance_badge ?? ""] ?? 1) -
+        (badgeOrder[b.compliance_badge ?? ""] ?? 1),
     );
   }, [branchGrid]);
+
+  // Only the HIGH alerts warrant the alert panel — lower ones live in CommandSection
+  const highAlerts = alerts.filter((a) => a.severity === "HIGH");
+  const totalAlertCount = alerts.length;
 
   // Pulse metrics
   const revenueToday = Number(tower?.summary?.total_revenue ?? 0);
@@ -121,9 +139,11 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
   const wasteCost = Number(marginReport.data?.summary?.total_waste_cost ?? "0");
   const wasteRiskPct = Number(tower?.summary?.waste_risk_pct ?? 0);
   const wasteAsRevenuePct = revenueToday > 0 ? (wasteCost / revenueToday) * 100 : 0;
+  const wasteIsBad = canSeeFinancials ? wasteCost > 500 : wasteRiskPct > 8;
 
   const forecastAccuracyPct = Number(tower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
-  const highAlerts = alerts.filter((a) => a.severity === "HIGH").length;
+  const forecastIsBad = forecastAccuracyPct < 70;
+  const forecastIsWarning = forecastAccuracyPct >= 70 && forecastAccuracyPct < 85;
 
   const todayDisplay = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -133,7 +153,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
 
   return (
     <>
-      {/* Morning brief */}
+      {/* ── Morning brief ─────────────────────────────────────────────── */}
       <div className="mb-12">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
           {todayDisplay}
@@ -143,19 +163,20 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         </h1>
         <p className="mt-4 text-base text-text-secondary">
           {branchGrid.length > 0
-            ? `${branchGrid.length} ${branchGrid.length === 1 ? "branch" : "branches"} reporting today`
+            ? `${branchGrid.length} ${branchGrid.length === 1 ? "branch" : "branches"} reporting`
             : ctToday.isLoading
-              ? "Loading branch data..."
+              ? "Loading…"
               : "No branches connected yet"}
         </p>
       </div>
 
-      {/* Pulse KPIs */}
+      {/* ── Pulse KPIs ────────────────────────────────────────────────── */}
+      {/* All cards look the same. Color only appears when there's a problem. */}
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
         {/* Revenue */}
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-            Revenue Today
+            Revenue today
           </p>
           <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
             ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -176,23 +197,19 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                 </span>
               </>
             ) : (
-              <span className="text-xs text-text-muted">No prior-day baseline yet</span>
+              <span className="text-xs text-text-muted">No prior-day baseline</span>
             )}
           </div>
         </article>
 
-        {/* Waste */}
+        {/* Waste — colored only when bad */}
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-            {canSeeFinancials ? "Waste Cost" : "Waste Risk"}
+            {canSeeFinancials ? "Waste cost" : "Waste risk"}
           </p>
           <p
             className={`font-display text-3xl font-semibold tracking-tight ${
-              (canSeeFinancials ? wasteCost : wasteRiskPct) > (canSeeFinancials ? 500 : 8)
-                ? "text-status-critical"
-                : (canSeeFinancials ? wasteCost : wasteRiskPct) > (canSeeFinancials ? 200 : 4)
-                  ? "text-status-warning"
-                  : "text-text-primary"
+              wasteIsBad ? "text-status-critical" : "text-text-primary"
             }`}
           >
             {canSeeFinancials
@@ -208,198 +225,182 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
           </div>
         </article>
 
-        {/* Forecast accuracy */}
+        {/* Forecast — colored only when bad */}
         <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-            Forecast Accuracy
+            Forecast accuracy
           </p>
           <p
             className={`font-display text-3xl font-semibold tracking-tight ${
-              forecastAccuracyPct >= 85
-                ? "text-status-success"
-                : forecastAccuracyPct >= 70
-                  ? "text-status-warning"
-                  : "text-status-critical"
-            }`}
-          >
-            {forecastAccuracyPct.toFixed(1)}%
-          </p>
-          <div className="mt-2 h-1.5 bg-surface-3 rounded-full overflow-hidden">
-            <div
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                forecastAccuracyPct >= 85
-                  ? "bg-status-success"
-                  : forecastAccuracyPct >= 70
-                    ? "bg-status-warning"
-                    : "bg-status-critical"
-              }`}
-              style={{ width: `${Math.min(100, forecastAccuracyPct)}%` }}
-            />
-          </div>
-          <div className="mt-3 pt-3 border-t border-surface-4">
-            <p className="text-xs text-text-muted">7-day rolling average</p>
-          </div>
-        </article>
-
-        {/* Alerts */}
-        <article
-          className={`bg-surface-2 rounded-xl p-6 border ${alerts.length > 0 ? "border-status-warning/40" : "border-surface-4"}`}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-            Active Alerts
-          </p>
-          <p
-            className={`font-display text-3xl font-semibold tracking-tight ${
-              highAlerts > 0
+              forecastIsBad
                 ? "text-status-critical"
-                : alerts.length > 0
+                : forecastIsWarning
                   ? "text-status-warning"
                   : "text-text-primary"
             }`}
           >
-            {alerts.length}
+            {forecastAccuracyPct.toFixed(1)}%
+          </p>
+          <div className="mt-4 pt-4 border-t border-surface-4">
+            <p className="text-xs text-text-muted">7-day rolling average</p>
+          </div>
+        </article>
+
+        {/* Alerts — only red when HIGH alerts exist */}
+        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+            Active alerts
+          </p>
+          <p
+            className={`font-display text-3xl font-semibold tracking-tight ${
+              highAlerts.length > 0 ? "text-status-critical" : "text-text-primary"
+            }`}
+          >
+            {totalAlertCount}
           </p>
           <div className="mt-4 pt-4 border-t border-surface-4">
             <p className="text-xs text-text-muted">
-              {highAlerts > 0
-                ? `${highAlerts} high severity — act now`
-                : alerts.length > 0
-                  ? "Review alerts below"
+              {highAlerts.length > 0
+                ? `${highAlerts.length} need immediate action`
+                : totalAlertCount > 0
+                  ? "No urgent issues"
                   : "All clear"}
             </p>
           </div>
         </article>
       </section>
 
-      {/* Branch health grid */}
+      {/* ── High-severity alert banner ────────────────────────────────── */}
+      {/* Only HIGH alerts get a banner. Medium/low live in the queue below. */}
+      {highAlerts.length > 0 && (
+        <section className="mb-12">
+          <div className="space-y-2.5">
+            {highAlerts.slice(0, 3).map((alert) => (
+              <div
+                key={alert.id}
+                className="flex items-start justify-between gap-6 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical bg-surface-2 px-6 py-4"
+              >
+                <div className="flex items-start gap-4 min-w-0">
+                  <span className="mt-1.5 h-2 w-2 rounded-full bg-status-critical shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
+                      {alert.title || alert.type}
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">{alert.branch_name}</p>
+                    {alert.context && (
+                      <p className="mt-1.5 text-sm text-text-secondary">{alert.context}</p>
+                    )}
+                    {alert.suggested_action && (
+                      <p className="mt-1 text-xs text-text-muted">→ {alert.suggested_action}</p>
+                    )}
+                  </div>
+                </div>
+                <Link
+                  href={alertHref(alert)}
+                  className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary hover:border-status-critical/40 hover:text-status-critical transition-colors"
+                >
+                  View <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Branch health grid ────────────────────────────────────────── */}
+      {/* Cards are neutral by default. RED branches are the exception.      */}
       {sortedBranches.length > 0 && (
         <section className="mb-12">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Branch Health
-            </p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              {sortedBranches.length}{" "}
-              {sortedBranches.length === 1 ? "location" : "locations"} at a glance
-            </h2>
+          <div className="mb-6 flex items-baseline justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                Branch health
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
+                {sortedBranches.length}{" "}
+                {sortedBranches.length === 1 ? "location" : "locations"}
+              </h2>
+            </div>
+            {sortedBranches.some((b) => b.compliance_badge === "RED") && (
+              <span className="text-xs font-medium text-status-critical">
+                {sortedBranches.filter((b) => b.compliance_badge === "RED").length} need attention
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {sortedBranches.map((branch) => {
-              const badge = branch.compliance_badge;
+              const isRed = branch.compliance_badge === "RED";
               const wastePct = Number(branch.waste_pct ?? 0);
               const cta = branchCTA(branch);
-              const isRed = badge === "RED";
-              const isAmber = badge === "AMBER";
+              const needsAttention = branchNeedsAttention(branch);
 
-              const borderColor = isRed
-                ? "border-status-critical/50"
-                : isAmber
-                  ? "border-status-warning/40"
-                  : "border-surface-4";
-              const badgeDot = isRed
-                ? "bg-status-critical"
-                : isAmber
-                  ? "bg-status-warning"
-                  : "bg-status-success";
-              const badgeText = isRed
-                ? "text-status-critical"
-                : isAmber
-                  ? "text-status-warning"
-                  : "text-status-success";
-              const wasteBadgeCls =
-                wastePct > 7
-                  ? "text-status-critical bg-status-critical/10"
-                  : wastePct > 4
-                    ? "text-status-warning bg-status-warning/10"
-                    : "text-status-success bg-status-success/10";
+              // RED branches: left accent + muted red tint. Others: plain neutral.
+              const cardClass = isRed
+                ? "bg-surface-2 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical p-6 flex flex-col gap-5"
+                : "bg-surface-2 rounded-xl border border-surface-4 p-6 flex flex-col gap-5";
+
+              // Status line: flag bad states, mute good ones
+              const statusLineClass = needsAttention
+                ? "text-xs text-status-warning"
+                : "text-xs text-text-muted";
 
               return (
-                <article
-                  key={branch.branch_id}
-                  className={`bg-surface-2 rounded-xl border ${borderColor} p-6 flex flex-col gap-4`}
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
+                <article key={branch.branch_id} className={cardClass}>
+                  {/* Header: name + revenue */}
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${badgeDot}`} />
-                      <h3 className="font-semibold text-text-primary truncate">
+                      <span
+                        className={`h-2 w-2 rounded-full shrink-0 ${
+                          isRed
+                            ? "bg-status-critical"
+                            : branch.compliance_badge === "AMBER"
+                              ? "bg-status-warning"
+                              : "bg-status-success"
+                        }`}
+                      />
+                      <h3 className="font-medium text-text-primary truncate">
                         {branch.branch_name}
                       </h3>
                     </div>
-                    <span className={`text-xs font-bold tracking-wide shrink-0 ml-2 ${badgeText}`}>
-                      {badge}
+                    <p className="font-semibold text-text-primary shrink-0 text-sm">
+                      $
+                      {Number(branch.revenue ?? 0).toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+
+                  {/* Waste metric — only colorized when high */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-muted">Waste</span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        wastePct > 7
+                          ? "text-status-critical"
+                          : wastePct > 4
+                            ? "text-status-warning"
+                            : "text-text-secondary"
+                      }`}
+                    >
+                      {wastePct.toFixed(1)}%
                     </span>
                   </div>
 
-                  {/* Metrics row */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-text-muted mb-1">Revenue</p>
-                      <p className="font-semibold text-lg text-text-primary leading-tight">
-                        $
-                        {Number(branch.revenue ?? 0).toLocaleString(undefined, {
-                          maximumFractionDigits: 0,
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-text-muted mb-1">Waste</p>
-                      <span
-                        className={`inline-flex items-center rounded-md px-2 py-0.5 text-sm font-semibold ${wasteBadgeCls}`}
-                      >
-                        {wastePct.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Status rows */}
-                  <div className="border-t border-surface-4 pt-4 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-muted">Day</span>
-                      <span className={`text-xs font-medium ${dayStatusColor(branch.day_status)}`}>
-                        {dayStatusLabel(branch.day_status)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-muted">Plan</span>
-                      <span
-                        className={`text-xs font-medium ${branch.plan_locked ? "text-status-success" : "text-status-warning"}`}
-                      >
-                        {branch.plan_locked ? "✓ Locked" : "⚠ Pending"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-muted">Staff</span>
-                      <span
-                        className={`text-xs font-medium ${
-                          branch.staff_activity_status === "ACTIVE"
-                            ? "text-status-success"
-                            : branch.staff_activity_status === "IDLE"
-                              ? "text-status-warning"
-                              : "text-text-muted"
-                        }`}
-                      >
-                        {branch.staff_activity_status === "ACTIVE"
-                          ? "Active"
-                          : branch.staff_activity_status === "IDLE"
-                            ? "Idle"
-                            : "No sync"}
-                      </span>
-                    </div>
-                  </div>
+                  {/* Status line — single line, muted when OK, warning-colored when not */}
+                  <p className={statusLineClass}>{branchStatusLine(branch)}</p>
 
                   {/* CTA */}
                   <Link
                     href={cta.href}
-                    className={`group inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-all duration-200 ${
+                    className={`group inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors duration-150 ${
                       isRed
-                        ? "bg-status-critical/10 border border-status-critical/30 text-status-critical hover:bg-status-critical/20"
-                        : "bg-surface-3 border border-surface-4 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
+                        ? "border-status-critical/30 bg-status-critical/8 text-status-critical hover:bg-status-critical/15"
+                        : "border-surface-4 bg-surface-3 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
                     }`}
                   >
                     {cta.label}
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                   </Link>
                 </article>
               );
@@ -408,85 +409,12 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         </section>
       )}
 
-      {/* Alerts panel */}
-      {alerts.length > 0 && (
-        <section className="mb-12">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Live Alerts · {alerts.length}
-            </p>
-          </div>
-          <div className="space-y-3">
-            {alerts.slice(0, 5).map((alert) => {
-              const isHigh = alert.severity === "HIGH";
-              const isMed = alert.severity === "MEDIUM";
-              const severityDot = isHigh
-                ? "bg-status-critical"
-                : isMed
-                  ? "bg-status-warning"
-                  : "bg-status-success";
-              const severityText = isHigh
-                ? "text-status-critical"
-                : isMed
-                  ? "text-status-warning"
-                  : "text-text-muted";
-              const borderAccent = isHigh
-                ? "border-l-status-critical"
-                : isMed
-                  ? "border-l-status-warning"
-                  : "border-l-surface-4";
-
-              return (
-                <div
-                  key={alert.id}
-                  className={`bg-surface-2 rounded-xl border border-surface-4 border-l-[3px] ${borderAccent} px-6 py-4 flex items-start justify-between gap-6`}
-                >
-                  <div className="flex items-start gap-4 min-w-0">
-                    <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${severityDot}`} />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <p className="text-sm font-semibold text-text-primary">
-                          {alert.title || alert.type}
-                        </p>
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wide ${severityText}`}
-                        >
-                          {alert.severity}
-                        </span>
-                      </div>
-                      <p className="text-xs text-text-muted">{alert.branch_name}</p>
-                      {alert.context && (
-                        <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                          {alert.context}
-                        </p>
-                      )}
-                      {alert.suggested_action && (
-                        <p className="mt-1 text-xs text-text-muted">
-                          → {alert.suggested_action}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Link
-                    href={alertHref(alert)}
-                    className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold transition-all duration-150"
-                  >
-                    View
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Add branch CTA (shown when no branches yet) */}
+      {/* Empty state */}
       {branchGrid.length === 0 && !ctToday.isLoading && (
         <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
-          <p className="text-text-muted mb-2">No branches connected yet</p>
+          <p className="text-text-muted">No branches connected yet</p>
           <Link href="/setup/branch/create">
-            <button className="mt-4 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
+            <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
               <Shop className="h-4 w-4" />
               Add your first branch
             </button>
