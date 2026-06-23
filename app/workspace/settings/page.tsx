@@ -17,7 +17,9 @@ import {
   Plus,
   Trash,
   Edit,
+  HelpCircle,
 } from "iconoir-react";
+import Link from "next/link";
 import {
   useOrganizationDetail,
   useUpdateOrganization,
@@ -206,6 +208,16 @@ export default function SettingsPage() {
               Language
             </p>
             <LanguageSwitcher className="w-full" />
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-[#1C1C1F]">
+            <Link
+              href="/workspace/support"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary transition-all duration-200"
+            >
+              <HelpCircle className="h-4 w-4 text-text-muted" />
+              Support
+            </Link>
           </div>
         </aside>
 
