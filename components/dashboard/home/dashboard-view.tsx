@@ -228,16 +228,14 @@ function ModalStat({
   label: string;
   value: string;
   sub?: string;
-  highlight?: "red" | "amber" | "green";
+  highlight?: "red" | "amber";
 }) {
   const valueColor =
     highlight === "red"
       ? "text-status-critical"
       : highlight === "amber"
         ? "text-status-warning"
-        : highlight === "green"
-          ? "text-status-success"
-          : "text-text-primary";
+        : "text-text-primary";
   return (
     <div className="bg-surface-3 rounded-lg p-4 border border-surface-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
@@ -690,13 +688,6 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   ? `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}% vs yesterday`
                   : "No prior-day baseline"
               }
-              highlight={
-                revenueDeltaPct !== null && revenueDeltaPct < -5
-                  ? "red"
-                  : revenueDeltaPct !== null && revenueDeltaPct >= 0
-                    ? "green"
-                    : undefined
-              }
             />
             <ModalStat
               label="Units sold"
@@ -709,7 +700,6 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
               label="Cost saved today"
               value={fmtMoney(Number(tower?.summary?.cost_saved_today ?? 0))}
               sub="vs unoptimized baseline"
-              highlight={Number(tower?.summary?.cost_saved_today ?? 0) > 0 ? "green" : undefined}
             />
           </div>
 
@@ -817,9 +807,9 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
           </div>
 
           {marginReport.data?.summary?.margin_reliability?.is_reliable === false && (
-            <div className="rounded-lg border border-status-warning/30 bg-status-warning/8 px-4 py-3">
-              <p className="text-sm font-medium text-status-warning">
-                Margin data reliability warning
+            <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3">
+              <p className="text-xs font-semibold text-text-primary">
+                Data reliability note
               </p>
               <p className="text-xs text-text-muted mt-0.5">
                 {marginReport.data.summary.margin_reliability.warning ??
@@ -851,7 +841,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                         ? "bg-status-critical"
                         : p >= 4
                           ? "bg-status-warning"
-                          : "bg-status-success",
+                          : "bg-surface-5",
                     display: mb
                       ? fmtMoney(Number(mb.total_waste_cost ?? "0"))
                       : undefined,
@@ -880,12 +870,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   .map((b) => ({
                     label: b.branch_name,
                     value: Number(b.total_waste_cost ?? "0"),
-                    colorClass:
-                      Number(b.total_waste_cost ?? "0") > 1000
-                        ? "bg-status-critical/80"
-                        : Number(b.total_waste_cost ?? "0") > 500
-                          ? "bg-status-warning/80"
-                          : "bg-surface-5",
+                    colorClass: "bg-surface-5",
                   }))}
                 formatVal={(item) => fmtMoney(item.value)}
                 emptyText="No cost data available"
@@ -917,7 +902,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
               label="7-day rolling"
               value={`${forecastAccuracyPct.toFixed(1)}%`}
               sub="across all branches"
-              highlight={forecastIsBad ? "red" : forecastIsWarning ? "amber" : "green"}
+              highlight={forecastIsBad ? "red" : forecastIsWarning ? "amber" : undefined}
             />
             <ModalStat
               label="Branches below 70%"
@@ -984,9 +969,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                         ? "bg-status-critical"
                         : conf < 65
                           ? "bg-status-warning"
-                          : conf < 85
-                            ? "bg-status-success/70"
-                            : "bg-status-success",
+                          : "bg-surface-5",
                     display: accuracy != null ? `${(accuracy * 100).toFixed(0)}% actual` : undefined,
                   };
                 })}
@@ -1039,8 +1022,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
             <p className="text-xs text-text-muted mt-1">No alerts detected across your branches.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* High severity first */}
+          <div className="divide-y divide-surface-4">
             {[...alerts]
               .sort((a, b) => {
                 const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -1050,57 +1032,44 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                 const cta = alertCTA(alert);
                 const isHigh = alert.severity === "HIGH";
                 return (
-                  <div
-                    key={alert.id}
-                    className={`rounded-lg border p-4 ${
-                      isHigh
-                        ? "border-status-critical/30 border-l-[3px] border-l-status-critical bg-status-critical/5"
-                        : "border-surface-4 border-l-[3px] border-l-status-warning"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <span
-                          className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-                            isHigh ? "bg-status-critical" : "bg-status-warning"
-                          }`}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-text-primary leading-snug">
-                              {alert.title || alert.type}
-                            </p>
-                            {alert.type && (
-                              <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted bg-surface-4 rounded px-1.5 py-0.5">
-                                {alert.type.replace(/_/g, " ")}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-text-muted mt-0.5">{alert.branch_name}</p>
-                          {alert.context && (
-                            <p className="mt-1.5 text-xs text-text-secondary leading-relaxed">
-                              {alert.context}
-                            </p>
-                          )}
-                          {alert.suggested_action && (
-                            <p className="mt-1 text-xs text-text-muted">
-                              → {alert.suggested_action}
-                            </p>
+                  <div key={alert.id} className="flex items-start justify-between gap-4 py-4 first:pt-0">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <span
+                        className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${
+                          isHigh ? "bg-status-critical" : "bg-status-warning"
+                        }`}
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-text-primary leading-snug">
+                            {alert.title || alert.type}
+                          </p>
+                          {alert.type && (
+                            <span className="text-[10px] uppercase tracking-wider text-text-muted">
+                              {alert.type.replace(/_/g, " ")}
+                            </span>
                           )}
                         </div>
+                        <p className="text-xs text-text-muted mt-0.5">{alert.branch_name}</p>
+                        {alert.context && (
+                          <p className="mt-1.5 text-xs text-text-secondary leading-relaxed">
+                            {alert.context}
+                          </p>
+                        )}
+                        {alert.suggested_action && (
+                          <p className="mt-1 text-xs text-text-muted">
+                            → {alert.suggested_action}
+                          </p>
+                        )}
                       </div>
-                      <Link
-                        href={cta.href}
-                        className={`shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-xs font-medium whitespace-nowrap transition-colors ${
-                          isHigh
-                            ? "border-status-critical/30 text-status-critical hover:bg-status-critical/10"
-                            : "border-surface-4 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
-                        }`}
-                      >
-                        {cta.label}
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
                     </div>
+                    <Link
+                      href={cta.href}
+                      className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-surface-5 hover:text-text-primary"
+                    >
+                      {cta.label}
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </div>
                 );
               })}
