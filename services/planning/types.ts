@@ -157,11 +157,22 @@ export type CalendarViewResponse = z.infer<typeof calendarViewResponseSchema>;
 // Forecast context — /events/forecast-context/
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const promotionItemUpliftSchema = z.object({
+  item_id: z.string().uuid(),
+  item_name: z.string(),
+  uplift: z.number(),
+});
+export type PromotionItemUplift = z.infer<typeof promotionItemUpliftSchema>;
+
 export const forecastContextSchema = z.object({
   has_closure: z.boolean(),
   closure_is_full_day: z.boolean(),
   has_promotion: z.boolean(),
   promotion_expected_uplift: z.number(),
+  // Per-item promotion data: item_id → {item_id, item_name, uplift}
+  // e.g. Rolex and Pizza are on Happy Hour → those items get +20% forecast boost
+  promotion_item_uplifts: z.record(z.string(), promotionItemUpliftSchema).optional(),
+  promotion_affected_item_ids: z.array(z.string()).optional(),
   reservation_count: z.number(),
   reservation_total_guests: z.number(),
   reservation_types: z.array(z.string()),
