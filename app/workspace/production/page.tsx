@@ -11,6 +11,7 @@ import {
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { Shop } from "iconoir-react";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 
@@ -103,26 +104,42 @@ function getTrendLabel(value: number) {
   return "Normal";
 }
 
-function getTrendTone(label: string) {
-  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
-  if (label === "Slow") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
-  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
+function getTrendToneClasses(label: string) {
+  if (label === "High")
+    return "border-status-critical/30 bg-status-critical/10 text-status-critical";
+  if (label === "Slow")
+    return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+  return "border-status-success/30 bg-status-success/10 text-status-success";
 }
 
 function getPriority(item: LiveItem) {
-  if (item.stockoutRisk === "HIGH" || (item.runoutMinutes !== null && item.runoutMinutes <= 30)) {
+  if (
+    item.stockoutRisk === "HIGH" ||
+    (item.runoutMinutes !== null && item.runoutMinutes <= 30)
+  ) {
     return "High";
   }
-  if (item.prepNowQty > 0 || (item.runoutMinutes !== null && item.runoutMinutes <= 60)) {
+  if (
+    item.prepNowQty > 0 ||
+    (item.runoutMinutes !== null && item.runoutMinutes <= 60)
+  ) {
     return "Medium";
   }
   return "Low";
 }
 
-function getPriorityTone(label: string) {
-  if (label === "High") return "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
-  if (label === "Medium") return "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]";
-  return "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]";
+function getPriorityToneClasses(label: string) {
+  if (label === "High")
+    return "border-status-critical/30 bg-status-critical/10 text-status-critical";
+  if (label === "Medium")
+    return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+  return "border-status-success/30 bg-status-success/10 text-status-success";
+}
+
+function getStockoutAccentClass(risk: LiveItem["stockoutRisk"]) {
+  if (risk === "HIGH") return "border-l-[3px] border-l-status-critical/60";
+  if (risk === "MEDIUM") return "border-l-[3px] border-l-status-warning/50";
+  return "border-l-[3px] border-l-transparent";
 }
 
 export default function ProductionPage() {
@@ -131,11 +148,10 @@ export default function ProductionPage() {
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const permissions = resolvePermissions(user);
-  const isOwner = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
-  const isOrgAdmin = permissions.has(PERMISSIONS.VIEW_ANALYTICS) && !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
-  const isStaffOperator = permissions.has(PERMISSIONS.CREATE_PRODUCTION_BATCH) && !permissions.has(PERMISSIONS.VIEW_ANALYTICS);
+  const isStaffOperator =
+    permissions.has(PERMISSIONS.CREATE_PRODUCTION_BATCH) &&
+    !permissions.has(PERMISSIONS.VIEW_ANALYTICS);
   const isBranchManager = false;
-  const isOpsDirector = false;
   const canViewProduction =
     permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS) ||
     permissions.has(PERMISSIONS.CREATE_PRODUCTION_BATCH);
@@ -143,8 +159,13 @@ export default function ProductionPage() {
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const branchOptions = useMemo(() => {
-    const accessibleBranchIds = new Set(accessibleBranches.map((branch) => branch.id));
-    const byId = new Map<string, { id: string; name: string; is_primary: boolean }>();
+    const accessibleBranchIds = new Set(
+      accessibleBranches.map((branch) => branch.id),
+    );
+    const byId = new Map<
+      string,
+      { id: string; name: string; is_primary: boolean }
+    >();
     for (const branch of branches) {
       byId.set(branch.id, {
         id: branch.id,
@@ -176,13 +197,17 @@ export default function ProductionPage() {
 
   useEffect(() => {
     if (!defaultBranchId) return;
-    if (!selectedBranchId || !branchOptions.some((branch) => branch.id === selectedBranchId)) {
+    if (
+      !selectedBranchId ||
+      !branchOptions.some((branch) => branch.id === selectedBranchId)
+    ) {
       setSelectedBranchId(defaultBranchId);
     }
   }, [defaultBranchId, selectedBranchId, branchOptions]);
 
   const activeBranchId = selectedBranchId || defaultBranchId;
-  const activeBranch = branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
+  const activeBranch =
+    branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
   const todayDate = new Date().toISOString().slice(0, 10);
 
   const branchDayQuery = useBranchDayToday(
@@ -238,7 +263,9 @@ export default function ProductionPage() {
         wasteRisk: riskEngine?.waste_risk ?? "LOW",
         trendPct: Number(item.live_monitor?.trend_vs_forecast_pct ?? 0),
         alertLabel:
-          item.live_monitor?.alert?.message ?? item.live_monitor?.signal ?? null,
+          item.live_monitor?.alert?.message ??
+          item.live_monitor?.signal ??
+          null,
         startBatchNow: Boolean(riskEngine?.start_new_batch_now),
         avgDemandLastHour: riskEngine?.avg_demand_last_hour ?? null,
       };
@@ -250,10 +277,6 @@ export default function ProductionPage() {
     let totalRemaining = 0;
     let totalPrepared = 0;
     let totalPlanned = 0;
-    let trendSum = 0;
-    let trendCount = 0;
-    let demandLastHour = 0;
-    let demandCount = 0;
     let prepNowCount = 0;
     let stockoutCount = 0;
 
@@ -262,20 +285,8 @@ export default function ProductionPage() {
       totalRemaining += item.remaining;
       totalPrepared += item.prepared;
       totalPlanned += item.planned;
-      if (!Number.isNaN(item.trendPct)) {
-        trendSum += item.trendPct;
-        trendCount += 1;
-      }
-      if (item.avgDemandLastHour !== null && !Number.isNaN(item.avgDemandLastHour)) {
-        demandLastHour += item.avgDemandLastHour;
-        demandCount += 1;
-      }
-      if (item.prepNowQty > 0 || item.startBatchNow) {
-        prepNowCount += 1;
-      }
-      if (item.stockoutRisk === "HIGH") {
-        stockoutCount += 1;
-      }
+      if (item.prepNowQty > 0 || item.startBatchNow) prepNowCount += 1;
+      if (item.stockoutRisk === "HIGH") stockoutCount += 1;
     }
 
     return {
@@ -283,10 +294,6 @@ export default function ProductionPage() {
       totalRemaining,
       totalPrepared,
       totalPlanned,
-      avgTrend: trendCount ? trendSum / trendCount : 0,
-      trendCount,
-      totalDemandLastHour: demandLastHour,
-      demandCount,
       prepNowCount,
       stockoutCount,
     };
@@ -321,69 +328,15 @@ export default function ProductionPage() {
       .slice(0, 10);
   }, [enrichedItems]);
 
-  const stockAlerts = useMemo(() => {
-    return enrichedItems
-      .map((item) => {
-        const runout = item.runoutMinutes;
-        const stockoutRisk =
-          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 45);
-        const highDemand = item.trendPct >= 15;
-        if (!stockoutRisk && !highDemand) return null;
-
-        const severity =
-          item.stockoutRisk === "HIGH" || (runout !== null && runout <= 30)
-            ? "HIGH"
-            : "MEDIUM";
-        const title = stockoutRisk ? "Stock risk alert" : "High demand detected";
-        const message = stockoutRisk
-          ? `Only ${formatQuantity(item.remaining, item.unit)} remaining`
-          : `Selling ${Math.round(item.trendPct)}% faster than forecast`;
-        const detail = stockoutRisk
-          ? runout !== null
-            ? `Estimated depletion in ${formatMinutes(runout)}`
-            : "Estimated depletion soon"
-          : `Forecast ${formatQuantity(item.forecast, item.unit)} · Sold ${formatQuantity(item.sold, item.unit)}`;
-        let action = "Check line now";
-        if (item.prepNowQty > 0) {
-          action = `Prep +${formatQuantity(item.prepNowQty, item.unit)}`;
-        } else if (item.startBatchNow) {
-          action = "Start new batch now";
-        }
-
-        return {
-          id: item.id,
-          item: item.title,
-          severity,
-          title,
-          message,
-          detail,
-          action,
-          runoutMinutes: runout,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item))
-      .sort((a, b) => {
-        const severityRank = a.severity === "HIGH" ? 0 : 1;
-        const severityRankB = b.severity === "HIGH" ? 0 : 1;
-        if (severityRank !== severityRankB) return severityRank - severityRankB;
-        const runoutA = a.runoutMinutes ?? Number.POSITIVE_INFINITY;
-        const runoutB = b.runoutMinutes ?? Number.POSITIVE_INFINITY;
-        return runoutA - runoutB;
-      })
-      .slice(0, 6);
-  }, [enrichedItems]);
-
   const prepQueueItems = useMemo(() => {
     const priorityRank = (label: string) =>
       label === "High" ? 0 : label === "Medium" ? 1 : 2;
-    return [...enrichedItems]
-      .sort((a, b) => {
-        const priorityA = getPriority(a);
-        const priorityB = getPriority(b);
-        if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
-        return b.prepNowQty - a.prepNowQty;
-      })
-      .slice(0, 8);
+    return [...enrichedItems].sort((a, b) => {
+      const pa = getPriority(a);
+      const pb = getPriority(b);
+      if (pa !== pb) return priorityRank(pa) - priorityRank(pb);
+      return b.prepNowQty - a.prepNowQty;
+    });
   }, [enrichedItems]);
 
   const wasteSignals = useMemo(() => {
@@ -393,10 +346,13 @@ export default function ProductionPage() {
       .slice(0, 6);
   }, [enrichedItems]);
 
-  const productionCards = useMemo(() => {
-    return [...enrichedItems]
-      .sort((a, b) => b.sold - a.sold)
-      .slice(0, 6);
+  // Items tab — sorted by stockout risk then remaining for ledger view
+  const itemLedgerRows = useMemo(() => {
+    return [...enrichedItems].sort((a, b) => {
+      const riskDelta = riskRank(a.stockoutRisk) - riskRank(b.stockoutRisk);
+      if (riskDelta !== 0) return riskDelta;
+      return a.remaining - b.remaining;
+    });
   }, [enrichedItems]);
 
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -406,25 +362,14 @@ export default function ProductionPage() {
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
-  type ProductionTab =
-    | "SERVICE"
-    | "ACTIONS"
-    | "VELOCITY"
-    | "ALERTS"
-    | "QUEUE"
-    | "WASTE"
-    | "CARDS";
 
-  const [activeTab, setActiveTab] = useState<ProductionTab>("SERVICE");
+  type ProductionTab = "ITEMS" | "QUEUE" | "SIGNALS";
+  const [activeTab, setActiveTab] = useState<ProductionTab>("ITEMS");
 
   const sectionTabs: { id: ProductionTab; label: string }[] = [
-    { id: "SERVICE", label: "Service" },
-    { id: "ACTIONS", label: "Prep Actions" },
-    { id: "VELOCITY", label: "Velocity" },
-    { id: "ALERTS", label: "Stock Alerts" },
-    { id: "QUEUE", label: "Prep Queue" },
-    { id: "WASTE", label: "Waste Signals" },
-    { id: "CARDS", label: "Cards" },
+    { id: "ITEMS", label: "Items" },
+    { id: "QUEUE", label: "Queue" },
+    { id: "SIGNALS", label: "Signals" },
   ];
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
@@ -446,7 +391,8 @@ export default function ProductionPage() {
 
   const submitLocalLog = async (type: LocalLog["type"]) => {
     const quantity = Number(batchQuantity || 0);
-    if (!selectedItem || quantity <= 0 || createProductionLogMutation.isPending) return;
+    if (!selectedItem || quantity <= 0 || createProductionLogMutation.isPending)
+      return;
     const normalizedQty = isDiscreteUnit(selectedItem.unit)
       ? Math.round(quantity)
       : quantity;
@@ -509,7 +455,7 @@ export default function ProductionPage() {
           entry.id === logId ? { ...entry, status: "sent" } : entry,
         ),
       );
-    } catch (error) {
+    } catch {
       setLocalLogs((prev) =>
         prev.map((entry) =>
           entry.id === logId ? { ...entry, status: "failed" } : entry,
@@ -520,20 +466,15 @@ export default function ProductionPage() {
   };
 
   const status = branchDay?.status ?? "--";
-  const statusTone =
-    status === "LIVE"
-      ? "border-[#1F3A2C] bg-[#0E1A14] text-[#5DD39E]"
-      : status === "MORNING"
-        ? "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
-        : "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]";
-
-  const timeOpen = status === "LIVE" ? formatDurationFrom(branchDay?.created_at) : "--";
+  const timeOpen =
+    status === "LIVE" ? formatDurationFrom(branchDay?.created_at) : "--";
   const timeOpenMs =
     status === "LIVE" && branchDay?.created_at
       ? Date.now() - new Date(branchDay.created_at).getTime()
       : 0;
   const timeOpenHours = timeOpenMs > 0 ? timeOpenMs / 3600000 : 0;
-  const salesPerHour = timeOpenHours > 0 ? totals.totalSold / timeOpenHours : 0;
+  const salesPerHour =
+    timeOpenHours > 0 ? totals.totalSold / timeOpenHours : 0;
 
   if (!canViewProduction) {
     return (
@@ -543,12 +484,10 @@ export default function ProductionPage() {
         description="Live kitchen operations are restricted to service roles."
         insight=""
       >
-        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <p className="text-[13px] text-[#8E8E93]">
-            Production command center is limited to chef, line cook, supervisor, branch
-            manager, and ops monitoring roles.
-          </p>
-        </section>
+        <p className="text-sm text-text-muted">
+          Production command center is limited to chef, line cook, supervisor,
+          branch manager, and ops monitoring roles.
+        </p>
       </WorkspaceShell>
     );
   }
@@ -556,182 +495,450 @@ export default function ProductionPage() {
   return (
     <WorkspaceShell
       eyebrow="Production"
-      title="Production"
-      description="Live kitchen operations. Keep it fast, clear, and action-first."
+      title="Production Ledger"
+      description="Execution view for live service. Every batch, every item, every shift."
       insight=""
     >
-      <section className="mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <Select
-              label="Branch Context"
-              options={branchOptions.map((branch) => ({
-                value: branch.id,
-                label: branch.name,
-              }))}
-              value={activeBranchId}
-              onChange={(value) => setSelectedBranchId(value)}
-              placeholder={branchOptions.length ? "Select branch" : "No branches available"}
-              className="min-w-[240px]"
-            />
-            {activeBranch ? (
-              <p className="text-[13px] text-[#8E8E93]">
-                Active branch: <span className="text-[#C7C7CC]">{activeBranch.name}</span>
-              </p>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-4 text-[12px] text-[#8E8E93]">
-            <span className="inline-flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  status === "LIVE" ? "bg-[#5DD39E]" : "bg-[#5C5C66]"
-                }`}
-              />
-              {status === "LIVE" ? "Live feed" : "Live feed paused"}
-            </span>
-            <span>Last sync {formatShortTime(lastSync)}</span>
-          </div>
+      {/* Slim context bar — matches Today's style */}
+      <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
+        <div className="flex-1 min-w-[180px] max-w-xs">
+          <Select
+            label="Branch"
+            leadingIcon={<Shop className="h-4 w-4" />}
+            options={branchOptions.map((branch) => ({
+              value: branch.id,
+              label: branch.name,
+            }))}
+            value={activeBranchId}
+            onChange={(value) => setSelectedBranchId(value)}
+            placeholder={
+              branchOptions.length ? "Select branch" : "No branches available"
+            }
+          />
         </div>
-      </section>
 
-      <section className="mb-6 rounded-[14px] border border-[#2A2A2E] bg-[#121216] px-3 py-3">
-        <div className="flex flex-wrap gap-2">
-          {sectionTabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
-                  : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {activeTab === "SERVICE" ? (
-        <section className="mb-8 rounded-[18px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Live Service
-            </p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {activeBranch?.name ?? "Select a branch"}
-            </p>
-          </div>
+        <div className="flex items-center gap-2 pb-1">
           <span
-            className={`rounded-full border px-4 py-1 text-[12px] font-semibold tracking-[0.2em] ${statusTone}`}
-          >
-            {status}
-          </span>
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{timeOpen}</p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {Math.round(totals.totalSold).toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {Math.round(totals.totalRemaining).toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {totals.prepNowCount}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {totals.stockoutCount}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {salesPerHour > 0 ? salesPerHour.toFixed(1) : "--"}
-            </p>
-          </div>
+            className={`h-2 w-2 rounded-full ${
+              status === "LIVE"
+                ? "bg-status-success animate-pulse"
+                : "bg-text-muted"
+            }`}
+          />
+          <p className="text-sm text-text-muted">
+            {status === "LIVE"
+              ? "Service live"
+              : status === "MORNING"
+                ? "Planning mode"
+                : status === "CLOSED"
+                  ? "Day closed"
+                  : "Not started"}
+          </p>
         </div>
 
-        {salesValidationQuery.data?.missing_sales_detected ? (
-          <div className="mt-5 rounded-[12px] border border-[#3A2D1F] bg-[#1C1610] px-4 py-3 text-[12px] text-[#E0B86B]">
-            Sales feed is missing entries for some items. Verify POS sync or use manual
-            entry.
-          </div>
-        ) : null}
-      </section>
+        <p className="pb-1 text-xs text-text-muted">
+          Sync {formatShortTime(lastSync)}
+        </p>
+      </div>
+
+      {/* Persistent KPI strip */}
+      {enrichedItems.length > 0 ? (
+        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          {timeOpen !== "--" ? (
+            <span className="text-text-muted">
+              <span className="font-semibold text-text-primary">{timeOpen}</span>{" "}
+              open
+            </span>
+          ) : null}
+          <span className="text-text-muted">
+            <span className="font-semibold text-text-primary">
+              {Math.round(totals.totalSold).toLocaleString()}
+            </span>{" "}
+            sold
+          </span>
+          <span className="text-text-muted">
+            <span className="font-semibold text-text-primary">
+              {Math.round(totals.totalRemaining).toLocaleString()}
+            </span>{" "}
+            remaining
+          </span>
+          <span className="text-text-muted">
+            <span
+              className={`font-semibold ${totals.prepNowCount > 0 ? "text-status-warning" : "text-text-primary"}`}
+            >
+              {totals.prepNowCount}
+            </span>{" "}
+            need prep
+          </span>
+          <span className="text-text-muted">
+            <span
+              className={`font-semibold ${totals.stockoutCount > 0 ? "text-status-critical" : "text-text-primary"}`}
+            >
+              {totals.stockoutCount}
+            </span>{" "}
+            at risk
+          </span>
+          {salesPerHour > 0 ? (
+            <span className="text-text-muted">
+              <span className="font-semibold text-text-primary">
+                {salesPerHour.toFixed(1)}
+              </span>
+              /hr
+            </span>
+          ) : null}
+        </div>
       ) : null}
 
-      {activeTab === "ACTIONS" ? (
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
-                <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
-                  Immediate actions for the line.
-                </p>
-              </div>
-              <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
-            </div>
-            <div className="mt-4 space-y-3">
+      {salesValidationQuery.data?.missing_sales_detected ? (
+        <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
+          Sales feed missing entries for some items. Verify POS sync or use
+          manual entry.
+        </div>
+      ) : null}
+
+      {/* Tab bar */}
+      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+        {sectionTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-gold text-brand-gold"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ITEMS tab — full production ledger */}
+      {activeTab === "ITEMS" ? (
+        <div className="space-y-8">
+          {/* Urgent prep-now callouts */}
+          {prepNowItems.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                Needs prep now
+              </p>
               {prepNowItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-r-lg border-l-4 px-4 py-3 ${
+                    item.stockoutRisk === "HIGH"
+                      ? "border-l-status-critical bg-status-critical/8"
+                      : "border-l-status-warning bg-status-warning/8"
+                  }`}
                 >
                   <div>
-                    <p className="text-[16px] font-semibold text-[#F5F5F7]">{item.title}</p>
-                    <p className="mt-1 text-[13px] text-[#8E8E93]">
-                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
+                    <p className="text-sm font-semibold text-text-primary">
+                      {item.title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {formatQuantity(item.remaining, item.unit)} left ·
+                      Runout {formatMinutes(item.runoutMinutes)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="text-[18px] font-semibold text-[#E0B86B]">
-                      {item.prepNowQty > 0
-                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                        : "Check"}
-                    </p>
+                    {item.prepNowQty > 0 ? (
+                      <span
+                        className={`text-sm font-semibold ${
+                          item.stockoutRisk === "HIGH"
+                            ? "text-status-critical"
+                            : "text-status-warning"
+                        }`}
+                      >
+                        +{formatQuantity(item.prepNowQty, item.unit)}
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedItemId(item.id);
-                        const suggestedQty =
+                        const qty =
                           item.prepNowQty > 0 ? Math.round(item.prepNowQty) : 0;
-                        setBatchQuantity(suggestedQty ? String(suggestedQty) : "");
+                        setBatchQuantity(qty ? String(qty) : "");
                       }}
-                      className="h-9 rounded-[10px] bg-[#E0B86B] px-3 text-[12px] font-semibold text-[#141416]"
+                      className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 bg-brand-gold/10 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 active:scale-[0.98]"
                     >
-                      Queue batch
+                      Log batch →
                     </button>
                   </div>
                 </div>
               ))}
-              {!prepNowItems.length ? (
-                <p className="text-[13px] text-[#8E8E93]">No immediate prep actions.</p>
+            </div>
+          ) : null}
+
+          {/* Full items ledger table */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  All Items
+                </p>
+                <h3 className="font-display text-xl font-semibold text-text-primary">
+                  Production ledger
+                </h3>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {enrichedItems.length} items tracked this shift.
+                </p>
+              </div>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+              <table className="w-full min-w-[860px]">
+                <thead className="border-b border-surface-4/80 bg-surface-3/40">
+                  <tr>
+                    <th className="w-[220px] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Item
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Planned
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Prepared
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Sold
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Remaining
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Runout
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Trend
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4/50">
+                  {itemLedgerRows.map((item) => {
+                    const trendLabel = getTrendLabel(item.trendPct);
+                    const isSelected = item.id === selectedItemId;
+                    return (
+                      <tr
+                        key={item.id}
+                        className={`align-middle transition-colors hover:bg-surface-3/20 ${getStockoutAccentClass(item.stockoutRisk)} ${
+                          isSelected ? "bg-brand-gold/[0.04]" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-semibold text-text-primary">
+                            {item.title}
+                          </p>
+                          {item.alertLabel ? (
+                            <p className="mt-0.5 text-[11px] text-status-warning">
+                              {item.alertLabel}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {formatQuantity(item.planned, item.unit)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {formatQuantity(item.prepared, item.unit)}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-text-primary">
+                          {formatQuantity(item.sold, item.unit)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-sm font-semibold ${
+                              item.stockoutRisk === "HIGH"
+                                ? "text-status-critical"
+                                : item.stockoutRisk === "MEDIUM"
+                                  ? "text-status-warning"
+                                  : "text-text-primary"
+                            }`}
+                          >
+                            {formatQuantity(item.remaining, item.unit)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-sm ${
+                              item.runoutMinutes !== null &&
+                              item.runoutMinutes <= 30
+                                ? "font-semibold text-status-critical"
+                                : item.runoutMinutes !== null &&
+                                    item.runoutMinutes <= 60
+                                  ? "font-medium text-status-warning"
+                                  : "text-text-muted"
+                            }`}
+                          >
+                            {formatMinutes(item.runoutMinutes)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
+                          >
+                            {trendLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedItemId(item.id);
+                              const qty =
+                                item.prepNowQty > 0
+                                  ? Math.round(item.prepNowQty)
+                                  : 0;
+                              setBatchQuantity(qty ? String(qty) : "");
+                            }}
+                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold active:scale-[0.98]"
+                          >
+                            Log
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!itemLedgerRows.length ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-text-muted">
+                    No items tracked yet. Data populates once the service day is
+                    initialized.
+                  </p>
+                </div>
               ) : null}
             </div>
-          </article>
 
-          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Log batches and waste in real time.</p>
+            {/* Mobile cards */}
+            <div className="space-y-2 lg:hidden">
+              {itemLedgerRows.map((item) => {
+                const trendLabel = getTrendLabel(item.trendPct);
+                return (
+                  <article
+                    key={item.id}
+                    className={`overflow-hidden rounded-xl border bg-surface-2 ${
+                      item.stockoutRisk === "HIGH"
+                        ? "border-l-[3px] border-l-status-critical/60 border-status-critical/25"
+                        : item.stockoutRisk === "MEDIUM"
+                          ? "border-l-[3px] border-l-status-warning/50 border-status-warning/20"
+                          : "border-surface-4"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {item.title}
+                      </p>
+                      <span
+                        className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
+                      >
+                        {trendLabel}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 divide-x divide-surface-4/60 border-y border-surface-4/60">
+                      <div className="px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Prepared
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-text-primary">
+                          {Math.round(item.prepared)}
+                        </p>
+                      </div>
+                      <div className="px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Sold
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-text-primary">
+                          {Math.round(item.sold)}
+                        </p>
+                      </div>
+                      <div className="px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                          Remaining
+                        </p>
+                        <p
+                          className={`mt-1 text-base font-semibold ${
+                            item.stockoutRisk === "HIGH"
+                              ? "text-status-critical"
+                              : item.stockoutRisk === "MEDIUM"
+                                ? "text-status-warning"
+                                : "text-text-primary"
+                          }`}
+                        >
+                          {Math.round(item.remaining)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <p className="text-xs text-text-muted">
+                        Runout{" "}
+                        <span
+                          className={
+                            item.runoutMinutes !== null &&
+                            item.runoutMinutes <= 30
+                              ? "font-semibold text-status-critical"
+                              : "text-text-secondary"
+                          }
+                        >
+                          {formatMinutes(item.runoutMinutes)}
+                        </span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          const qty =
+                            item.prepNowQty > 0
+                              ? Math.round(item.prepNowQty)
+                              : 0;
+                          setBatchQuantity(qty ? String(qty) : "");
+                        }}
+                        className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
+                      >
+                        Log
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {/* Log form — always visible, pre-fills when item row is clicked */}
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Production Log
+            </p>
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+              Record a batch or waste event
+            </h3>
+            {selectedItem ? (
+              <p className="mt-1 text-sm text-text-secondary">
+                Logging for:{" "}
+                <span className="font-semibold text-text-primary">
+                  {selectedItem.title}
+                </span>{" "}
+                ·{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemId("");
+                    setBatchQuantity("");
+                  }}
+                  className="text-text-muted hover:text-text-secondary transition-colors"
+                >
+                  Clear ×
+                </button>
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-text-muted">
+                Select an item from the table above, or choose below.
+              </p>
+            )}
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Select
                 options={[
                   { value: "", label: "Select item" },
@@ -747,8 +954,19 @@ export default function ProductionPage() {
               <input
                 value={batchQuantity}
                 onChange={(event) => setBatchQuantity(event.target.value)}
-                placeholder="Quantity"
-                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7]"
+                placeholder={
+                  selectedItem
+                    ? selectedItem.prepNowQty > 0
+                      ? `Suggested: ${Math.round(selectedItem.prepNowQty)}`
+                      : "Quantity"
+                    : "Quantity"
+                }
+                type="number"
+                min={0}
+                step={
+                  selectedItem && isDiscreteUnit(selectedItem.unit) ? 1 : 0.01
+                }
+                className="h-10 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
               />
               <Select
                 options={[
@@ -761,13 +979,13 @@ export default function ProductionPage() {
                 ]}
                 value={wasteReason}
                 onChange={(value) => setWasteReason(value as WasteReason)}
-                placeholder="Select waste reason"
+                placeholder="Waste reason"
               />
               <input
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
-                placeholder="Notes"
-                className="h-10 rounded-[10px] border border-[#2E2E33] bg-[#1C1C1F] px-3 text-[13px] text-[#F5F5F7] md:col-span-2"
+                placeholder="Notes (optional)"
+                className="h-10 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
               />
             </div>
 
@@ -775,108 +993,156 @@ export default function ProductionPage() {
               <button
                 type="button"
                 onClick={() => submitLocalLog("BATCH")}
-                disabled={!selectedItem || createProductionLogMutation.isPending}
-                className="h-10 rounded-[10px] bg-[#E0B86B] px-4 text-[12px] font-semibold text-[#141416] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={
+                  !selectedItem || createProductionLogMutation.isPending
+                }
+                className="inline-flex h-10 items-center rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {createProductionLogMutation.isPending ? "Logging..." : "Log batch"}
+                {createProductionLogMutation.isPending
+                  ? "Logging..."
+                  : "Log batch"}
               </button>
               <button
                 type="button"
                 onClick={() => submitLocalLog("WASTE")}
-                disabled={!selectedItem || createProductionLogMutation.isPending}
-                className="h-10 rounded-[10px] border border-[#2E2E33] px-4 text-[12px] text-[#E0B86B] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={
+                  !selectedItem || createProductionLogMutation.isPending
+                }
+                className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-medium text-text-secondary transition-colors hover:border-status-warning/50 hover:text-status-warning active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Report waste
               </button>
             </div>
             {logError ? (
-              <p className="mt-3 text-[12px] text-[#E07070]">{logError}</p>
+              <p className="mt-3 text-xs text-status-critical">{logError}</p>
             ) : null}
 
-            <div className="mt-4 space-y-2">
-              {localLogs.slice(0, 4).map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between border-b border-[#2A2A2E] pb-2 text-[12px]"
-                >
-                  <div>
-                    <p className="text-[#C7C7CC]">
-                      {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
-                    </p>
-                    {entry.notes ? (
-                      <p className="mt-1 text-[11px] text-[#8E8E93]">{entry.notes}</p>
-                    ) : null}
+            {/* Recent logs */}
+            {localLogs.length > 0 ? (
+              <div className="mt-5 space-y-2 border-t border-surface-4/60 pt-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  This session
+                </p>
+                {localLogs.slice(0, 5).map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <span className="font-medium text-text-secondary">
+                        {entry.type}
+                      </span>
+                      <span className="mx-1.5 text-surface-4">·</span>
+                      <span className="text-text-primary">{entry.itemTitle}</span>
+                      <span className="mx-1.5 text-surface-4">·</span>
+                      <span className="text-text-secondary">
+                        {formatQuantity(entry.quantity, entry.unit)}
+                      </span>
+                      {entry.notes ? (
+                        <span className="ml-2 text-text-muted">{entry.notes}</span>
+                      ) : null}
+                    </div>
+                    <div className="ml-4 flex shrink-0 items-center gap-2 text-right">
+                      <span className="text-text-muted">{entry.timestamp}</span>
+                      <span
+                        className={
+                          entry.status === "failed"
+                            ? "text-status-critical"
+                            : entry.status === "pending"
+                              ? "text-status-warning"
+                              : "text-status-success"
+                        }
+                      >
+                        {entry.status === "pending"
+                          ? "Sending"
+                          : entry.status === "failed"
+                            ? "Failed"
+                            : "✓"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[#8E8E93]">{entry.timestamp}</p>
-                    <p
-                      className={`text-[11px] ${
-                        entry.status === "failed"
-                          ? "text-[#E07070]"
-                          : entry.status === "pending"
-                            ? "text-[#E0B86B]"
-                            : "text-[#5DD39E]"
-                      }`}
-                    >
-                      {entry.status === "pending"
-                        ? "Sending"
-                        : entry.status === "failed"
-                          ? "Failed"
-                          : "Sent"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {!localLogs.length ? (
-                <p className="text-[12px] text-[#8E8E93]">No logs yet.</p>
-              ) : null}
-            </div>
-          </article>
-        </section>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
-      {activeTab === "VELOCITY" ? (
-        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
-              <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
-                Actual demand vs forecast.
-              </p>
-            </div>
-            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+      {/* QUEUE tab — priority-sorted full list */}
+      {activeTab === "QUEUE" ? (
+        <div>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Prep Queue
+            </p>
+            <h3 className="font-display text-xl font-semibold text-text-primary">
+              What to prepare next
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              {prepQueueItems.length} items · sorted by urgency
+            </p>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead className="border-b border-[#2A2A2E]">
+
+          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
+            <table className="w-full min-w-[640px]">
+              <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Item
+                  </th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Remaining
+                  </th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Prep needed
+                  </th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Runout
+                  </th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                    Priority
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {velocityRows.map((item) => {
-                  const trendLabel = getTrendLabel(item.trendPct);
+              <tbody className="divide-y divide-surface-4/50">
+                {prepQueueItems.map((item) => {
+                  const priority = getPriority(item);
                   return (
-                    <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
-                      <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.forecast, item.unit)}
+                    <tr
+                      key={item.id}
+                      className={`align-middle transition-colors hover:bg-surface-3/20 ${getStockoutAccentClass(item.stockoutRisk)}`}
+                    >
+                      <td className="px-4 py-3 text-sm font-semibold text-text-primary">
+                        {item.title}
                       </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.sold, item.unit)}
-                      </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                      <td className="px-4 py-3 text-sm text-text-secondary">
                         {formatQuantity(item.remaining, item.unit)}
                       </td>
-                      <td className="px-2 py-3">
+                      <td className="px-4 py-3 text-sm text-text-secondary">
+                        {item.prepNowQty > 0
+                          ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
                         <span
-                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                          className={`text-sm ${
+                            item.runoutMinutes !== null &&
+                            item.runoutMinutes <= 30
+                              ? "font-semibold text-status-critical"
+                              : item.runoutMinutes !== null &&
+                                  item.runoutMinutes <= 60
+                                ? "font-medium text-status-warning"
+                                : "text-text-muted"
+                          }`}
                         >
-                          {trendLabel}
+                          {formatMinutes(item.runoutMinutes)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getPriorityToneClasses(priority)}`}
+                        >
+                          {priority}
                         </span>
                       </td>
                     </tr>
@@ -884,196 +1150,144 @@ export default function ProductionPage() {
                 })}
               </tbody>
             </table>
-            {!velocityRows.length ? (
-              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "ALERTS" ? (
-        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
-          <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Immediate depletion risk.</p>
-          <div className="mt-4 space-y-3">
-            {stockAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
-                  <span
-                    className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
-                      alert.severity === "HIGH"
-                        ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
-                        : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
-                    }`}
-                  >
-                    {alert.severity}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  {alert.title}
-                </p>
-                <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
-                <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
-                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: {alert.action}
-                </p>
+            {!prepQueueItems.length ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-text-muted">No prep queue items.</p>
               </div>
-            ))}
-            {!stockAlerts.length ? (
-              <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
             ) : null}
           </div>
-        </section>
+        </div>
       ) : null}
 
-      {activeTab === "QUEUE" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* SIGNALS tab — velocity + waste in one view */}
+      {activeTab === "SIGNALS" ? (
+        <div className="space-y-8">
+          {/* Velocity */}
           <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">What needs to be prepared next.</p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px]">
-            <thead className="border-b border-[#2A2A2E]">
-              <tr>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep needed</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Priority</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prepQueueItems.map((item) => {
-                const priority = getPriority(item);
-                return (
-                  <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
-                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
-                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                      {formatQuantity(item.remaining, item.unit)}
-                    </td>
-                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                      {item.prepNowQty > 0
-                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                        : "0"}
-                    </td>
-                    <td className="px-2 py-3">
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
-                      >
-                        {priority}
-                      </span>
-                    </td>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Sales Velocity
+            </p>
+            <h3 className="font-display text-xl font-semibold text-text-primary">
+              Actual demand vs forecast
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              Top {velocityRows.length} items by volume
+            </p>
+            <div className="mt-4 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
+              <table className="w-full min-w-[640px]">
+                <thead className="border-b border-surface-4/80 bg-surface-3/40">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Item
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Forecast
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Sold
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Remaining
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                      Trend
+                    </th>
                   </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-4/50">
+                  {velocityRows.map((item) => {
+                    const trendLabel = getTrendLabel(item.trendPct);
+                    return (
+                      <tr
+                        key={item.id}
+                        className="align-middle transition-colors hover:bg-surface-3/20"
+                      >
+                        <td className="px-4 py-3 text-sm font-semibold text-text-primary">
+                          {item.title}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {formatQuantity(item.forecast, item.unit)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-primary">
+                          {formatQuantity(item.sold, item.unit)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {formatQuantity(item.remaining, item.unit)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
+                          >
+                            {trendLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!velocityRows.length ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-text-muted">
+                    No velocity data yet.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Waste prevention */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Waste Prevention
+            </p>
+            <h3 className="font-display text-xl font-semibold text-text-primary">
+              Demand slowing — adjust prep
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              {wasteSignals.length} items trending below forecast
+            </p>
+            <div className="mt-4 space-y-2">
+              {wasteSignals.map((item) => {
+                const expectedDemandRemaining = Math.max(
+                  0,
+                  item.forecast - item.sold,
+                );
+                const overage = Math.max(
+                  0,
+                  Math.round(item.remaining - expectedDemandRemaining),
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-start justify-between gap-4 rounded-r-lg border-l-4 border-l-status-warning/70 bg-status-warning/8 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">
+                        {item.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-secondary">
+                        Demand slowing. Prep may exceed demand by{" "}
+                        <span className="font-semibold text-status-warning">
+                          {overage} {item.unit}
+                        </span>
+                        .
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-xs font-semibold text-status-warning">
+                      Slow production
+                    </p>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-          {!prepQueueItems.length ? (
-            <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
-          ) : null}
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "WASTE" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Demand is slowing. Adjust prep.</p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
-        </div>
-        <div className="mt-4 space-y-3">
-          {wasteSignals.map((item) => {
-            const expectedDemandRemaining = Math.max(0, item.forecast - item.sold);
-            const overage = Math.max(0, Math.round(item.remaining - expectedDemandRemaining));
-            return (
-              <div
-                key={item.id}
-                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-              >
-                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
-                <p className="mt-1 text-[12px] text-[#E0B86B]">
-                  Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
+              {!wasteSignals.length ? (
+                <p className="text-sm text-text-muted">
+                  No waste prevention alerts.
                 </p>
-                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: Slow production.
-                </p>
-              </div>
-            );
-          })}
-          {!wasteSignals.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
-          ) : null}
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "CARDS" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Large cards for kitchen screens.</p>
+              ) : null}
+            </div>
           </div>
-          <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {productionCards.map((item) => {
-            const trendLabel = getTrendLabel(item.trendPct);
-            return (
-              <div
-                key={item.id}
-                className="rounded-[14px] border border-[#2A2A2E] bg-[#101012] p-4"
-              >
-                <p className="text-[15px] text-[#F5F5F7]">{item.title}</p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.forecast, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.sold, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.remaining, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {trendLabel}
-                    </p>
-                  </div>
-                </div>
-                {item.prepNowQty > 0 ? (
-                  <p className="mt-3 text-[12px] text-[#E0B86B]">
-                    Prep recommended: +{formatQuantity(item.prepNowQty, item.unit)}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
-          {!productionCards.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
-          ) : null}
-        </div>
-        </section>
       ) : null}
     </WorkspaceShell>
   );
