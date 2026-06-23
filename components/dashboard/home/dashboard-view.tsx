@@ -411,18 +411,21 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
       {/* ── Branch health grid ─────────────────────────────────────────── */}
       {sortedBranches.length > 0 && (
         <section className="mb-12">
-          <div className="mb-6 flex items-baseline justify-between">
+          <div className="mb-6 flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Branch health
+                Operations
               </p>
               <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
                 {sortedBranches.length}{" "}
                 {sortedBranches.length === 1 ? "location" : "locations"}
               </h2>
+              <p className="mt-1 text-sm text-text-muted">
+                System status — POS connections, plan approvals, live service activity.
+              </p>
             </div>
             {sortedBranches.some((b) => b.compliance_badge === "RED") && (
-              <span className="text-xs font-medium text-status-critical">
+              <span className="text-xs font-medium text-status-critical shrink-0 mt-1">
                 {sortedBranches.filter((b) => b.compliance_badge === "RED").length} need attention
               </span>
             )}

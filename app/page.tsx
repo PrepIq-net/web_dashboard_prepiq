@@ -362,7 +362,7 @@ function HomeContent() {
             {isOrgOverviewMode &&
               !shouldShowBranchRequiredState &&
               !shouldShowSalesSourceRequiredState && (
-                <div className="mt-12">
+                <div className="mt-12 border-t border-surface-4 pt-12">
                   <CommandSection />
                 </div>
               )}
