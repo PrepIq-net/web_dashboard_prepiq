@@ -23,7 +23,10 @@ import {
 } from "./types";
 
 export async function getSupportTickets(): Promise<SupportTicketListResponse> {
-  return apiClientWithSchema(supportEndpoints.tickets, supportTicketListResponseSchema);
+  const data = await apiClient<SupportTicketListResponse | { results: SupportTicket[]; count?: number }>(supportEndpoints.tickets);
+  if ("tickets" in data) return data as SupportTicketListResponse;
+  const results = Array.isArray(data) ? data : ((data as any).results ?? []);
+  return { tickets: results, total: results.length, page: 1, page_size: results.length };
 }
 
 export async function getSupportTicket(id: string): Promise<SupportTicket> {
@@ -57,7 +60,8 @@ export async function createBugReport(payload: CreateBugReportPayload): Promise<
 }
 
 export async function getFeatureRequests(): Promise<FeatureRequest[]> {
-  return apiClient(supportEndpoints.featureRequests);
+  const data = await apiClient<FeatureRequest[] | { results: FeatureRequest[] }>(supportEndpoints.featureRequests);
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function createFeatureRequest(

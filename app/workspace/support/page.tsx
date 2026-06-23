@@ -272,8 +272,8 @@ export default function SupportPage() {
 
   // Group help articles by category
   const groupedArticles = useMemo(() => {
-    if (!helpArticlesQuery.data || !Array.isArray(helpArticlesQuery.data)) return {};
-    return helpArticlesQuery.data.reduce(
+    const articles = Array.isArray(helpArticlesQuery.data) ? helpArticlesQuery.data : [];
+    return articles.reduce(
       (acc, article) => {
         if (!acc[article.category]) {
           acc[article.category] = [];
@@ -287,13 +287,12 @@ export default function SupportPage() {
 
   // Filter feature requests by status
   const openFeatureRequests = useMemo(() => {
-    return (
-      featureRequestsQuery.data?.filter(
-        (r) =>
-          r.status === "open" ||
-          r.status === "under_review" ||
-          r.status === "planned",
-      ) ?? []
+    const requests = Array.isArray(featureRequestsQuery.data) ? featureRequestsQuery.data : [];
+    return requests.filter(
+      (r) =>
+        r.status === "open" ||
+        r.status === "under_review" ||
+        r.status === "planned",
     );
   }, [featureRequestsQuery.data]);
 
