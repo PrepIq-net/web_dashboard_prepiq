@@ -376,26 +376,18 @@ export default function ProductionPage() {
   const prepQueueItems = useMemo(() => {
     const priorityRank = (label: string) =>
       label === "High" ? 0 : label === "Medium" ? 1 : 2;
-    return [...enrichedItems]
-      .sort((a, b) => {
-        const priorityA = getPriority(a);
-        const priorityB = getPriority(b);
-        if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
-        return b.prepNowQty - a.prepNowQty;
-      })
-      .slice(0, 8);
+    return [...enrichedItems].sort((a, b) => {
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+      if (priorityA !== priorityB) return priorityRank(priorityA) - priorityRank(priorityB);
+      return b.prepNowQty - a.prepNowQty;
+    });
   }, [enrichedItems]);
 
   const wasteSignals = useMemo(() => {
     return enrichedItems
       .filter((item) => item.wasteRisk === "HIGH" || item.trendPct <= -12)
       .sort((a, b) => a.trendPct - b.trendPct)
-      .slice(0, 6);
-  }, [enrichedItems]);
-
-  const productionCards = useMemo(() => {
-    return [...enrichedItems]
-      .sort((a, b) => b.sold - a.sold)
       .slice(0, 6);
   }, [enrichedItems]);
 
@@ -406,25 +398,14 @@ export default function ProductionPage() {
   const [localLogs, setLocalLogs] = useState<LocalLog[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
-  type ProductionTab =
-    | "SERVICE"
-    | "ACTIONS"
-    | "VELOCITY"
-    | "ALERTS"
-    | "QUEUE"
-    | "WASTE"
-    | "CARDS";
 
-  const [activeTab, setActiveTab] = useState<ProductionTab>("SERVICE");
+  type ProductionTab = "NOW" | "QUEUE" | "SIGNALS";
+  const [activeTab, setActiveTab] = useState<ProductionTab>("NOW");
 
   const sectionTabs: { id: ProductionTab; label: string }[] = [
-    { id: "SERVICE", label: "Service" },
-    { id: "ACTIONS", label: "Prep Actions" },
-    { id: "VELOCITY", label: "Velocity" },
-    { id: "ALERTS", label: "Stock Alerts" },
-    { id: "QUEUE", label: "Prep Queue" },
-    { id: "WASTE", label: "Waste Signals" },
-    { id: "CARDS", label: "Cards" },
+    { id: "NOW", label: "Now" },
+    { id: "QUEUE", label: "Queue" },
+    { id: "SIGNALS", label: "Signals" },
   ];
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
@@ -560,6 +541,7 @@ export default function ProductionPage() {
       description="Live kitchen operations. Keep it fast, clear, and action-first."
       insight=""
     >
+      {/* Branch selector + persistent status strip */}
       <section className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-end gap-3">
@@ -592,8 +574,69 @@ export default function ProductionPage() {
             <span>Last sync {formatShortTime(lastSync)}</span>
           </div>
         </div>
+
+        {/* Persistent KPI strip */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3">
+          <span
+            className={`rounded-full border px-3 py-0.5 text-[11px] font-semibold tracking-[0.2em] ${statusTone}`}
+          >
+            {status}
+          </span>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-[#8E8E93]">
+            {timeOpen !== "--" ? (
+              <span>
+                <span className="text-[#F5F5F7]">{timeOpen}</span> open
+              </span>
+            ) : null}
+            <span>
+              <span className="text-[#F5F5F7]">
+                {Math.round(totals.totalSold).toLocaleString()}
+              </span>{" "}
+              orders
+            </span>
+            <span>
+              <span className="text-[#F5F5F7]">
+                {Math.round(totals.totalRemaining).toLocaleString()}
+              </span>{" "}
+              remaining
+            </span>
+            <span>
+              <span
+                className={
+                  totals.prepNowCount > 0 ? "text-[#E0B86B]" : "text-[#F5F5F7]"
+                }
+              >
+                {totals.prepNowCount}
+              </span>{" "}
+              prep-now
+            </span>
+            <span>
+              <span
+                className={
+                  totals.stockoutCount > 0 ? "text-[#E07070]" : "text-[#F5F5F7]"
+                }
+              >
+                {totals.stockoutCount}
+              </span>{" "}
+              at-risk
+            </span>
+            {salesPerHour > 0 ? (
+              <span>
+                <span className="text-[#F5F5F7]">{salesPerHour.toFixed(1)}</span>/hr
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {salesValidationQuery.data?.missing_sales_detected ? (
+          <div className="mt-3 rounded-[12px] border border-[#3A2D1F] bg-[#1C1610] px-4 py-3 text-[12px] text-[#E0B86B]">
+            Sales feed is missing entries for some items. Verify POS sync or use manual
+            entry.
+          </div>
+        ) : null}
       </section>
 
+      {/* Tab bar */}
       <section className="mb-6 rounded-[14px] border border-[#2A2A2E] bg-[#121216] px-3 py-3">
         <div className="flex flex-wrap gap-2">
           {sectionTabs.map((tab) => (
@@ -613,72 +656,30 @@ export default function ProductionPage() {
         </div>
       </section>
 
-      {activeTab === "SERVICE" ? (
-        <section className="mb-8 rounded-[18px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Live Service
-            </p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {activeBranch?.name ?? "Select a branch"}
-            </p>
-          </div>
-          <span
-            className={`rounded-full border px-4 py-1 text-[12px] font-semibold tracking-[0.2em] ${statusTone}`}
-          >
-            {status}
-          </span>
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Time open</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">{timeOpen}</p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Orders processed</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {Math.round(totals.totalSold).toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Items remaining</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {Math.round(totals.totalRemaining).toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Prep now</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {totals.prepNowCount}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">At risk</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {totals.stockoutCount}
-            </p>
-          </div>
-          <div className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] p-3">
-            <p className="text-[12px] uppercase tracking-[0.12em] text-[#8E8E93]">Sales per hour</p>
-            <p className="mt-1 font-display text-[28px] text-[#F5F5F7]">
-              {salesPerHour > 0 ? salesPerHour.toFixed(1) : "--"}
-            </p>
-          </div>
-        </div>
-
-        {salesValidationQuery.data?.missing_sales_detected ? (
-          <div className="mt-5 rounded-[12px] border border-[#3A2D1F] bg-[#1C1610] px-4 py-3 text-[12px] text-[#E0B86B]">
-            Sales feed is missing entries for some items. Verify POS sync or use manual
-            entry.
-          </div>
-        ) : null}
-      </section>
-      ) : null}
-
-      {activeTab === "ACTIONS" ? (
+      {/* NOW tab: compact alerts + prep actions + quick log */}
+      {activeTab === "NOW" ? (
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+            {/* Compact alert strip — only HIGH items, max 3 */}
+            {stockAlerts.filter((a) => a.severity === "HIGH").slice(0, 3).length > 0 ? (
+              <div className="mb-5 space-y-2">
+                {stockAlerts
+                  .filter((a) => a.severity === "HIGH")
+                  .slice(0, 3)
+                  .map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#3A1F1F] bg-[#1A1010] px-3 py-2 text-[12px]"
+                    >
+                      <span className="font-semibold text-[#E07070]">{alert.item}</span>
+                      <span className="text-[#C07060]">
+                        {alert.message} · {alert.action}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep now</p>
@@ -686,7 +687,7 @@ export default function ProductionPage() {
                   Immediate actions for the line.
                 </p>
               </div>
-              <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active alerts</p>
+              <p className="text-[12px] text-[#8E8E93]">{prepNowItems.length} active</p>
             </div>
             <div className="mt-4 space-y-3">
               {prepNowItems.map((item) => (
@@ -697,7 +698,8 @@ export default function ProductionPage() {
                   <div>
                     <p className="text-[16px] font-semibold text-[#F5F5F7]">{item.title}</p>
                     <p className="mt-1 text-[13px] text-[#8E8E93]">
-                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout {formatMinutes(item.runoutMinutes)}
+                      Remaining {formatQuantity(item.remaining, item.unit)} · Runout{" "}
+                      {formatMinutes(item.runoutMinutes)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -727,9 +729,12 @@ export default function ProductionPage() {
             </div>
           </article>
 
+          {/* Quick log — always visible in NOW tab */}
           <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
             <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Quick log</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Log batches and waste in real time.</p>
+            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+              Log batches and waste in real time.
+            </p>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <Select
@@ -801,7 +806,8 @@ export default function ProductionPage() {
                 >
                   <div>
                     <p className="text-[#C7C7CC]">
-                      {entry.type} · {entry.itemTitle} · {formatQuantity(entry.quantity, entry.unit)}
+                      {entry.type} · {entry.itemTitle} ·{" "}
+                      {formatQuantity(entry.quantity, entry.unit)}
                     </p>
                     {entry.notes ? (
                       <p className="mt-1 text-[11px] text-[#8E8E93]">{entry.notes}</p>
@@ -835,48 +841,61 @@ export default function ProductionPage() {
         </section>
       ) : null}
 
-      {activeTab === "VELOCITY" ? (
+      {/* QUEUE tab: full prep queue, no item cap */}
+      {activeTab === "QUEUE" ? (
         <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Live sales velocity</p>
+              <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
               <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
-                Actual demand vs forecast.
+                What needs to be prepared next.
               </p>
             </div>
-            <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+            <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
           </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px]">
+            <table className="w-full min-w-[640px]">
               <thead className="border-b border-[#2A2A2E]">
                 <tr>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Forecast</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Sold</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Trend</th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Item
+                  </th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Remaining
+                  </th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Prep needed
+                  </th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Runout
+                  </th>
+                  <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                    Priority
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {velocityRows.map((item) => {
-                  const trendLabel = getTrendLabel(item.trendPct);
+                {prepQueueItems.map((item) => {
+                  const priority = getPriority(item);
                   return (
                     <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
                       <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
                       <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.forecast, item.unit)}
-                      </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                        {formatQuantity(item.sold, item.unit)}
-                      </td>
-                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
                         {formatQuantity(item.remaining, item.unit)}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {item.prepNowQty > 0
+                          ? `+${formatQuantity(item.prepNowQty, item.unit)}`
+                          : "0"}
+                      </td>
+                      <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                        {formatMinutes(item.runoutMinutes)}
                       </td>
                       <td className="px-2 py-3">
                         <span
-                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                          className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
                         >
-                          {trendLabel}
+                          {priority}
                         </span>
                       </td>
                     </tr>
@@ -884,195 +903,124 @@ export default function ProductionPage() {
                 })}
               </tbody>
             </table>
-            {!velocityRows.length ? (
-              <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+            {!prepQueueItems.length ? (
+              <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
             ) : null}
           </div>
         </section>
       ) : null}
 
-      {activeTab === "ALERTS" ? (
-        <section className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-          <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock risk alerts</p>
-          <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Immediate depletion risk.</p>
-          <div className="mt-4 space-y-3">
-            {stockAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[14px] text-[#F5F5F7]">{alert.item}</p>
-                  <span
-                    className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${
-                      alert.severity === "HIGH"
-                        ? "border-[#3A1F1F] bg-[#1A1010] text-[#E07070]"
-                        : "border-[#3A2D1F] bg-[#1E1610] text-[#E0B86B]"
-                    }`}
-                  >
-                    {alert.severity}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  {alert.title}
+      {/* SIGNALS tab: velocity table + waste signals */}
+      {activeTab === "SIGNALS" ? (
+        <section className="space-y-6">
+          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Live sales velocity
                 </p>
-                <p className="mt-2 text-[12px] text-[#E0B86B]">{alert.message}</p>
-                <p className="mt-1 text-[12px] text-[#8E8E93]">{alert.detail}</p>
-                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: {alert.action}
+                <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                  Actual demand vs forecast.
                 </p>
               </div>
-            ))}
-            {!stockAlerts.length ? (
-              <p className="text-[13px] text-[#8E8E93]">No stock risk alerts right now.</p>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "QUEUE" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep queue</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">What needs to be prepared next.</p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{prepQueueItems.length} items</p>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px]">
-            <thead className="border-b border-[#2A2A2E]">
-              <tr>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Remaining</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Prep needed</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Priority</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prepQueueItems.map((item) => {
-                const priority = getPriority(item);
-                return (
-                  <tr key={item.id} className="border-b border-[#2A2A2E] odd:bg-[#141418]">
-                    <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
-                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                      {formatQuantity(item.remaining, item.unit)}
-                    </td>
-                    <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
-                      {item.prepNowQty > 0
-                        ? `+${formatQuantity(item.prepNowQty, item.unit)}`
-                        : "0"}
-                    </td>
-                    <td className="px-2 py-3">
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getPriorityTone(priority)}`}
-                      >
-                        {priority}
-                      </span>
-                    </td>
+              <p className="text-[12px] text-[#8E8E93]">{velocityRows.length} items</p>
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead className="border-b border-[#2A2A2E]">
+                  <tr>
+                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                      Item
+                    </th>
+                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                      Forecast
+                    </th>
+                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                      Sold
+                    </th>
+                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                      Remaining
+                    </th>
+                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                      Trend
+                    </th>
                   </tr>
+                </thead>
+                <tbody>
+                  {velocityRows.map((item) => {
+                    const trendLabel = getTrendLabel(item.trendPct);
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-[#2A2A2E] odd:bg-[#141418]"
+                      >
+                        <td className="px-2 py-3 text-[14px] text-[#F5F5F7]">{item.title}</td>
+                        <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                          {formatQuantity(item.forecast, item.unit)}
+                        </td>
+                        <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                          {formatQuantity(item.sold, item.unit)}
+                        </td>
+                        <td className="px-2 py-3 text-[13px] text-[#C7C7CC]">
+                          {formatQuantity(item.remaining, item.unit)}
+                        </td>
+                        <td className="px-2 py-3">
+                          <span
+                            className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.12em] ${getTrendTone(trendLabel)}`}
+                          >
+                            {trendLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!velocityRows.length ? (
+                <p className="mt-4 text-[13px] text-[#8E8E93]">No live velocity data yet.</p>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">
+                  Waste prevention signals
+                </p>
+                <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">
+                  Demand is slowing. Adjust prep.
+                </p>
+              </div>
+              <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
+            </div>
+            <div className="mt-4 space-y-3">
+              {wasteSignals.map((item) => {
+                const expectedDemandRemaining = Math.max(0, item.forecast - item.sold);
+                const overage = Math.max(
+                  0,
+                  Math.round(item.remaining - expectedDemandRemaining),
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
+                  >
+                    <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
+                    <p className="mt-1 text-[12px] text-[#E0B86B]">
+                      Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
+                    </p>
+                    <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
+                      Suggested action: Slow production.
+                    </p>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-          {!prepQueueItems.length ? (
-            <p className="mt-4 text-[13px] text-[#8E8E93]">No prep queue items.</p>
-          ) : null}
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "WASTE" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Waste prevention signals</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Demand is slowing. Adjust prep.</p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{wasteSignals.length} alerts</p>
-        </div>
-        <div className="mt-4 space-y-3">
-          {wasteSignals.map((item) => {
-            const expectedDemandRemaining = Math.max(0, item.forecast - item.sold);
-            const overage = Math.max(0, Math.round(item.remaining - expectedDemandRemaining));
-            return (
-              <div
-                key={item.id}
-                className="rounded-[12px] border border-[#2A2A2E] bg-[#101012] px-4 py-3"
-              >
-                <p className="text-[14px] text-[#F5F5F7]">{item.title}</p>
-                <p className="mt-1 text-[12px] text-[#E0B86B]">
-                  Demand slowing. Current prep may exceed demand by {overage} {item.unit}.
-                </p>
-                <p className="mt-2 text-[12px] font-semibold text-[#F5F5F7]">
-                  Suggested action: Slow production.
-                </p>
-              </div>
-            );
-          })}
-          {!wasteSignals.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
-          ) : null}
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "CARDS" ? (
-        <section className="mt-6 rounded-[16px] border border-[#2A2A2E] bg-[#151518] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.14em] text-[#8E8E93]">Item production cards</p>
-            <p className="mt-1 text-[18px] font-semibold text-[#F5F5F7]">Large cards for kitchen screens.</p>
-          </div>
-          <p className="text-[12px] text-[#8E8E93]">{productionCards.length} items</p>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {productionCards.map((item) => {
-            const trendLabel = getTrendLabel(item.trendPct);
-            return (
-              <div
-                key={item.id}
-                className="rounded-[14px] border border-[#2A2A2E] bg-[#101012] p-4"
-              >
-                <p className="text-[15px] text-[#F5F5F7]">{item.title}</p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Forecast</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.forecast, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Sold</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.sold, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Remaining</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {formatQuantity(item.remaining, item.unit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Status</p>
-                <p className="mt-1 text-[20px] font-semibold text-[#F5F5F7]">
-                      {trendLabel}
-                    </p>
-                  </div>
-                </div>
-                {item.prepNowQty > 0 ? (
-                  <p className="mt-3 text-[12px] text-[#E0B86B]">
-                    Prep recommended: +{formatQuantity(item.prepNowQty, item.unit)}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
-          {!productionCards.length ? (
-            <p className="text-[13px] text-[#8E8E93]">No production cards yet.</p>
-          ) : null}
-        </div>
+              {!wasteSignals.length ? (
+                <p className="text-[13px] text-[#8E8E93]">No waste prevention alerts.</p>
+              ) : null}
+            </div>
+          </article>
         </section>
       ) : null}
     </WorkspaceShell>
