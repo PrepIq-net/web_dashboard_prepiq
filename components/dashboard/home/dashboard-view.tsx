@@ -445,7 +445,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         </article>
 
         <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-surface-5 hover:bg-surface-3/40 group"
+          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-brand-gold/30 hover:bg-surface-3/40 group"
           onClick={() => setKpiModal("forecast")}
         >
           <div className="flex items-start justify-between mb-3">
@@ -478,7 +478,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         </article>
 
         <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-surface-5 hover:bg-surface-3/40 group"
+          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-brand-gold/30 hover:bg-surface-3/40 group"
           onClick={() => setKpiModal("alerts")}
         >
           <div className="flex items-start justify-between mb-3">
@@ -841,7 +841,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                         ? "bg-status-critical"
                         : p >= 4
                           ? "bg-status-warning"
-                          : "bg-surface-5",
+                          : "bg-chart-baseline",
                     display: mb
                       ? fmtMoney(Number(mb.total_waste_cost ?? "0"))
                       : undefined,
@@ -870,7 +870,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   .map((b) => ({
                     label: b.branch_name,
                     value: Number(b.total_waste_cost ?? "0"),
-                    colorClass: "bg-surface-5",
+                    colorClass: "bg-chart-baseline",
                   }))}
                 formatVal={(item) => fmtMoney(item.value)}
                 emptyText="No cost data available"
@@ -969,7 +969,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                         ? "bg-status-critical"
                         : conf < 65
                           ? "bg-status-warning"
-                          : "bg-surface-5",
+                          : "bg-chart-baseline",
                     display: accuracy != null ? `${(accuracy * 100).toFixed(0)}% actual` : undefined,
                   };
                 })}
@@ -1022,7 +1022,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
             <p className="text-xs text-text-muted mt-1">No alerts detected across your branches.</p>
           </div>
         ) : (
-          <div className="divide-y divide-surface-4">
+          <div className="divide-y divide-surface-4 overflow-y-auto max-h-[calc(100vh-18rem)]">
             {[...alerts]
               .sort((a, b) => {
                 const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -1065,7 +1065,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                     </div>
                     <Link
                       href={cta.href}
-                      className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-surface-5 hover:text-text-primary"
+                      className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-brand-gold/30 hover:text-text-primary"
                     >
                       {cta.label}
                       <ArrowRight className="h-3 w-3" />
