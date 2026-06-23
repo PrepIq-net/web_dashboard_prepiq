@@ -1,5 +1,6 @@
 "use client";
-import { isOrgManagement } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -92,8 +93,8 @@ function SalesWasteContent() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
-  const role = user?.organization_role ?? "";
-  const canAccess = isOrgManagement(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");

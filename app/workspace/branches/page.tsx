@@ -1,5 +1,6 @@
 "use client";
-import { isOrgManagement } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -46,9 +47,8 @@ function toPercent(value: number) {
 export default function BranchesPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = isOrgManagement(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.MANAGE_BRANCHES);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(

@@ -1,5 +1,6 @@
 "use client";
-import { isOrgManagement } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -96,9 +97,8 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 export default function FinancialPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = isOrgManagement(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");

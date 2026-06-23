@@ -135,6 +135,7 @@ export const userProfileSchema = z.object({
   has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
   preferred_language: z.enum(["en", "fr"]).optional().default("en"),
+  permissions: z.array(z.string()).default([]),
 });
 
 export const updateProfilePayloadSchema = z.object({

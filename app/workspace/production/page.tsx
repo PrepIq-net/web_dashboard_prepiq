@@ -11,7 +11,8 @@ import {
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
-import { isOrgLeadership, isOrgManagement, isOrgMember } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 type LocalLog = {
   id: string;
@@ -129,13 +130,15 @@ export default function ProductionPage() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const role = user?.organization_role ?? "";
-  const isOwner = isOrgLeadership(role);
-  const isOrgAdmin = isOrgManagement(role) && !isOrgLeadership(role);
-  const isStaffOperator = isOrgMember(role);
+  const permissions = resolvePermissions(user);
+  const isOwner = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const isOrgAdmin = permissions.has(PERMISSIONS.VIEW_ANALYTICS) && !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const isStaffOperator = permissions.has(PERMISSIONS.CREATE_PRODUCTION_BATCH) && !permissions.has(PERMISSIONS.VIEW_ANALYTICS);
   const isBranchManager = false;
   const isOpsDirector = false;
-  const canViewProduction = Boolean(user?.has_organization);
+  const canViewProduction =
+    permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS) ||
+    permissions.has(PERMISSIONS.CREATE_PRODUCTION_BATCH);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;

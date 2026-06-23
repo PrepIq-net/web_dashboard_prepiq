@@ -63,8 +63,10 @@ import type { OrganizationMember, Role } from "@/services/organizations/types";
 import {
   SYSTEM_ROLE_OPTIONS,
   SYSTEM_ROLE_SLUG,
+  PERMISSIONS,
   resolveMemberRoleLabel,
 } from "@/services/organizations/types";
+import { resolvePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -86,7 +88,7 @@ interface TabItem {
   id: SettingsTab;
   label: string;
   icon: React.ReactNode;
-  roles?: string[];
+  permission?: string;
 }
 
 export default function SettingsPage() {
@@ -95,39 +97,37 @@ export default function SettingsPage() {
   const { data: organizations } = useMyOrganizations();
   const org = organizations?.[0];
 
+  const userPermissions = resolvePermissions(user);
+
   const tabs: TabItem[] = [
     {
       id: "organization",
       label: "Organization",
       icon: <Building className="h-4 w-4" />,
-      // Super Admin only — org settings are sensitive
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
+      permission: PERMISSIONS.MANAGE_ORG_SETTINGS,
     },
     {
       id: "branches",
       label: "Branches",
       icon: <Shop className="h-4 w-4" />,
-      // Super Admin and Admin can manage branches
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
+      permission: PERMISSIONS.MANAGE_BRANCHES,
     },
     {
       id: "users-roles",
       label: "Users & Roles",
       icon: <Group className="h-4 w-4" />,
-      // Only Super Admin manages team membership
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN],
+      permission: PERMISSIONS.MANAGE_TEAM,
     },
     {
       id: "integrations",
       label: "Integrations",
       icon: <CloudSync className="h-4 w-4" />,
-      roles: [SYSTEM_ROLE_SLUG.SUPER_ADMIN, SYSTEM_ROLE_SLUG.ADMIN],
+      permission: PERMISSIONS.MANAGE_INTEGRATIONS,
     },
     {
       id: "notifications",
       label: "Notifications",
       icon: <BellNotification className="h-4 w-4" />,
-      // All roles can manage their own notifications
     },
     {
       id: "security",
@@ -141,32 +141,20 @@ export default function SettingsPage() {
     },
   ];
 
-  // organization_role now returns the custom role name (e.g. "Super Admin").
-  // For tab visibility we match against the slug stored in the profile.
-  // The API returns organization_role as name; we fall back to showing all
-  // tabs when role info isn't loaded yet (avoids flash of empty nav).
-  const userRoleSlug = (() => {
-    const name = user?.organization_role?.toLowerCase();
-    if (!name) return null;
-    if (name.includes("super")) return SYSTEM_ROLE_SLUG.SUPER_ADMIN;
-    if (name === "admin") return SYSTEM_ROLE_SLUG.ADMIN;
-    return SYSTEM_ROLE_SLUG.MEMBER;
-  })();
-
   const filteredTabs = tabs.filter(
-    (tab) => !tab.roles || !userRoleSlug || tab.roles.includes(userRoleSlug),
+    (tab) => !tab.permission || userPermissions.has(tab.permission),
   );
 
-  // Once the role resolves, snap activeTab to the first tab the user can see.
-  // Without this a Member starts on "organization" (the default) even though
-  // that tab is hidden for them, which renders the org settings sub-component.
+  // Once permissions resolve, snap activeTab to the first tab the user can see.
+  // Without this a user starts on "organization" (the default) even if that
+  // tab is hidden for them, which would render the org settings component.
   useEffect(() => {
-    if (userRoleSlug && !filteredTabs.some((t) => t.id === activeTab)) {
+    if (user && !filteredTabs.some((t) => t.id === activeTab)) {
       const fallback = filteredTabs[0]?.id;
       if (fallback) setActiveTab(fallback);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRoleSlug]);
+  }, [user]);
 
   return (
     <WorkspaceShell

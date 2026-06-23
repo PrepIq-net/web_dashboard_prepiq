@@ -10,7 +10,8 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { useCurrentUserProfile } from "@/services";
-import { isOrgLeadership } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -74,8 +75,8 @@ function getSeverity(impact: number, highSeverityCount: number): SeverityTone {
 
 export function CommandSection() {
   const { data: user } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-  const isOwnerRole = isOrgLeadership(role);
+  const permissions = resolvePermissions(user);
+  const isOwnerRole = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
 
   const controlTowerQuery = useExecutiveControlTower(
     undefined,

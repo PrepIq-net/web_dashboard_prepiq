@@ -17,7 +17,8 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
-import { isOrgMember } from "@/lib/role-utils";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useIngredients,
   useMenuItems,
@@ -51,16 +52,18 @@ export default function InventoryPage() {
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const role = user?.organization_role ?? "";
-  const canAccess = Boolean(user?.has_organization);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_INVENTORY);
+  const canSeeAllBranches =
+    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
+    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const scopedBranchIds = new Set(accessibleBranches.map((b) => b.id));
-  const scopedBranches =
-    isOrgMember(role)
-      ? branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true))
-      : branches;
+  const scopedBranches = canSeeAllBranches
+    ? branches
+    : branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true));
 
   const defaultBranch =
     scopedBranches.find((b) => b.id === accessScope?.default_branch_id) ??

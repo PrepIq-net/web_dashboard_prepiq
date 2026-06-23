@@ -21,12 +21,12 @@ import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
 import { InsightFooter } from "@/components/dashboard/home/insight-footer";
-import { FinanceView } from "@/components/dashboard/home/finance-view";
 import { OpsView } from "@/components/dashboard/home/ops-view";
 import { OwnerView } from "@/components/dashboard/home/owner-view";
 import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
-import { ChefView } from "@/components/dashboard/home/chef-view";
 import { CommandSection } from "@/components/dashboard/home/command-section";
+import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
@@ -57,15 +57,24 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
 
-  const organizationRole = (user?.organization_role ?? "").toLowerCase();
-  const isOwnerMode = organizationRole.includes("super");
-  const isOpsManagerMode = organizationRole === "admin";
-  const isBranchManagerMode = organizationRole === "member";
-  const isChefMode = false;
-  const isFinanceMode = false;
-  const isBranchExecutionMode = isBranchManagerMode || isChefMode;
+  const permissions = resolvePermissions(user);
+  const canSeeFinancials = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const canSeeAnalytics = permissions.has(PERMISSIONS.VIEW_ANALYTICS);
+  const canSeeAllBranches =
+    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
+    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
+  const canSeeProductionReports = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
+  const canSeeForecasts = permissions.has(PERMISSIONS.VIEW_FORECASTS);
+
+  // Dashboard is for management-level users. Everyone else goes to Today.
+  const hasDashboardAccess = canAccessDashboard(permissions);
+
+  // View selection: show the most informative view the user's permissions allow.
+  const isOwnerMode = canSeeFinancials;
+  const isOpsManagerMode = !canSeeFinancials && canSeeAnalytics;
+  // Operational users who somehow land here (permissions changed mid-session, etc.)
+  const isBranchExecutionMode = !hasDashboardAccess && canSeeForecasts;
   const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
-  const isOrganizationIntelligenceMode = isOrgOverviewMode || isFinanceMode;
 
   // Defer non-critical queries until user data is loaded
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -92,15 +101,15 @@ function HomeContent() {
 
   const controlTowerQuery = useExecutiveControlTower(
     { target_date: todayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
+    isOrgOverviewMode && Boolean(user?.organization_id),
   );
   const controlTowerPreviousQuery = useExecutiveControlTower(
     { target_date: yesterdayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
+    isOrgOverviewMode && Boolean(user?.organization_id),
   );
   const marginReportQuery = useOwnerMarginProtectionReport(
     { target_date: todayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
+    isOrgOverviewMode && Boolean(user?.organization_id),
   );
 
   const activeBranch = useMemo(() => {
@@ -146,7 +155,7 @@ function HomeContent() {
   const shouldRedirectToToday =
     !isLoading &&
     Boolean(user?.has_organization) &&
-    organizationRole === "member";
+    !hasDashboardAccess;
   const shouldRedirectToBranchSetup =
     !isLoading &&
     Boolean(user?.has_organization) &&
@@ -438,14 +447,9 @@ function HomeContent() {
 
   const subtleInsight = isOrgOverviewMode
     ? aiInsight
-    : isFinanceMode
-      ? topAlerts[0]?.context ||
-        `Supplier anomaly checks found ${supplierAnomalies} active signal${supplierAnomalies === 1 ? "" : "s"} today.`
-      : isBranchExecutionMode
-        ? todayRecommendations.length > 0
-          ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
-          : "No production command has been generated yet for today."
-        : "Forecast accuracy improved this week and branch command quality is stable.";
+    : isBranchExecutionMode && todayRecommendations.length > 0
+      ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
+      : "Forecast accuracy improved this week and branch command quality is stable.";
 
   const hasOrgError = controlTowerQuery.isError || marginReportQuery.isError;
 
@@ -466,20 +470,6 @@ function HomeContent() {
               <BranchRequiredState />
             ) : shouldShowSalesSourceRequiredState ? (
               <SalesSourceRequiredState />
-            ) : isFinanceMode ? (
-              <FinanceView
-                revenueToday={revenueToday}
-                grossMarginPct={grossMarginPct}
-                totalWasteCost={Number(
-                  marginReport?.summary?.total_waste_cost ?? "0",
-                )}
-                wasteAsRevenuePct={wasteAsRevenuePct}
-                purchaseCostTrend={purchaseCostTrend}
-                wasteTodayValue={wasteTodayValue}
-                taxLiabilityEstimate={taxLiabilityEstimate}
-                branches={marginReport?.branches ?? []}
-                branchCount={marginReport?.branch_count ?? 0}
-              />
             ) : isOpsManagerMode ? (
               <OpsView
                 totalRevenue={Number(controlTower?.summary?.total_revenue ?? 0)}
@@ -513,7 +503,7 @@ function HomeContent() {
                 topAlerts={topAlerts}
                 hasError={hasOrgError}
               />
-            ) : isBranchManagerMode ? (
+            ) : isBranchExecutionMode ? (
               <BranchManagerView
                 branchName={activeBranch?.name || "Branch"}
                 currentTimeLabel={currentTimeLabel}
@@ -532,32 +522,7 @@ function HomeContent() {
                 yesterdaySold={yesterdaySold}
                 yesterdayWasteCost={yesterdayWasteCost}
               />
-            ) : isChefMode ? (
-              <ChefView
-                branchName={activeBranch?.name || ""}
-                shiftProgress={shiftProgress}
-                currentTimeLabel={currentTimeLabel}
-                todayRecommendations={todayRecommendations}
-                todayPlanTotal={todayPlanTotal}
-                assignedTasks={assignedTasks}
-                completedCount={staffChecklistQuery.data?.completed_count ?? 0}
-                totalCount={staffChecklistQuery.data?.total_count ?? 0}
-                operationalWarnings={operationalWarnings}
-                isLoading={branchCommandTodayQuery.isLoading}
-              />
-            ) : (
-              <section className="py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  {t("dashboard.home.branchWorkspace")}
-                </p>
-                <h2 className="mt-3 font-display text-2xl font-semibold text-text-primary">
-                  {t("dashboard.home.branchModeActive")}
-                </h2>
-                <p className="mt-2 text-sm text-text-secondary max-w-2xl">
-                  {t("dashboard.home.branchModeDescription")}
-                </p>
-              </section>
-            )}
+            ) : null}
 
             {isOrgOverviewMode &&
               !shouldShowBranchRequiredState &&
