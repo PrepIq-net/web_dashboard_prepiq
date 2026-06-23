@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile, useMyOrganizations } from "@/services";
 import {
@@ -73,6 +73,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
+import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -83,7 +84,8 @@ type SettingsTab =
   | "integrations"
   | "notifications"
   | "security"
-  | "data-ai";
+  | "data-ai"
+  | "support";
 
 interface TabItem {
   id: SettingsTab;
@@ -108,10 +110,12 @@ const VALID_SETTINGS_TABS: SettingsTab[] = [
   "notifications",
   "security",
   "data-ai",
+  "support",
 ];
 
 function SettingsPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tabFromUrl = searchParams.get("tab") as SettingsTab | null;
   const branchFromUrl = searchParams.get("branch") ?? undefined;
 
@@ -120,6 +124,15 @@ function SettingsPageContent() {
     return "organization";
   });
   const { data: user } = useCurrentUserProfile();
+
+  // When the user changes branch inside IntegrationsSettings, update the URL so
+  // navigating away and back still shows the same branch.
+  function handleIntegrationBranchChange(branchId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("branch", branchId);
+    params.set("tab", "integrations");
+    router.replace(`/workspace/settings?${params.toString()}`, { scroll: false });
+  }
   const { data: organizations } = useMyOrganizations();
   const org = organizations?.[0];
 
@@ -164,6 +177,11 @@ function SettingsPageContent() {
       id: "data-ai",
       label: "Data & AI Preferences",
       icon: <Brain className="h-4 w-4" />,
+    },
+    {
+      id: "support",
+      label: "Support",
+      icon: <HelpCircle className="h-4 w-4" />,
     },
   ];
 
@@ -216,15 +234,6 @@ function SettingsPageContent() {
             ))}
           </nav>
 
-          <div className="mt-6 pt-4 border-t border-[#1C1C1F]">
-            <Link
-              href="/workspace/support"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary transition-all duration-200"
-            >
-              <HelpCircle className="h-4 w-4 text-text-muted" />
-              Support
-            </Link>
-          </div>
         </aside>
 
         {/* Content Panel */}
@@ -235,16 +244,22 @@ function SettingsPageContent() {
           {activeTab === "branches" && <BranchSettings orgId={org?.id} />}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
-            <IntegrationsSettings orgId={org?.id} focusedBranchId={branchFromUrl} />
+            <IntegrationsSettings
+              orgId={org?.id}
+              focusedBranchId={branchFromUrl}
+              onBranchChange={handleIntegrationBranchChange}
+            />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
-          {/* Add more tabs content here as they are implemented */}
+          {activeTab === "support" && <SupportTabContent />}
+          {/* Placeholder for tabs not yet built */}
           {![
             "organization",
             "branches",
             "users-roles",
             "integrations",
             "notifications",
+            "support",
           ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
@@ -516,26 +531,32 @@ const POS_SYSTEMS = [
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
+  onBranchChange,
 }: {
   orgId?: string;
   focusedBranchId?: string;
+  onBranchChange?: (branchId: string) => void;
 }) {
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
 
   const [selectedBranchId, setSelectedBranchId] = useState(focusedBranchId ?? "");
+  const initDone = useRef(false);
 
-  // When branches load (or focused branch changes from URL), resolve the selection
+  // Initialize exactly once when branches first load — never resets on user changes.
   useEffect(() => {
-    if (focusedBranchId && branches.some((b) => b.id === focusedBranchId)) {
-      setSelectedBranchId(focusedBranchId);
-    } else if (!selectedBranchId && branches.length > 0) {
-      setSelectedBranchId(branches[0].id);
-    }
-  }, [focusedBranchId, branches, selectedBranchId]);
+    if (initDone.current || branches.length === 0) return;
+    initDone.current = true;
+    const preferred =
+      focusedBranchId && branches.some((b) => b.id === focusedBranchId)
+        ? focusedBranchId
+        : branches[0].id;
+    setSelectedBranchId(preferred);
+  }, [branches, focusedBranchId]);
 
   const integrationsQuery = useIntegrationsOverview({
     organization_id: orgId ?? "00000000-0000-0000-0000-000000000000",
+    branch_id: selectedBranchId || "00000000-0000-0000-0000-000000000000",
   });
 
   const squareOAuth = useSquareOAuthStart();
@@ -544,13 +565,19 @@ function IntegrationsSettings({
   const cloverOAuth = useCloverOAuthStart();
 
   const summary = integrationsQuery.data?.summary;
-  const branchStatus = integrationsQuery.data?.branches.find(
-    (b) => b.branch_id === selectedBranchId
-  );
+  // API now filters by branch_id, so the first (and only) item is our branch.
+  const branchStatus =
+    integrationsQuery.data?.branches.find((b) => b.branch_id === selectedBranchId) ??
+    integrationsQuery.data?.branches?.[0];
   const selectedBranch = branches.find((b) => b.id === selectedBranchId);
   const isConnected = branchStatus?.status === "CONNECTED";
   const isFocusedBranchWithIssue =
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
+
+  function handleBranchChange(branchId: string) {
+    setSelectedBranchId(branchId);
+    onBranchChange?.(branchId);
+  }
 
   const handleConnect = (posId: string) => {
     const branch_id = selectedBranchId || "00000000-0000-0000-0000-000000000000";
@@ -591,24 +618,15 @@ function IntegrationsSettings({
       )}
 
       {/* Branch picker */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-text-muted shrink-0">Integration for:</span>
-        <select
-          value={selectedBranchId}
-          onChange={(e) => setSelectedBranchId(e.target.value)}
-          disabled={branches.length === 0}
-          className="flex-1 max-w-xs rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-gold disabled:opacity-40"
-        >
-          {branches.length === 0 && (
-            <option value="">Loading branches…</option>
-          )}
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Select
+        label="Integration for"
+        options={branches.map((b) => ({ value: b.id, label: b.name }))}
+        value={selectedBranchId}
+        onChange={handleBranchChange}
+        placeholder={branches.length === 0 ? "Loading branches…" : "Select branch"}
+        disabled={branches.length === 0}
+        className="max-w-xs"
+      />
 
       {/* Selected branch status */}
       {integrationsQuery.isLoading ? (

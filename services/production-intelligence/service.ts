@@ -132,6 +132,7 @@ export async function getStaffAccountability(params: StaffAccountabilityQuery) {
 
 export type IntegrationsOverviewQuery = {
   organization_id: string;
+  branch_id?: string;
 };
 
 export async function getIntegrationsOverview(
