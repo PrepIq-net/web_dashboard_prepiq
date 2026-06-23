@@ -505,6 +505,14 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
   );
 }
 
+const POS_SYSTEMS = [
+  { id: "square", name: "Square" },
+  { id: "toast", name: "Toast" },
+  { id: "clover", name: "Clover" },
+  { id: "loyverse", name: "Loyverse" },
+  { id: "lightspeed", name: "Lightspeed" },
+];
+
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
@@ -512,134 +520,201 @@ function IntegrationsSettings({
   orgId?: string;
   focusedBranchId?: string;
 }) {
-  const { isLoading } = useIntegrationsOverview({
-    organization_id: orgId || "00000000-0000-0000-0000-000000000000",
-  });
   const branchesQuery = useBranches(orgId ?? "");
-  const focusedBranch = branchesQuery.data?.find((b) => b.id === focusedBranchId);
+  const branches = branchesQuery.data ?? [];
+
+  const [selectedBranchId, setSelectedBranchId] = useState(focusedBranchId ?? "");
+
+  // When branches load (or focused branch changes from URL), resolve the selection
+  useEffect(() => {
+    if (focusedBranchId && branches.some((b) => b.id === focusedBranchId)) {
+      setSelectedBranchId(focusedBranchId);
+    } else if (!selectedBranchId && branches.length > 0) {
+      setSelectedBranchId(branches[0].id);
+    }
+  }, [focusedBranchId, branches, selectedBranchId]);
+
+  const integrationsQuery = useIntegrationsOverview({
+    organization_id: orgId ?? "00000000-0000-0000-0000-000000000000",
+  });
 
   const squareOAuth = useSquareOAuthStart();
   const toastOAuth = useToastOAuthStart();
   const loyverseOAuth = useLoyverseOAuthStart();
   const cloverOAuth = useCloverOAuthStart();
 
-  // Use the branch the user arrived from; fall back to placeholder until real flow is built
-  const activeBranchId = focusedBranchId || "00000000-0000-0000-0000-000000000000";
+  const summary = integrationsQuery.data?.summary;
+  const branchStatus = integrationsQuery.data?.branches.find(
+    (b) => b.branch_id === selectedBranchId
+  );
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId);
+  const isConnected = branchStatus?.status === "CONNECTED";
+  const isFocusedBranchWithIssue =
+    !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
-      </div>
-    );
-  }
-
-  const posSystems = [
-    {
-      id: "toast",
-      name: "Toast",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "square",
-      name: "Square",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "clover",
-      name: "Clover",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-    {
-      id: "lightspeed",
-      name: "Lightspeed",
-      icon: <Shop className="h-6 w-6" />,
-      status: "Disconnected",
-    },
-  ];
-
-  const handleConnect = (id: string) => {
-    if (id === "square") {
-      squareOAuth.mutate({ branch_id: activeBranchId });
-    } else if (id === "toast") {
-      toastOAuth.mutate({
-        branch_id: activeBranchId,
-        client_id: "placeholder",
-        client_secret: "placeholder",
-      });
-    } else if (id === "loyverse") {
-      loyverseOAuth.mutate({ branch_id: activeBranchId });
-    } else if (id === "clover") {
-      cloverOAuth.mutate({ branch_id: activeBranchId });
+  const handleConnect = (posId: string) => {
+    const branch_id = selectedBranchId || "00000000-0000-0000-0000-000000000000";
+    if (posId === "square") {
+      squareOAuth.mutate({ branch_id });
+    } else if (posId === "toast") {
+      toastOAuth.mutate({ branch_id, client_id: "placeholder", client_secret: "placeholder" });
+    } else if (posId === "loyverse") {
+      loyverseOAuth.mutate({ branch_id });
+    } else if (posId === "clover") {
+      cloverOAuth.mutate({ branch_id });
     } else {
-      toast.error(`${id} connection not implemented yet.`);
+      toast.error(`${posId} connection not implemented yet.`);
     }
   };
 
   return (
     <div className="space-y-10">
-      {/* Context banner — shown when arriving from dashboard with a specific branch */}
-      {focusedBranch && (
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
+        <p className="text-sm text-text-muted mt-1">
+          Connect your POS and accounting systems to PrepIQ — per branch.
+        </p>
+      </div>
+
+      {/* Org-wide summary chips */}
+      {summary && (
+        <div className="flex flex-wrap gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-status-ok" />
+            {summary.active_connections} of {summary.total_branches} branches connected
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
+            {summary.health_pct}% sync health
+          </span>
+        </div>
+      )}
+
+      {/* Branch picker */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-text-muted shrink-0">Integration for:</span>
+        <select
+          value={selectedBranchId}
+          onChange={(e) => setSelectedBranchId(e.target.value)}
+          disabled={branches.length === 0}
+          className="flex-1 max-w-xs rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-gold disabled:opacity-40"
+        >
+          {branches.length === 0 && (
+            <option value="">Loading branches…</option>
+          )}
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Selected branch status */}
+      {integrationsQuery.isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+          Loading…
+        </div>
+      ) : branchStatus ? (
+        <div
+          className={`flex items-center justify-between rounded-2xl border px-5 py-4 ${
+            isConnected
+              ? "border-status-ok/25 bg-status-ok/6"
+              : "border-status-critical/25 bg-status-critical/6"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? "bg-status-ok" : "bg-status-critical"
+              }`}
+            />
+            <div>
+              <p className="text-sm font-medium text-text-primary">
+                {selectedBranch?.name ?? "Branch"} —{" "}
+                {isConnected ? "POS connected" : "No POS connected"}
+              </p>
+              {branchStatus.last_sync && (
+                <p className="text-xs text-text-muted mt-0.5">
+                  Last sync:{" "}
+                  {new Date(branchStatus.last_sync).toLocaleString([], {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+          {isConnected && (
+            <Badge variant="outline" className="text-[10px] text-status-ok border-status-ok/40">
+              Active
+            </Badge>
+          )}
+        </div>
+      ) : selectedBranch ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-surface-4 px-5 py-4 text-sm text-text-muted">
+          <span className="h-2 w-2 rounded-full bg-text-muted/30" />
+          No integration data for {selectedBranch.name} yet.
+        </div>
+      ) : null}
+
+      {/* Context banner — shown when arriving from dashboard with a POS issue */}
+      {isFocusedBranchWithIssue && (
         <div className="flex items-start gap-3 rounded-xl border border-status-warning/30 bg-status-warning/8 px-4 py-4">
           <InfoCircle className="h-4 w-4 text-status-warning shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-text-primary">
-              POS issue detected for {focusedBranch.name}
+              POS issue detected for {selectedBranch?.name}
             </p>
             <p className="text-xs text-text-muted mt-1 leading-relaxed">
-              Connect a POS system below. When asked to select a branch during the
-              setup flow, choose{" "}
-              <span className="font-medium text-text-secondary">{focusedBranch.name}</span>.
+              Sales data isn&apos;t syncing for this branch. Connect a POS system below.
             </p>
           </div>
         </div>
       )}
 
-      <div>
-        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
-        <p className="text-sm text-text-muted mt-1">
-          Connect your POS, accounting, and reservation systems to PrepIQ.
-        </p>
-      </div>
-
+      {/* POS Systems */}
       <section className="space-y-6">
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <Shop className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
             POS Systems
           </h3>
+          {selectedBranch && (
+            <span className="ml-auto text-xs text-text-muted">
+              {isConnected ? `${selectedBranch.name} is connected` : `Connect for ${selectedBranch.name}`}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {posSystems.map((pos) => (
+          {POS_SYSTEMS.map((pos) => (
             <div
               key={pos.id}
               className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
             >
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
-                  {pos.icon}
+                  <Shop className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="font-medium text-text-primary">{pos.name}</p>
-                  <Badge
-                    variant="outline"
-                    className="mt-1 text-[10px] opacity-60"
-                  >
-                    {pos.status}
+                  <Badge variant="outline" className="mt-1 text-[10px] opacity-60">
+                    {isConnected ? "Connected" : "Not connected"}
                   </Badge>
                 </div>
               </div>
-              <Button
-                variant="secondary"
-                onClick={() => handleConnect(pos.id)}
-                className="h-9 px-4 text-xs font-semibold"
-              >
-                Connect
-              </Button>
+              {!isConnected && (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleConnect(pos.id)}
+                  disabled={!selectedBranchId}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Connect
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -656,8 +731,8 @@ function IntegrationsSettings({
         <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
           <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
           <p className="text-sm text-text-muted max-w-xs mx-auto">
-            QuickBooks, Xero, and OpenTable integrations are currently in
-            private beta. Contact support to join the waitlist.
+            QuickBooks, Xero, and OpenTable integrations are currently in private beta.
+            Contact support to join the waitlist.
           </p>
         </div>
       </section>

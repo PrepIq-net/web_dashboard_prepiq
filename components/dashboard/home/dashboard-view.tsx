@@ -35,7 +35,12 @@ type Diagnosis = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function diagnoseBranch(branch: BranchEntry): Diagnosis {
-  const param = `?branch=${branch.branch_id}`;
+  // Each destination has its own URL param convention.
+  // today page reads ?branch_id=, all others read ?branch=
+  const bid = branch.branch_id;
+  const toToday = `/workspace/today?branch_id=${bid}`;
+  const toWaste = `/workspace/sales-waste?branch=${bid}`;
+  const toSettings = `/workspace/settings?tab=integrations&branch=${bid}`;
   const wastePct = Number(branch.waste_pct ?? 0);
 
   // 1. Plan not locked — branch is blocked from starting live service
@@ -44,7 +49,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: "Prep plan hasn't been approved",
       detail: "The branch can't go live until a manager locks today's plan.",
       ctaLabel: "Review and approve plan",
-      ctaHref: `/workspace/today${param}`,
+      ctaHref: toToday,
       severity: "critical",
     };
   }
@@ -55,7 +60,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: "POS is not connected",
       detail: "Sales data isn't syncing. Revenue and waste figures are incomplete.",
       ctaLabel: "Fix integration",
-      ctaHref: `/workspace/settings?tab=integrations&branch=${branch.branch_id}`,
+      ctaHref: toSettings,
       severity: "critical",
     };
   }
@@ -66,7 +71,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: `${wastePct.toFixed(1)}% of items are at risk of waste`,
       detail: "Reduce prep quantities or redirect surplus before service closes.",
       ctaLabel: "See which items are at risk",
-      ctaHref: `/workspace/sales-waste${param}`,
+      ctaHref: toWaste,
       severity: "critical",
     };
   }
@@ -77,7 +82,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: "No staff POS activity in 2+ hours",
       detail: "Live service is running but the POS hasn't synced. Sales may be missing.",
       ctaLabel: "Review live status",
-      ctaHref: `/workspace/today${param}`,
+      ctaHref: toToday,
       severity: "critical",
     };
   }
@@ -88,18 +93,18 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: `${wastePct.toFixed(1)}% waste — approaching threshold`,
       detail: "Watch closely, especially in the final hour of service.",
       ctaLabel: "Monitor waste trend",
-      ctaHref: `/workspace/sales-waste${param}`,
+      ctaHref: toWaste,
       severity: "warning",
     };
   }
 
-  // 6. Day not started yet (shouldn't be MORNING this late, but flag it)
+  // 6. Day closed or not yet started
   if (!branch.day_status || branch.day_status === "CLOSED") {
     return {
       issue: null,
       detail: null,
       ctaLabel: "View yesterday's summary",
-      ctaHref: `/workspace/today${param}`,
+      ctaHref: toToday,
       severity: "ok",
     };
   }
@@ -109,7 +114,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
     issue: null,
     detail: null,
     ctaLabel: "View today's plan",
-    ctaHref: `/workspace/today${param}`,
+    ctaHref: toToday,
     severity: "ok",
   };
 }
@@ -134,7 +139,7 @@ const ALERT_CTA: Record<string, { label: string; href: (branchId: string) => str
   },
   SALES_VELOCITY_DROP: {
     label: "Review live sales",
-    href: (id) => `/workspace/today?branch=${id}`,
+    href: (id) => `/workspace/today?branch_id=${id}`,
   },
   SALES_VELOCITY_SURGE: {
     label: "Check stock levels",
@@ -153,7 +158,7 @@ const ALERT_CTA: Record<string, { label: string; href: (branchId: string) => str
 function alertCTA(alert: AlertEntry): { label: string; href: string } {
   const def = ALERT_CTA[alert.type ?? ""];
   if (def) return { label: def.label, href: def.href(alert.branch_id) };
-  return { label: "Review alert", href: `/workspace/today?branch=${alert.branch_id}` };
+  return { label: "Review alert", href: `/workspace/today?branch_id=${alert.branch_id}` };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
