@@ -516,5 +516,110 @@
     "BRANCH_MANAGER": "Directeur de succursale",
     "STAFF_OPERATOR": "Opérateur personnel",
     "AUDITOR": "Auditeur / Lecture seule"
+  },
+  "setup": {
+    "branch": {
+      "step": "Étape 1 — Configuration de la succursale",
+      "title": "Créez votre première succursale",
+      "description": "Définissez le profil de votre succursale et son horaire d'ouverture. Vous pourrez mettre à jour ces informations plus tard.",
+      "nameLabel": "Nom de la succursale",
+      "namePlaceholder": "ex. Cuisine du Centre-ville",
+      "codeLabel": "Code de la succursale",
+      "codePlaceholder": "ex. BR001",
+      "addressLabel": "Adresse",
+      "addressPlaceholder": "ex. 42 Rue du Marché, Paris",
+      "phoneLabel": "Téléphone",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "ex. manager@succursale.com",
+      "timezoneLabel": "Fuseau horaire",
+      "scheduleLabel": "Horaire d'ouverture",
+      "scheduleDescription": "Activez les jours d'ouverture et définissez les heures pour chaque jour.",
+      "weekdayTemplate": "Modèle semaine",
+      "openAll": "Ouvrir tout à {time}",
+      "closeAll": "Fermer tout à {time}",
+      "day": "Jour",
+      "opens": "Ouverture",
+      "closes": "Fermeture",
+      "status": "Statut",
+      "open": "Ouvert",
+      "closed": "Fermé",
+      "submit": "Créer la succursale",
+      "creating": "Création de la succursale…",
+      "skip": "Passer pour l'instant",
+      "optional": "(optionnel)",
+      "limitReached": "Limite de succursales atteinte sur le plan actuel.",
+      "upgradePlan": "Mettre à niveau le plan"
+    },
+    "sales": {
+      "title": "Connecter Ventes & Caisse",
+      "description": "Liez votre système de point de vente pour débloquer l'intelligence des ventes en temps réel et le suivi des marges."
+    },
+    "staff": {
+      "title": "Invitez votre équipe",
+      "description": "Intégrez votre équipe pour commencer à collaborer immédiatement."
+    },
+    "pricing": {
+      "title": "Sélectionnez votre plan",
+      "description": "Choisissez le plan adapté aux besoins de votre cuisine."
+    },
+    "checkout": {
+      "title": "Terminez votre configuration",
+      "description": "Entrez vos informations de paiement pour activer votre espace de travail.",
+      "initializing": "Initialisation du paiement sécurisé...",
+      "backToPricing": "Retour aux tarifs",
+      "secureCheckout": "Paiement Sécurisé",
+      "completeUpgrade": "Terminez votre mise à niveau",
+      "detailsTitle": "Détails de l'abonnement",
+      "transitioning": "Passage de votre succursale {branch} au plan {plan}.",
+      "settingUp": "Configuration du plan {plan} pour votre organisation.",
+      "upgradeTransitionDetected": "Transition de mise à niveau détectée",
+      "upgradeTransitionDesc": "Vous êtes actuellement sur le plan {currentPlan}. En continuant, votre nouveau niveau {newPlan} s'activera immédiatement, remplaçant votre période d'abonnement existante pour cette succursale.",
+      "selectedTier": "Votre niveau d'opérations sélectionné",
+      "billedMonthly": "Facturé mensuellement",
+      "billedYearly": "Facturé annuellement",
+      "branchCapacity": "Capacité de succursales",
+      "upToBranches": "Jusqu'à {limit} succursales",
+      "businessInfo": "Informations sur l'entreprise",
+      "businessNameLabel": "Nom de l'entreprise",
+      "businessNamePlaceholder": "ex. PrepIQ Kitchens",
+      "billingEmailLabel": "E-mail de facturation",
+      "billingEmailPlaceholder": "finance@votreentreprise.com",
+      "phoneNumberLabel": "Numéro de téléphone",
+      "phoneNumberPlaceholder": "+33 6 00 00 00 00",
+      "targetBranchLabel": "Succursale cible",
+      "primary": "(Principale)",
+      "paymentMethod": "Mode de paiement",
+      "card": "Carte de Crédit / Débit",
+      "cardDesc": "Paiement sécurisé via Stripe",
+      "mpesa": "M-Pesa / Mobile",
+      "mobileMoney": "Mobile Money",
+      "mobileMoneyDesc": "Payer via PawaPay",
+      "orderSummary": "Résumé de la commande",
+      "planPlan": "Plan {plan}",
+      "billingCycleLabel": "Cycle de facturation",
+      "taxLabel": "TVA (0%)",
+      "totalDueToday": "Total dû aujourd'hui",
+      "perMonth": "par mois",
+      "perYear": "par an",
+      "processing": "Traitement...",
+      "pay": "Payer {amount}",
+      "termsPrivacy": "En continuant, vous acceptez les Conditions d'utilisation et la Politique de confidentialité de PrepIQ. Les paiements ne sont pas remboursables.",
+      "pciCompliant": "Conforme PCI",
+      "shieldTitle": "Bouclier d'intelligence",
+      "shieldDesc": "Vos données sont cryptées et traitées dans des VPC isolés. La gestion des abonnements est effectuée uniquement via des fournisseurs de paiement autorisés."
+    },
+    "forecast": {
+      "title": "Prévisions & Demande",
+      "description": "Configurez vos premiers signaux de demande pour alimenter l'IA."
+    },
+    "items": {
+      "title": "Inventaire & Articles",
+      "description": "Importez vos articles et ingrédients pour commencer le suivi."
+    },
+    "onboarding": {
+      "checking": "Vérification de votre configuration...",
+      "settingUp": "Configuration",
+      "footer": "Infrastructure d'espace de travail PrepIQ © 2026. Tous droits réservés."
+    }
   }
 }

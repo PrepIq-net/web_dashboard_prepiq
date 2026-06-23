@@ -516,5 +516,110 @@
     "BRANCH_MANAGER": "Branch Manager",
     "STAFF_OPERATOR": "Staff Operator",
     "AUDITOR": "Auditor / Read Only"
+  },
+  "setup": {
+    "branch": {
+      "step": "Step 1 — Branch Setup",
+      "title": "Create your first branch",
+      "description": "Define your branch profile and operating schedule. You can update this later.",
+      "nameLabel": "Branch name",
+      "namePlaceholder": "e.g. Downtown Kitchen",
+      "codeLabel": "Branch code",
+      "codePlaceholder": "e.g. BR001",
+      "addressLabel": "Address",
+      "addressPlaceholder": "e.g. 42 Market St, Nairobi",
+      "phoneLabel": "Phone",
+      "emailLabel": "Email",
+      "emailPlaceholder": "e.g. manager@branch.com",
+      "timezoneLabel": "Time zone",
+      "scheduleLabel": "Operating schedule",
+      "scheduleDescription": "Toggle open days and set hours for each day.",
+      "weekdayTemplate": "Weekday template",
+      "openAll": "Open all @ {time}",
+      "closeAll": "Close all @ {time}",
+      "day": "Day",
+      "opens": "Opens",
+      "closes": "Closes",
+      "status": "Status",
+      "open": "Open",
+      "closed": "Closed",
+      "submit": "Create Branch",
+      "creating": "Creating branch…",
+      "skip": "Skip for now",
+      "optional": "(optional)",
+      "limitReached": "Branch limit reached on current plan.",
+      "upgradePlan": "Upgrade plan"
+    },
+    "sales": {
+      "title": "Connect Sales & POS",
+      "description": "Link your Point of Sale system to unlock real-time sales intelligence and margin tracking."
+    },
+    "staff": {
+      "title": "Invite your team",
+      "description": "Bring your team on board to start collaborating immediately."
+    },
+    "pricing": {
+      "title": "Select your plan",
+      "description": "Choose the right plan for your kitchen's needs."
+    },
+    "checkout": {
+      "title": "Complete your setup",
+      "description": "Enter your payment details to activate your workspace.",
+      "initializing": "Initializing secure checkout...",
+      "backToPricing": "Back to pricing",
+      "secureCheckout": "Secure Checkout",
+      "completeUpgrade": "Complete Your Upgrade",
+      "detailsTitle": "Subscription Details",
+      "transitioning": "Transitioning your {branch} branch to the {plan} plan.",
+      "settingUp": "Setting up {plan} for your organization.",
+      "upgradeTransitionDetected": "Upgrade Transition Detected",
+      "upgradeTransitionDesc": "You are currently on the {currentPlan} plan. By proceeding, your new {newPlan} tier will activate immediately, replacing your existing subscription window for this branch.",
+      "selectedTier": "Your selected operations tier",
+      "billedMonthly": "Billed Monthly",
+      "billedYearly": "Billed Yearly",
+      "branchCapacity": "Branch capacity",
+      "upToBranches": "Up to {limit} branches",
+      "businessInfo": "Business Information",
+      "businessNameLabel": "Business Name",
+      "businessNamePlaceholder": "e.g. PrepIQ Kitchens",
+      "billingEmailLabel": "Billing Email",
+      "billingEmailPlaceholder": "finance@yourcompany.com",
+      "phoneNumberLabel": "Phone Number",
+      "phoneNumberPlaceholder": "+1 555 000 0000",
+      "targetBranchLabel": "Target Branch",
+      "primary": "(Primary)",
+      "paymentMethod": "Payment Method",
+      "card": "Credit / Debit Card",
+      "cardDesc": "Secure payment via Stripe",
+      "mpesa": "M-Pesa / Mobile",
+      "mobileMoney": "Mobile Money",
+      "mobileMoneyDesc": "Pay via PawaPay",
+      "orderSummary": "Order Summary",
+      "planPlan": "{plan} plan",
+      "billingCycleLabel": "Billing cycle",
+      "taxLabel": "Tax (VAT 0%)",
+      "totalDueToday": "Total Due Today",
+      "perMonth": "per month",
+      "perYear": "per year",
+      "processing": "Processing...",
+      "pay": "Pay {amount}",
+      "termsPrivacy": "By proceeding, you agree to PrepIQ's Terms of Service and Privacy Policy. Payments are non-refundable.",
+      "pciCompliant": "PCI Compliant",
+      "shieldTitle": "Intelligence Shield",
+      "shieldDesc": "Your data is encrypted and processed in isolated VPCs. Subscription management is handled via authorized payment providers only."
+    },
+    "forecast": {
+      "title": "Forecast & Demand",
+      "description": "Set up your initial demand signals to power the AI."
+    },
+    "items": {
+      "title": "Inventory & Items",
+      "description": "Import your items and ingredients to start tracking."
+    },
+    "onboarding": {
+      "checking": "Checking your setup...",
+      "settingUp": "Setting up",
+      "footer": "PrepIQ Workspace Infrastructure © 2026. All rights reserved."
+    }
   }
 }
