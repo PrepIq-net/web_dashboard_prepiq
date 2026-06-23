@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/native-table";
 import { Download, WarningTriangle, CoinsSwap } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
@@ -493,26 +494,30 @@ export default function PurchasingPage() {
           <article>
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Suppliers</p>
             <div className="mt-3 space-y-2">
-              <select
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+              <Select
+                options={[
+                  { value: "", label: "Supplier A" },
+                  ...supplierRows.map((row) => ({
+                    value: row.id,
+                    label: row.supplier,
+                  })),
+                ]}
                 value={supplierA}
-                onChange={(event) => setSupplierA(event.target.value)}
-              >
-                <option value="">Supplier A</option>
-                {supplierRows.map((row) => (
-                  <option key={row.id} value={row.id}>{row.supplier}</option>
-                ))}
-              </select>
-              <select
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                onChange={(value) => setSupplierA(value)}
+                placeholder="Select supplier A"
+              />
+              <Select
+                options={[
+                  { value: "", label: "Supplier B" },
+                  ...supplierRows.map((row) => ({
+                    value: row.id,
+                    label: row.supplier,
+                  })),
+                ]}
                 value={supplierB}
-                onChange={(event) => setSupplierB(event.target.value)}
-              >
-                <option value="">Supplier B</option>
-                {supplierRows.map((row) => (
-                  <option key={row.id} value={row.id}>{row.supplier}</option>
-                ))}
-              </select>
+                onChange={(value) => setSupplierB(value)}
+                placeholder="Select supplier B"
+              />
               <div className="pt-2">
                 <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Spend delta</p>
                 <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">{toCurrency(supplierDelta)}</p>

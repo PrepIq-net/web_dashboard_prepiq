@@ -17,7 +17,9 @@ import {
   Plus,
   Trash,
   Edit,
+  HelpCircle,
 } from "iconoir-react";
+import Link from "next/link";
 import {
   useOrganizationDetail,
   useUpdateOrganization,
@@ -200,12 +202,14 @@ export default function SettingsPage() {
             ))}
           </nav>
 
-          {/* Language preference — visible to all users, always at bottom of sidebar */}
           <div className="mt-6 pt-4 border-t border-[#1C1C1F]">
-            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted/70">
-              Language
-            </p>
-            <LanguageSwitcher className="w-full" />
+            <Link
+              href="/workspace/support"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary transition-all duration-200"
+            >
+              <HelpCircle className="h-4 w-4 text-text-muted" />
+              Support
+            </Link>
           </div>
         </aside>
 
@@ -465,6 +469,22 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
               handleChange("forecast_horizon_days", parseInt(e.target.value))
             }
           />
+        </div>
+      </section>
+
+      {/* Language */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <InfoCircle className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Language
+          </h3>
+        </div>
+        <div>
+          <p className="text-xs text-text-muted mb-3">
+            Interface language for this organization's workspace.
+          </p>
+          <LanguageSwitcher />
         </div>
       </section>
     </div>

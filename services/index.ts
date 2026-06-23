@@ -5,3 +5,5 @@ export * from "./production-intelligence/hooks";
 export * from "./payment/hooks";
 export * from "./notifications/hooks";
 export * from "./chat/hooks";
+export * from "./support/hooks";
+export * from "./support/hooks";
