@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
+import { AuthHeaderBadge } from "@/components/auth/auth-header-badge";
+import { AuthFooter } from "@/components/auth/auth-footer";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
@@ -12,9 +13,7 @@ export default function LoginPage() {
 
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">Sign In</p>
-          </div>
+          <AuthHeaderBadge labelKey="auth.signIn" />
         </header>
 
         <section className="relative z-10 flex-1 flex flex-col items-center">
@@ -27,25 +26,7 @@ export default function LoginPage() {
           </Suspense>
         </section>
 
-        <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
-          <p className="text-xs text-text-muted">
-            PrepIQ Infrastructure &copy; 2026.
-          </p>
-          <div className="flex gap-6">
-            <Link
-              href="/terms"
-              className="text-xs text-text-muted hover:text-text-primary"
-            >
-              Terms
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-xs text-text-muted hover:text-text-primary"
-            >
-              Privacy
-            </Link>
-          </div>
-        </footer>
+        <AuthFooter />
       </div>
     </main>
   );

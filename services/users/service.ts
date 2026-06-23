@@ -4,6 +4,8 @@ import { usersEndpoints } from "@/services/users/endpoints";
 import {
   apiMessageResponseSchema,
   comprehensiveUserSchema,
+  changePasswordPayloadSchema,
+  type ChangePasswordPayload,
   deleteAccountPayloadSchema,
   emailPayloadSchema,
   googleLoginPayloadSchema,
@@ -49,6 +51,8 @@ function toFormData(payload: UpdateProfilePayload): FormData {
     formData.append("first_name", payload.first_name);
   if (payload.last_name !== undefined)
     formData.append("last_name", payload.last_name);
+  if (payload.preferred_language !== undefined)
+    formData.append("preferred_language", payload.preferred_language);
   if (payload.profile_picture !== undefined) {
     formData.append("profile_picture", payload.profile_picture);
   }
@@ -263,7 +267,7 @@ export async function uploadUserPhoto(photo: File) {
 
   return apiClientWithSchema(
     usersEndpoints.profile.uploadPhoto,
-    photoUploadResponseSchema,
+    apiMessageResponseSchema,
     {
       method: "POST",
       body: formData,
@@ -282,6 +286,15 @@ export async function uploadUserDocument(verificationDocument: File) {
       method: "POST",
       body: formData,
     },
+  );
+}
+
+export async function changePassword(payload: ChangePasswordPayload) {
+  const body = changePasswordPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    usersEndpoints.profile.changePassword,
+    apiMessageResponseSchema,
+    { method: "POST", body },
   );
 }
 

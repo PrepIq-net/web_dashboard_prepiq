@@ -378,25 +378,32 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       {user && (
         <div className="border-t border-[#1C1C1F] p-3">
           {collapsed ? (
-            <div className="flex justify-center">
+            <Link
+              href="/workspace/profile"
+              title="My Profile"
+              className="flex justify-center hover:opacity-80 transition-opacity"
+            >
               <div className="h-8 w-8 rounded-full bg-[#232327] border border-[#2A2A2E] flex items-center justify-center text-[11px] font-semibold text-text-muted select-none">
                 {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
               </div>
-            </div>
+            </Link>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
+            <Link
+              href="/workspace/profile"
+              className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-[#1C1C1F]/60 transition-colors group"
+            >
               <div className="h-7 w-7 flex-shrink-0 rounded-full bg-[#232327] border border-[#2A2A2E] flex items-center justify-center text-[11px] font-semibold text-text-muted select-none">
                 {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium leading-tight text-text-primary">
+                <p className="truncate text-[12px] font-medium leading-tight text-text-primary group-hover:text-brand-gold transition-colors">
                   {user.first_name} {user.last_name}
                 </p>
                 <p className="truncate text-[10px] leading-tight text-text-muted mt-0.5">
                   {user.email}
                 </p>
               </div>
-            </div>
+            </Link>
           )}
         </div>
       )}

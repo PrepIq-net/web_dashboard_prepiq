@@ -49,6 +49,7 @@ import {
   useUpdateNotificationPreferences,
 } from "@/services/notifications/hooks";
 import { Switch } from "@/components/ui/switch";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { Badge } from "@/components/ui/badge";
 import {
   createColumnHelper,
@@ -198,6 +199,14 @@ export default function SettingsPage() {
               </button>
             ))}
           </nav>
+
+          {/* Language preference — visible to all users, always at bottom of sidebar */}
+          <div className="mt-6 pt-4 border-t border-[#1C1C1F]">
+            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted/70">
+              Language
+            </p>
+            <LanguageSwitcher className="w-full" />
+          </div>
         </aside>
 
         {/* Content Panel */}

@@ -12,12 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useRegisterUser } from "@/services";
-
-// Role selection is intentionally removed from signup.
-// When the user later creates an organization they are automatically
-// assigned the Super Admin role — no manual role picking needed.
+import { useTranslation } from "@/lib/i18n";
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -41,10 +39,10 @@ export default function RegisterPage() {
         last_name: lastName,
         phone: phone.trim() || undefined,
       });
-      toast.success("Account created. Please verify your email.");
+      toast.success(t("auth.accountCreated"));
       router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create account.");
+      toast.error(error instanceof Error ? error.message : t("auth.networkError"));
     }
   }
 
@@ -61,10 +59,10 @@ export default function RegisterPage() {
           <div className="w-full max-w-2xl space-y-12 animate-fade-in">
             <div className="space-y-3 text-center">
               <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-                Create your account.
+                {t("auth.createAccountTitle")}
               </h1>
               <p className="text-lg text-text-secondary leading-relaxed max-w-lg mx-auto">
-                Sign up to start managing your kitchen operations with smart insights and clear actions.
+                {t("auth.createAccountSubtitle")}
               </p>
             </div>
 
@@ -73,9 +71,9 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 <Input
-                  label="First Name"
+                  label={t("auth.firstName")}
                   type="text"
-                  placeholder="e.g. Marcus"
+                  placeholder={t("auth.firstNamePlaceholder")}
                   leadingIcon={<User />}
                   autoComplete="given-name"
                   value={firstName}
@@ -84,9 +82,9 @@ export default function RegisterPage() {
                   className="text-lg"
                 />
                 <Input
-                  label="Last Name"
+                  label={t("auth.lastName")}
                   type="text"
-                  placeholder="e.g. Holloway"
+                  placeholder={t("auth.lastNamePlaceholder")}
                   leadingIcon={<User />}
                   autoComplete="family-name"
                   value={lastName}
@@ -98,9 +96,9 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 <Input
-                  label="Work Email"
+                  label={t("auth.workEmail")}
                   type="email"
-                  placeholder="name@organization.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   leadingIcon={<Mail />}
                   autoComplete="email"
                   value={email}
@@ -109,9 +107,9 @@ export default function RegisterPage() {
                   className="text-lg"
                 />
                 <Input
-                  label="Secure Password"
+                  label={t("auth.securePassword")}
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder={t("auth.passwordPlaceholder")}
                   leadingIcon={<Lock />}
                   autoComplete="new-password"
                   value={password}
@@ -123,7 +121,7 @@ export default function RegisterPage() {
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       className="inline-flex items-center justify-center rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-gold"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                     >
                       {showPassword ? <EyeClosed /> : <Eye />}
                     </button>
@@ -131,7 +129,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <PhoneInput label="Contact Phone (optional)" value={phone} onChange={setPhone} className="text-lg" />
+              <PhoneInput label={t("auth.contactPhone")} value={phone} onChange={setPhone} className="text-lg" />
 
               <div className="py-4 border-y border-border-default/30">
                 <p className="text-xs text-text-muted leading-relaxed text-center">
@@ -148,12 +146,12 @@ export default function RegisterPage() {
                   disabled={registerMutation.isPending}
                   className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                  {registerMutation.isPending ? t("auth.creatingAccount") : t("auth.createAccountButton")}
                 </Button>
 
                 <div className="flex items-center gap-4 py-2">
                   <div className="h-px flex-1 bg-border-default/50" />
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">Or sign up with</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-bold">{t("auth.orSignUpWith")}</span>
                   <div className="h-px flex-1 bg-border-default/50" />
                 </div>
 
@@ -164,15 +162,15 @@ export default function RegisterPage() {
                   className="py-7 border-border-default/50 hover:bg-surface-3 transition-all"
                   leftIcon={<Image src="/app_logo/logo-google.png" alt="Google" width={18} height={18} className="h-[18px] w-[18px]" />}
                 >
-                  Continue with Google
+                  {t("auth.continueWithGoogle")}
                 </Button>
               </div>
             </form>
 
             <p className="text-center text-sm text-text-secondary pt-8">
-              Already have access?{" "}
+              {t("auth.alreadyHaveAccount")}{" "}
               <Link href="/login" className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors">
-                Sign in
+                {t("auth.signIn")}
               </Link>
             </p>
           </div>
