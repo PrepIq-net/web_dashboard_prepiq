@@ -55,7 +55,7 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
       issue: "POS is not connected",
       detail: "Sales data isn't syncing. Revenue and waste figures are incomplete.",
       ctaLabel: "Fix integration",
-      ctaHref: `/workspace/settings?tab=integrations`,
+      ctaHref: `/workspace/settings?tab=integrations&branch=${branch.branch_id}`,
       severity: "critical",
     };
   }
@@ -126,11 +126,11 @@ const ALERT_CTA: Record<string, { label: string; href: (branchId: string) => str
   },
   POS_SYNC_LAG: {
     label: "Fix POS sync",
-    href: () => "/workspace/settings?tab=integrations",
+    href: (id) => `/workspace/settings?tab=integrations&branch=${id}`,
   },
   POS_NOT_CONNECTED: {
     label: "Connect POS",
-    href: () => "/workspace/settings?tab=integrations",
+    href: (id) => `/workspace/settings?tab=integrations&branch=${id}`,
   },
   SALES_VELOCITY_DROP: {
     label: "Review live sales",

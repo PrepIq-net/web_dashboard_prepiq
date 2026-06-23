@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, EditPencil, ArrowRight } from "iconoir-react";
 import {
   createColumnHelper,
@@ -47,7 +47,17 @@ const menuItemColumnHelper = createColumnHelper<MenuItem>();
 const prepBatchColumnHelper = createColumnHelper<PrepBatch>();
 
 export default function InventoryPage() {
+  return (
+    <Suspense>
+      <InventoryPageContent />
+    </Suspense>
+  );
+}
+
+function InventoryPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlBranchId = searchParams.get("branch") ?? "";
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -75,8 +85,14 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<TabId>("ingredients");
 
   useEffect(() => {
-    if (!branchId && defaultBranch?.id) setBranchId(defaultBranch.id);
-  }, [defaultBranch?.id, branchId]);
+    // If the URL specifies a branch the user can access, jump straight to it.
+    // Otherwise fall back to the default branch once it resolves.
+    if (urlBranchId && scopedBranches.some((b) => b.id === urlBranchId)) {
+      setBranchId(urlBranchId);
+    } else if (!branchId && defaultBranch?.id) {
+      setBranchId(defaultBranch.id);
+    }
+  }, [urlBranchId, scopedBranches, defaultBranch?.id, branchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) router.replace("/");

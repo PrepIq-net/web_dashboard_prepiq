@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile, useMyOrganizations } from "@/services";
 import {
@@ -92,7 +93,32 @@ interface TabItem {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("organization");
+  return (
+    <Suspense>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+const VALID_SETTINGS_TABS: SettingsTab[] = [
+  "organization",
+  "branches",
+  "users-roles",
+  "integrations",
+  "notifications",
+  "security",
+  "data-ai",
+];
+
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") as SettingsTab | null;
+  const branchFromUrl = searchParams.get("branch") ?? undefined;
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    if (tabFromUrl && VALID_SETTINGS_TABS.includes(tabFromUrl)) return tabFromUrl;
+    return "organization";
+  });
   const { data: user } = useCurrentUserProfile();
   const { data: organizations } = useMyOrganizations();
   const org = organizations?.[0];
@@ -209,7 +235,7 @@ export default function SettingsPage() {
           {activeTab === "branches" && <BranchSettings orgId={org?.id} />}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
-            <IntegrationsSettings orgId={org?.id} />
+            <IntegrationsSettings orgId={org?.id} focusedBranchId={branchFromUrl} />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
           {/* Add more tabs content here as they are implemented */}
@@ -479,14 +505,26 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
   );
 }
 
-function IntegrationsSettings({ orgId }: { orgId?: string }) {
+function IntegrationsSettings({
+  orgId,
+  focusedBranchId,
+}: {
+  orgId?: string;
+  focusedBranchId?: string;
+}) {
   const { isLoading } = useIntegrationsOverview({
     organization_id: orgId || "00000000-0000-0000-0000-000000000000",
   });
+  const branchesQuery = useBranches(orgId ?? "");
+  const focusedBranch = branchesQuery.data?.find((b) => b.id === focusedBranchId);
+
   const squareOAuth = useSquareOAuthStart();
   const toastOAuth = useToastOAuthStart();
   const loyverseOAuth = useLoyverseOAuthStart();
   const cloverOAuth = useCloverOAuthStart();
+
+  // Use the branch the user arrived from; fall back to placeholder until real flow is built
+  const activeBranchId = focusedBranchId || "00000000-0000-0000-0000-000000000000";
 
   if (isLoading) {
     return (
@@ -524,19 +562,18 @@ function IntegrationsSettings({ orgId }: { orgId?: string }) {
   ];
 
   const handleConnect = (id: string) => {
-    const branch_id = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for now
     if (id === "square") {
-      squareOAuth.mutate({ branch_id });
+      squareOAuth.mutate({ branch_id: activeBranchId });
     } else if (id === "toast") {
       toastOAuth.mutate({
-        branch_id,
+        branch_id: activeBranchId,
         client_id: "placeholder",
         client_secret: "placeholder",
       });
     } else if (id === "loyverse") {
-      loyverseOAuth.mutate({ branch_id });
+      loyverseOAuth.mutate({ branch_id: activeBranchId });
     } else if (id === "clover") {
-      cloverOAuth.mutate({ branch_id });
+      cloverOAuth.mutate({ branch_id: activeBranchId });
     } else {
       toast.error(`${id} connection not implemented yet.`);
     }
@@ -544,10 +581,25 @@ function IntegrationsSettings({ orgId }: { orgId?: string }) {
 
   return (
     <div className="space-y-10">
+      {/* Context banner — shown when arriving from dashboard with a specific branch */}
+      {focusedBranch && (
+        <div className="flex items-start gap-3 rounded-xl border border-status-warning/30 bg-status-warning/8 px-4 py-4">
+          <InfoCircle className="h-4 w-4 text-status-warning shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              POS issue detected for {focusedBranch.name}
+            </p>
+            <p className="text-xs text-text-muted mt-1 leading-relaxed">
+              Connect a POS system below. When asked to select a branch during the
+              setup flow, choose{" "}
+              <span className="font-medium text-text-secondary">{focusedBranch.name}</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
-        <h2 className="text-xl font-semibold text-text-primary">
-          Integrations
-        </h2>
+        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
         <p className="text-sm text-text-muted mt-1">
           Connect your POS, accounting, and reservation systems to PrepIQ.
         </p>
