@@ -14,12 +14,14 @@ import {
   useCurrentUserProfile,
   useCreateInvite,
   useStaffInviteContext,
+  // useTranslation,
 } from "@/services";
 import {
   SYSTEM_ROLE_OPTIONS,
   SYSTEM_ROLE_SLUG,
   SystemRoleSlug,
 } from "@/services/organizations/types";
+import { useTranslation } from "@/lib/i18n";
 
 type SalesAccessAnswer = "yes" | "no" | null;
 
@@ -31,6 +33,7 @@ type StaffRoleOption = {
 };
 
 export default function StaffInvitePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user } = useCurrentUserProfile();
   const orgId = user?.organization_id ?? "";
@@ -82,16 +85,15 @@ export default function StaffInvitePage() {
           <div className="flex items-center gap-2 mb-10">
             <UserPlus className="h-4 w-4 text-[#A8821F]" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-              Step 5 — Team
+              {t("setup.staff.step")}
             </span>
           </div>
 
           <h1 className="font-display text-[40px] leading-12 font-semibold text-[#F5F5F7] mb-3">
-            Does someone else handle your sales data?
+            {t("setup.staff.question")}
           </h1>
           <p className="text-[16px] leading-6 text-[#8E8E93] mb-10 max-w-sm">
-            If a team member manages your POS or exports, they can connect it
-            directly — no need to share credentials.
+            {t("setup.staff.questionDesc")}
           </p>
 
           <div className="space-y-3 mb-8">
@@ -106,10 +108,10 @@ export default function StaffInvitePage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
-                    Yes — invite them to connect sales data
+                    {t("setup.staff.yesOption")}
                   </p>
                   <p className="text-[13px] leading-5 text-[#8E8E93]">
-                    They'll get access to connect the POS or upload CSV exports.
+                    {t("setup.staff.yesDesc")}
                   </p>
                 </div>
               </div>
@@ -126,11 +128,10 @@ export default function StaffInvitePage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
-                    No — I handle it myself
+                    {t("setup.staff.noOption")}
                   </p>
                   <p className="text-[13px] leading-5 text-[#8E8E93]">
-                    Invite your kitchen lead instead so they can log prep and
-                    waste from day one.
+                    {t("setup.staff.noDesc")}
                   </p>
                 </div>
               </div>
@@ -142,7 +143,7 @@ export default function StaffInvitePage() {
             onClick={() => router.push("/setup/pricing")}
             className="w-full text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
           >
-            Skip — go to pricing
+            {t("setup.staff.skipToPricing")}
           </button>
         </div>
       </div>
@@ -152,12 +153,12 @@ export default function StaffInvitePage() {
   // Step 2 — invite form (same for both paths, role differs)
   const headline =
     salesAccess === "yes"
-      ? "Invite your data manager."
-      : "Invite your kitchen lead.";
+      ? t("setup.staff.inviteDataManager")
+      : t("setup.staff.inviteKitchenLead");
   const subtext =
     salesAccess === "yes"
-      ? "They'll be able to connect your POS or upload sales exports directly."
-      : "The forecast is ready. Invite the person who runs the kitchen so they can log production and track waste from day one.";
+      ? t("setup.staff.inviteDataManagerDesc")
+      : t("setup.staff.inviteKitchenLeadDesc");
 
   return (
     <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
@@ -167,11 +168,11 @@ export default function StaffInvitePage() {
             onClick={() => setSalesAccess(null)}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            {t("setup.staff.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 5 — Team
+            {t("setup.staff.step")}
           </span>
         </div>
 
@@ -189,7 +190,7 @@ export default function StaffInvitePage() {
         >
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Email Address
+              {t("setup.staff.emailLabel")}
             </label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5A5A60]">
@@ -212,7 +213,7 @@ export default function StaffInvitePage() {
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-              Role
+              {t("setup.staff.roleLabel")}
             </label>
             <div className="relative">
               <select
@@ -244,10 +245,10 @@ export default function StaffInvitePage() {
               className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-[14px] font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors duration-150"
             >
               {inviteMutation.isPending ? (
-                "Sending invite..."
+                t("setup.staff.sending")
               ) : (
                 <>
-                  Send Invite &amp; Continue
+                  {t("setup.staff.submit")}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -258,7 +259,7 @@ export default function StaffInvitePage() {
               onClick={() => router.push("/setup/pricing")}
               className="w-full h-12 border border-[#2E2E33] bg-transparent hover:bg-[#1C1C1F] text-[#8E8E93] hover:text-[#C7C7CC] text-[14px] font-medium rounded-lg transition-colors duration-150"
             >
-              Skip — choose plan first
+              {t("setup.staff.skipToPlans")}
             </button>
           </div>
         </form>
