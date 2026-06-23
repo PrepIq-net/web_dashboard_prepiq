@@ -272,7 +272,7 @@ export default function SupportPage() {
 
   // Group help articles by category
   const groupedArticles = useMemo(() => {
-    if (!helpArticlesQuery.data) return {};
+    if (!helpArticlesQuery.data || !Array.isArray(helpArticlesQuery.data)) return {};
     return helpArticlesQuery.data.reduce(
       (acc, article) => {
         if (!acc[article.category]) {
