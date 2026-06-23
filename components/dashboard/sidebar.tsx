@@ -20,6 +20,7 @@ import {
   Package,
   StatsReport,
   Group,
+  Calendar,
 } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { resolvePermissions } from "@/lib/permissions";
@@ -63,6 +64,12 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/workspace/today",
         icon: <Clock className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_FORECASTS,
+      },
+      {
+        label: "Planning",
+        href: "/workspace/planning",
+        icon: <Calendar className="h-4 w-4" />,
+        permission: PERMISSIONS.VIEW_CALENDAR,
       },
       {
         label: "Production",
