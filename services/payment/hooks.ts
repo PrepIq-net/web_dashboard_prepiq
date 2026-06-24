@@ -128,12 +128,16 @@ const PLAN_TIER_MAP: Record<string, number> = {
  */
 export function useSubscriptionTier(branchId?: string) {
   const params = branchId ? ({ branch_id: branchId } satisfies SubscriptionQuery) : undefined;
-  // retry:false so a 404 (no active subscription) is detected immediately, not after 3 retries
-  const { data, isLoading, isError } = useQuery({
+  // staleTime:0 + refetchOnMount:true overrides global cache settings — subscription status must
+  // always be fresh so the access gate reflects the real DB state, not a 5-min stale cache hit.
+  // retry:false so a 404 (no active subscription) is detected immediately, not after 3 retries.
+  const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: paymentQueryKeys.currentSubscription(params),
     queryFn: () => getCurrentSubscription(params),
     retry: false,
     throwOnError: false,
+    staleTime: 0,
+    refetchOnMount: true,
   });
   const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
   const tier =
@@ -141,7 +145,10 @@ export function useSubscriptionTier(branchId?: string) {
       ? (PLAN_TIER_MAP[planType] ?? 0)
       : 0;
 
-  const loaded = !isLoading;
+  // Wait for both initial load AND any background re-fetch before evaluating access.
+  // Using only !isLoading would let stale "active" data pass the gate while a re-fetch
+  // (triggered by staleTime:0 + refetchOnMount:true) is still in-flight.
+  const loaded = !isLoading && !isFetching;
   const hasNoSubscription = loaded && (!data || isError);
   const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
   const isTrialExpired = loaded && Boolean(data && !data.is_currently_active && data.is_trial);
@@ -152,7 +159,8 @@ export function useSubscriptionTier(branchId?: string) {
       ? "trial_expired"
       : "expired";
 
-  return { tier, planType, isLoading, shouldBlockAccess, gateVariant };
+  // Expose isFetching via isLoading so callers gate data queries during re-fetches too.
+  return { tier, planType, isLoading: isLoading || isFetching, shouldBlockAccess, gateVariant };
 }
 
 export function useSubscriptionAvailableAddOns(subscriptionId: string) {
