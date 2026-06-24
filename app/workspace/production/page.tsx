@@ -14,6 +14,8 @@ import { Select } from "@/components/ui/select";
 import { Shop } from "iconoir-react";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type LocalLog = {
   id: string;
@@ -207,6 +209,7 @@ export default function ProductionPage() {
   }, [defaultBranchId, selectedBranchId, branchOptions]);
 
   const activeBranchId = selectedBranchId || defaultBranchId;
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId || undefined);
   const activeBranch =
     branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
   const todayDate = new Date().toISOString().slice(0, 10);
@@ -543,6 +546,10 @@ export default function ProductionPage() {
         </p>
       </div>
 
+      {activeBranchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {/* Persistent KPI strip */}
       {enrichedItems.length > 0 ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -1321,6 +1328,8 @@ export default function ProductionPage() {
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }
