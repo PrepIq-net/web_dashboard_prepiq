@@ -1955,13 +1955,17 @@ function TodayWorkspacePageContent() {
                     {/* Row 1: identity + risk badge */}
                     <div className="flex items-start justify-between gap-3 px-4 pt-4">
                       <div className="flex items-start gap-3">
-                        {item.product_image_url && (
+                        {item.product_image_url ? (
                           <img
                             src={item.product_image_url}
                             alt={item.product_title}
                             className="h-10 w-10 shrink-0 rounded-lg border border-surface-4 object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-[10px] font-bold text-text-muted">
+                            {item.product_title.slice(0, 2).toUpperCase()}
+                          </div>
                         )}
                         <div>
                           <p className="text-sm font-semibold text-text-primary">
@@ -2209,13 +2213,17 @@ function TodayWorkspacePageContent() {
                           {/* Item */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              {item.product_image_url && (
+                              {item.product_image_url ? (
                                 <img
                                   src={item.product_image_url}
                                   alt={item.product_title}
                                   className="h-9 w-9 shrink-0 rounded-lg border border-surface-4 object-cover"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                                 />
+                              ) : (
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-[10px] font-bold text-text-muted">
+                                  {item.product_title.slice(0, 2).toUpperCase()}
+                                </div>
                               )}
                               <div>
                                 <p className="text-sm font-semibold leading-tight text-text-primary">

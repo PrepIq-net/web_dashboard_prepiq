@@ -38,6 +38,7 @@ type LiveItem = {
   id: string;
   title: string;
   unit: string;
+  image_url: string | null;
   forecast: number;
   planned: number;
   prepared: number;
@@ -252,6 +253,7 @@ export default function ProductionPage() {
         id: item.id,
         title: item.product_title,
         unit: item.unit,
+        image_url: item.product_image_url ?? null,
         forecast,
         planned,
         prepared: Number(item.live_monitor?.total_prepared_qty ?? 0),
@@ -728,14 +730,30 @@ export default function ProductionPage() {
                         }`}
                       >
                         <td className="px-4 py-3">
-                          <p className="text-sm font-semibold text-text-primary">
-                            {item.title}
-                          </p>
-                          {item.alertLabel ? (
-                            <p className="mt-0.5 text-[11px] text-status-warning">
-                              {item.alertLabel}
-                            </p>
-                          ) : null}
+                          <div className="flex items-center gap-3">
+                            {item.image_url ? (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="h-9 w-9 shrink-0 rounded-lg border border-surface-4 object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              />
+                            ) : (
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-[10px] font-bold text-text-muted">
+                                {item.title.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-text-primary">
+                                {item.title}
+                              </p>
+                              {item.alertLabel ? (
+                                <p className="mt-0.5 text-[11px] text-status-warning">
+                                  {item.alertLabel}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-text-secondary">
                           {formatQuantity(item.planned, item.unit)}
@@ -828,9 +846,23 @@ export default function ProductionPage() {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3 px-4 pt-4">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {item.title}
-                      </p>
+                      <div className="flex items-start gap-3 min-w-0">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="h-10 w-10 shrink-0 rounded-lg border border-surface-4 object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-[10px] font-bold text-text-muted">
+                            {item.title.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <p className="text-sm font-semibold text-text-primary">
+                          {item.title}
+                        </p>
+                      </div>
                       <span
                         className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
                       >

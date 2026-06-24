@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, EditPencil, ArrowRight } from "iconoir-react";
+import { Plus, EditPencil, ArrowRight, MediaImage } from "iconoir-react";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -475,8 +475,8 @@ function RecipesTab({
                       </p>
                     </div>
 
-                    {/* Status + actions */}
-                    <div className="flex shrink-0 flex-col items-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {/* Status badge only — edit is in the detail panel */}
+                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                       <span
                         className={`inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.06em] ${
                           item.is_active
@@ -486,14 +486,6 @@ function RecipesTab({
                       >
                         {item.is_active ? "Active" : "Inactive"}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => { setEditTarget(item); setModalOpen(true); }}
-                        className="text-[10px] text-text-muted hover:text-brand-gold transition-colors"
-                        aria-label={`Edit ${item.name}`}
-                      >
-                        Edit
-                      </button>
                     </div>
                   </div>
                 );
@@ -510,6 +502,7 @@ function RecipesTab({
               ingredients={ingredients}
               branchId={branchId}
               orgId={orgId}
+              onEdit={() => { setEditTarget(selectedItem); setModalOpen(true); }}
             />
           ) : (
             <div className="flex h-full min-h-75 items-center justify-center rounded-xl border border-surface-4 bg-surface-2">
@@ -543,11 +536,13 @@ function ItemDetailPanel({
   ingredients,
   branchId,
   orgId,
+  onEdit,
 }: {
   menuItem: MenuItem;
   ingredients: Ingredient[];
   branchId: string;
   orgId: string;
+  onEdit: () => void;
 }) {
   const [days, setDays] = useState(30);
   const historyQuery = useItemHistory(menuItem.id, { branch_id: branchId, days });
@@ -560,30 +555,70 @@ function ItemDetailPanel({
 
   return (
     <div className="space-y-4">
-      {/* Item header */}
-      <div className="flex items-start gap-4">
-        {menuItem.image && (
-          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-3">
-            <img
-              src={menuItem.image}
-              alt={menuItem.name}
-              className="h-full w-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
-            />
+      {/* Item header card — clearly separated from recipe actions */}
+      <div className="rounded-xl border border-surface-4 bg-surface-2 p-4">
+        <div className="flex items-start gap-4">
+          {/* Thumbnail — clicking it opens the edit modal */}
+          <button
+            type="button"
+            onClick={onEdit}
+            className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-3 transition-opacity hover:opacity-80"
+            aria-label="Edit item image"
+          >
+            {menuItem.image ? (
+              <img
+                src={menuItem.image}
+                alt={menuItem.name}
+                className="h-full w-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[12px] font-bold text-text-muted">
+                {menuItem.name.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <MediaImage className="h-4 w-4 text-white" />
+            </div>
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="font-display text-lg font-semibold text-text-primary truncate">
+                  {menuItem.name}
+                </h3>
+                <p className="mt-0.5 text-sm text-text-muted">
+                  {menuItem.category || "Uncategorized"}
+                  {" · "}
+                  <span className={menuItem.is_active ? "text-status-success" : "text-text-muted"}>
+                    {menuItem.is_active ? "Active" : "Inactive"}
+                  </span>
+                </p>
+              </div>
+              {/* "Edit Item" — clearly for name/image/status, not recipe */}
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+              >
+                <EditPencil className="h-3.5 w-3.5" />
+                Edit Item
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] text-text-muted">
+              Edit Item changes the name, image, category, and status. To change ingredients, use Edit Recipe below.
+            </p>
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Selected Item
-          </p>
-          <h3 className="mt-0.5 font-display text-xl font-semibold text-text-primary truncate">
-            {menuItem.name}
-          </h3>
-          {menuItem.category && (
-            <p className="text-sm text-text-muted">{menuItem.category}</p>
-          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+      </div>
+
+      {/* Track record window selector — outside the item card */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+          Track Record
+        </p>
+        <div className="flex items-center gap-1">
           {[7, 14, 30].map((w) => (
             <button
               key={w}
@@ -603,10 +638,7 @@ function ItemDetailPanel({
 
       {/* ── Track record ── */}
       <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-        <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Track Record · {days}d
-          </p>
+        <div className="border-b border-surface-4/60 px-4 py-2.5 flex items-center justify-end">
           <Link
             href={`/workspace/items/${menuItem.id}?branch=${branchId}`}
             className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-brand-gold transition-colors"
@@ -690,12 +722,12 @@ function ItemDetailPanel({
         <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Recipe
+              Recipe — Ingredients per serving
             </p>
             <p className="mt-0.5 text-[11px] text-text-muted">
               {recipes.length > 0
-                ? `${recipes.length} ingredient${recipes.length !== 1 ? "s" : ""} · each line feeds the forecast model`
-                : "No recipe yet — without this, forecasting cannot calculate ingredient demand"}
+                ? `${recipes.length} ingredient${recipes.length !== 1 ? "s" : ""} defined · drives ingredient demand forecast`
+                : "No ingredients defined yet — forecast cannot calculate demand without this"}
             </p>
           </div>
           <Link
