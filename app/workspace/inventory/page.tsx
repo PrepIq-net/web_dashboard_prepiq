@@ -26,9 +26,11 @@ import {
   usePrepBatches,
   useRecipes,
 } from "@/services/inventory/hooks";
+import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
+import type { ItemTimeSeriesRow } from "@/services/production-intelligence/types";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -37,13 +39,12 @@ type TabId = "ingredients" | "recipes" | "waste" | "signals";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "ingredients", label: "Ingredients" },
-  { id: "recipes", label: "Recipes" },
+  { id: "recipes", label: "Recipes & Track Record" },
   { id: "waste", label: "Waste" },
   { id: "signals", label: "Stock Signals" },
 ];
 
 const ingredientColumnHelper = createColumnHelper<Ingredient>();
-const menuItemColumnHelper = createColumnHelper<MenuItem>();
 const prepBatchColumnHelper = createColumnHelper<PrepBatch>();
 
 export default function InventoryPage() {
@@ -58,6 +59,7 @@ function InventoryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlBranchId = searchParams.get("branch") ?? "";
+  const urlTab = searchParams.get("tab") as TabId | null;
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -82,11 +84,11 @@ function InventoryPageContent() {
     null;
 
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
-  const [activeTab, setActiveTab] = useState<TabId>("ingredients");
+  const [activeTab, setActiveTab] = useState<TabId>(
+    urlTab && TABS.some((t) => t.id === urlTab) ? urlTab : "ingredients"
+  );
 
   useEffect(() => {
-    // If the URL specifies a branch the user can access, jump straight to it.
-    // Otherwise fall back to the default branch once it resolves.
     if (urlBranchId && scopedBranches.some((b) => b.id === urlBranchId)) {
       setBranchId(urlBranchId);
     } else if (!branchId && defaultBranch?.id) {
@@ -112,7 +114,6 @@ function InventoryPageContent() {
 
   const branchOptions = scopedBranches.map((b) => ({ value: b.id, label: b.name }));
 
-  // Summary stats
   const perishableCount = ingredients.filter((i) => i.is_perishable).length;
   const totalWasteEvents = wasteAnalytics?.total_waste_events ?? 0;
   const topWasteIngredient = wasteAnalytics?.by_ingredient?.[0]?.ingredient_name ?? "—";
@@ -121,77 +122,95 @@ function InventoryPageContent() {
     <WorkspaceShell
       eyebrow="Inventory"
       title="Kitchen Intelligence"
-      description="What ingredients do you have? How much is needed? What's being wasted? What's at risk?"
-      insight="Inventory precision compounds when ingredient planning is tied to actual usage patterns and waste is reviewed daily."
+      description="Ingredients, recipes, waste, and what's moving — everything the AI needs to forecast accurately."
+      insight="Recipe accuracy is the single biggest lever on forecast quality. Every ingredient line you define here feeds the model."
     >
-      {/* Controls */}
-      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Slim context bar */}
+      <div className="mb-6 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
+        <div className="flex-1 min-w-45 max-w-xs">
           <Select
             label="Branch"
             options={branchOptions}
             value={branchId}
             onChange={setBranchId}
           />
-          <div className="md:col-span-2 flex items-end">
-            <p className="text-xs text-text-muted">
-              Ingredients are shared across all branches. Menu items, recipes, prep batches, and waste are branch-specific.
-            </p>
-          </div>
         </div>
+        <p className="pb-1 text-xs text-text-muted">
+          Ingredients are org-wide. Recipes, waste, and prep are branch-specific.
+        </p>
+      </div>
 
-        {/* Tab Nav */}
-        <div className="mt-6 pt-6 border-t border-surface-4">
-          <div className="flex flex-wrap gap-2">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* KPI strip */}
+      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span className="text-text-muted">
+          <span className="font-semibold text-text-primary">{ingredients.length}</span>{" "}
+          ingredients
+        </span>
+        <span className="text-text-muted">
+          <span className={`font-semibold ${perishableCount > 0 ? "text-status-warning" : "text-text-primary"}`}>
+            {perishableCount}
+          </span>{" "}
+          perishable
+        </span>
+        <span className="text-text-muted">
+          <span className={`font-semibold ${totalWasteEvents > 0 ? "text-status-critical" : "text-text-primary"}`}>
+            {totalWasteEvents}
+          </span>{" "}
+          waste events
+        </span>
+        {topWasteIngredient !== "—" && (
+          <span className="text-text-muted">
+            top waste:{" "}
+            <span className="font-semibold text-text-primary">{topWasteIngredient}</span>
+          </span>
+        )}
+        <span className="text-text-muted">
+          <span className="font-semibold text-text-primary">{menuItems.length}</span>{" "}
+          menu items
+        </span>
+      </div>
 
-      {/* Summary KPIs */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-4 mb-8">
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Ingredients</p>
-          <p className="mt-2 font-display text-3xl font-semibold text-text-primary">{ingredients.length}</p>
-          <p className="mt-1 text-xs text-text-muted">org-wide catalog</p>
-        </article>
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Perishable</p>
-          <p className="mt-2 font-display text-3xl font-semibold text-status-warning">{perishableCount}</p>
-          <p className="mt-1 text-xs text-text-muted">need daily tracking</p>
-        </article>
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste Events</p>
-          <p className="mt-2 font-display text-3xl font-semibold text-status-critical">{totalWasteEvents}</p>
-          <p className="mt-1 text-xs text-text-muted">this branch</p>
-        </article>
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Item</p>
-          <p className="mt-2 text-sm font-semibold text-text-primary truncate">{topWasteIngredient}</p>
-          <p className="mt-1 text-xs text-text-muted">highest waste volume</p>
-        </article>
-      </section>
+      {/* Tab bar — production style */}
+      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-gold text-brand-gold"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Tab Content */}
-      <section>
-        {activeTab === "ingredients" && <IngredientsTab ingredients={ingredients} isLoading={ingredientsQuery.isLoading} organizationId={user?.organization_id ?? ""} />}
-        {activeTab === "recipes" && <RecipesTab menuItems={menuItems} ingredients={ingredients} isLoading={menuItemsQuery.isLoading} branchId={branchId} orgId={user?.organization_id ?? ""} />}
-        {activeTab === "waste" && <WasteTab wasteAnalytics={wasteAnalytics} isLoading={wasteAnalyticsQuery.isLoading} />}
-        {activeTab === "signals" && <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />}
-      </section>
+      {/* Tab content */}
+      {activeTab === "ingredients" && (
+        <IngredientsTab
+          ingredients={ingredients}
+          isLoading={ingredientsQuery.isLoading}
+          organizationId={user?.organization_id ?? ""}
+        />
+      )}
+      {activeTab === "recipes" && (
+        <RecipesTab
+          menuItems={menuItems}
+          ingredients={ingredients}
+          isLoading={menuItemsQuery.isLoading}
+          branchId={branchId}
+          orgId={user?.organization_id ?? ""}
+        />
+      )}
+      {activeTab === "waste" && (
+        <WasteTab wasteAnalytics={wasteAnalytics} isLoading={wasteAnalyticsQuery.isLoading} />
+      )}
+      {activeTab === "signals" && (
+        <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />
+      )}
     </WorkspaceShell>
   );
 }
@@ -249,7 +268,7 @@ function IngredientsTab({
         cell: (info) => {
           const val = info.getValue();
           return (
-            <span className={`text-sm ${val && val <= 5 ? "text-status-warning" : "text-text-secondary"}`}>
+            <span className={`text-sm ${val && val <= 5 ? "text-status-warning font-semibold" : "text-text-secondary"}`}>
               {val ? `${val}d` : "—"}
             </span>
           );
@@ -258,12 +277,14 @@ function IngredientsTab({
       ingredientColumnHelper.accessor("is_perishable", {
         header: "Perishable",
         cell: (info) => (
-          <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-            info.getValue()
-              ? "bg-status-warning/10 text-status-warning border border-status-warning/20"
-              : "bg-surface-3 text-text-muted border border-surface-4"
-          }`}>
-            {info.getValue() ? "Yes" : "No"}
+          <span
+            className={`inline-flex h-6 items-center rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+              info.getValue()
+                ? "border-status-warning/30 bg-status-warning/10 text-status-warning"
+                : "border-surface-4 bg-surface-3 text-text-muted"
+            }`}
+          >
+            {info.getValue() ? "Perishable" : "Stable"}
           </span>
         ),
       }),
@@ -292,14 +313,20 @@ function IngredientsTab({
       <div>
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Ingredient Catalog</p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Org-wide ingredient master</h3>
-            <p className="mt-1 text-sm text-text-muted">Shared across all branches. Perishable items need daily tracking.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Ingredient Catalog
+            </p>
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+              Org-wide ingredient master
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              {ingredients.length} ingredients · {ingredients.filter((i) => i.is_perishable).length} perishable
+            </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Add Ingredient
@@ -309,29 +336,31 @@ function IngredientsTab({
         {isLoading ? (
           <LoadingState label="Loading ingredients..." />
         ) : ingredients.length === 0 ? (
-          <div className="bg-surface-2 rounded-xl border border-surface-4 p-12 text-center">
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
             <p className="text-sm text-text-secondary">No ingredients yet.</p>
-            <p className="mt-1 text-xs text-text-muted">Add your first ingredient to start building recipes.</p>
+            <p className="mt-1 text-xs text-text-muted">
+              Add ingredients to start building recipes and enabling demand forecasting.
+            </p>
             <button
               type="button"
               onClick={openCreate}
-              className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
               Add First Ingredient
             </button>
           </div>
         ) : (
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
             <div className="overflow-x-auto">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[640px]"
-                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-                bodyClassName="divide-y divide-surface-4"
-                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-                cellClassName="px-6 py-4"
+                headerClassName="border-b border-surface-4/80 bg-surface-3/40"
+                bodyClassName="divide-y divide-surface-4/50"
+                headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-colors hover:bg-surface-3/20"
+                cellClassName="px-4 py-3"
               />
             </div>
           </div>
@@ -349,7 +378,7 @@ function IngredientsTab({
 }
 
 // ============================================================================
-// TAB 2: RECIPES
+// TAB 2: RECIPES & TRACK RECORD
 // ============================================================================
 
 function RecipesTab({
@@ -369,122 +398,127 @@ function RecipesTab({
   const [editTarget, setEditTarget] = useState<MenuItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const selectedItem = menuItems.find((m) => m.id === selectedMenuItemId) ?? null;
+
   if (isLoading) return <LoadingState label="Loading menu items..." />;
-  if (!menuItems.length) return <EmptyState label="No menu items found." hint="Menu items are branch-specific. Add items to this branch to build recipes." />;
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Left — menu items list */}
         <div className="lg:col-span-2">
-          <div className="mb-4 flex items-end justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Menu Items</p>
-              <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Branch menu</h3>
-              <p className="mt-1 text-sm text-text-muted">Click "Build Recipe" to define ingredients for each dish.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Menu Items
+              </p>
+              <h3 className="mt-0.5 font-display text-xl font-semibold text-text-primary">
+                {menuItems.length} item{menuItems.length !== 1 ? "s" : ""}
+              </h3>
             </div>
             <button
               type="button"
               onClick={() => { setEditTarget(null); setModalOpen(true); }}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-gold px-4 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-gold px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               Add Item
             </button>
           </div>
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px]">
-                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Menu Item</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Category</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Status</th>
-                    <th className="px-6 py-4" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-4">
-                  {menuItems.map((item) => (
-                    <tr
-                      key={item.id}
-                      onClick={() => setSelectedMenuItemId(item.id)}
-                      className={`cursor-pointer transition-all duration-200 hover:bg-surface-3/50 ${
-                        selectedMenuItemId === item.id ? "bg-brand-gold/5 border-l-2 border-l-brand-gold" : ""
-                      }`}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="h-9 w-9 rounded-lg object-cover border border-surface-4 shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                            />
-                          ) : (
-                            <div className="h-9 w-9 rounded-lg bg-surface-3 border border-surface-4 shrink-0 flex items-center justify-center text-[10px] text-text-muted font-semibold">
-                              {item.name.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <span className="text-sm font-semibold text-text-primary">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-text-secondary">{item.category || "—"}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex h-6 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-                          item.is_active
-                            ? "bg-status-success/10 text-status-success border border-status-success/20"
-                            : "bg-surface-3 text-text-muted border border-surface-4"
-                        }`}>
-                          {item.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { setEditTarget(item); setModalOpen(true); }}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
-                            aria-label={`Edit ${item.name}`}
-                          >
-                            <EditPencil className="h-4 w-4" />
-                          </button>
-                          <Link
-                            href={`/workspace/items/${item.id}?branch=${branchId}`}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
-                          >
-                            Track record
-                          </Link>
-                          <Link
-                            href={`/workspace/inventory/recipes/${item.id}?name=${encodeURIComponent(item.name)}&branch=${branchId}&org=${orgId}`}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-brand-gold hover:border-brand-gold/40 transition-colors"
-                          >
-                            Build Recipe
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+          {menuItems.length === 0 ? (
+            <div className="rounded-xl border border-surface-4 bg-surface-2 p-8 text-center">
+              <p className="text-sm text-text-secondary">No menu items for this branch.</p>
+              <p className="mt-1 text-xs text-text-muted">
+                Menu items are branch-specific. Add items to build recipes.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setEditTarget(null); setModalOpen(true); }}
+                className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add First Item
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/50">
+              {menuItems.map((item) => {
+                const isSelected = selectedMenuItemId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedMenuItemId(isSelected ? null : item.id)}
+                    className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-3/30 ${
+                      isSelected ? "bg-brand-gold/5 border-l-[3px] border-l-brand-gold" : "border-l-[3px] border-l-transparent"
+                    }`}
+                  >
+                    {/* Thumbnail */}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-surface-4 object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-[10px] font-bold text-text-muted">
+                        {item.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Name + category */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
+                      <p className="text-[11px] text-text-muted truncate">
+                        {item.category || "Uncategorized"}
+                      </p>
+                    </div>
+
+                    {/* Status + actions */}
+                    <div className="flex shrink-0 flex-col items-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <span
+                        className={`inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.06em] ${
+                          item.is_active
+                            ? "border-status-success/30 bg-status-success/10 text-status-success"
+                            : "border-surface-4 bg-surface-3 text-text-muted"
+                        }`}
+                      >
+                        {item.is_active ? "Active" : "Inactive"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setEditTarget(item); setModalOpen(true); }}
+                        className="text-[10px] text-text-muted hover:text-brand-gold transition-colors"
+                        aria-label={`Edit ${item.name}`}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div>
-          {selectedMenuItemId ? (
-            <RecipeDetail
-              menuItemId={selectedMenuItemId}
+        {/* Right — detail panel */}
+        <div className="lg:col-span-3">
+          {selectedItem ? (
+            <ItemDetailPanel
+              menuItem={selectedItem}
               ingredients={ingredients}
-              menuItems={menuItems}
               branchId={branchId}
               orgId={orgId}
             />
           ) : (
-            <div className="bg-surface-2 rounded-xl border border-surface-4 p-8 flex items-center justify-center h-full min-h-[200px]">
-              <p className="text-sm text-text-muted text-center">Select a menu item to preview its recipe</p>
+            <div className="flex h-full min-h-75 items-center justify-center rounded-xl border border-surface-4 bg-surface-2">
+              <div className="text-center px-6">
+                <p className="text-sm font-semibold text-text-secondary">Select a menu item</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  See its track record — sales, waste, revenue — and manage its recipe.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -500,85 +534,395 @@ function RecipesTab({
   );
 }
 
-function RecipeDetail({
-  menuItemId,
+// ============================================================================
+// ITEM DETAIL PANEL — track record + recipe
+// ============================================================================
+
+function ItemDetailPanel({
+  menuItem,
   ingredients,
-  menuItems,
   branchId,
   orgId,
 }: {
-  menuItemId: string;
+  menuItem: MenuItem;
   ingredients: Ingredient[];
-  menuItems: MenuItem[];
   branchId: string;
   orgId: string;
 }) {
-  const recipesQuery = useRecipes(menuItemId, true);
+  const [days, setDays] = useState(30);
+  const historyQuery = useItemHistory(menuItem.id, { branch_id: branchId, days });
+  const recipesQuery = useRecipes(menuItem.id, Boolean(menuItem.id));
+
+  const summary = historyQuery.data?.summary ?? null;
+  const insights = historyQuery.data?.ai_insights ?? null;
+  const timeSeries = historyQuery.data?.time_series ?? EMPTY_LIST;
   const recipes = recipesQuery.data ?? EMPTY_LIST;
-  const menuItem = menuItems.find((m) => m.id === menuItemId);
 
   return (
-    <div>
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Recipe Preview</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-            {menuItem?.name ?? "—"}
+    <div className="space-y-4">
+      {/* Item header */}
+      <div className="flex items-start gap-4">
+        {menuItem.image && (
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-3">
+            <img
+              src={menuItem.image}
+              alt={menuItem.name}
+              className="h-full w-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Selected Item
+          </p>
+          <h3 className="mt-0.5 font-display text-xl font-semibold text-text-primary truncate">
+            {menuItem.name}
           </h3>
+          {menuItem.category && (
+            <p className="text-sm text-text-muted">{menuItem.category}</p>
+          )}
         </div>
-        <Link
-          href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold/20 border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/30"
-        >
-          Edit
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          {[7, 14, 30].map((w) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setDays(w)}
+              className={`h-7 rounded-md px-2.5 text-xs font-medium transition-colors ${
+                days === w
+                  ? "bg-brand-gold/20 text-brand-gold"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {w}d
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Item image */}
-      {menuItem?.image && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-surface-4 bg-surface-3 h-40">
-          <img
-            src={menuItem.image}
-            alt={menuItem.name}
-            className="h-full w-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
-          />
+      {/* ── Track record ── */}
+      <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
+        <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Track Record · {days}d
+          </p>
+          <Link
+            href={`/workspace/items/${menuItem.id}?branch=${branchId}`}
+            className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-brand-gold transition-colors"
+          >
+            Full history
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
-      )}
 
-      <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+        {historyQuery.isLoading ? (
+          <div className="px-4 py-6 text-center">
+            <p className="text-xs text-text-muted">Loading track record…</p>
+          </div>
+        ) : !summary ? (
+          <div className="px-4 py-6 text-center">
+            <p className="text-xs text-text-muted">
+              {historyQuery.data?.data_note ?? "No sales history yet. Once this item is tracked in production, performance data will appear here."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* KPI row */}
+            <div className="grid grid-cols-4 divide-x divide-surface-4/50">
+              <TrackKPI
+                label="Revenue"
+                value={`$${summary.total_revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                sub={`${summary.days_tracked}d tracked`}
+              />
+              <TrackKPI
+                label="Waste cost"
+                value={`$${summary.total_waste_cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                sub={summary.total_waste_cost > 0 ? "over-prep loss" : "none"}
+                tone={summary.total_waste_cost > 0 ? "warning" : "neutral"}
+              />
+              <TrackKPI
+                label="Stockout days"
+                value={String(summary.stockout_days)}
+                sub={summary.stockout_days > 0 ? `$${summary.total_lost_revenue.toFixed(0)} missed` : "never ran short"}
+                tone={summary.stockout_days > 0 ? "critical" : "neutral"}
+              />
+              <TrackKPI
+                label="AI accuracy"
+                value={`${summary.avg_accuracy.toFixed(0)}%`}
+                sub={
+                  insights
+                    ? insights.accuracy_trend === "improving"
+                      ? "↑ improving"
+                      : insights.accuracy_trend === "declining"
+                        ? "↓ declining"
+                        : "→ stable"
+                    : "vs actual"
+                }
+                tone={
+                  insights?.accuracy_trend === "improving"
+                    ? "success"
+                    : insights?.accuracy_trend === "declining"
+                      ? "warning"
+                      : "neutral"
+                }
+              />
+            </div>
+
+            {/* Mini sparkline */}
+            {timeSeries.length > 0 && (
+              <div className="border-t border-surface-4/50 px-4 py-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  Planned vs Sold
+                </p>
+                <MiniSparkline
+                  timeSeries={timeSeries}
+                  unit={historyQuery.data?.unit ?? ""}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Recipe ── */}
+      <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
+        <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Recipe
+            </p>
+            <p className="mt-0.5 text-[11px] text-text-muted">
+              {recipes.length > 0
+                ? `${recipes.length} ingredient${recipes.length !== 1 ? "s" : ""} · each line feeds the forecast model`
+                : "No recipe yet — without this, forecasting cannot calculate ingredient demand"}
+            </p>
+          </div>
+          <Link
+            href={`/workspace/inventory/recipes/${menuItem.id}?name=${encodeURIComponent(menuItem.name)}&branch=${branchId}&org=${orgId}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-gold px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
+          >
+            {recipes.length > 0 ? "Edit Recipe" : "Build Recipe"}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
         {recipesQuery.isLoading ? (
-          <div className="p-6 text-sm text-text-muted">Loading recipe...</div>
+          <div className="px-4 py-5 text-center">
+            <p className="text-xs text-text-muted">Loading recipe…</p>
+          </div>
         ) : recipes.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-sm text-text-muted">No recipe lines yet.</p>
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm font-semibold text-text-secondary">No recipe lines yet</p>
+            <p className="mt-1 text-xs text-text-muted max-w-xs mx-auto">
+              Define ingredients per serving so the AI can calculate how much to prep daily.
+              A missing recipe means inaccurate forecasts — fix this first.
+            </p>
             <Link
-              href={`/workspace/inventory/recipes/${menuItemId}?name=${encodeURIComponent(menuItem?.name ?? "")}&branch=${branchId}&org=${orgId}`}
-              className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
+              href={`/workspace/inventory/recipes/${menuItem.id}?name=${encodeURIComponent(menuItem.name)}&branch=${branchId}&org=${orgId}`}
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90"
             >
               <Plus className="h-3.5 w-3.5" />
-              Build Recipe
+              Build Recipe Now
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-surface-4">
-            {recipes.map((recipe) => (
-              <div key={recipe.id} className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-text-primary">{recipe.ingredient_name}</p>
-                  <p className="text-xs text-text-muted mt-0.5 uppercase">{recipe.unit}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-brand-gold">{parseFloat(recipe.quantity).toFixed(3)}</p>
-                  {parseFloat(recipe.waste_factor) > 0 && (
-                    <p className="text-xs text-text-muted">+{(parseFloat(recipe.waste_factor) * 100).toFixed(0)}% waste</p>
-                  )}
-                </div>
+          <div>
+            {/* Recipe accuracy hint */}
+            {summary && summary.avg_accuracy < 80 && (
+              <div className="border-b border-surface-4/50 bg-status-warning/5 px-4 py-2.5 flex items-center gap-2">
+                <span className="text-[11px] text-status-warning font-medium">
+                  Forecast accuracy is {summary.avg_accuracy.toFixed(0)}%. Review recipe quantities — inaccurate portions cause over/under-prep.
+                </span>
               </div>
-            ))}
+            )}
+
+            {/* Recipe lines */}
+            <div className="divide-y divide-surface-4/50">
+              {recipes.map((recipe) => {
+                const ing = ingredients.find((i) => i.id === recipe.ingredient);
+                const wastePct = parseFloat(recipe.waste_factor ?? "0") * 100;
+                return (
+                  <div key={recipe.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text-primary truncate">
+                        {recipe.ingredient_name ?? ing?.name ?? "—"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] uppercase text-text-muted">
+                          {ing?.category?.replace(/_/g, " ") ?? ""}
+                        </span>
+                        {ing?.is_perishable && (
+                          <span className="text-[10px] text-status-warning uppercase tracking-[0.06em]">
+                            perishable
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-4 shrink-0 text-right">
+                      <p className="text-sm font-semibold text-brand-gold">
+                        {parseFloat(recipe.quantity).toFixed(3)}{" "}
+                        <span className="text-[11px] font-normal text-text-muted uppercase">{recipe.unit}</span>
+                      </p>
+                      {wastePct > 0 && (
+                        <p className="text-[11px] text-text-muted">+{wastePct.toFixed(0)}% waste</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer: category breakdown */}
+            {recipes.length > 2 && (
+              <div className="border-t border-surface-4/50 px-4 py-3 flex items-center gap-4">
+                <p className="text-[11px] text-text-muted">
+                  {recipes.filter((r) => ingredients.find((i) => i.id === r.ingredient)?.is_perishable).length} perishable ingredients
+                </p>
+                <p className="text-[11px] text-text-muted">
+                  avg waste: {(recipes.reduce((sum, r) => sum + parseFloat(r.waste_factor ?? "0"), 0) / recipes.length * 100).toFixed(1)}%
+                </p>
+              </div>
+            )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function TrackKPI({
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tone?: "neutral" | "success" | "warning" | "critical";
+}) {
+  const valueClass =
+    tone === "success"
+      ? "text-status-success"
+      : tone === "warning"
+        ? "text-status-warning"
+        : tone === "critical"
+          ? "text-status-critical"
+          : "text-text-primary";
+  return (
+    <div className="px-4 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">{label}</p>
+      <p className={`mt-1.5 font-display text-xl font-semibold ${valueClass}`}>{value}</p>
+      <p className="mt-0.5 text-[11px] text-text-muted">{sub}</p>
+    </div>
+  );
+}
+
+// Mini inline sparkline — simplified version of the full chart
+function MiniSparkline({
+  timeSeries,
+  unit,
+}: {
+  timeSeries: ItemTimeSeriesRow[];
+  unit: string;
+}) {
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  const maxVal = useMemo(
+    () => Math.max(...timeSeries.flatMap((r) => [r.planned_qty, r.actual_sales]), 1),
+    [timeSeries],
+  );
+
+  const W = 500;
+  const H = 72;
+  const PAD_X = 4;
+  const PAD_Y = 6;
+  const chartW = W - PAD_X * 2;
+  const chartH = H - PAD_Y * 2;
+  const n = timeSeries.length;
+  if (!n) return null;
+
+  const slotW = chartW / n;
+  const barW = Math.max(2, slotW * 0.55);
+
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        preserveAspectRatio="none"
+        style={{ height: 72 }}
+      >
+        {timeSeries.map((row, i) => {
+          const cx = PAD_X + (i + 0.5) * slotW;
+          const actualH = (row.actual_sales / maxVal) * chartH;
+          const plannedH = (row.planned_qty / maxVal) * chartH;
+          const isStockout = row.stockout_flag;
+          const wasteRatio = row.planned_qty > 0 ? row.waste_qty / row.planned_qty : 0;
+          const hasWaste = !isStockout && wasteRatio > 0.08;
+          const actualColor = isStockout ? "#ef4444" : hasWaste ? "#f59e0b" : "#22c55e";
+          const isHov = hovered === i;
+
+          return (
+            <g
+              key={row.date}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <rect
+                x={cx - barW / 2}
+                y={H - PAD_Y - plannedH}
+                width={barW}
+                height={plannedH}
+                fill="white"
+                fillOpacity={isHov ? 0.15 : 0.06}
+                rx={1}
+              />
+              <rect
+                x={cx - barW / 2}
+                y={H - PAD_Y - actualH}
+                width={barW}
+                height={actualH}
+                fill={actualColor}
+                fillOpacity={isHov ? 0.9 : 0.65}
+                rx={1}
+              />
+            </g>
+          );
+        })}
+      </svg>
+
+      {hovered !== null && timeSeries[hovered] && (
+        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 z-10">
+          <div className="rounded-lg border border-surface-4 bg-surface-1 px-2.5 py-1.5 shadow-xl text-[11px] text-text-secondary whitespace-nowrap">
+            <span className="font-semibold text-text-primary">
+              {new Date(`${timeSeries[hovered].date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+            {" · "}Sold {timeSeries[hovered].actual_sales.toFixed(1)} {unit}
+            {timeSeries[hovered].stockout_flag && <span className="ml-1 text-status-critical">ran short</span>}
+            {timeSeries[hovered].waste_qty > 0 && (
+              <span className="ml-1 text-status-warning">
+                +{timeSeries[hovered].waste_qty.toFixed(1)} waste
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-1.5 flex items-center gap-3 text-[10px] text-text-muted">
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-sm bg-white/20" />Planned
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-sm bg-status-success/70" />Sold
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-sm bg-status-warning/70" />Waste
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-sm bg-status-critical/70" />Ran short
+        </span>
       </div>
     </div>
   );
@@ -597,59 +941,70 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
 
   return (
     <div className="space-y-8">
-      <div className="mb-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Waste Intelligence</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Where waste is happening</h3>
-        <p className="mt-1 text-sm text-text-muted">Breakdown by ingredient and by reason.</p>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+          Waste Intelligence
+        </p>
+        <h3 className="mt-0.5 font-display text-xl font-semibold text-text-primary">
+          Where waste is happening
+        </h3>
+        <p className="mt-1 text-sm text-text-secondary">
+          {total_waste_events} waste events · breakdown by ingredient and reason.
+        </p>
       </div>
 
-      {/* Summary row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Total Events</p>
-          <p className="mt-2 font-display text-3xl font-semibold text-status-critical">{total_waste_events ?? 0}</p>
-        </article>
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Ingredient</p>
-          <p className="mt-2 text-sm font-semibold text-text-primary">{topWaste?.ingredient_name ?? "—"}</p>
-          {topWaste && (
-            <p className="mt-1 text-xs text-text-muted">{parseFloat(topWaste.total_waste).toFixed(2)} units</p>
-          )}
-        </article>
-        <article className="bg-surface-2 rounded-xl p-5 border border-surface-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Top Waste Reason</p>
-          <p className="mt-2 text-sm font-semibold text-text-primary">
-            {by_reason?.[0]?.reason?.replace(/_/g, " ") ?? "—"}
-          </p>
-          {by_reason?.[0] && (
-            <p className="mt-1 text-xs text-text-muted">{parseFloat(by_reason[0].total_waste).toFixed(2)} units</p>
-          )}
-        </article>
+      {/* Summary strip */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span className="text-text-muted">
+          <span className="font-semibold text-status-critical">{total_waste_events ?? 0}</span>{" "}
+          total events
+        </span>
+        {topWaste && (
+          <span className="text-text-muted">
+            top:{" "}
+            <span className="font-semibold text-text-primary">{topWaste.ingredient_name}</span>{" "}
+            ({parseFloat(topWaste.total_waste).toFixed(2)} units)
+          </span>
+        )}
+        {by_reason?.[0] && (
+          <span className="text-text-muted">
+            top reason:{" "}
+            <span className="font-semibold text-text-primary capitalize">
+              {by_reason[0].reason?.replace(/_/g, " ")}
+            </span>
+          </span>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* By Ingredient */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">By Ingredient</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+            By Ingredient
+          </p>
           {by_ingredient?.length ? (
-            <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg divide-y divide-surface-4">
+            <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/50">
               {by_ingredient.map((item: any) => {
                 const qty = parseFloat(item.total_waste);
                 const maxQty = parseFloat(by_ingredient[0].total_waste);
                 const pct = maxQty > 0 ? (qty / maxQty) * 100 : 0;
                 return (
-                  <div key={item.ingredient_id} className="px-5 py-4">
-                    <div className="flex items-center justify-between mb-2">
+                  <div key={item.ingredient_id} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-1.5">
                       <div>
                         <p className="text-sm font-semibold text-text-primary">{item.ingredient_name}</p>
                         {item.is_perishable && (
-                          <span className="text-[10px] uppercase tracking-[0.08em] text-status-warning">perishable</span>
+                          <span className="text-[10px] uppercase tracking-[0.06em] text-status-warning">
+                            perishable
+                          </span>
                         )}
                       </div>
-                      <p className="text-sm font-semibold text-status-critical">{qty.toFixed(2)} units</p>
+                      <p className="text-sm font-semibold text-status-critical">
+                        {qty.toFixed(2)} units
+                      </p>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-surface-3">
-                      <div className="h-1.5 rounded-full bg-status-critical/60" style={{ width: `${pct}%` }} />
+                    <div className="h-1 w-full rounded-full bg-surface-3">
+                      <div className="h-1 rounded-full bg-status-critical/50" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -662,23 +1017,27 @@ function WasteTab({ wasteAnalytics, isLoading }: { wasteAnalytics: any; isLoadin
 
         {/* By Reason */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">By Reason</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+            By Reason
+          </p>
           {by_reason?.length ? (
-            <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg divide-y divide-surface-4">
+            <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/50">
               {by_reason.map((item: any) => {
                 const qty = parseFloat(item.total_waste);
                 const maxQty = parseFloat(by_reason[0].total_waste);
                 const pct = maxQty > 0 ? (qty / maxQty) * 100 : 0;
                 return (
-                  <div key={item.reason} className="px-5 py-4">
-                    <div className="flex items-center justify-between mb-2">
+                  <div key={item.reason} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-1.5">
                       <p className="text-sm font-semibold text-text-primary capitalize">
                         {item.reason.replace(/_/g, " ").toLowerCase()}
                       </p>
-                      <p className="text-sm font-semibold text-status-warning">{qty.toFixed(2)} units</p>
+                      <p className="text-sm font-semibold text-status-warning">
+                        {qty.toFixed(2)} units
+                      </p>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-surface-3">
-                      <div className="h-1.5 rounded-full bg-status-warning/60" style={{ width: `${pct}%` }} />
+                    <div className="h-1 w-full rounded-full bg-surface-3">
+                      <div className="h-1 rounded-full bg-status-warning/50" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -763,48 +1122,56 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
 
   return (
     <div className="space-y-8">
-      <div className="mb-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Stock Signals</p>
-        <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">Prep activity and volume</h3>
-        <p className="mt-1 text-sm text-text-muted">Most prepped ingredients and recent batch activity.</p>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+          Stock Signals
+        </p>
+        <h3 className="mt-0.5 font-display text-xl font-semibold text-text-primary">
+          Prep activity and volume
+        </h3>
+        <p className="mt-1 text-sm text-text-secondary">
+          Most prepped ingredients and recent batch activity.
+        </p>
       </div>
 
-      {/* Top prepped */}
       {byIngredient.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">Most Prepped Ingredients</p>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
+            Most Prepped Ingredients
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {byIngredient.map((item) => (
-              <article key={item.name} className="bg-surface-2 rounded-xl p-4 border border-surface-4">
+              <article key={item.name} className="rounded-xl border border-surface-4 bg-surface-2 p-4">
                 <p className="text-sm font-semibold text-text-primary truncate">{item.name}</p>
                 <p className="mt-2 font-display text-2xl font-semibold text-brand-gold">
                   {item.total.toFixed(1)}
                 </p>
-                <p className="text-xs text-text-muted uppercase">{item.unit} · {item.batches} batch{item.batches !== 1 ? "es" : ""}</p>
+                <p className="text-[11px] text-text-muted uppercase">
+                  {item.unit} · {item.batches} batch{item.batches !== 1 ? "es" : ""}
+                </p>
               </article>
             ))}
           </div>
         </div>
       )}
 
-      {/* Recent batches table */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
           Recent Prep Activity (last 24h)
         </p>
         {recentBatches.length === 0 ? (
           <p className="text-sm text-text-muted">No prep activity in the last 24 hours.</p>
         ) : (
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
             <div className="overflow-x-auto">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[560px]"
-                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-                bodyClassName="divide-y divide-surface-4"
-                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-                cellClassName="px-6 py-4"
+                headerClassName="border-b border-surface-4/80 bg-surface-3/40"
+                bodyClassName="divide-y divide-surface-4/50"
+                headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="transition-colors hover:bg-surface-3/20"
+                cellClassName="px-4 py-3"
               />
             </div>
           </div>
