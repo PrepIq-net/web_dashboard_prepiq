@@ -47,15 +47,15 @@ export default function WorkspaceLayout({
 
   // "No subscription" = query finished with no data (404 or genuinely empty)
   const hasNoSubscription = subLoaded && !sub;
-  // Expired/cancelled = data present but no longer active, and not an active trial
+  // Expired/cancelled = data present but no longer active, and not a trial
   const isExpired =
-    subLoaded && sub && !sub.is_currently_active && sub.status !== "TRIAL";
+    subLoaded && sub && !sub.is_currently_active && !sub.is_trial;
   // Trial that ran to end
   const isTrialExpired =
-    subLoaded && sub && !sub.is_currently_active && sub.status === "TRIAL";
+    subLoaded && sub && !sub.is_currently_active && Boolean(sub.is_trial);
   // Active trial
-  const isTrial = Boolean(sub?.is_currently_active && sub?.status === "TRIAL");
-  // Payment failed but still accessible
+  const isTrial = Boolean(sub?.is_currently_active && sub?.is_trial);
+  // Payment past due but still accessible
   const isPastDue = sub?.status === "PAST_DUE";
   const daysLeft = sub?.days_until_renewal ?? null;
 
