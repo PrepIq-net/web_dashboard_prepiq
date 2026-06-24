@@ -133,11 +133,24 @@ export async function getSubscriptionDetail(subscriptionId: string) {
 }
 
 export async function getCurrentSubscription(params?: SubscriptionQuery) {
-  return apiClientWithSchema(
-    withQuery(paymentEndpoints.subscriptionCurrent(), params),
-    subscriptionDetailSchema,
-    { method: "GET" },
-  );
+  const url = withQuery(paymentEndpoints.subscriptionCurrent(), params);
+  console.log("[getCurrentSubscription] REQUEST →", url, "params:", params);
+  try {
+    const result = await apiClientWithSchema(url, subscriptionDetailSchema, { method: "GET" });
+    console.log("[getCurrentSubscription] RESPONSE ✓", {
+      id: result.id,
+      plan: result.plan?.plan_type,
+      is_currently_active: result.is_currently_active,
+      is_trial: result.is_trial,
+      status: result.status,
+      trial_ends_at: result.trial_ends_at,
+      branch: result.branch,
+    });
+    return result;
+  } catch (err) {
+    console.log("[getCurrentSubscription] RESPONSE ✗", err);
+    throw err;
+  }
 }
 
 export async function createSubscription(payload: CreateSubscriptionPayload) {

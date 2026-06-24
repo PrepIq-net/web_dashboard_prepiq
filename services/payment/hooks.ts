@@ -146,8 +146,6 @@ export function useSubscriptionTier(branchId?: string) {
       : 0;
 
   // Wait for both initial load AND any background re-fetch before evaluating access.
-  // Using only !isLoading would let stale "active" data pass the gate while a re-fetch
-  // (triggered by staleTime:0 + refetchOnMount:true) is still in-flight.
   const loaded = !isLoading && !isFetching;
   const hasNoSubscription = loaded && (!data || isError);
   const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
@@ -158,6 +156,28 @@ export function useSubscriptionTier(branchId?: string) {
     : isTrialExpired
       ? "trial_expired"
       : "expired";
+
+  console.log("[useSubscriptionTier]", {
+    branchId,
+    isLoading,
+    isFetching,
+    isError,
+    loaded,
+    data: data
+      ? {
+          id: data.id,
+          plan: data.plan?.plan_type,
+          is_currently_active: data.is_currently_active,
+          is_trial: data.is_trial,
+          status: data.status,
+        }
+      : null,
+    hasNoSubscription,
+    isExpired,
+    isTrialExpired,
+    shouldBlockAccess,
+    gateVariant,
+  });
 
   // Expose isFetching via isLoading so callers gate data queries during re-fetches too.
   return { tier, planType, isLoading: isLoading || isFetching, shouldBlockAccess, gateVariant };
