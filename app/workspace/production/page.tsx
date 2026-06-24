@@ -213,14 +213,15 @@ export default function ProductionPage() {
   const activeBranch =
     branchOptions.find((branch) => branch.id === activeBranchId) ?? null;
   const todayDate = new Date().toISOString().slice(0, 10);
+  const canFetchData = Boolean(activeBranchId) && !subLoading && !shouldBlockAccess;
 
   const branchDayQuery = useBranchDayToday(
     { branch_id: activeBranchId, date: todayDate },
-    Boolean(activeBranchId),
+    canFetchData,
   );
   const createProductionLogMutation = useCreateProductionLog();
   const salesValidationQuery = useSalesDataValidation({
-    branch_id: activeBranchId,
+    branch_id: canFetchData ? activeBranchId : "",
     target_date: todayDate,
   });
 

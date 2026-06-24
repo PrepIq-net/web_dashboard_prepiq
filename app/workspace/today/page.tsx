@@ -455,10 +455,11 @@ function TodayWorkspacePageContent() {
   }, [isLoading, canAccess]);
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
-  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
+  const canFetchData = Boolean(safeBranchId) && !subLoading && !shouldBlockAccess;
   const todayQuery = useBranchDayToday(
     { branch_id: safeBranchId, date: targetDate },
-    Boolean(safeBranchId),
+    canFetchData,
   );
   const initializeMutation = useInitializeBranchDay();
   const evaluateMutation = useEvaluatePrepPlan();
@@ -1629,7 +1630,7 @@ function TodayWorkspacePageContent() {
         </div>
       </div>
 
-      {branchId && !subLoading && shouldBlockAccess ? (
+      {safeBranchId && !subLoading && shouldBlockAccess ? (
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : (
         <>
