@@ -27,6 +27,8 @@ import {
   useRecipes,
 } from "@/services/inventory/hooks";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
@@ -100,6 +102,7 @@ function InventoryPageContent() {
     if (!isLoading && !canAccess) router.replace("/");
   }, [isLoading, canAccess, router]);
 
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const canLoadData = Boolean(branchId && user?.organization_id);
 
   const ingredientsQuery = useIngredients(user?.organization_id ?? "", canLoadData);
@@ -117,6 +120,19 @@ function InventoryPageContent() {
   const perishableCount = ingredients.filter((i) => i.is_perishable).length;
   const totalWasteEvents = wasteAnalytics?.total_waste_events ?? 0;
   const topWasteIngredient = wasteAnalytics?.by_ingredient?.[0]?.ingredient_name ?? "—";
+
+  if (branchId && !subLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell
+        eyebrow="Inventory"
+        title="Kitchen Intelligence"
+        description="Ingredients, recipes, waste, and what's moving — everything the AI needs to forecast accurately."
+        insight=""
+      >
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

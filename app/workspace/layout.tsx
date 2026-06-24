@@ -37,17 +37,15 @@ export default function WorkspaceLayout({
   // Memoize user to prevent unnecessary re-renders of wrappers
   const memoizedUser = useMemo(() => user, [user?.id]);
 
+  // Layout-level gate checks the user's PRIMARY branch subscription (org-level health).
+  // Per-page gates (via useSubscriptionTier(branchId)) handle branch-specific checks.
+  const subscriptionQuery = useCurrentSubscription();
+
   const activeBranchId =
     accessScopeQuery.data?.default_branch_id ??
     branchesQuery.data?.find((branch) => branch.is_primary)?.id ??
     branchesQuery.data?.[0]?.id ??
     "";
-
-  // Subscription is branch-scoped — pass branch_id so the backend resolves
-  // the active branch's subscription rather than falling back to the primary branch.
-  const subscriptionQuery = useCurrentSubscription(
-    activeBranchId ? { branch_id: activeBranchId } : undefined,
-  );
 
   // ── Subscription gate ──────────────────────────────────────────────────────
   const isExemptPath = SUBSCRIPTION_EXEMPT_PATHS.some((p) =>

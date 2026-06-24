@@ -23,6 +23,7 @@ import {
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type StaffPerformanceRow = {
   id: string;
@@ -117,7 +118,6 @@ export default function StaffPerformancePage() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
   const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
@@ -128,6 +128,8 @@ export default function StaffPerformancePage() {
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
   const [tablePage, setTablePage] = useState(0);
@@ -377,6 +379,14 @@ export default function StaffPerformancePage() {
     columns,
     getCoreRowModel: CORE_ROW_MODEL,
   });
+
+  if (activeBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Staff" title="Performance Intelligence" description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   if (!tierLoading && tier < 2) {
     return (

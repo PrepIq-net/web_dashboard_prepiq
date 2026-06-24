@@ -40,6 +40,8 @@ import { productionIntelligenceEndpoints } from "@/services/production-intellige
 import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
 import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -453,6 +455,7 @@ function TodayWorkspacePageContent() {
   }, [isLoading, canAccess]);
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
   const todayQuery = useBranchDayToday(
     { branch_id: safeBranchId, date: targetDate },
     Boolean(safeBranchId),
@@ -1573,6 +1576,19 @@ function TodayWorkspacePageContent() {
       },
     });
   };
+
+  if (safeBranchId && !subLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell
+        eyebrow="Today"
+        title="Today's Kitchen"
+        description="Review your forecast, confirm production targets, and execute with precision."
+        insight=""
+      >
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

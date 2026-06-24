@@ -27,6 +27,8 @@ import {
   useUpdatePlanningEvent,
   useDeletePlanningEvent,
 } from "@/services/planning/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import type {
   CalendarEventList,
   CreateCalendarEventPayload,
@@ -1136,6 +1138,7 @@ function PlanningPageContent() {
 
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
 
   // Calendar range: full month grid including overflow days
   const grid = useMemo(() => calendarGrid(month), [month]);
@@ -1153,6 +1156,19 @@ function PlanningPageContent() {
     calendarData[selectedDate] ?? EMPTY_LIST;
 
   const isCurrentMonth = (d: Date) => d.getMonth() === month.getMonth();
+
+  if (safeBranchId && !subLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell
+        eyebrow="Planning"
+        title="Planning Calendar"
+        description="Every event you enter becomes a forecast signal. Reservations, promotions, closures — all feed the prediction engine."
+        insight=""
+      >
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

@@ -21,6 +21,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -90,10 +91,11 @@ export default function FinancialPage() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -279,6 +281,14 @@ export default function FinancialPage() {
       rows,
     );
   };
+
+  if (activeBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Executive" title="Financials" description="Revenue, margins, and waste cost — your business in one view." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   if (!tierLoading && tier < 2) {
     return (

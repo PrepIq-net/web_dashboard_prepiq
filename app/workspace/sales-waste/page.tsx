@@ -21,6 +21,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -91,7 +92,6 @@ function SalesWasteContent() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -126,6 +126,7 @@ function SalesWasteContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -252,6 +253,14 @@ function SalesWasteContent() {
   }, [report?.trends]);
 
   const efficiencyRatio = report?.totals?.efficiency_ratio ?? 0;
+
+  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Operations" title="Sales & Waste" description="Every item. What sold, what didn't, what was thrown away." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   if (!tierLoading && tier < 2) {
     return (

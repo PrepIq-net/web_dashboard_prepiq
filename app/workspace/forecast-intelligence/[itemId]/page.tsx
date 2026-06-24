@@ -7,6 +7,7 @@ import { Calendar, ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
   useAdvancedForecast,
@@ -63,10 +64,9 @@ function ForecastIntelligenceContent() {
   const searchParams = useSearchParams();
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
-
   const itemId = String(params?.itemId ?? "");
   const branchId = searchParams.get("branch_id") ?? "";
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const initialDate =
     searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   const [targetDate, setTargetDate] = useState(initialDate);
@@ -175,6 +175,14 @@ function ForecastIntelligenceContent() {
 
   const confidenceLabel = advancedQuery.data?.confidence_label ?? "—";
   const unit = item?.unit ?? "PCS";
+
+  if (branchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Forecast Intelligence" title="Item Forecast Drill-Down" description="Deep visibility into ensemble forecast logic, scenario impacts, and live demand velocity." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   if (!tierLoading && tier < 2) {
     return (

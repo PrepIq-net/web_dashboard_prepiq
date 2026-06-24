@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 import {
   activateSubscription,
   attachSubscriptionAddOn,
@@ -122,9 +121,12 @@ const PLAN_TIER_MAP: Record<string, number> = {
   COMMAND: 3,
 };
 
-export function useSubscriptionTier() {
-  const { data: accessScope } = useProductionIntelligenceAccessScope();
-  const branchId = accessScope?.default_branch_id ?? undefined;
+/**
+ * Returns subscription tier + block state for a specific branch.
+ * branchId must be the branch the current page is operating on.
+ * Without branchId the backend falls back to the org's primary branch.
+ */
+export function useSubscriptionTier(branchId?: string) {
   const { data, isLoading } = useCurrentSubscription(
     branchId ? { branch_id: branchId } : undefined,
   );
@@ -133,7 +135,19 @@ export function useSubscriptionTier() {
     data?.is_currently_active && planType
       ? (PLAN_TIER_MAP[planType] ?? 0)
       : 0;
-  return { tier, planType, isLoading };
+
+  const loaded = !isLoading;
+  const hasNoSubscription = loaded && !data;
+  const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
+  const isTrialExpired = loaded && Boolean(data && !data.is_currently_active && data.is_trial);
+  const shouldBlockAccess = hasNoSubscription || isExpired || isTrialExpired;
+  const gateVariant: "none" | "expired" | "trial_expired" = hasNoSubscription
+    ? "none"
+    : isTrialExpired
+      ? "trial_expired"
+      : "expired";
+
+  return { tier, planType, isLoading, shouldBlockAccess, gateVariant };
 }
 
 export function useSubscriptionAvailableAddOns(subscriptionId: string) {

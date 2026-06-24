@@ -14,6 +14,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -61,7 +62,6 @@ function RiskPageContent() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_COMPLIANCE);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -94,6 +94,7 @@ function RiskPageContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -134,6 +135,14 @@ function RiskPageContent() {
       scores: points.map((row) => row.score),
     };
   }, [risk?.risk_trend]);
+
+  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Risk" title="Operational Risk" description="Early warning signals for service disruption, waste, and supply risk." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
 
   if (!tierLoading && tier < 3) {
     return (
