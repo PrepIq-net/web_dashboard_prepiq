@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 import {
   activateSubscription,
   attachSubscriptionAddOn,
@@ -122,7 +123,11 @@ const PLAN_TIER_MAP: Record<string, number> = {
 };
 
 export function useSubscriptionTier() {
-  const { data, isLoading } = useCurrentSubscription();
+  const { data: accessScope } = useProductionIntelligenceAccessScope();
+  const branchId = accessScope?.default_branch_id ?? undefined;
+  const { data, isLoading } = useCurrentSubscription(
+    branchId ? { branch_id: branchId } : undefined,
+  );
   const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
   const tier =
     data?.is_currently_active && planType

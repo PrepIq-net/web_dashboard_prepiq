@@ -31,12 +31,23 @@ export default function WorkspaceLayout({
   const pathname = usePathname();
   const { collapsed } = useSidebarState();
   const { data: user } = useCurrentUserProfile();
-  const subscriptionQuery = useCurrentSubscription();
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const accessScopeQuery = useProductionIntelligenceAccessScope();
 
   // Memoize user to prevent unnecessary re-renders of wrappers
   const memoizedUser = useMemo(() => user, [user?.id]);
+
+  const activeBranchId =
+    accessScopeQuery.data?.default_branch_id ??
+    branchesQuery.data?.find((branch) => branch.is_primary)?.id ??
+    branchesQuery.data?.[0]?.id ??
+    "";
+
+  // Subscription is branch-scoped — pass branch_id so the backend resolves
+  // the active branch's subscription rather than falling back to the primary branch.
+  const subscriptionQuery = useCurrentSubscription(
+    activeBranchId ? { branch_id: activeBranchId } : undefined,
+  );
 
   // ── Subscription gate ──────────────────────────────────────────────────────
   const isExemptPath = SUBSCRIPTION_EXEMPT_PATHS.some((p) =>
@@ -73,11 +84,6 @@ export default function WorkspaceLayout({
     !branchesQuery.isLoading &&
     !branchesQuery.isError &&
     (branchesQuery.data?.length ?? 0) === 0;
-  const activeBranchId =
-    accessScopeQuery.data?.default_branch_id ??
-    branchesQuery.data?.find((branch) => branch.is_primary)?.id ??
-    branchesQuery.data?.[0]?.id ??
-    "";
   const salesValidationQuery = useSalesDataValidation({
     branch_id: activeBranchId,
   });
