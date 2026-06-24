@@ -14,7 +14,6 @@ import {
   useSalesWasteReport,
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
@@ -233,7 +232,7 @@ function SalesWasteItemContent() {
         description="See how one menu item affects revenue, waste, and margin."
         insight=""
       >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }

@@ -11,7 +11,6 @@ import {
 } from "@/services";
 import { useBranchDayToday } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 function percent(value: number) {
@@ -147,7 +146,7 @@ function BranchOverviewSnapshotContent() {
         description="Read-only branch operating view for owners and cross-branch leaders."
         insight="This screen is optimized for business control: phase, forecast quality, risk exposure, and expected margin signal in one view."
       >
-        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="command_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }

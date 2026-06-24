@@ -19,7 +19,7 @@ import {
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type SupplierRow = {
   id: string;
@@ -358,7 +358,7 @@ export default function PurchasingPage() {
         description="Cost control surface for supplier performance, variance, and ordering efficiency."
         insight="Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage."
       >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }

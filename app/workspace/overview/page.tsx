@@ -22,7 +22,7 @@ import {
   useDataQualityReport,
 } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -234,7 +234,7 @@ export default function WorkspaceOverviewPage() {
         description="Enterprise network intelligence with shared pattern detection, waste comparison, and forecast reliability."
         insight="Executives should get one view of cross-branch truth: what pattern is repeatable, where waste is growing, and what action should be standardized."
       >
-        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="command_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }

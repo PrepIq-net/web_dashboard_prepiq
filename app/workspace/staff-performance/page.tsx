@@ -22,7 +22,6 @@ import {
 } from "@/services";
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type StaffPerformanceRow = {
@@ -467,7 +466,7 @@ export default function StaffPerformancePage() {
       {activeBranchId && !tierLoading && shouldBlockAccess ? (
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : !tierLoading && tier < 2 ? (
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       ) : (
         <>
       <section className="mt-10 border-b border-surface-4 pb-10">

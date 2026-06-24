@@ -13,7 +13,6 @@ import {
   useRiskSnapshot,
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
@@ -207,7 +206,7 @@ function RiskPageContent() {
       {selectedBranchId && !tierLoading && shouldBlockAccess ? (
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : !tierLoading && tier < 3 ? (
-        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="command_required" currentPlanType={planType} compact />
       ) : (
         <>
       {activeTab === "OVERVIEW" ? (

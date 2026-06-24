@@ -20,7 +20,6 @@ import {
   useSalesWasteReport,
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
@@ -307,7 +306,7 @@ function SalesWasteContent() {
       {selectedBranchId && !tierLoading && shouldBlockAccess ? (
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : !tierLoading && tier < 2 ? (
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       ) : (
         <>
       {/* KPI strip */}

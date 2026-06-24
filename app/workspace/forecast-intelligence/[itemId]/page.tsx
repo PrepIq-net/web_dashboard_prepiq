@@ -6,7 +6,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useSubscriptionTier } from "@/services/payment/hooks";
-import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
@@ -192,7 +191,7 @@ function ForecastIntelligenceContent() {
         description="Deep visibility into ensemble forecast logic, scenario impacts, and live demand velocity."
         insight="Use this view to validate model confidence, data quality, and chef alignment before acting."
       >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }
