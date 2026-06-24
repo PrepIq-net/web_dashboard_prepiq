@@ -21,6 +21,8 @@ import {
   useRemoveStaff,
 } from "@/services";
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 
 type StaffPerformanceRow = {
   id: string;
@@ -115,6 +117,7 @@ export default function StaffPerformancePage() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
   const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
@@ -374,6 +377,19 @@ export default function StaffPerformancePage() {
     columns,
     getCoreRowModel: CORE_ROW_MODEL,
   });
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Staff"
+        title="Performance Intelligence"
+        description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction."
+        insight="Coaching efficiency improves when high-risk operators are identified using reliability, error rate, and waste contribution together."
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import {
   useAdvancedForecast,
@@ -61,6 +63,7 @@ function ForecastIntelligenceContent() {
   const searchParams = useSearchParams();
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const itemId = String(params?.itemId ?? "");
   const branchId = searchParams.get("branch_id") ?? "";
@@ -172,6 +175,19 @@ function ForecastIntelligenceContent() {
 
   const confidenceLabel = advancedQuery.data?.confidence_label ?? "—";
   const unit = item?.unit ?? "PCS";
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Forecast Intelligence"
+        title="Item Forecast Drill-Down"
+        description="Deep visibility into ensemble forecast logic, scenario impacts, and live demand velocity."
+        insight="Use this view to validate model confidence, data quality, and chef alignment before acting."
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      </WorkspaceShell>
+    );
+  }
 
   if (!branchId || !itemId) {
     return (

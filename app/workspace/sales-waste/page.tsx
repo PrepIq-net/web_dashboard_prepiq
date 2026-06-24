@@ -19,6 +19,8 @@ import {
   useProductionIntelligenceAccessScope,
   useSalesWasteReport,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -89,6 +91,7 @@ function SalesWasteContent() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -249,6 +252,19 @@ function SalesWasteContent() {
   }, [report?.trends]);
 
   const efficiencyRatio = report?.totals?.efficiency_ratio ?? 0;
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Operations"
+        title="Sales & Waste"
+        description="Every item. What sold, what didn't, what was thrown away."
+        insight=""
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

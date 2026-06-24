@@ -1,29 +1,73 @@
 "use client";
 
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
 import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { TrialBanner, PaymentFailedBanner } from "@/components/dashboard/subscription-banners";
 import { useBranches, useCurrentUserProfile } from "@/services";
+import { useCurrentSubscription } from "@/services/payment/hooks";
 import {
   useProductionIntelligenceAccessScope,
   useSalesDataValidation,
 } from "@/services/production-intelligence/hooks";
+
+// Pages that must always be accessible regardless of subscription state.
+const SUBSCRIPTION_EXEMPT_PATHS = [
+  "/workspace/billing",
+  "/workspace/profile",
+  "/workspace/support",
+];
 
 export default function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const { collapsed } = useSidebarState();
   const { data: user } = useCurrentUserProfile();
+  const subscriptionQuery = useCurrentSubscription();
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const accessScopeQuery = useProductionIntelligenceAccessScope();
 
   // Memoize user to prevent unnecessary re-renders of wrappers
   const memoizedUser = useMemo(() => user, [user?.id]);
+
+  // ── Subscription gate ──────────────────────────────────────────────────────
+  const isExemptPath = SUBSCRIPTION_EXEMPT_PATHS.some((p) =>
+    pathname.startsWith(p),
+  );
+  const sub = subscriptionQuery.data;
+  const subLoaded = !subscriptionQuery.isLoading;
+
+  // "No subscription" = query finished with no data (404 or genuinely empty)
+  const hasNoSubscription = subLoaded && !sub;
+  // Expired/cancelled = data present but no longer active, and not an active trial
+  const isExpired =
+    subLoaded && sub && !sub.is_currently_active && sub.status !== "TRIAL";
+  // Trial that ran to end
+  const isTrialExpired =
+    subLoaded && sub && !sub.is_currently_active && sub.status === "TRIAL";
+  // Active trial
+  const isTrial = Boolean(sub?.is_currently_active && sub?.status === "TRIAL");
+  // Payment failed but still accessible
+  const isPastDue = sub?.status === "PAST_DUE";
+  const daysLeft = sub?.days_until_renewal ?? null;
+
+  const shouldBlockAccess =
+    !isExemptPath && Boolean(hasNoSubscription || isExpired || isTrialExpired);
+  const gateVariant = hasNoSubscription
+    ? "none"
+    : isTrialExpired
+      ? "trial_expired"
+      : "expired";
+  // ──────────────────────────────────────────────────────────────────────────
+
   const shouldShowBranchRequiredState =
     Boolean(user?.has_organization) &&
     !branchesQuery.isLoading &&
@@ -45,6 +89,18 @@ export default function WorkspaceLayout({
     !salesValidationQuery.isError &&
     salesValidationQuery.data?.sales_source_connected === false;
 
+  const renderChildren = shouldShowBranchRequiredState ? (
+    <div className="mt-8">
+      <BranchRequiredState compact />
+    </div>
+  ) : shouldShowSalesSourceRequiredState ? (
+    <div className="mt-8">
+      <SalesSourceRequiredState compact />
+    </div>
+  ) : (
+    children
+  );
+
   return (
     <div className="flex min-h-screen bg-surface-1">
       <DashboardSidebarWrapper user={memoizedUser} />
@@ -55,16 +111,18 @@ export default function WorkspaceLayout({
       >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
           <DashboardTopNavWrapper />
-          {shouldShowBranchRequiredState ? (
+          {shouldBlockAccess ? (
             <div className="mt-8">
-              <BranchRequiredState compact />
-            </div>
-          ) : shouldShowSalesSourceRequiredState ? (
-            <div className="mt-8">
-              <SalesSourceRequiredState compact />
+              <SubscriptionRequiredState variant={gateVariant} compact />
             </div>
           ) : (
-            children
+            <>
+              {isTrial && (
+                <TrialBanner daysLeft={typeof daysLeft === "number" ? daysLeft : null} />
+              )}
+              {isPastDue && <PaymentFailedBanner />}
+              {renderChildren}
+            </>
           )}
         </div>
       </main>

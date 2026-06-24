@@ -115,6 +115,22 @@ export function useCurrentSubscription(params?: SubscriptionQuery) {
   });
 }
 
+const PLAN_TIER_MAP: Record<string, number> = {
+  CORE: 1,
+  INTELLIGENCE: 2,
+  COMMAND: 3,
+};
+
+export function useSubscriptionTier() {
+  const { data, isLoading } = useCurrentSubscription();
+  const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
+  const tier =
+    data?.is_currently_active && planType
+      ? (PLAN_TIER_MAP[planType] ?? 0)
+      : 0;
+  return { tier, planType, isLoading };
+}
+
 export function useSubscriptionAvailableAddOns(subscriptionId: string) {
   return useQuery({
     queryKey: paymentQueryKeys.subscriptionAddOns(subscriptionId),

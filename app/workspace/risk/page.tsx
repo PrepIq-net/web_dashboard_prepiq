@@ -12,6 +12,8 @@ import {
   useProductionIntelligenceAccessScope,
   useRiskSnapshot,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -59,6 +61,7 @@ function RiskPageContent() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_COMPLIANCE);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -131,6 +134,19 @@ function RiskPageContent() {
       scores: points.map((row) => row.score),
     };
   }, [risk?.risk_trend]);
+
+  if (!tierLoading && tier < 3) {
+    return (
+      <WorkspaceShell
+        eyebrow="Risk"
+        title="Operational Risk"
+        description="Early warning signals for service disruption, waste, and supply risk."
+        insight="See what could go wrong before service starts."
+      >
+        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell

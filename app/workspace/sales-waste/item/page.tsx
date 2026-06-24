@@ -13,6 +13,8 @@ import {
   useProductionIntelligenceAccessScope,
   useSalesWasteReport,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -71,6 +73,7 @@ function SalesWasteItemContent() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -209,6 +212,19 @@ function SalesWasteItemContent() {
           We could not find this item in the current period. Try adjusting the period
           or date window, or return to Sales &amp; Waste to choose another item.
         </section>
+      </WorkspaceShell>
+    );
+  }
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Sales & Waste"
+        title="Item Profit Detail"
+        description="See how one menu item affects revenue, waste, and margin."
+        insight=""
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
       </WorkspaceShell>
     );
   }

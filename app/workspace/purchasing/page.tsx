@@ -18,6 +18,8 @@ import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
 
 type SupplierRow = {
   id: string;
@@ -85,6 +87,7 @@ export default function PurchasingPage() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_INVENTORY);
   const isReadOnlyBranchManager = !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
@@ -346,6 +349,19 @@ export default function PurchasingPage() {
       rows,
     );
   };
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Purchasing"
+        title="Purchasing Intelligence"
+        description="Cost control surface for supplier performance, variance, and ordering efficiency."
+        insight="Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage."
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      </WorkspaceShell>
+    );
+  }
 
   return (
     <WorkspaceShell
