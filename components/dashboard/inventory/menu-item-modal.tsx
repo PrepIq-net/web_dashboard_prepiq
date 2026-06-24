@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useState, useCallback } from "react";
+import Cropper, { type Point, type Area } from "react-easy-crop";
 import { MediaImage } from "iconoir-react";
 import { ModalShell } from "@/components/ui/modal-shell";
-import { ImageCropper } from "@/components/ui/image-cropper";
+import { getCroppedImg } from "@/lib/utils/image";
 import { useCreateMenuItem, useUpdateMenuItem } from "@/services/inventory/hooks";
 import type { MenuItem } from "@/services/inventory/types";
 
@@ -55,7 +55,13 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
 
   const [form, setForm] = useState<FormState>(menuItem ? toForm(menuItem) : EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
+
+  // Crop step state
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
 
   const createMutation = useCreateMenuItem(branchId);
   const updateMutation = useUpdateMenuItem(branchId);
@@ -66,6 +72,8 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
       setForm(menuItem ? toForm(menuItem) : EMPTY_FORM);
       setError(null);
       setCropperSrc(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
     }
   }, [open, menuItem]);
 
@@ -76,16 +84,27 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
       setCropperSrc(URL.createObjectURL(file));
     }
-    // Reset the input so the same file can be re-selected after cancel
     e.target.value = "";
   }
 
-  function handleCropComplete(croppedBlob: Blob) {
-    const file = new File([croppedBlob], "image.jpg", { type: "image/jpeg" });
-    set("image", file);
-    set("image_preview", URL.createObjectURL(croppedBlob));
+  const onCropAreaChange = useCallback((_: Area, pixelCrop: Area) => {
+    setCroppedAreaPixels(pixelCrop);
+  }, []);
+
+  async function handleApplyCrop() {
+    if (!croppedAreaPixels || !cropperSrc) return;
+    setIsApplying(true);
+    const blob = await getCroppedImg(cropperSrc, croppedAreaPixels);
+    if (blob) {
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+      set("image", file);
+      set("image_preview", URL.createObjectURL(blob));
+    }
+    setIsApplying(false);
     setCropperSrc(null);
   }
 
@@ -115,8 +134,72 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
     }
   }
 
+  // ── Crop step — replaces form content inside same modal ──
+  if (cropperSrc) {
+    return (
+      <ModalShell
+        open={open}
+        onClose={() => setCropperSrc(null)}
+        title="Adjust framing"
+        description="Drag to reposition · scroll or pinch to zoom"
+        maxWidthClassName="max-w-lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setCropperSrc(null)}
+              className="inline-flex h-10 items-center rounded-lg border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:bg-surface-3 hover:text-text-primary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApplyCrop}
+              disabled={isApplying}
+              className="inline-flex h-10 items-center rounded-lg bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {isApplying ? "Applying…" : "Apply crop"}
+            </button>
+          </>
+        }
+      >
+        {/* Crop canvas */}
+        <div className="relative overflow-hidden rounded-xl bg-[#141416]" style={{ height: 320 }}>
+          <Cropper
+            image={cropperSrc}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropAreaChange}
+            classes={{ containerClassName: "rounded-xl" }}
+          />
+        </div>
+
+        {/* Zoom slider */}
+        <div className="mt-4 space-y-2">
+          <div className="flex justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">Zoom</span>
+            <span className="text-xs font-semibold tabular-nums text-text-secondary">{Math.round(zoom * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            value={zoom}
+            min={1}
+            max={3}
+            step={0.05}
+            aria-label="Zoom"
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-full h-0.75 cursor-pointer appearance-none rounded-full bg-surface-4 accent-brand-gold"
+          />
+        </div>
+      </ModalShell>
+    );
+  }
+
+  // ── Normal form step ──
   return (
-    <>
     <ModalShell
       open={open}
       onClose={onClose}
@@ -213,51 +296,49 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
           <label className="block text-xs font-semibold uppercase tracking-widest text-text-muted mb-2">
             Image <span className="normal-case font-normal text-text-muted">(square crop applied on upload)</span>
           </label>
-          <div className="flex flex-col gap-3">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-              id="image-upload"
-            />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+            id="image-upload"
+          />
 
-            {form.image_preview ? (
-              <div className="flex items-center gap-3">
-                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-3">
-                  <img
-                    src={form.image_preview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label
-                    htmlFor="image-upload"
-                    className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-surface-4 bg-surface-3 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/60 hover:text-brand-gold"
-                  >
-                    Replace
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => { set("image", null); set("image_preview", null); }}
-                    className="inline-flex h-9 items-center justify-center rounded-lg border border-surface-4 px-4 text-sm text-text-muted transition-colors hover:border-status-critical/40 hover:text-status-critical"
-                  >
-                    Remove
-                  </button>
-                </div>
+          {form.image_preview ? (
+            <div className="flex items-center gap-3">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-3">
+                <img
+                  src={form.image_preview}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                />
               </div>
-            ) : (
-              <label
-                htmlFor="image-upload"
-                className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-surface-4 bg-surface-3 text-text-muted transition-colors hover:border-brand-gold/60 hover:text-brand-gold"
-              >
-                <MediaImage className="h-5 w-5" />
-                <span className="text-xs font-medium">Click to upload image</span>
-                <span className="text-[11px] text-text-muted">Will be cropped to square</span>
-              </label>
-            )}
-          </div>
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="image-upload"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-surface-4 bg-surface-3 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/60 hover:text-brand-gold"
+                >
+                  Replace
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { set("image", null); set("image_preview", null); }}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-surface-4 px-4 text-sm text-text-muted transition-colors hover:border-status-critical/40 hover:text-status-critical"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label
+              htmlFor="image-upload"
+              className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-surface-4 bg-surface-3 text-text-muted transition-colors hover:border-brand-gold/60 hover:text-brand-gold"
+            >
+              <MediaImage className="h-5 w-5" />
+              <span className="text-xs font-medium">Click to upload image</span>
+              <span className="text-[11px] text-text-muted">Will be cropped to square</span>
+            </label>
+          )}
         </div>
 
         {/* Instructions */}
@@ -281,16 +362,5 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
         )}
       </form>
     </ModalShell>
-
-    {cropperSrc && createPortal(
-      <ImageCropper
-        image={cropperSrc}
-        onCropComplete={handleCropComplete}
-        onCancel={() => setCropperSrc(null)}
-        aspect={1}
-      />,
-      document.body,
-    )}
-  </>
   );
 }
