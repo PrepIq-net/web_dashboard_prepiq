@@ -115,6 +115,46 @@ export function useCurrentSubscription(params?: SubscriptionQuery) {
   });
 }
 
+const PLAN_TIER_MAP: Record<string, number> = {
+  CORE: 1,
+  INTELLIGENCE: 2,
+  COMMAND: 3,
+};
+
+/**
+ * Returns subscription tier + block state for a specific branch.
+ * branchId must be the branch the current page is operating on.
+ * Without branchId the backend falls back to the org's primary branch.
+ */
+export function useSubscriptionTier(branchId?: string) {
+  const params = branchId ? ({ branch_id: branchId } satisfies SubscriptionQuery) : undefined;
+  // retry:false so a 404 (no active subscription) is detected immediately, not after 3 retries
+  const { data, isLoading, isError } = useQuery({
+    queryKey: paymentQueryKeys.currentSubscription(params),
+    queryFn: () => getCurrentSubscription(params),
+    retry: false,
+    throwOnError: false,
+  });
+  const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
+  const tier =
+    data?.is_currently_active && planType
+      ? (PLAN_TIER_MAP[planType] ?? 0)
+      : 0;
+
+  const loaded = !isLoading;
+  const hasNoSubscription = loaded && (!data || isError);
+  const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
+  const isTrialExpired = loaded && Boolean(data && !data.is_currently_active && data.is_trial);
+  const shouldBlockAccess = hasNoSubscription || isExpired || isTrialExpired;
+  const gateVariant: "none" | "expired" | "trial_expired" = hasNoSubscription
+    ? "none"
+    : isTrialExpired
+      ? "trial_expired"
+      : "expired";
+
+  return { tier, planType, isLoading, shouldBlockAccess, gateVariant };
+}
+
 export function useSubscriptionAvailableAddOns(subscriptionId: string) {
   return useQuery({
     queryKey: paymentQueryKeys.subscriptionAddOns(subscriptionId),

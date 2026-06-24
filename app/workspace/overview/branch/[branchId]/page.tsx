@@ -10,6 +10,9 @@ import {
   useProductionIntelligenceAccessScope,
 } from "@/services";
 import { useBranchDayToday } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 function percent(value: number) {
   const normalized = Math.max(0, Math.min(1, value));
@@ -47,8 +50,8 @@ function BranchOverviewSnapshotContent() {
   const searchParams = useSearchParams();
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
-
   const branchId = String(params?.branchId ?? "");
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const initialDate =
     searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   const [targetDate, setTargetDate] = useState(initialDate);
@@ -125,6 +128,27 @@ function BranchOverviewSnapshotContent() {
       <main className="flex min-h-screen items-center justify-center bg-surface-1">
         <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
       </main>
+    );
+  }
+
+  if (branchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Overview" title={`${branchName} Snapshot`} description="Read-only branch operating view for owners and cross-branch leaders." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
+
+  if (!tierLoading && tier < 3) {
+    return (
+      <WorkspaceShell
+        eyebrow="Overview"
+        title={`${branchName} Snapshot`}
+        description="Read-only branch operating view for owners and cross-branch leaders."
+        insight="This screen is optimized for business control: phase, forecast quality, risk exposure, and expected margin signal in one view."
+      >
+        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+      </WorkspaceShell>
     );
   }
 

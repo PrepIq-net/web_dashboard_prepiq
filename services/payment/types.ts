@@ -131,6 +131,8 @@ export const subscriptionDetailSchema = z
     cancellation_reason: z.string().nullable().optional(),
     cancelled_by_name: z.string().nullable().optional(),
     is_currently_active: z.boolean().optional(),
+    is_trial: z.boolean().optional(),
+    trial_ends_at: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),

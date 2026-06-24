@@ -12,6 +12,9 @@ import {
   useProductionIntelligenceAccessScope,
   useRiskSnapshot,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -91,6 +94,7 @@ function RiskPageContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -200,6 +204,12 @@ function RiskPageContent() {
         </div>
       </section>
 
+      {selectedBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 3 ? (
+        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+      ) : (
+        <>
       {activeTab === "OVERVIEW" ? (
         <section className="space-y-8">
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
@@ -585,6 +595,8 @@ function RiskPageContent() {
           </div>
         </section>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

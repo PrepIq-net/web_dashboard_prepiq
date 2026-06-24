@@ -21,6 +21,9 @@ import {
   useRemoveStaff,
 } from "@/services";
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type StaffPerformanceRow = {
   id: string;
@@ -125,6 +128,8 @@ export default function StaffPerformancePage() {
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
   const [tablePage, setTablePage] = useState(0);
@@ -459,6 +464,12 @@ export default function StaffPerformancePage() {
         </div>
       </section>
 
+      {activeBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      ) : (
+        <>
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -615,6 +626,8 @@ export default function StaffPerformancePage() {
           )}
         </div>
       </section>
+        </>
+      )}
     </WorkspaceShell>
   );
 }

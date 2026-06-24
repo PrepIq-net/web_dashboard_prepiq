@@ -13,6 +13,9 @@ import {
   useProductionIntelligenceAccessScope,
   useSalesWasteReport,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -104,6 +107,7 @@ function SalesWasteItemContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -209,6 +213,27 @@ function SalesWasteItemContent() {
           We could not find this item in the current period. Try adjusting the period
           or date window, or return to Sales &amp; Waste to choose another item.
         </section>
+      </WorkspaceShell>
+    );
+  }
+
+  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Sales & Waste" title="Item Profit Detail" description="See how one menu item affects revenue, waste, and margin." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Sales & Waste"
+        title="Item Profit Detail"
+        description="See how one menu item affects revenue, waste, and margin."
+        insight=""
+      >
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
       </WorkspaceShell>
     );
   }

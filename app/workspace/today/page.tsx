@@ -40,6 +40,8 @@ import { productionIntelligenceEndpoints } from "@/services/production-intellige
 import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
 import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -453,6 +455,7 @@ function TodayWorkspacePageContent() {
   }, [isLoading, canAccess]);
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const todayQuery = useBranchDayToday(
     { branch_id: safeBranchId, date: targetDate },
     Boolean(safeBranchId),
@@ -1626,6 +1629,10 @@ function TodayWorkspacePageContent() {
         </div>
       </div>
 
+      {branchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {todayQuery.isError ? (
         <div className={`mb-6 rounded-r-lg border-l-4 px-4 py-3 text-xs transition-colors ${
           initializeMutation.isPending
@@ -3424,6 +3431,8 @@ function TodayWorkspacePageContent() {
           logWaste(wasteItem.id, wasteQuantity);
         }}
       />
+        </>
+      )}
     </WorkspaceShell>
   );
 }

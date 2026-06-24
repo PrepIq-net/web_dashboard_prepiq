@@ -27,6 +27,8 @@ import {
   useUpdatePlanningEvent,
   useDeletePlanningEvent,
 } from "@/services/planning/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import type {
   CalendarEventList,
   CreateCalendarEventPayload,
@@ -1136,6 +1138,7 @@ function PlanningPageContent() {
 
   const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
 
   // Calendar range: full month grid including overflow days
   const grid = useMemo(() => calendarGrid(month), [month]);
@@ -1184,6 +1187,10 @@ function PlanningPageContent() {
         </button>
       </div>
 
+      {safeBranchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {/* ── Main layout: calendar + day panel ── */}
       <div className="flex gap-6 min-h-[600px]">
         {/* Calendar */}
@@ -1339,6 +1346,8 @@ function PlanningPageContent() {
           onClose={() => setEditingEventId(null)}
         />
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

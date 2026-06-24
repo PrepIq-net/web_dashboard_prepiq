@@ -19,6 +19,9 @@ import {
   useProductionIntelligenceAccessScope,
   useSalesWasteReport,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { PlanGateState } from "@/components/dashboard/plan-gate-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -123,6 +126,7 @@ function SalesWasteContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -300,6 +304,12 @@ function SalesWasteContent() {
         ) : null}
       </div>
 
+      {selectedBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      ) : (
+        <>
       {/* KPI strip */}
       {report ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -556,6 +566,8 @@ function SalesWasteContent() {
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

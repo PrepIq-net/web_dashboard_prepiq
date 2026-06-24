@@ -27,6 +27,8 @@ import {
   useRecipes,
 } from "@/services/inventory/hooks";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
@@ -100,6 +102,7 @@ function InventoryPageContent() {
     if (!isLoading && !canAccess) router.replace("/");
   }, [isLoading, canAccess, router]);
 
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const canLoadData = Boolean(branchId && user?.organization_id);
 
   const ingredientsQuery = useIngredients(user?.organization_id ?? "", canLoadData);
@@ -140,6 +143,10 @@ function InventoryPageContent() {
         </p>
       </div>
 
+      {branchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {/* KPI strip */}
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <span className="text-text-muted">
@@ -210,6 +217,8 @@ function InventoryPageContent() {
       )}
       {activeTab === "signals" && (
         <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />
+      )}
+        </>
       )}
     </WorkspaceShell>
   );
