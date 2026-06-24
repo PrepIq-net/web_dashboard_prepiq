@@ -136,27 +136,6 @@ function RiskPageContent() {
     };
   }, [risk?.risk_trend]);
 
-  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell eyebrow="Risk" title="Operational Risk" description="Early warning signals for service disruption, waste, and supply risk." insight="">
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
-  if (!tierLoading && tier < 3) {
-    return (
-      <WorkspaceShell
-        eyebrow="Risk"
-        title="Operational Risk"
-        description="Early warning signals for service disruption, waste, and supply risk."
-        insight="See what could go wrong before service starts."
-      >
-        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Risk"
@@ -225,6 +204,12 @@ function RiskPageContent() {
         </div>
       </section>
 
+      {selectedBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 3 ? (
+        <PlanGateState requiredTier="COMMAND" currentPlanType={planType} />
+      ) : (
+        <>
       {activeTab === "OVERVIEW" ? (
         <section className="space-y-8">
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
@@ -610,6 +595,8 @@ function RiskPageContent() {
           </div>
         </section>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

@@ -1157,19 +1157,6 @@ function PlanningPageContent() {
 
   const isCurrentMonth = (d: Date) => d.getMonth() === month.getMonth();
 
-  if (safeBranchId && !subLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell
-        eyebrow="Planning"
-        title="Planning Calendar"
-        description="Every event you enter becomes a forecast signal. Reservations, promotions, closures — all feed the prediction engine."
-        insight=""
-      >
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Planning"
@@ -1200,6 +1187,10 @@ function PlanningPageContent() {
         </button>
       </div>
 
+      {safeBranchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {/* ── Main layout: calendar + day panel ── */}
       <div className="flex gap-6 min-h-[600px]">
         {/* Calendar */}
@@ -1355,6 +1346,8 @@ function PlanningPageContent() {
           onClose={() => setEditingEventId(null)}
         />
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

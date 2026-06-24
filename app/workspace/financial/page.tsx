@@ -282,27 +282,6 @@ export default function FinancialPage() {
     );
   };
 
-  if (activeBranchId && !tierLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell eyebrow="Executive" title="Financials" description="Revenue, margins, and waste cost — your business in one view." insight="">
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
-  if (!tierLoading && tier < 2) {
-    return (
-      <WorkspaceShell
-        eyebrow="Executive"
-        title="Financials"
-        description="Revenue, margins, and waste cost — your business in one view."
-        insight=""
-      >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Executive"
@@ -354,6 +333,12 @@ export default function FinancialPage() {
         </button>
       </div>
 
+      {activeBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      ) : (
+        <>
       {/* KPI strip */}
       {financialData ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -728,6 +713,8 @@ export default function FinancialPage() {
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

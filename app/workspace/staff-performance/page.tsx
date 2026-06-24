@@ -380,27 +380,6 @@ export default function StaffPerformancePage() {
     getCoreRowModel: CORE_ROW_MODEL,
   });
 
-  if (activeBranchId && !tierLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell eyebrow="Staff" title="Performance Intelligence" description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction." insight="">
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
-  if (!tierLoading && tier < 2) {
-    return (
-      <WorkspaceShell
-        eyebrow="Staff"
-        title="Performance Intelligence"
-        description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction."
-        insight="Coaching efficiency improves when high-risk operators are identified using reliability, error rate, and waste contribution together."
-      >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Staff"
@@ -485,6 +464,12 @@ export default function StaffPerformancePage() {
         </div>
       </section>
 
+      {activeBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      ) : (
+        <>
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -641,6 +626,8 @@ export default function StaffPerformancePage() {
           )}
         </div>
       </section>
+        </>
+      )}
     </WorkspaceShell>
   );
 }

@@ -121,19 +121,6 @@ function InventoryPageContent() {
   const totalWasteEvents = wasteAnalytics?.total_waste_events ?? 0;
   const topWasteIngredient = wasteAnalytics?.by_ingredient?.[0]?.ingredient_name ?? "—";
 
-  if (branchId && !subLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell
-        eyebrow="Inventory"
-        title="Kitchen Intelligence"
-        description="Ingredients, recipes, waste, and what's moving — everything the AI needs to forecast accurately."
-        insight=""
-      >
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Inventory"
@@ -156,6 +143,10 @@ function InventoryPageContent() {
         </p>
       </div>
 
+      {branchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {/* KPI strip */}
       <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <span className="text-text-muted">
@@ -226,6 +217,8 @@ function InventoryPageContent() {
       )}
       {activeTab === "signals" && (
         <SignalsTab prepBatches={prepBatches} isLoading={prepBatchesQuery.isLoading} />
+      )}
+        </>
       )}
     </WorkspaceShell>
   );

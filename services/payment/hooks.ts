@@ -127,9 +127,14 @@ const PLAN_TIER_MAP: Record<string, number> = {
  * Without branchId the backend falls back to the org's primary branch.
  */
 export function useSubscriptionTier(branchId?: string) {
-  const { data, isLoading } = useCurrentSubscription(
-    branchId ? { branch_id: branchId } : undefined,
-  );
+  const params = branchId ? ({ branch_id: branchId } satisfies SubscriptionQuery) : undefined;
+  // retry:false so a 404 (no active subscription) is detected immediately, not after 3 retries
+  const { data, isLoading, isError } = useQuery({
+    queryKey: paymentQueryKeys.currentSubscription(params),
+    queryFn: () => getCurrentSubscription(params),
+    retry: false,
+    throwOnError: false,
+  });
   const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
   const tier =
     data?.is_currently_active && planType
@@ -137,7 +142,7 @@ export function useSubscriptionTier(branchId?: string) {
       : 0;
 
   const loaded = !isLoading;
-  const hasNoSubscription = loaded && !data;
+  const hasNoSubscription = loaded && (!data || isError);
   const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
   const isTrialExpired = loaded && Boolean(data && !data.is_currently_active && data.is_trial);
   const shouldBlockAccess = hasNoSubscription || isExpired || isTrialExpired;

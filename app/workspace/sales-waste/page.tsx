@@ -254,27 +254,6 @@ function SalesWasteContent() {
 
   const efficiencyRatio = report?.totals?.efficiency_ratio ?? 0;
 
-  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell eyebrow="Operations" title="Sales & Waste" description="Every item. What sold, what didn't, what was thrown away." insight="">
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
-  if (!tierLoading && tier < 2) {
-    return (
-      <WorkspaceShell
-        eyebrow="Operations"
-        title="Sales & Waste"
-        description="Every item. What sold, what didn't, what was thrown away."
-        insight=""
-      >
-        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Operations"
@@ -325,6 +304,12 @@ function SalesWasteContent() {
         ) : null}
       </div>
 
+      {selectedBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <PlanGateState requiredTier="INTELLIGENCE" currentPlanType={planType} />
+      ) : (
+        <>
       {/* KPI strip */}
       {report ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -581,6 +566,8 @@ function SalesWasteContent() {
           </div>
         </div>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

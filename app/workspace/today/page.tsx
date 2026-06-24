@@ -1577,19 +1577,6 @@ function TodayWorkspacePageContent() {
     });
   };
 
-  if (safeBranchId && !subLoading && shouldBlockAccess) {
-    return (
-      <WorkspaceShell
-        eyebrow="Today"
-        title="Today's Kitchen"
-        description="Review your forecast, confirm production targets, and execute with precision."
-        insight=""
-      >
-        <SubscriptionRequiredState variant={gateVariant} compact />
-      </WorkspaceShell>
-    );
-  }
-
   return (
     <WorkspaceShell
       eyebrow="Today"
@@ -1642,6 +1629,10 @@ function TodayWorkspacePageContent() {
         </div>
       </div>
 
+      {safeBranchId && !subLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       {todayQuery.isError ? (
         <div className={`mb-6 rounded-r-lg border-l-4 px-4 py-3 text-xs transition-colors ${
           initializeMutation.isPending
@@ -3440,6 +3431,8 @@ function TodayWorkspacePageContent() {
           logWaste(wasteItem.id, wasteQuantity);
         }}
       />
+        </>
+      )}
     </WorkspaceShell>
   );
 }
