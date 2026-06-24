@@ -458,16 +458,6 @@ function TodayWorkspacePageContent() {
   const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
   const canFetchData = Boolean(safeBranchId) && !subLoading && !shouldBlockAccess;
 
-  console.log("[TodayPage] gate values", {
-    branchId,
-    safeBranchId,
-    subLoading,
-    shouldBlockAccess,
-    canFetchData,
-    gateVariant,
-    willShowGate: Boolean(safeBranchId && !subLoading && shouldBlockAccess),
-  });
-
   const todayQuery = useBranchDayToday(
     { branch_id: safeBranchId, date: targetDate },
     canFetchData,

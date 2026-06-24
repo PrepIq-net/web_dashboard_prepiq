@@ -215,15 +215,6 @@ export default function ProductionPage() {
   const todayDate = new Date().toISOString().slice(0, 10);
   const canFetchData = Boolean(activeBranchId) && !subLoading && !shouldBlockAccess;
 
-  console.log("[ProductionPage] gate values", {
-    activeBranchId,
-    subLoading,
-    shouldBlockAccess,
-    canFetchData,
-    gateVariant,
-    willShowGate: Boolean(activeBranchId && !subLoading && shouldBlockAccess),
-  });
-
   const branchDayQuery = useBranchDayToday(
     { branch_id: activeBranchId, date: todayDate },
     canFetchData,

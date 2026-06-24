@@ -157,28 +157,6 @@ export function useSubscriptionTier(branchId?: string) {
       ? "trial_expired"
       : "expired";
 
-  console.log("[useSubscriptionTier]", {
-    branchId,
-    isLoading,
-    isFetching,
-    isError,
-    loaded,
-    data: data
-      ? {
-          id: data.id,
-          plan: data.plan?.plan_type,
-          is_currently_active: data.is_currently_active,
-          is_trial: data.is_trial,
-          status: data.status,
-        }
-      : null,
-    hasNoSubscription,
-    isExpired,
-    isTrialExpired,
-    shouldBlockAccess,
-    gateVariant,
-  });
-
   // Expose isFetching via isLoading so callers gate data queries during re-fetches too.
   return { tier, planType, isLoading: isLoading || isFetching, shouldBlockAccess, gateVariant };
 }
