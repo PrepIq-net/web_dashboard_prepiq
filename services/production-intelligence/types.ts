@@ -174,6 +174,15 @@ export const branchDayTodaySchema = z.object({
       .optional(),
     high_risk_items: z.number().optional(),
     tracked_items: z.number().optional(),
+    confidence_breakdown: z
+      .object({
+        data_coverage: z.number(),
+        recent_accuracy: z.number(),
+        demand_stability: z.number(),
+        model_agreement: z.number(),
+        limiting_factor: z.string(),
+      })
+      .optional(),
   }),
   morning_overview: z
     .object({
@@ -680,6 +689,16 @@ export const branchDayTodaySchema = z.object({
         suggested_prepare_qty: z.number(),
       }),
     )
+    .optional(),
+  system_health: z
+    .object({
+      pos_connected: z.boolean(),
+      last_sync_minutes_ago: z.number().nullable(),
+      data_gap_active: z.boolean(),
+      data_gap_minutes: z.number().nullable(),
+      readiness: z.enum(["GREEN", "YELLOW", "RED"]),
+      note: z.string(),
+    })
     .optional(),
   session_notes: z.string().optional(),
   day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),

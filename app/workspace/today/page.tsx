@@ -1758,17 +1758,25 @@ function TodayWorkspacePageContent() {
                   Demand signals
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {demandSignals.slice(0, 4).map((signal) => (
-                    <span
-                      key={signal.key}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                    >
-                      {signal.label}
-                      <span className="font-semibold">
-                        {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
+                  {(() => {
+                    const activeSignals = demandSignals.filter((s) => s.direction !== "neutral");
+                    if (activeSignals.length === 0) {
+                      return (
+                        <span className="text-[11px] italic text-text-muted">
+                          No strong signals today
+                        </span>
+                      );
+                    }
+                    return activeSignals.slice(0, 4).map((signal) => (
+                      <span
+                        key={signal.key}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                      >
+                        {signal.label}
+                        <span className="font-semibold">{toPercent(signal.value_pct)}</span>
                       </span>
-                    </span>
-                  ))}
+                    ));
+                  })()}
                 </div>
                 {outlookActionSentence ? (
                   <p className="mt-3 text-xs text-text-secondary">
@@ -1832,6 +1840,13 @@ function TodayWorkspacePageContent() {
                     </p>
                   </div>
                 </div>
+                {branchDay.demand_signal.confidence_breakdown &&
+                  branchDay.demand_signal.forecast_confidence < 0.75 ? (
+                  <p className="mt-2 max-w-[180px] text-[10px] leading-snug text-text-muted">
+                    <span className="font-semibold text-status-warning">Why: </span>
+                    {branchDay.demand_signal.confidence_breakdown.limiting_factor}.
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -2772,6 +2787,34 @@ function TodayWorkspacePageContent() {
               </div>
             </div>
           </ModalShell>
+
+          {/* ── System health banner — POS / data gap alert ── */}
+          {branchDay.system_health && branchDay.system_health.readiness !== "GREEN" ? (
+            <div
+              className={`mb-5 flex items-center gap-3 rounded-xl border px-4 py-3 ${
+                branchDay.system_health.readiness === "RED"
+                  ? "border-status-critical/35 bg-status-critical/8"
+                  : "border-status-warning/35 bg-status-warning/8"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  branchDay.system_health.readiness === "RED"
+                    ? "bg-status-critical"
+                    : "bg-status-warning animate-pulse"
+                }`}
+              />
+              <p
+                className={`text-sm font-medium ${
+                  branchDay.system_health.readiness === "RED"
+                    ? "text-status-critical"
+                    : "text-status-warning"
+                }`}
+              >
+                {branchDay.system_health.note}
+              </p>
+            </div>
+          ) : null}
 
           {/* ── TIER 1: NEEDS ACTION ── */}
           {criticalRows.length > 0 ? (
