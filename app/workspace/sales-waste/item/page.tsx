@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -11,6 +13,8 @@ import {
   useProductionIntelligenceAccessScope,
   useSalesWasteReport,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -66,8 +70,8 @@ function SalesWasteItemContent() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
-  const role = user?.organization_role ?? "";
-  const canAccess = ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -102,6 +106,7 @@ function SalesWasteItemContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -207,6 +212,27 @@ function SalesWasteItemContent() {
           We could not find this item in the current period. Try adjusting the period
           or date window, or return to Sales &amp; Waste to choose another item.
         </section>
+      </WorkspaceShell>
+    );
+  }
+
+  if (selectedBranchId && !tierLoading && shouldBlockAccess) {
+    return (
+      <WorkspaceShell eyebrow="Sales & Waste" title="Item Profit Detail" description="See how one menu item affects revenue, waste, and margin." insight="">
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      </WorkspaceShell>
+    );
+  }
+
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Sales & Waste"
+        title="Item Profit Detail"
+        description="See how one menu item affects revenue, waste, and margin."
+        insight=""
+      >
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }

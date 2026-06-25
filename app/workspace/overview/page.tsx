@@ -12,6 +12,8 @@ import {
   useCurrentUserProfile,
   useProductionIntelligenceAccessScope,
 } from "@/services";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -19,6 +21,8 @@ import {
   useForecastMetrics,
   useDataQualityReport,
 } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -45,6 +49,7 @@ export default function WorkspaceOverviewPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
@@ -104,9 +109,8 @@ export default function WorkspaceOverviewPage() {
     }
   }, [branchId, defaultBranch?.id]);
 
-  const role = user?.organization_role ?? "";
-  const canAccess =
-    role === "STAFF_OPERATOR" || role === "BRANCH_MANAGER" || role === "GM";
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) || permissions.has(PERMISSIONS.MANAGE_BRANCHES);
   useEffect(() => {
     if (!userLoading && !canAccess) {
       router.replace("/");
@@ -220,6 +224,19 @@ export default function WorkspaceOverviewPage() {
 
   if (shouldShowBranchRequiredState) {
     return <BranchRequiredState />;
+  }
+
+  if (!tierLoading && tier < 3) {
+    return (
+      <WorkspaceShell
+        eyebrow="Overview"
+        title="Cross Location Dashboard"
+        description="Enterprise network intelligence with shared pattern detection, waste comparison, and forecast reliability."
+        insight="Executives should get one view of cross-branch truth: what pattern is repeatable, where waste is growing, and what action should be standardized."
+      >
+        <SubscriptionRequiredState variant="command_required" currentPlanType={planType} compact />
+      </WorkspaceShell>
+    );
   }
 
   return (

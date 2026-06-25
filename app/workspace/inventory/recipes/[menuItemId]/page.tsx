@@ -242,7 +242,9 @@ function RecipeBuilderContent() {
               <div className="grid grid-cols-[1fr_140px_100px_48px] gap-4 border-b border-surface-4 bg-gradient-to-br from-surface-3 to-surface-2 px-5 py-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Ingredient</p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Qty per serving</p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Waste %</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted" title="Trim & cooking loss — how much extra ingredient is needed due to peeling, trimming, shrinkage, or spillage. E.g. 15% means you need 15% more than the serving quantity.">
+                  Prep Loss %
+                </p>
                 <span />
               </div>
 
@@ -331,17 +333,27 @@ function RecipeBuilderContent() {
           )}
 
           {/* Tip */}
-          <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-2">
-              How it works
-            </p>
-            <p className="text-xs text-text-muted leading-relaxed">
-              Each ingredient line represents the quantity needed to produce <strong className="text-text-secondary">one serving</strong> of this dish.
-              The waste factor adds a buffer for prep loss (e.g. trimming, cooking reduction).
-            </p>
-            <p className="mt-3 text-xs text-text-muted leading-relaxed">
-              These quantities are multiplied by the daily forecast to calculate total ingredient demand.
-            </p>
+          <div className="rounded-xl border border-surface-4 bg-surface-2 p-5 space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-2">
+                Qty per serving
+              </p>
+              <p className="text-xs text-text-muted leading-relaxed">
+                How much of this ingredient goes into <strong className="text-text-secondary">one serving</strong>. This × daily forecast = total ingredient demand.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-2">
+                Prep Loss %
+              </p>
+              <p className="text-xs text-text-muted leading-relaxed">
+                How much extra you need to buy or prep to account for <strong className="text-text-secondary">trim, peeling, cooking shrinkage, or spillage</strong>.
+              </p>
+              <div className="mt-2 rounded-lg bg-surface-3 px-3 py-2 text-[11px] text-text-muted">
+                Example: chicken breast needs 100g per serving but loses 15% to trim → set <strong className="text-text-secondary">15%</strong>. The model will plan for 118g.
+              </div>
+              <p className="mt-2 text-[11px] text-text-muted">Leave at 0 if you prep to exact quantity with no loss.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -506,7 +518,7 @@ function PendingRecipeLine({
         </div>
       </div>
 
-      {/* Waste factor */}
+      {/* Prep Loss % */}
       <div>
         <div className="flex items-center gap-1">
           <input
@@ -518,6 +530,7 @@ function PendingRecipeLine({
             onChange={(e) => onWasteChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="0"
+            title="Trim & cooking loss — e.g. 15 means 15% extra is needed for peeling, shrinkage, or spillage. Leave 0 if none."
             className="w-full h-9 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/20 transition-colors"
           />
           <span className="text-[11px] text-text-muted">%</span>

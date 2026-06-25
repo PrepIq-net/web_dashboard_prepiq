@@ -10,6 +10,7 @@ import {
   useCreateMenuItem,
   useAutoGenerateRecipe,
 } from "@/services/inventory/hooks";
+import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
   "Pastries",
@@ -28,6 +29,7 @@ interface DraftItem {
 }
 
 export default function ItemConfirmationPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const scopeQuery = useProductionIntelligenceAccessScope();
 
@@ -45,6 +47,7 @@ export default function ItemConfirmationPage() {
   const [overrides, setOverrides] = useState<Record<string, { category?: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recipeProgress, setRecipeProgress] = useState<{ done: number; total: number } | null>(null);
+  const [failedItemIds, setFailedItemIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const items = useMemo(() => {
@@ -58,6 +61,21 @@ export default function ItemConfirmationPage() {
     setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], category } }));
   }
 
+  async function runRecipeGeneration(targetItems: typeof items) {
+    const failed: string[] = [];
+    setRecipeProgress({ done: 0, total: targetItems.length });
+    for (let i = 0; i < targetItems.length; i++) {
+      try {
+        await autoGenerateRecipe.mutateAsync(targetItems[i].id);
+      } catch {
+        failed.push(targetItems[i].id);
+      }
+      setRecipeProgress({ done: i + 1, total: targetItems.length });
+    }
+    setFailedItemIds(failed);
+    return failed;
+  }
+
   async function handleConfirm() {
     if (!items.length) {
       router.push("/setup/forecast");
@@ -66,28 +84,33 @@ export default function ItemConfirmationPage() {
 
     setIsSubmitting(true);
     setError(null);
+    setFailedItemIds([]);
 
     try {
-      // 1. Patch any category overrides (PATCH each changed item)
-      // We skip this for now since MenuItemCreateSerializer handles category on create.
-      // Category changes on existing items would need a PATCH endpoint — skipping for setup flow.
-
-      // 2. Auto-generate recipes for all items
-      setRecipeProgress({ done: 0, total: items.length });
-      for (let i = 0; i < items.length; i++) {
-        try {
-          await autoGenerateRecipe.mutateAsync(items[i].id);
-        } catch {
-          // Non-fatal — recipe generation failure shouldn't block setup
-        }
-        setRecipeProgress({ done: i + 1, total: items.length });
+      const failed = await runRecipeGeneration(items);
+      if (failed.length === 0) {
+        router.push("/setup/forecast");
+      } else {
+        setIsSubmitting(false);
+        setRecipeProgress(null);
       }
-
-      router.push("/setup/forecast");
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(t("setup.items.errorMessage"));
       setIsSubmitting(false);
       setRecipeProgress(null);
+    }
+  }
+
+  async function handleRetryFailed() {
+    const failedItems = items.filter((item) => failedItemIds.includes(item.id));
+    if (!failedItems.length) return;
+    setIsSubmitting(true);
+    setError(null);
+    const stillFailed = await runRecipeGeneration(failedItems);
+    setIsSubmitting(false);
+    setRecipeProgress(null);
+    if (stillFailed.length === 0) {
+      router.push("/setup/forecast");
     }
   }
 
@@ -106,15 +129,15 @@ export default function ItemConfirmationPage() {
       <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-[12px] border border-[#C44949]/50 bg-[#1C1C1F] p-6">
           <WarningTriangle className="h-5 w-5 text-[#C44949] mb-3" />
-          <p className="text-[14px] text-[#F5F5F7] font-semibold mb-1">No branch found</p>
+          <p className="text-[14px] text-[#F5F5F7] font-semibold mb-1">{t("setup.items.noBranchFound")}</p>
           <p className="text-[13px] text-[#8E8E93]">
-            Set up a branch first before confirming items.
+            {t("setup.items.setUpBranchFirst")}
           </p>
           <button
             onClick={() => router.push("/setup/branch")}
             className="mt-4 h-10 px-5 bg-[#A8821F] hover:bg-[#B8962E] text-[#141416] text-sm font-semibold rounded-[8px] transition-colors"
           >
-            Set Up Branch
+            {t("setup.branchPrompt.submit")}
           </button>
         </div>
       </div>
@@ -128,18 +151,19 @@ export default function ItemConfirmationPage() {
         <div className="flex items-center gap-2 mb-8">
           <Page className="h-4 w-4 text-[#A8821F]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 3 — Item Confirmation
+            {t("setup.items.step")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-3">
           {items.length > 0
-            ? `We detected ${items.length} item${items.length === 1 ? "" : "s"}.`
-            : "No items found yet."}
+            ? items.length === 1
+              ? t("setup.items.titleDetected_one")
+              : t("setup.items.titleDetected", { count: items.length })
+            : t("setup.items.titleNone")}
         </h1>
         <p className="text-[14px] leading-[22px] text-[#8E8E93] max-w-2xl mb-8">
-          Review your menu items below. When you confirm, PrepIQ will automatically
-          generate ingredient recipes using our hybrid intelligence engine.
+          {t("setup.items.descriptionText")}
         </p>
 
         {/* Recipe generation progress */}
@@ -148,7 +172,7 @@ export default function ItemConfirmationPage() {
             <Sparks className="h-5 w-5 text-[#A8821F] shrink-0 animate-pulse" />
             <div className="flex-1">
               <p className="text-[13px] font-semibold text-[#F5F5F7]">
-                Generating recipes... {recipeProgress.done}/{recipeProgress.total}
+                {t("setup.items.generatingRecipes", { done: recipeProgress.done, total: recipeProgress.total })}
               </p>
               <div className="mt-2 h-1.5 bg-[#2E2E33] rounded-full overflow-hidden">
                 <div
@@ -168,17 +192,51 @@ export default function ItemConfirmationPage() {
           </div>
         )}
 
+        {/* Partial recipe failure */}
+        {!isSubmitting && failedItemIds.length > 0 && (
+          <div className="bg-[#C48B2A]/10 border border-[#C48B2A]/40 rounded-[8px] p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <WarningTriangle className="h-5 w-5 text-[#C48B2A] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-[#F5F5F7] mb-1">
+                  {failedItemIds.length === 1
+                    ? "1 recipe couldn't be generated"
+                    : `${failedItemIds.length} recipes couldn't be generated`}
+                </p>
+                <p className="text-[12px] text-[#8E8E93] mb-3">
+                  This won't block setup — you can retry now or generate them
+                  later from the menu settings.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleRetryFailed}
+                    className="h-8 px-4 bg-[#C48B2A]/20 hover:bg-[#C48B2A]/30 border border-[#C48B2A]/40 text-[#C48B2A] text-[12px] font-semibold rounded-lg transition-colors"
+                  >
+                    Retry failed
+                  </button>
+                  <button
+                    onClick={() => router.push("/setup/forecast")}
+                    className="h-8 px-4 text-[#8E8E93] hover:text-[#C7C7CC] text-[12px] font-medium transition-colors"
+                  >
+                    Continue anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {items.length === 0 ? (
           <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-8 text-center mb-8">
             <HandCash className="h-8 w-8 text-[#5A5A60] mx-auto mb-3" />
             <p className="text-[14px] text-[#8E8E93]">
-              No menu items have been imported yet. Connect a POS or upload a CSV to populate items.
+              {t("setup.items.noMenuImported")}
             </p>
             <button
               onClick={() => router.push("/setup/sales")}
               className="mt-4 h-10 px-5 bg-[#232327] hover:bg-[#2E2E33] border border-[#2E2E33] text-[#C7C7CC] text-sm font-medium rounded-[8px] transition-colors"
             >
-              Go to Sales Setup
+              {t("setup.items.goSalesSetup")}
             </button>
           </div>
         ) : (
@@ -186,10 +244,10 @@ export default function ItemConfirmationPage() {
             {/* Header */}
             <div className="grid grid-cols-[2fr_1.5fr] gap-4 p-4 border-b border-[#2E2E33] bg-[#232327]">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-                Item Name
+                {t("setup.items.itemNameHeader")}
               </div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-                Category
+                {t("setup.items.categoryHeader")}
               </div>
             </div>
             {/* Rows */}
@@ -211,7 +269,7 @@ export default function ItemConfirmationPage() {
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
-                          {cat}
+                          {t(`setup.items.categories.${cat}` as any)}
                         </option>
                       ))}
                     </select>
@@ -229,7 +287,7 @@ export default function ItemConfirmationPage() {
             disabled={isSubmitting}
             className="text-[13px] text-[#5A5A60] hover:text-[#8E8E93] transition-colors font-medium disabled:opacity-40"
           >
-            Back
+            {t("setup.items.back")}
           </button>
 
           <button
@@ -241,12 +299,12 @@ export default function ItemConfirmationPage() {
               <>
                 <Spinner size="sm" color="#141416" />
                 {recipeProgress
-                  ? `Generating recipes ${recipeProgress.done}/${recipeProgress.total}...`
-                  : "Processing..."}
+                  ? t("setup.items.generatingRecipesDots", { done: recipeProgress.done, total: recipeProgress.total })
+                  : t("setup.items.processing")}
               </>
             ) : (
               <>
-                {items.length > 0 ? "Confirm & Generate Recipes" : "Continue"}
+                {items.length > 0 ? t("setup.items.confirmGenerate") : t("setup.items.continue")}
                 <NavArrowRight className="h-4 w-4" />
               </>
             )}

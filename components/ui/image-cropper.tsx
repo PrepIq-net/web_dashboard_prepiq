@@ -40,7 +40,7 @@ export function ImageCropper({
 
   return (
     /* Scrim — stopPropagation on the sheet prevents accidental dismiss on inner clicks */
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#141416]/85 backdrop-blur-sm animate-fade-in p-6">
+    <div className="fixed inset-0 z-10000 flex items-center justify-center bg-[#141416]/85 backdrop-blur-sm animate-fade-in p-6">
       {/* Modal sheet — brand: radius 16px, shadow L2 */}
       <div
         className="relative w-full max-w-xl bg-[#1C1C1F] rounded-2xl border border-[#2E2E33] shadow-[0_8px_24px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden"

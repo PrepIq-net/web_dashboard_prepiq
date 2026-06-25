@@ -18,6 +18,7 @@ import {
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
 import { useCurrentUserProfile } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 import type { SubscriptionPlan } from "@/services/payment/types";
 
 function toNumber(value: unknown): number {
@@ -55,6 +56,7 @@ const PLAN_TIERS = {
 } as const;
 
 export default function PricingStepPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const plansQuery = useSubscriptionPlanPricing();
@@ -93,7 +95,7 @@ export default function PricingStepPage() {
         <div className="flex flex-col items-center gap-4">
           <Spinner size="lg" />
           <p className="text-text-secondary animate-pulse">
-            Loading intelligence plans...
+            {t("setup.pricing.loading")}
           </p>
         </div>
       </div>
@@ -107,17 +109,16 @@ export default function PricingStepPage() {
         <section className="text-center mb-16 space-y-4">
           <div className="flex items-center justify-center gap-2 text-brand-gold font-semibold uppercase tracking-[0.2em] text-[12px] mb-6 animate-fade-in">
             <CoinsSwap className="h-4 w-4" />
-            <span>Onboarding Infrastructure</span>
+            <span>{t("setup.pricing.onboardingInfra")}</span>
           </div>
 
           <h1 className="font-display text-[48px] md:text-[60px] leading-[1.1] font-semibold tracking-tight max-w-4xl mx-auto">
-            Operational Intelligence. <br />
-            <span className="text-brand-gold">Priced for Growth.</span>
+            {t("setup.pricing.heroTitle")} <br />
+            <span className="text-brand-gold">{t("setup.pricing.heroSubtitle")}</span>
           </h1>
 
           <p className="text-text-muted text-[17px] max-w-2xl mx-auto leading-relaxed pt-2">
-            Choose the plan that fits your kitchen operations. All plans include
-            standard forecasting infrastructure.
+            {t("setup.pricing.heroDescription")}
           </p>
         </section>
 
@@ -127,7 +128,7 @@ export default function PricingStepPage() {
             <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-[13px] font-semibold text-brand-gold uppercase tracking-wider">
-                Analysis Result
+                {t("setup.pricing.analysisResult")}
               </p>
               <p className="text-[14px] text-text-secondary leading-relaxed">
                 {recommendationReason}
@@ -142,7 +143,7 @@ export default function PricingStepPage() {
             onClick={() => setBillingCycle("MONTHLY")}
             className={`text-[15px] font-medium transition-all ${billingCycle === "MONTHLY" ? "text-text-primary" : "text-text-muted opacity-40 hover:opacity-60"}`}
           >
-            Monthly
+            {t("setup.pricing.monthly")}
           </button>
 
           <button
@@ -161,10 +162,10 @@ export default function PricingStepPage() {
               onClick={() => setBillingCycle("YEARLY")}
               className={`text-[15px] font-medium transition-all ${billingCycle === "YEARLY" ? "text-text-primary" : "text-text-muted opacity-40 hover:opacity-60"}`}
             >
-              Yearly
+              {t("setup.pricing.yearly")}
             </button>
             <span className="text-[11px] font-bold uppercase tracking-widest text-status-success bg-status-success/10 px-2.5 py-1 rounded-full border border-status-success/20">
-              Save 15%
+              {t("setup.pricing.save15")}
             </span>
           </div>
         </div>
@@ -190,13 +191,13 @@ export default function PricingStepPage() {
             let showArrow = true;
 
             if (isCurrent) {
-              buttonLabel = "Current Tier";
+              buttonLabel = t("setup.pricing.currentTier");
               isDisabled = false; // Allow "Continue" logic
               showArrow = false;
             } else if (planTier > currentTier) {
-              buttonLabel = currentTier === 0 ? "Get Started" : "Upgrade Now";
+              buttonLabel = currentTier === 0 ? t("setup.pricing.getStarted") : t("setup.pricing.upgradeNow");
             } else {
-              buttonLabel = "Downgrade Restricted";
+              buttonLabel = t("setup.pricing.downgradeRestricted");
               isDisabled = true;
               showArrow = false;
             }
@@ -216,7 +217,7 @@ export default function PricingStepPage() {
                 {isRecommended && (
                   <div className="absolute top-0 right-0 left-0 bg-brand-gold h-[2px] z-20">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-brand-gold px-4 py-1.5 rounded-b-xl text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
-                      AI Recommended
+                      {t("setup.pricing.aiRecommended")}
                     </div>
                   </div>
                 )}
@@ -231,7 +232,7 @@ export default function PricingStepPage() {
                     )}
                   </div>
                   <p className="text-text-muted text-[14px]">
-                    {plan.tagline || "Base operational engine"}
+                    {plan.tagline || t("setup.pricing.baseEngine")}
                   </p>
                 </div>
 
@@ -241,11 +242,11 @@ export default function PricingStepPage() {
                       {price}
                     </span>
                     <span className="text-text-muted text-[15px]">
-                      {billingCycle === "MONTHLY" ? "/mo" : "/yr"}
+                      {billingCycle === "MONTHLY" ? t("setup.pricing.perMo") : t("setup.pricing.perYr")}
                     </span>
                   </div>
                   <p className="text-[12px] text-text-muted opacity-60 font-medium">
-                    Billed {billingCycle.toLowerCase()} per branch
+                    {t("setup.pricing.billedPerBranch", { cycle: billingCycle === "MONTHLY" ? t("setup.pricing.monthly").toLowerCase() : t("setup.pricing.yearly").toLowerCase() })}
                   </p>
                 </div>
 
@@ -256,11 +257,11 @@ export default function PricingStepPage() {
                     <div className="flex flex-col">
                       <span className="text-[14px] font-medium">
                         {plan.plan_limits?.MAX_BRANCHES
-                          ? `Up to ${plan.plan_limits.MAX_BRANCHES} Branches`
-                          : "Unlimited Branches"}
+                          ? t("setup.pricing.upToBranches", { limit: plan.plan_limits.MAX_BRANCHES })
+                          : t("setup.pricing.unlimitedBranches")}
                       </span>
                       <span className="text-[11px] text-text-muted uppercase tracking-wider">
-                        Enterprise Capacity
+                        {t("setup.pricing.enterpriseCapacity")}
                       </span>
                     </div>
                   </div>
@@ -268,7 +269,7 @@ export default function PricingStepPage() {
 
                 <div className="flex-1 space-y-5 mb-10">
                   <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-text-muted">
-                    Intelligence Tier
+                    {t("setup.pricing.intelligenceTier")}
                   </p>
                   <ul className="space-y-4">
                     {features.map((feature) => (
@@ -311,21 +312,19 @@ export default function PricingStepPage() {
           <div className="space-y-4">
             <h4 className="flex items-center gap-3 font-display font-semibold text-[17px]">
               <ShieldCheck className="h-5 w-5 text-brand-gold" />
-              Secure Infrastructure
+              {t("setup.pricing.secureInfra")}
             </h4>
             <p className="text-[13px] text-text-muted leading-relaxed">
-              PropIQ uses enterprise-grade encryption for all POS integrations
-              and operational data. Verified PCI-DSS compliant transactions.
+              {t("setup.pricing.secureInfraDesc")}
             </p>
           </div>
           <div className="space-y-4">
             <h4 className="flex items-center gap-3 font-display font-semibold text-[17px]">
               <DoubleCheck className="h-5 w-5 text-brand-gold" />
-              99.9% Forecast Uptime
+              {t("setup.pricing.uptime")}
             </h4>
             <p className="text-[13px] text-text-muted leading-relaxed">
-              Our forecasting models run on dedicated HA clusters to ensure your
-              kitchen is never without intelligence, even during peak loads.
+              {t("setup.pricing.uptimeDesc")}
             </p>
           </div>
           <div className="space-y-4">
@@ -333,11 +332,10 @@ export default function PricingStepPage() {
               <div className="h-5 w-5 rounded-full border-2 border-brand-gold flex items-center justify-center text-[10px] font-bold">
                 Q
               </div>
-              Priority Support
+              {t("setup.pricing.prioritySupport")}
             </h4>
             <p className="text-[13px] text-text-muted leading-relaxed">
-              Intelligence and Command tiers receive priority access to our
-              kitchen operations analysts to optimize your deployment.
+              {t("setup.pricing.prioritySupportDesc")}
             </p>
           </div>
         </section>

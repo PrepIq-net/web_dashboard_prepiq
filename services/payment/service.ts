@@ -133,11 +133,8 @@ export async function getSubscriptionDetail(subscriptionId: string) {
 }
 
 export async function getCurrentSubscription(params?: SubscriptionQuery) {
-  return apiClientWithSchema(
-    withQuery(paymentEndpoints.subscriptionCurrent(), params),
-    subscriptionDetailSchema,
-    { method: "GET" },
-  );
+  const url = withQuery(paymentEndpoints.subscriptionCurrent(), params);
+  return apiClientWithSchema(url, subscriptionDetailSchema, { method: "GET" });
 }
 
 export async function createSubscription(payload: CreateSubscriptionPayload) {

@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +12,7 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
@@ -44,9 +47,8 @@ function toPercent(value: number) {
 export default function BranchesPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = ["OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.MANAGE_BRANCHES);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(
@@ -391,30 +393,30 @@ export default function BranchesPage() {
               Compare Branches
             </p>
             <div className="space-y-3">
-              <select
+              <Select
+                options={[
+                  { value: "", label: "Branch A" },
+                  ...rows.map((row) => ({
+                    value: row.id,
+                    label: row.branch,
+                  })),
+                ]}
                 value={compareA}
-                onChange={(event) => setCompareA(event.target.value)}
-                className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
-              >
-                <option value="">Branch A</option>
-                {rows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.branch}
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={(value) => setCompareA(value)}
+                placeholder="Select branch A"
+              />
+              <Select
+                options={[
+                  { value: "", label: "Branch B" },
+                  ...rows.map((row) => ({
+                    value: row.id,
+                    label: row.branch,
+                  })),
+                ]}
                 value={compareB}
-                onChange={(event) => setCompareB(event.target.value)}
-                className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
-              >
-                <option value="">Branch B</option>
-                {rows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.branch}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setCompareB(value)}
+                placeholder="Select branch B"
+              />
               <div className="pt-3 mt-3 border-t border-surface-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
                   Efficiency Delta

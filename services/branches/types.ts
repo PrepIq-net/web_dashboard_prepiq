@@ -128,16 +128,13 @@ export type CreateDepartmentPayload = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Staff roles — mirrors organizations/constants.py
+// Staff roles — backend ORG_MEMBER_ROLE values from branches/models.py
 // ─────────────────────────────────────────────────────────────────────────────
 export const staffRoleEnum = z.enum([
-  "ORG_OWNER",
-  "OPS_DIRECTOR",
-  "ORG_ADMIN",
-  "GM",
-  "STAFF_OPERATOR",
   "OWNER",
+  "OPS_DIRECTOR",
   "ADMIN",
+  "GM",
   "BRANCH_MANAGER",
   "STAFF",
   "AUDITOR",
@@ -145,16 +142,13 @@ export const staffRoleEnum = z.enum([
 export type StaffRole = z.infer<typeof staffRoleEnum>;
 
 export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
-  ORG_OWNER: "Organization Owner",
-  OPS_DIRECTOR: "Operations Director",
-  ORG_ADMIN: "Organization Admin",
-  GM: "General Manager",
-  STAFF_OPERATOR: "Staff Operator",
   OWNER: "Owner",
+  OPS_DIRECTOR: "Operations Director",
   ADMIN: "Admin",
+  GM: "General Manager",
   BRANCH_MANAGER: "Branch Manager",
-  STAFF: "Staff Operator",
-  AUDITOR: "External Auditor",
+  STAFF: "Staff",
+  AUDITOR: "Auditor",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,7 +183,7 @@ export type StaffInvite = z.infer<typeof staffInviteSchema>;
 /** POST /<org_id>/invites/ */
 export const createStaffInvitePayloadSchema = z.object({
   email: z.string().email("Valid email required"),
-  role: staffRoleEnum,
+  role: z.string(),
   /**
    * Required when role is BRANCH_MANAGER or STAFF.
    * Must NOT be provided for OWNER, ADMIN, AUDITOR.

@@ -4,10 +4,12 @@ import { useCurrentUserProfile } from "@/services";
 import { useBranches } from "@/services/branches/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { AuthLogoRow } from "@/components/auth/auth-logo-row";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 
 export default function OnboardingPage() {
+  const { t } = useTranslation();
   const { data: user, isLoading } = useCurrentUserProfile();
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const router = useRouter();
@@ -32,7 +34,7 @@ export default function OnboardingPage() {
         <div className="flex flex-col items-center gap-4 animate-pulse">
           <div className="h-12 w-12 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
           <p className="text-sm font-medium text-text-muted">
-            Checking your setup...
+            {t("setup.onboarding.checking")}
           </p>
         </div>
       </main>
@@ -48,7 +50,7 @@ export default function OnboardingPage() {
         <header className="relative z-10 flex items-center justify-between mb-20">
           <AuthLogoRow size={48} />
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-text-muted">Setting up</p>
+            <p className="text-sm font-medium text-text-muted">{t("setup.onboarding.settingUp")}</p>
           </div>
         </header>
 
@@ -58,7 +60,7 @@ export default function OnboardingPage() {
 
         <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50">
           <p className="text-xs text-text-muted">
-            PrepIQ Workspace Infrastructure &copy; 2026. All rights reserved.
+            {t("setup.onboarding.footer")}
           </p>
         </footer>
       </div>

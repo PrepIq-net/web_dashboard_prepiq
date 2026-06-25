@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Check, Link } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface POSSystem {
   id: string;
@@ -107,6 +108,7 @@ const POS_SYSTEMS: POSSystem[] = [
 ];
 
 export default function POSSelectionPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -121,20 +123,19 @@ export default function POSSelectionPage() {
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            {t("setup.staff.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Connect POS
+            {t("setup.pos.step")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Select your POS system
+          {t("setup.pos.title")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          We&apos;ll pull your sales history automatically — no manual exports
-          needed.
+          {t("setup.pos.description")}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
@@ -179,7 +180,7 @@ export default function POSSelectionPage() {
                       {pos.name}
                     </p>
                     <p className="text-[12px] text-[#5A5A60] leading-[17px]">
-                      {pos.description}
+                      {t(`setup.pos.systems.${pos.id}.description` as any)}
                     </p>
                   </div>
 
@@ -200,16 +201,16 @@ export default function POSSelectionPage() {
         {activePos && (
           <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-5 mb-6 animate-fade-in">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8E8E93] mb-3">
-              What we&apos;ll pull from {activePos.name}
+              {t("setup.pos.pullListTitle", { name: activePos.name })}
             </p>
             <ul className="space-y-2 mb-5">
-              {activePos.pulls.map((item) => (
+              {activePos.pulls.map((item, idx) => (
                 <li
                   key={item}
                   className="flex items-center gap-2.5 text-[13px] text-[#C7C7CC]"
                 >
                   <Check className="h-3.5 w-3.5 text-[#3F8F68] shrink-0" />
-                  {item}
+                  {t(`setup.pos.systems.${activePos.id}.pulls.${idx}` as any)}
                 </li>
               ))}
             </ul>
@@ -219,8 +220,8 @@ export default function POSSelectionPage() {
               <Link className="h-3.5 w-3.5 text-[#5A5A60]" />
               <span className="text-[11px] text-[#5A5A60]">
                 {activePos.authType === "oauth"
-                  ? "OAuth — you'll be redirected to authorise"
-                  : "API key — you'll paste a key from your dashboard"}
+                  ? t("setup.pos.oauthDisclaimer")
+                  : t("setup.pos.apiKeyDisclaimer")}
               </span>
             </div>
           </div>
@@ -232,7 +233,7 @@ export default function POSSelectionPage() {
           disabled={!selected}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
-          {activePos ? activePos.authLabel : "Select a POS system"}
+          {activePos ? t(`setup.pos.systems.${activePos.id}.authLabel` as any) : t("setup.pos.selectPosPlaceholder")}
           {selected && <ArrowRight className="h-4 w-4" />}
         </button>
 
@@ -240,7 +241,7 @@ export default function POSSelectionPage() {
           onClick={() => router.push("/setup/forecast")}
           className="w-full mt-3 text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
         >
-          Skip for now
+          {t("setup.branch.skip")}
         </button>
       </div>
     </div>

@@ -7,8 +7,6 @@ import {
 } from "@/services";
 import {
   useBranchCommandView,
-  useExecutiveControlTower,
-  useOwnerMarginProtectionReport,
   useProductionIntelligenceAccessScope,
   useSalesDataValidation,
   useStaffShiftChecklist,
@@ -21,11 +19,11 @@ import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
 import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
 import { InsightFooter } from "@/components/dashboard/home/insight-footer";
-import { FinanceView } from "@/components/dashboard/home/finance-view";
-import { OpsView } from "@/components/dashboard/home/ops-view";
-import { OwnerView } from "@/components/dashboard/home/owner-view";
+import { DashboardView } from "@/components/dashboard/home/dashboard-view";
 import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
-import { ChefView } from "@/components/dashboard/home/chef-view";
+import { CommandSection } from "@/components/dashboard/home/command-section";
+import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
@@ -56,17 +54,24 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const selectedBranchFromUrl = searchParams.get("branch");
 
-  const organizationRole = user?.organization_role ?? "";
-  const isBranchManagerMode =
-    organizationRole === "BRANCH_MANAGER" || organizationRole === "GM";
-  const isChefMode = organizationRole === "STAFF_OPERATOR";
-  const isFinanceMode =
-    organizationRole === "AUDITOR" || organizationRole === "ACCOUNTANT";
-  const isBranchExecutionMode = isBranchManagerMode || isChefMode;
-  const isOwnerMode = ["ORG_OWNER", "ORG_ADMIN"].includes(organizationRole);
-  const isOpsManagerMode = organizationRole === "OPS_DIRECTOR";
+  const permissions = resolvePermissions(user);
+  const canSeeFinancials = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const canSeeAnalytics = permissions.has(PERMISSIONS.VIEW_ANALYTICS);
+  const canSeeAllBranches =
+    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
+    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
+  const canSeeProductionReports = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
+  const canSeeForecasts = permissions.has(PERMISSIONS.VIEW_FORECASTS);
+
+  // Dashboard is for management-level users. Everyone else goes to Today.
+  const hasDashboardAccess = canAccessDashboard(permissions);
+
+  // View selection: show the most informative view the user's permissions allow.
+  const isOwnerMode = canSeeFinancials;
+  const isOpsManagerMode = !canSeeFinancials && canSeeAnalytics;
+  // Operational users who somehow land here (permissions changed mid-session, etc.)
+  const isBranchExecutionMode = !hasDashboardAccess && canSeeForecasts;
   const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
-  const isOrganizationIntelligenceMode = isOrgOverviewMode || isFinanceMode;
 
   // Defer non-critical queries until user data is loaded
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -90,19 +95,6 @@ function HomeContent() {
     d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   }, []);
-
-  const controlTowerQuery = useExecutiveControlTower(
-    { target_date: todayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
-  );
-  const controlTowerPreviousQuery = useExecutiveControlTower(
-    { target_date: yesterdayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
-  );
-  const marginReportQuery = useOwnerMarginProtectionReport(
-    { target_date: todayDate },
-    isOrganizationIntelligenceMode && Boolean(user?.organization_id),
-  );
 
   const activeBranch = useMemo(() => {
     if (!branchOptions.length) return null;
@@ -147,7 +139,7 @@ function HomeContent() {
   const shouldRedirectToToday =
     !isLoading &&
     Boolean(user?.has_organization) &&
-    user?.organization_role === "STAFF_OPERATOR";
+    !hasDashboardAccess;
   const shouldRedirectToBranchSetup =
     !isLoading &&
     Boolean(user?.has_organization) &&
@@ -234,35 +226,7 @@ function HomeContent() {
     );
   }
 
-  // ── Derived values ────────────────────────────────────────────────────────
-  const controlTower = controlTowerQuery.data;
-  const marginReport = marginReportQuery.data;
-  const topAlerts = (controlTower?.alerts ?? []).slice(0, 6);
-
-  const underperformingBranches = (controlTower?.branch_grid ?? []).filter(
-    (b) => b.compliance_badge === "RED" || Number(b.waste_pct ?? 0) >= 5,
-  ).length;
-  const forecastAccuracyPct =
-    Number(controlTower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
-  const highSeverityAlerts = topAlerts.filter(
-    (a) => a.severity === "HIGH",
-  ).length;
-  const supplierAnomalies = topAlerts.filter((a) => {
-    const c =
-      `${a.type ?? ""} ${a.title ?? ""} ${a.context ?? ""}`.toLowerCase();
-    return c.includes("supplier") || c.includes("purchase");
-  }).length;
-  const marginLeakagePct = Number(controlTower?.summary?.waste_risk_pct ?? 0);
-  const grossMarginPct = Math.max(0, 100 - marginLeakagePct);
-  const revenueToday = Number(controlTower?.summary?.total_revenue ?? 0);
-
-  const aiInsight =
-    topAlerts[0]?.suggested_action ||
-    topAlerts[0]?.context ||
-    (isOpsManagerMode
-      ? "No critical operational anomalies detected across branches."
-      : "Forecast accuracy and variance patterns are stable today.");
-
+  // ── Derived values (branch execution mode only) ───────────────────────────
   const todayRecommendations =
     branchCommandTodayQuery.data?.panels.forecast.recommendations ?? [];
   const yesterdayPrepared =
@@ -350,105 +314,10 @@ function HomeContent() {
       Number(staffChecklistQuery.data?.completed_count ?? 0),
   );
 
-  const purchaseCostTrend = supplierAnomalies > 0 ? "+3.4% (7d)" : "-1.1% (7d)";
-  const taxLiabilityEstimate = Math.max(0, wasteTodayValue * 0.18);
-
-  const branchGrid = controlTower?.branch_grid ?? [];
-  const averageMarginPct =
-    Number(marginReport?.summary?.forecast_accuracy_avg_pct ?? 0) > 0
-      ? Number(marginReport?.summary?.forecast_accuracy_avg_pct ?? 0)
-      : forecastAccuracyPct;
-
-  const sortedByPerformance = [...branchGrid].sort((a, b) => {
-    const score = (x: typeof a) =>
-      Number(x.revenue ?? 0) -
-      Number(x.waste_pct ?? 0) * 1000 -
-      Number(x.surplus_pct ?? 0) * 500;
-    return score(b) - score(a);
-  });
-  const topPerformingBranch = sortedByPerformance[0];
-
-  const wasteHeatmapRows = [...branchGrid]
-    .sort((a, b) => Number(b.waste_pct ?? 0) - Number(a.waste_pct ?? 0))
-    .slice(0, 6);
-
-  const wasteAsRevenuePct =
-    revenueToday > 0
-      ? (Number(marginReport?.summary?.total_waste_cost ?? "0") /
-          revenueToday) *
-        100
-      : 0;
-
-  const purchasingEfficiencyScore = Math.max(
-    0,
-    100 - supplierAnomalies * 8 - marginLeakagePct * 0.6,
-  );
-  const riskIndexScore = Math.max(
-    0,
-    100 -
-      highSeverityAlerts * 8 -
-      underperformingBranches * 6 -
-      supplierAnomalies * 4,
-  );
-  const currentRevenue = Number(controlTower?.summary?.total_revenue ?? 0);
-  const previousRevenue = Number(
-    controlTowerPreviousQuery.data?.summary?.total_revenue ?? 0,
-  );
-  const revenueTrendPct =
-    previousRevenue > 0
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
-      : null;
-  const revenueTrendLabel =
-    revenueTrendPct === null
-      ? "No prior-period baseline yet"
-      : `${revenueTrendPct >= 0 ? "+" : ""}${revenueTrendPct.toFixed(1)}% (vs yesterday)`;
-  const ebitdaProxy = Math.max(
-    0,
-    revenueToday -
-      Number(marginReport?.summary?.total_waste_cost ?? "0") -
-      Number(controlTower?.summary?.predicted_surplus ?? 0) * 0.35,
-  );
-  const productionEfficiencyScore = branchGrid.length
-    ? Math.max(
-        0,
-        100 -
-          branchGrid.reduce(
-            (sum, b) =>
-              sum + Number(b.waste_pct ?? 0) + Number(b.surplus_pct ?? 0) * 0.5,
-            0,
-          ) /
-            branchGrid.length,
-      )
-    : 0;
-  const staffPerformanceIndex = branchGrid.length
-    ? (branchGrid.filter((b) => b.compliance_badge === "GREEN").length /
-        branchGrid.length) *
-      100
-    : 0;
-
-  const branchRankingSummary = [...branchGrid]
-    .map((b) => ({
-      ...b,
-      rankScore:
-        Number(b.revenue ?? 0) -
-        Number(b.waste_pct ?? 0) * 1100 -
-        Number(b.surplus_pct ?? 0) * 400,
-    }))
-    .sort((a, b) => b.rankScore - a.rankScore)
-    .slice(0, 5);
-
-  const subtleInsight = isOrgOverviewMode
-    ? aiInsight
-    : isFinanceMode
-      ? topAlerts[0]?.context ||
-        `Supplier anomaly checks found ${supplierAnomalies} active signal${supplierAnomalies === 1 ? "" : "s"} today.`
-      : isBranchExecutionMode
-        ? todayRecommendations.length > 0
-          ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
-          : "No production command has been generated yet for today."
-        : "Forecast accuracy improved this week and branch command quality is stable.";
-
-  const hasOrgError = controlTowerQuery.isError || marginReportQuery.isError;
+  const subtleInsight =
+    isBranchExecutionMode && todayRecommendations.length > 0
+      ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
+      : "";
 
   return (
     <div className="flex min-h-screen bg-surface-1">
@@ -467,54 +336,9 @@ function HomeContent() {
               <BranchRequiredState />
             ) : shouldShowSalesSourceRequiredState ? (
               <SalesSourceRequiredState />
-            ) : isFinanceMode ? (
-              <FinanceView
-                revenueToday={revenueToday}
-                grossMarginPct={grossMarginPct}
-                totalWasteCost={Number(
-                  marginReport?.summary?.total_waste_cost ?? "0",
-                )}
-                wasteAsRevenuePct={wasteAsRevenuePct}
-                purchaseCostTrend={purchaseCostTrend}
-                wasteTodayValue={wasteTodayValue}
-                taxLiabilityEstimate={taxLiabilityEstimate}
-                branches={marginReport?.branches ?? []}
-                branchCount={marginReport?.branch_count ?? 0}
-              />
-            ) : isOpsManagerMode ? (
-              <OpsView
-                totalRevenue={Number(controlTower?.summary?.total_revenue ?? 0)}
-                averageMarginPct={averageMarginPct}
-                topPerformingBranchName={topPerformingBranch?.branch_name}
-                topPerformingBranchRevenue={Number(
-                  topPerformingBranch?.revenue ?? 0,
-                )}
-                highSeverityAlerts={highSeverityAlerts}
-                underperformingBranches={underperformingBranches}
-                wasteHeatmapRows={wasteHeatmapRows}
-                productionEfficiencyScore={productionEfficiencyScore}
-                staffPerformanceIndex={staffPerformanceIndex}
-                supplierAnomalies={supplierAnomalies}
-                forecastAccuracyPct={forecastAccuracyPct}
-                aiInsight={aiInsight}
-                topAlerts={topAlerts}
-                hasError={hasOrgError}
-              />
-            ) : isOwnerMode ? (
-              <OwnerView
-                revenueTrendLabel={revenueTrendLabel}
-                revenueToday={revenueToday}
-                grossMarginPct={grossMarginPct}
-                wasteAsRevenuePct={wasteAsRevenuePct}
-                ebitdaProxy={ebitdaProxy}
-                riskIndexScore={riskIndexScore}
-                purchasingEfficiencyScore={purchasingEfficiencyScore}
-                branchRankingSummary={branchRankingSummary}
-                aiInsight={aiInsight}
-                topAlerts={topAlerts}
-                hasError={hasOrgError}
-              />
-            ) : isBranchManagerMode ? (
+            ) : isOrgOverviewMode ? (
+              <DashboardView canSeeFinancials={canSeeFinancials} />
+            ) : isBranchExecutionMode ? (
               <BranchManagerView
                 branchName={activeBranch?.name || "Branch"}
                 currentTimeLabel={currentTimeLabel}
@@ -533,34 +357,17 @@ function HomeContent() {
                 yesterdaySold={yesterdaySold}
                 yesterdayWasteCost={yesterdayWasteCost}
               />
-            ) : isChefMode ? (
-              <ChefView
-                branchName={activeBranch?.name || ""}
-                shiftProgress={shiftProgress}
-                currentTimeLabel={currentTimeLabel}
-                todayRecommendations={todayRecommendations}
-                todayPlanTotal={todayPlanTotal}
-                assignedTasks={assignedTasks}
-                completedCount={staffChecklistQuery.data?.completed_count ?? 0}
-                totalCount={staffChecklistQuery.data?.total_count ?? 0}
-                operationalWarnings={operationalWarnings}
-                isLoading={branchCommandTodayQuery.isLoading}
-              />
-            ) : (
-              <section className="py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  {t("dashboard.home.branchWorkspace")}
-                </p>
-                <h2 className="mt-3 font-display text-2xl font-semibold text-text-primary">
-                  {t("dashboard.home.branchModeActive")}
-                </h2>
-                <p className="mt-2 text-sm text-text-secondary max-w-2xl">
-                  {t("dashboard.home.branchModeDescription")}
-                </p>
-              </section>
-            )}
+            ) : null}
 
-            <InsightFooter insight={subtleInsight} />
+            {isOrgOverviewMode &&
+              !shouldShowBranchRequiredState &&
+              !shouldShowSalesSourceRequiredState && (
+                <div className="mt-12 border-t border-surface-4 pt-12">
+                  <CommandSection />
+                </div>
+              )}
+
+            {subtleInsight && <InsightFooter insight={subtleInsight} />}
           </div>
         </div>
       </main>

@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,11 +12,14 @@ import {
 } from "@/components/ui/native-table";
 import { Download, WarningTriangle, CoinsSwap } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type SupplierRow = {
   id: string;
@@ -79,18 +84,10 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 export default function PurchasingPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = [
-    "AUDITOR",
-    "ACCOUNTANT",
-    "OPS_DIRECTOR",
-    "ORG_OWNER",
-    "ORG_ADMIN",
-    "BRANCH_MANAGER",
-    "GM",
-  ].includes(role);
-  const isReadOnlyBranchManager = role === "BRANCH_MANAGER" || role === "GM";
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.MANAGE_INVENTORY);
+  const isReadOnlyBranchManager = !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
+  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
@@ -353,6 +350,19 @@ export default function PurchasingPage() {
     );
   };
 
+  if (!tierLoading && tier < 2) {
+    return (
+      <WorkspaceShell
+        eyebrow="Purchasing"
+        title="Purchasing Intelligence"
+        description="Cost control surface for supplier performance, variance, and ordering efficiency."
+        insight="Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage."
+      >
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
+      </WorkspaceShell>
+    );
+  }
+
   return (
     <WorkspaceShell
       eyebrow="Purchasing"
@@ -500,26 +510,30 @@ export default function PurchasingPage() {
           <article>
             <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Suppliers</p>
             <div className="mt-3 space-y-2">
-              <select
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+              <Select
+                options={[
+                  { value: "", label: "Supplier A" },
+                  ...supplierRows.map((row) => ({
+                    value: row.id,
+                    label: row.supplier,
+                  })),
+                ]}
                 value={supplierA}
-                onChange={(event) => setSupplierA(event.target.value)}
-              >
-                <option value="">Supplier A</option>
-                {supplierRows.map((row) => (
-                  <option key={row.id} value={row.id}>{row.supplier}</option>
-                ))}
-              </select>
-              <select
-                className="h-9 w-full rounded-[8px] border border-[#2E2E33] bg-[#1C1C1F] px-2 text-[12px] text-[#F5F5F7]"
+                onChange={(value) => setSupplierA(value)}
+                placeholder="Select supplier A"
+              />
+              <Select
+                options={[
+                  { value: "", label: "Supplier B" },
+                  ...supplierRows.map((row) => ({
+                    value: row.id,
+                    label: row.supplier,
+                  })),
+                ]}
                 value={supplierB}
-                onChange={(event) => setSupplierB(event.target.value)}
-              >
-                <option value="">Supplier B</option>
-                {supplierRows.map((row) => (
-                  <option key={row.id} value={row.id}>{row.supplier}</option>
-                ))}
-              </select>
+                onChange={(value) => setSupplierB(value)}
+                placeholder="Select supplier B"
+              />
               <div className="pt-2">
                 <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Spend delta</p>
                 <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">{toCurrency(supplierDelta)}</p>

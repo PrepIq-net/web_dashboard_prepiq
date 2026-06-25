@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +12,8 @@ import {
   useProductionIntelligenceAccessScope,
   useRiskSnapshot,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 
@@ -54,8 +58,8 @@ function RiskPageContent() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
-  const role = user?.organization_role ?? "";
-  const canAccess = ["ORG_OWNER", "ORG_ADMIN", "OPS_DIRECTOR", "GM", "BRANCH_MANAGER"].includes(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_COMPLIANCE);
   const canViewAllBranches = Boolean(accessScope?.can_view_all_branches);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -89,6 +93,7 @@ function RiskPageContent() {
   const [selectedBranchId, setSelectedBranchId] = useState(
     queryBranchId || (defaultBranch?.id ?? ""),
   );
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(selectedBranchId || undefined);
   const [anchorDate, setAnchorDate] = useState(
     queryDate || new Date().toISOString().slice(0, 10),
   );
@@ -198,6 +203,12 @@ function RiskPageContent() {
         </div>
       </section>
 
+      {selectedBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 3 ? (
+        <SubscriptionRequiredState variant="command_required" currentPlanType={planType} compact />
+      ) : (
+        <>
       {activeTab === "OVERVIEW" ? (
         <section className="space-y-8">
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
@@ -583,6 +594,8 @@ function RiskPageContent() {
           </div>
         </section>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

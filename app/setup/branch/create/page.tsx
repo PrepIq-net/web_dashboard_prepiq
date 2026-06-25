@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
-import { Building, ArrowRight } from "iconoir-react";
+import { Building, ArrowRight, Sparks } from "iconoir-react";
+import { useTranslation } from "@/lib/i18n";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
@@ -102,6 +103,7 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
 ];
 
 export default function CreateBranchPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const {
     data: orgs,
@@ -280,20 +282,20 @@ export default function CreateBranchPage() {
       if (isBranchLimitError) {
         setShowUpgradeCta(true);
         toast(
-          (t) => (
+          (toastObj) => (
             <div className="text-sm">
               <p className="font-medium text-[#F5F5F7] mb-1">
-                Branch limit reached on current plan.
+                {t("setup.branch.limitReached")}
               </p>
               <button
                 type="button"
                 className="text-[#A8821F] underline hover:text-[#B8962E]"
                 onClick={() => {
-                  toast.dismiss(t.id);
+                  toast.dismiss(toastObj.id);
                   router.push("/setup/pricing");
                 }}
               >
-                Upgrade plan
+                {t("setup.branch.upgradePlan")}
               </button>
             </div>
           ),
@@ -308,19 +310,24 @@ export default function CreateBranchPage() {
   return (
     <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
-        <div className="flex items-center gap-2 mb-10">
-          <Building className="h-4 w-4 text-[#A8821F]" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 1 — Branch Setup
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-[#A8821F]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
+              {t("setup.branch.step")}
+            </span>
+          </div>
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A8821F] bg-[#A8821F]/10 border border-[#A8821F]/25 rounded-full px-3 py-1">
+            <Sparks className="h-3 w-3" />
+            30-day Intelligence trial
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Create your first branch
+          {t("setup.branch.title")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-10">
-          Define your branch profile and operating schedule. You can update this
-          later.
+          {t("setup.branch.description")}
         </p>
 
         {isOrgsLoading && (
@@ -345,14 +352,14 @@ export default function CreateBranchPage() {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                Branch name
+                {t("setup.branch.nameLabel")}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={() => markTouched("name")}
-                placeholder="e.g. Downtown Kitchen"
+                placeholder={t("setup.branch.namePlaceholder")}
                 className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
               />
               {shouldShowFieldError("name") && errors.name ? (
@@ -362,13 +369,13 @@ export default function CreateBranchPage() {
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                Branch code <span className="text-[#5A5A60]">(optional)</span>
+                {t("setup.branch.codeLabel")} <span className="text-[#5A5A60]">{t("setup.branch.optional")}</span>
               </label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g. BR001"
+                placeholder={t("setup.branch.codePlaceholder")}
                 className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
               />
             </div>
@@ -376,14 +383,14 @@ export default function CreateBranchPage() {
             <div className="space-y-1.5 md:col-span-2">
               {/* Address — manual text field, also auto-filled by LocationPicker */}
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                Address
+                {t("setup.branch.addressLabel")}
               </label>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 onBlur={() => markTouched("address")}
-                placeholder="e.g. 42 Market St, Nairobi"
+                placeholder={t("setup.branch.addressPlaceholder")}
                 className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
               />
               {shouldShowFieldError("address") && errors.address ? (
@@ -410,7 +417,7 @@ export default function CreateBranchPage() {
 
             <div className="space-y-1.5">
               <PhoneInput
-                label="Phone (optional)"
+                label={`${t("setup.branch.phoneLabel")} ${t("setup.branch.optional")}`}
                 value={phone}
                 onChange={setPhone}
               />
@@ -418,14 +425,14 @@ export default function CreateBranchPage() {
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                Email <span className="text-[#5A5A60]">(optional)</span>
+                {t("setup.branch.emailLabel")} <span className="text-[#5A5A60]">{t("setup.branch.optional")}</span>
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => markTouched("email")}
-                placeholder="e.g. manager@branch.com"
+                placeholder={t("setup.branch.emailPlaceholder")}
                 className="w-full h-11 bg-[#1C1C1F] border border-[#2E2E33] rounded-[8px] px-4 text-sm text-[#F5F5F7] placeholder-[#5A5A60] focus:outline-none focus:border-[#A8821F] transition-colors duration-150"
               />
               {shouldShowFieldError("email") && errors.email ? (
@@ -435,7 +442,7 @@ export default function CreateBranchPage() {
 
             <div className="space-y-1.5 md:col-span-2">
               <Select
-                label="Time zone"
+                label={t("setup.branch.timezoneLabel")}
                 value={timezone}
                 onChange={setTimezone}
                 options={TIMEZONES}
@@ -449,10 +456,10 @@ export default function CreateBranchPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Operating schedule
+                  {t("setup.branch.scheduleLabel")}
                 </label>
                 <p className="mt-1 text-xs text-[#5A5A60]">
-                  Toggle open days and set hours for each day.
+                  {t("setup.branch.scheduleDescription")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -461,21 +468,21 @@ export default function CreateBranchPage() {
                   onClick={applyWeekdayTemplate}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-xs text-[#C7C7CC] hover:border-[#3A3A40] hover:text-[#F5F5F7] transition-colors"
                 >
-                  Weekday template
+                  {t("setup.branch.weekdayTemplate")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTimeForAllOpenDays("opensAt", "08:00")}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-xs text-[#C7C7CC] hover:border-[#3A3A40] hover:text-[#F5F5F7] transition-colors"
                 >
-                  Open all @ 08:00
+                  {t("setup.branch.openAll").replace("{time}", "08:00")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTimeForAllOpenDays("closesAt", "18:00")}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-xs text-[#C7C7CC] hover:border-[#3A3A40] hover:text-[#F5F5F7] transition-colors"
                 >
-                  Close all @ 18:00
+                  {t("setup.branch.closeAll").replace("{time}", "18:00")}
                 </button>
               </div>
             </div>
@@ -483,16 +490,16 @@ export default function CreateBranchPage() {
             <div className="rounded-[10px] border border-[#2E2E33] overflow-hidden">
               <div className="hidden md:grid md:grid-cols-[120px_1fr_1fr_90px] md:gap-3 md:border-b md:border-[#232327] md:bg-[#18181A] md:px-3 md:py-2">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Day
+                  {t("setup.branch.day")}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Opens
+                  {t("setup.branch.opens")}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">
-                  Closes
+                  {t("setup.branch.closes")}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-[#8E8E93] text-right">
-                  Status
+                  {t("setup.branch.status")}
                 </p>
               </div>
               {schedule.map((day) => {
@@ -516,7 +523,7 @@ export default function CreateBranchPage() {
 
                     <div className="space-y-1 md:space-y-0">
                       <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Opens
+                        {t("setup.branch.opens")}
                       </label>
                       <input
                         type="time"
@@ -534,7 +541,7 @@ export default function CreateBranchPage() {
                     </div>
                     <div className="space-y-1 md:space-y-0">
                       <label className="md:hidden text-[10px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                        Closes
+                        {t("setup.branch.closes")}
                       </label>
                       <input
                         type="time"
@@ -554,7 +561,7 @@ export default function CreateBranchPage() {
                       <span
                         className={`text-xs ${day.isOpen ? "text-[#3F8F68]" : "text-[#8E8E93]"}`}
                       >
-                        {day.isOpen ? "Open" : "Closed"}
+                        {day.isOpen ? t("setup.branch.open") : t("setup.branch.closed")}
                       </span>
                     </div>
 
@@ -583,7 +590,7 @@ export default function CreateBranchPage() {
                   onClick={() => router.push("/setup/pricing")}
                   className="mt-2 text-xs text-[#A8821F] underline hover:text-[#B8962E]"
                 >
-                  Upgrade your plan
+                  {t("setup.branch.upgradePlan")}
                 </button>
               ) : null}
             </div>
@@ -608,11 +615,11 @@ export default function CreateBranchPage() {
             {createBranch.isPending ? (
               <>
                 <Spinner size="sm" color="#141416" />
-                Creating branch…
+                {t("setup.branch.creating")}
               </>
             ) : (
               <>
-                Create Branch
+                {t("setup.branch.submit")}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -623,7 +630,7 @@ export default function CreateBranchPage() {
             onClick={() => router.push("/")}
             className="w-full text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
           >
-            Skip for now
+            {t("setup.branch.skip")}
           </button>
         </form>
       </div>

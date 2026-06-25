@@ -6,6 +6,15 @@ import { useRegisterOrganization } from "@/services/organizations/hooks";
 import { useRouter } from "next/navigation";
 import { Building, Phone, Globe, Mail, CheckCircle } from "iconoir-react";
 
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  RESTAURANT: "Restaurant",
+  HOTEL: "Hotel",
+  BAKERY: "Bakery",
+  CLOUD_KITCHEN: "Cloud Kitchen",
+  CATERING: "Catering",
+  INSTITUTIONAL: "Institutional Kitchen",
+};
+
 export function ReviewStep() {
   const router = useRouter();
   const { formData, prevStep, logoPreviewUrl } = useOnboardingStore();
@@ -46,11 +55,11 @@ export function ReviewStep() {
           </span>
         </div>
         <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary">
-          Verify your setup.
+          Everything look right?
         </h2>
         <p className="text-xl text-text-secondary leading-relaxed">
-          Almost there. Review your organizational data before we set up your
-          kitchen workspace.
+          Review your workspace details. You can update any of this later from
+          organization settings.
         </p>
       </div>
 
@@ -80,7 +89,7 @@ export function ReviewStep() {
         <SummaryItem
           icon={Building}
           label="Sector"
-          value={formData.business_type}
+          value={BUSINESS_TYPE_LABELS[formData.business_type ?? ""] ?? formData.business_type}
         />
         <SummaryItem icon={Mail} label="Contact Email" value={formData.email} />
         <SummaryItem
@@ -125,7 +134,7 @@ export function ReviewStep() {
           disabled={registerMutation.isPending}
           className="px-16 py-8 text-lg font-semibold shadow-level-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
         >
-          {registerMutation.isPending ? "Setting things up..." : "Finish setup"}
+          {registerMutation.isPending ? "Creating workspace…" : "Create Workspace"}
         </Button>
       </div>
     </div>

@@ -16,6 +16,7 @@ export const usersEndpoints = {
     update: "/api/user/update-profile/",
     updateLocation: "/api/user/update-location/",
     uploadPhoto: "/api/user/upload-photo/",
+    changePassword: "/api/user/change-password/",
     uploadDocuments: "/api/user/upload-documents/",
     deleteAccount: "/api/user/delete/",
     roles: "/api/user/roles/",

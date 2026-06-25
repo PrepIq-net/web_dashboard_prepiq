@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
+import { useTranslation } from "@/lib/i18n";
 
 type UploadState = "idle" | "dragging" | "selected" | "uploading";
 
@@ -18,6 +19,7 @@ const COLUMN_HINTS = [
 ];
 
 export default function CSVUploadPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -34,11 +36,11 @@ export default function CSVUploadPage() {
 
   function handleFile(f: File) {
     if (!String(f.name).toLowerCase().endsWith(".csv")) {
-      setError("Only .csv files are supported.");
+      setError(t("setup.csv.onlyCsvSupported"));
       return;
     }
     if (f.size > 5 * 1024 * 1024) {
-      setError("CSV file too large. Max size is 5MB.");
+      setError(t("setup.csv.tooLarge"));
       return;
     }
     setError("");
@@ -91,7 +93,7 @@ export default function CSVUploadPage() {
         },
       );
       if (!response.ok) {
-        throw new Error("Failed to download template.");
+        throw new Error(t("setup.csv.failedDownloadTemplate"));
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -103,7 +105,7 @@ export default function CSVUploadPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch {
-      setError("Could not download template right now. Try again.");
+      setError(t("setup.csv.couldNotDownloadTemplate"));
     } finally {
       setUploadState(file ? "selected" : "idle");
     }
@@ -120,45 +122,46 @@ export default function CSVUploadPage() {
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            {t("setup.staff.back")}
           </button>
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Upload CSV
+            {t("setup.csv.step")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Upload your sales data
+          {t("setup.csv.title")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          Export from your current system and drop it here. We&apos;ll walk you
-          through mapping the columns.
+          {t("setup.csv.description")}
         </p>
 
-        <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-6">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
-            Branch
-          </label>
-          {scopeLoading ? (
-            <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
-              <Spinner size="sm" color="#8E8E93" />
-              Loading accessible branches...
-            </div>
-          ) : (
-            <Select
-              label=""
-              options={branches.map((branch) => ({
-                value: branch.id,
-                label: branch.name,
-              }))}
-              value={selectedBranchId}
-              onChange={setBranchId}
-              placeholder="Select branch"
-              className="space-y-0"
-            />
-          )}
-        </div>
+        {!scopeError && (
+          <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-6">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
+              {t("setup.csv.branchLabel")}
+            </label>
+            {scopeLoading ? (
+              <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
+                <Spinner size="sm" color="#8E8E93" />
+                {t("setup.csv.loadingBranches")}
+              </div>
+            ) : (
+              <Select
+                label=""
+                options={branches.map((branch) => ({
+                  value: branch.id,
+                  label: branch.name,
+                }))}
+                value={selectedBranchId}
+                onChange={setBranchId}
+                placeholder={t("setup.csv.selectBranchPlaceholder")}
+                className="space-y-0"
+              />
+            )}
+          </div>
+        )}
 
         {/* Drop zone */}
         <div
@@ -220,11 +223,11 @@ export default function CSVUploadPage() {
               </span>
               <p className="text-sm font-semibold text-[#C7C7CC] mb-1">
                 {isDragging
-                  ? "Drop it here"
-                  : "Drop your file or click to browse"}
+                  ? t("setup.csv.dropHere")
+                  : t("setup.csv.dropOrBrowse")}
               </p>
               <p className="text-[12px] text-[#5A5A60]">
-                .csv only · max 5 MB
+                {t("setup.csv.constraints")}
               </p>
             </div>
           )}
@@ -236,7 +239,7 @@ export default function CSVUploadPage() {
               {error ||
                 (scopeError instanceof Error
                   ? scopeError.message
-                  : "Unable to load branch access scope.")}
+                  : t("setup.csv.unableToLoadScope"))}
             </p>
           </div>
         )}
@@ -249,14 +252,14 @@ export default function CSVUploadPage() {
             }}
             className="text-[12px] font-medium text-[#A8821F] hover:text-[#B8962E] transition-colors"
           >
-            Download CSV template
+            {t("setup.csv.downloadTemplate")}
           </button>
         </div>
 
         {/* Column requirements */}
         <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-5 mb-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8E8E93] mb-3">
-            Required columns
+            {t("setup.csv.requiredColumns")}
           </p>
           <div className="space-y-2">
             {COLUMN_HINTS.map((col) => (
@@ -264,7 +267,7 @@ export default function CSVUploadPage() {
                 <Check className="h-3.5 w-3.5 text-[#3F8F68] shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[13px] font-semibold text-[#C7C7CC]">
-                    {col.field}
+                    {t(`setup.csv.fields.${col.field}` as any)}
                   </span>
                   <span className="text-[12px] text-[#5A5A60] ml-2 font-mono">
                     {col.examples}
@@ -274,8 +277,7 @@ export default function CSVUploadPage() {
             ))}
           </div>
           <p className="text-[11px] text-[#5A5A60] mt-4">
-            Column names don&apos;t need to match exactly — you&apos;ll map them
-            in the next step.
+            {t("setup.csv.columnsDisclaimer")}
           </p>
         </div>
 
@@ -285,7 +287,7 @@ export default function CSVUploadPage() {
           disabled={!file || !selectedBranchId || branches.length === 0 || scopeLoading}
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
-          Map columns
+          {t("setup.csv.mapSubmit")}
           <ArrowRight className="h-4 w-4" />
         </button>
 
@@ -293,7 +295,7 @@ export default function CSVUploadPage() {
           onClick={() => router.push("/setup/forecast")}
           className="w-full mt-3 text-center text-sm text-[#5A5A60] hover:text-[#8E8E93] transition-colors duration-150"
         >
-          Skip for now
+          {t("setup.branch.skip")}
         </button>
       </div>
     </div>

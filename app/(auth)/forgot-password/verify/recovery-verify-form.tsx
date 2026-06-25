@@ -9,10 +9,12 @@ import { OtpInput } from "@/components/auth/otp-input";
 import { Button } from "@/components/ui/button";
 import { useResendOtp, useVerifyOtp } from "@/services/users/hooks";
 import { forgotPassword } from "@/services/users/service";
+import { useTranslation } from "@/lib/i18n";
 
 const RESEND_SECONDS = 60;
 
 export function RecoveryVerifyForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -34,54 +36,38 @@ export function RecoveryVerifyForm() {
   }, [resendCountdown]);
 
   const resendLabel = useMemo(() => {
-    if (resendOtpMutation.isPending) return "Resending...";
-    if (resendCountdown > 0) return `Resend in ${resendCountdown}s`;
-    return "Resend code";
-  }, [resendCountdown, resendOtpMutation.isPending]);
+    if (resendOtpMutation.isPending) return t("auth.resending");
+    if (resendCountdown > 0) return t("auth.resendIn", { count: resendCountdown });
+    return t("auth.resendCode");
+  }, [resendCountdown, resendOtpMutation.isPending, t]);
 
   async function handleResend() {
     if (!email) {
-      toast.error("Invalid session. Please start over.");
+      toast.error(t("auth.invalidSession"));
       return;
     }
     try {
       await forgotPassword({ email });
       setResendCountdown(RESEND_SECONDS);
-      toast.success("A new verification code has been sent.");
+      toast.success(t("auth.newCodeSent"));
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to resend code.",
-      );
+      toast.error(error instanceof Error ? error.message : t("auth.resendCodeFailed"));
     }
   }
 
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    // Honeypot check
-    if (nickname) {
-      console.log("Bot detected via honeypot.");
-      return;
-    }
-
+    if (nickname) return;
     if (!email || !isOtpComplete) {
-      toast.error("Please enter the 6-digit code.");
+      toast.error(t("auth.enterCode"));
       return;
     }
-
     try {
-      await verifyOtpMutation.mutateAsync({
-        email,
-        otp,
-        context: "password_reset",
-      });
-
-      toast.success("Code verified.");
-      router.push(
-        `/reset-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`,
-      );
+      await verifyOtpMutation.mutateAsync({ email, otp, context: "password_reset" });
+      toast.success(t("auth.codeVerified"));
+      router.push(`/reset-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Invalid code.");
+      toast.error(error instanceof Error ? error.message : t("auth.invalidCode"));
     }
   }
 
@@ -89,10 +75,10 @@ export function RecoveryVerifyForm() {
     <div className="w-full max-w-md space-y-12 animate-fade-in">
       <div className="space-y-3 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-text-primary">
-          Verify Code.
+          {t("auth.verifyCodeTitle")}
         </h1>
         <p className="text-lg text-text-secondary leading-relaxed mx-auto max-w-xs">
-          Enter the security code sent to your email to reset your session.
+          {t("auth.verifyCodeSubtitle")}
         </p>
       </div>
 
@@ -114,15 +100,11 @@ export function RecoveryVerifyForm() {
             disabled={!isOtpComplete || verifyOtpMutation.isPending}
             className="py-7 text-base font-semibold shadow-level-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            {verifyOtpMutation.isPending
-              ? "Validating Signal..."
-              : "Verify Recovery"}
+            {verifyOtpMutation.isPending ? t("auth.validatingSignal") : t("auth.verifyRecovery")}
           </Button>
 
           <div className="flex flex-col items-center gap-4 text-sm">
-            <p className="text-text-muted italic">
-              Didn&apos;t receive a code?
-            </p>
+            <p className="text-text-muted italic">{t("auth.didntReceive")}</p>
             <button
               type="button"
               onClick={handleResend}
@@ -136,12 +118,9 @@ export function RecoveryVerifyForm() {
       </form>
 
       <p className="text-center text-sm text-text-secondary pt-8">
-        Wait, I remember it!{" "}
-        <Link
-          href="/login"
-          className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors"
-        >
-          Sign in
+        {t("auth.waitIRemember")}{" "}
+        <Link href="/login" className="font-semibold text-brand-gold hover:text-brand-gold-hover transition-colors">
+          {t("auth.signIn")}
         </Link>
       </p>
     </div>

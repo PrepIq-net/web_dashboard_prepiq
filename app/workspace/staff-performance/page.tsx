@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +21,8 @@ import {
   useRemoveStaff,
 } from "@/services";
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 type StaffPerformanceRow = {
   id: string;
@@ -110,10 +114,9 @@ function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
 export default function StaffPerformancePage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
-  const canManageStaff = ["BRANCH_MANAGER", "GM", "OPS_DIRECTOR", "ORG_OWNER", "ORG_ADMIN"].includes(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
+  const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
@@ -124,6 +127,8 @@ export default function StaffPerformancePage() {
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
   const [tablePage, setTablePage] = useState(0);
@@ -458,6 +463,12 @@ export default function StaffPerformancePage() {
         </div>
       </section>
 
+      {activeBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
+      ) : (
+        <>
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -614,6 +625,8 @@ export default function StaffPerformancePage() {
           )}
         </div>
       </section>
+        </>
+      )}
     </WorkspaceShell>
   );
 }

@@ -1,4 +1,6 @@
 "use client";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +19,8 @@ import {
   useCurrentUserProfile,
   useOrganizationFinancialOverview,
 } from "@/services";
+import { useSubscriptionTier } from "@/services/payment/hooks";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -37,16 +41,7 @@ type FinancialBranchRow = {
   marginPctDelta?: number | null;
 };
 
-type FinancialTab =
-  | "OVERVIEW"
-  | "WASTE"
-  | "STOCKOUT"
-  | "ACCURACY"
-  | "PROFIT"
-  | "BRANCHES"
-  | "TRENDS";
-
-type ProfitSort = "REVENUE" | "MARGIN";
+type FinancialTab = "OVERVIEW" | "BRANCHES" | "ACCURACY" | "TRENDS";
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -78,9 +73,7 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
 }
 
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
-  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
-    "\n",
-  );
+  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -95,19 +88,14 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 export default function FinancialPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
-  const role = user?.organization_role ?? "";
-
-  const canAccess = [
-    "ORG_OWNER",
-    "OPS_DIRECTOR",
-    "GM",
-    "BRANCH_MANAGER",
-  ].includes(role);
+  const permissions = resolvePermissions(user);
+  const canAccess = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
-  const [profitSort, setProfitSort] = useState<ProfitSort>("REVENUE");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const financialQuery = useOrganizationFinancialOverview(
@@ -142,14 +130,12 @@ export default function FinancialPage() {
         label: branch.branch_name,
       }));
     }
-
     if (branches.length) {
       return branches.map((branch) => ({
         value: branch.id,
         label: branch.name,
       }));
     }
-
     return (
       financialData?.branches.map((branch) => ({
         value: branch.branch_id,
@@ -197,15 +183,9 @@ export default function FinancialPage() {
     return [...branchRows].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
   }, [branchRows]);
 
-  const sortedProfitability = useMemo(() => {
-    const rows = [...itemProfitability];
-    if (profitSort === "MARGIN") {
-      rows.sort((a, b) => b.margin_pct - a.margin_pct || b.revenue - a.revenue);
-    } else {
-      rows.sort((a, b) => b.revenue - a.revenue);
-    }
-    return rows.slice(0, 6);
-  }, [itemProfitability, profitSort]);
+  const topProfitItems = useMemo(() => {
+    return [...itemProfitability].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+  }, [itemProfitability]);
 
   const exportTrendCsv = () => {
     const rows = costTrends.map((row) => [
@@ -283,11 +263,7 @@ export default function FinancialPage() {
   });
 
   const timeframeLabel =
-    timeframe === "7d"
-      ? "Last 7 Days"
-      : timeframe === "90d"
-        ? "Last 90 Days"
-        : "Last 30 Days";
+    timeframe === "7d" ? "Last 7 days" : timeframe === "90d" ? "Last 90 days" : "Last 30 days";
 
   const exportReport = () => {
     const rows = branchRows.map((row) => [
@@ -298,30 +274,23 @@ export default function FinancialPage() {
       row.grossMargin.toFixed(2),
       row.marginPct.toFixed(2),
     ]);
-
     downloadCsv(
-      `financial-overview-${timeframe}.csv`,
-      [
-        "Branch",
-        "Revenue",
-        "FoodCost",
-        "WasteCost",
-        "GrossMargin",
-        "MarginPct",
-      ],
+      `financials-${timeframe}.csv`,
+      ["Branch", "Revenue", "FoodCost", "WasteCost", "GrossMargin", "MarginPct"],
       rows,
     );
   };
 
   return (
     <WorkspaceShell
-      eyebrow="Financial"
-      title="Financial Intelligence"
-      description="Operational financial performance across revenue, food cost, and waste."
-      insight="Connect kitchen execution to margin performance in real time."
+      eyebrow="Executive"
+      title="Financials"
+      description="Revenue, margins, and waste cost — your business in one view."
+      insight=""
     >
-      <section className="bg-surface-2 rounded-xl p-6 border border-surface-4 mb-8 shadow-lg">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      {/* Filter bar */}
+      <div className="mb-6 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
+        <div className="min-w-45">
           <Select
             label="Timeframe"
             leadingIcon={<Calendar className="h-4 w-4" />}
@@ -333,9 +302,10 @@ export default function FinancialPage() {
             value={timeframe}
             onChange={setTimeframe}
           />
-
+        </div>
+        <div className="min-w-45">
           <Select
-            label="Branch Focus"
+            label="Branch"
             options={[
               { value: "ALL", label: "All branches" },
               ...branchOptions,
@@ -344,575 +314,370 @@ export default function FinancialPage() {
             onChange={setBranchFilter}
             disabled={financialData?.scope === "BRANCH"}
           />
-
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Data Range
-            </label>
-            <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
-              {financialData
-                ? `${financialData.start_date} → ${financialData.end_date}`
-                : "—"}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
-              Quick Export
-            </label>
-            <button
-              type="button"
-              onClick={exportReport}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-button border border-border-default bg-surface-3 text-sm font-medium text-text-primary transition-all duration-200 hover:bg-surface-4 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98]"
-              disabled={branchRows.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Export Data
-            </button>
-          </div>
         </div>
-        <div className="mt-6 pt-6 border-t border-surface-4">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "OVERVIEW", label: "Overview" },
-              { id: "WASTE", label: "Waste" },
-              { id: "STOCKOUT", label: "Stockouts" },
-              { id: "ACCURACY", label: "Forecast Impact" },
-              { id: "PROFIT", label: "Item Profitability" },
-              { id: "BRANCHES", label: "Branches" },
-              { id: "TRENDS", label: "Trends" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as FinancialTab)}
-                className={`inline-flex h-10 items-center px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {financialData ? (
+          <p className="pb-3 text-xs text-text-muted">
+            {financialData.start_date} → {financialData.end_date}
+            {financialData.branch_name ? ` · ${financialData.branch_name}` : ""}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={exportReport}
+          disabled={branchRows.length === 0}
+          className="ml-auto inline-flex h-10 items-center gap-2 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-semibold text-text-primary transition-all hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export
+        </button>
+      </div>
+
+      {activeBranchId && !tierLoading && shouldBlockAccess ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : !tierLoading && tier < 2 ? (
+        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
+      ) : (
+        <>
+      {/* KPI strip */}
+      {financialData ? (
+        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          <span className="text-text-muted">
+            <span className="font-semibold text-status-success">
+              {toCurrency(summary?.revenue ?? 0)}
+            </span>{" "}
+            revenue
+          </span>
+          <span className="text-text-muted">
+            <span className="font-semibold text-status-success">
+              {toCurrency(summary?.gross_margin ?? 0)}
+            </span>{" "}
+            gross margin
+          </span>
+          <span className="text-text-muted">
+            <span className="font-semibold text-brand-gold">
+              {toPercent(summary?.margin_pct ?? 0)}
+            </span>{" "}
+            margin
+          </span>
+          <span className="text-text-muted">
+            <span className="font-semibold text-status-critical">
+              {toCurrency(summary?.waste_cost ?? 0)}
+            </span>{" "}
+            wasted
+          </span>
         </div>
-      </section>
+      ) : null}
+
+      {/* Tab bar */}
+      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+        {(
+          [
+            { id: "OVERVIEW", label: "Overview" },
+            { id: "BRANCHES", label: "Branches" },
+            { id: "ACCURACY", label: "Forecast Impact" },
+            { id: "TRENDS", label: "Trends" },
+          ] as { id: FinancialTab; label: string }[]
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-gold text-brand-gold"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {activeTab === "OVERVIEW" ? (
-        <section className="mt-8">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            PrepIQ Impact Report
-          </p>
-          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            {timeframeLabel}
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-10">
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Forecast Accuracy
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toPercent(impactReport?.accuracy_pct ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Average accuracy</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Waste Reduced
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(impactReport?.waste_reduced ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Period improvement</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Stockouts Avoided
-            </p>
-            <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-              {impactReport?.stockouts_avoided ?? 0}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Events prevented</p>
-          </article>
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-              Revenue Protected
-            </p>
-            <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-              {toCurrency(impactReport?.revenue_protected ?? 0)}
-            </p>
-            <p className="mt-3 text-xs text-text-muted">Estimated impact</p>
-          </article>
-        </div>
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Financial Overview
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              {timeframeLabel}
-            </h3>
-            <p className="mt-1 text-sm text-text-muted">
-              {branchFilter === "ALL" || !financialData?.branch_name
-                ? "Organization-wide view"
-                : `Branch: ${financialData.branch_name}`}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Revenue
+        <div className="space-y-8">
+          {/* Hero: the two numbers managers care about most */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
+                Revenue · {branchFilter === "ALL" || !financialData?.branch_name ? "all branches" : financialData.branch_name}
               </p>
-              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+              <p className="mt-3 font-display text-4xl font-semibold text-status-success tracking-tight">
                 {toCurrency(summary?.revenue ?? 0)}
               </p>
-              <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.revenue_delta_pct)}
-              </p>
+              <p className="mt-3 text-xs text-text-muted">{formatDelta(summary?.revenue_delta_pct)}</p>
             </article>
-
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Food Cost
-              </p>
-              <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-                {toCurrency(summary?.food_cost ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.food_cost_delta_pct)}
-              </p>
-            </article>
-
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Waste Cost
-              </p>
-              <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
-                {toCurrency(summary?.waste_cost ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.waste_cost_delta_pct)}
-              </p>
-            </article>
-
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Gross Margin
-              </p>
-              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                {toCurrency(summary?.gross_margin ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                {formatDelta(summary?.gross_margin_delta_pct)}
-              </p>
-            </article>
-
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Margin %
-              </p>
-              <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Gross margin</p>
+              <p className="mt-3 font-display text-4xl font-semibold text-brand-gold tracking-tight">
                 {toPercent(summary?.margin_pct ?? 0)}
               </p>
-              <p className="mt-3 text-xs text-text-muted">
+              <p className="mt-1 text-sm text-text-secondary">
+                {toCurrency(summary?.gross_margin ?? 0)} gross
+              </p>
+              <p className="mt-2 text-xs text-text-muted">
                 {summary?.margin_pct_delta != null
                   ? `${summary.margin_pct_delta >= 0 ? "+" : ""}${summary.margin_pct_delta.toFixed(1)} pp vs prior`
                   : "—"}
               </p>
             </article>
-        </div>
-        </section>
-      ) : null}
-
-      {activeTab === "WASTE" ? (
-        <section className="mt-10">
-          <div>
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Waste Cost Analysis
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {timeframeLabel}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Total Waste
-                </p>
-                <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
-                  {toCurrency(wasteAnalysis?.total_waste_cost ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(summary?.waste_cost_delta_pct)}
-                </p>
-              </article>
-
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Waste Rate
-                </p>
-                <p className="font-display text-3xl font-semibold text-brand-gold tracking-tight">
-                  {toPercent(wasteAnalysis?.waste_rate_pct ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">Share of revenue</p>
-              </article>
-            </div>
-
-            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Waste Items
-              </p>
-              <div className="space-y-3">
-                {(wasteAnalysis?.top_items ?? []).length ? (
-                  wasteAnalysis?.top_items.map((item) => (
-                    <Link
-                      key={item.item_id}
-                      href={`/workspace/sales-waste?item=${item.item_id}${
-                        financialData?.branch_id
-                          ? `&branch=${financialData.branch_id}`
-                          : ""
-                      }${financialData?.end_date ? `&date=${financialData.end_date}` : ""}`}
-                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3 transition-colors hover:border-brand-gold/50 hover:bg-surface-3"
-                    >
-                      <span className="text-sm font-medium text-text-secondary">
-                        {item.item_title}
-                      </span>
-                      <span className="text-sm font-semibold text-status-warning">
-                        {toCurrency(item.waste_cost)}
-                      </span>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-text-muted">
-                    No waste events recorded.
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
-        </section>
-      ) : null}
 
-      {activeTab === "STOCKOUT" ? (
-        <section className="mt-10">
-          <div>
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Stockout Revenue Loss
-              </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                {timeframeLabel}
-              </h3>
+          {/* Supporting P&L — compact inline, no cards */}
+          <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-surface-4/60 pb-6 text-sm">
+            <span className="text-text-muted">
+              Food cost{" "}
+              <span className="font-semibold text-text-primary">
+                {toCurrency(summary?.food_cost ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.food_cost_delta_pct)}
+              </span>
+            </span>
+            <span className="text-text-muted">
+              Waste{" "}
+              <span className="font-semibold text-status-critical">
+                {toCurrency(summary?.waste_cost ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.waste_cost_delta_pct)}
+              </span>
+            </span>
+            <span className="text-text-muted">
+              Gross margin{" "}
+              <span className="font-semibold text-status-success">
+                {toCurrency(summary?.gross_margin ?? 0)}
+              </span>
+              <span className="ml-1.5 text-text-muted/70 text-xs">
+                {formatDelta(summary?.gross_margin_delta_pct)}
+              </span>
+            </span>
+          </div>
+
+          {/* PrepIQ impact + stockout losses — inline, scannable */}
+          <div className="rounded-xl border border-surface-4/60 bg-surface-2 px-5 py-4 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              What PrepIQ delivered · {timeframeLabel}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toPercent(impactReport?.accuracy_pct ?? 0)}
+                </span>{" "}
+                forecast accuracy
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toCurrency(impactReport?.waste_reduced ?? 0)}
+                </span>{" "}
+                waste reduced
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-text-primary">
+                  {impactReport?.stockouts_avoided ?? 0}
+                </span>{" "}
+                stockouts avoided
+              </span>
+              <span className="text-text-muted">
+                <span className="font-semibold text-status-success">
+                  {toCurrency(impactReport?.revenue_protected ?? 0)}
+                </span>{" "}
+                revenue protected
+              </span>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Lost Revenue
-                </p>
-                <p className="font-display text-3xl font-semibold text-status-critical tracking-tight">
-                  {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(stockoutImpact?.lost_revenue_delta_pct)}
-                </p>
-              </article>
+            {(stockoutImpact?.lost_revenue ?? 0) > 0 || (stockoutImpact?.stockout_events ?? 0) > 0 ? (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-surface-4/50 pt-3 text-sm">
+                <span className="text-text-muted">
+                  <span className="font-semibold text-status-critical">
+                    {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
+                  </span>{" "}
+                  lost to stockouts
+                </span>
+                <span className="text-text-muted">
+                  <span className="font-semibold text-text-primary">
+                    {stockoutImpact?.stockout_events ?? 0}
+                  </span>{" "}
+                  stockout events
+                </span>
+              </div>
+            ) : null}
+          </div>
 
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Stockout Events
+          {/* Biggest waste + best performers */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                  Biggest waste sources
                 </p>
-                <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-                  {stockoutImpact?.stockout_events ?? 0}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  Service interruptions
-                </p>
-              </article>
-
-              <article className="bg-surface-2 rounded-xl p-6 border border-surface-4 sm:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                  Revenue Protected by PrepIQ
-                </p>
-                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                  {toCurrency(stockoutImpact?.revenue_protected ?? 0)}
-                </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  {formatDelta(stockoutImpact?.revenue_protected_delta_pct)}
-                </p>
-              </article>
-            </div>
-
-            <div className="mt-6 bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">
-                Top Stockouts
-              </p>
-              <div className="space-y-3">
-                {(stockoutImpact?.top_items ?? []).length ? (
-                  stockoutImpact?.top_items.map((item) => (
+                <Link
+                  href={`/workspace/sales-waste${financialData?.branch_id ? `?branch=${financialData.branch_id}` : ""}`}
+                  className="text-xs text-text-muted transition-colors hover:text-brand-gold"
+                >
+                  See all items →
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {(wasteAnalysis?.top_items ?? []).slice(0, 3).length ? (
+                  (wasteAnalysis?.top_items ?? []).slice(0, 3).map((item) => (
                     <div
                       key={item.item_id}
-                      className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3"
+                      className="flex items-center justify-between rounded-lg border border-surface-4/60 bg-surface-3/40 px-4 py-2.5"
                     >
-                      <span className="text-sm font-medium text-text-secondary">
-                        {item.item_title}
-                      </span>
-                      <span className="text-sm font-semibold text-status-critical">
-                        {toCurrency(item.lost_revenue)}
+                      <span className="text-sm text-text-secondary">{item.item_title}</span>
+                      <span className="text-sm font-semibold text-status-warning">
+                        {toCurrency(item.waste_cost)}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted">
-                    No stockouts detected.
-                  </p>
+                  <p className="text-sm text-text-muted">No waste events recorded.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Best performers
+              </p>
+              <div className="space-y-2">
+                {topProfitItems.length ? (
+                  topProfitItems.map((row) => (
+                    <div
+                      key={row.item_id}
+                      className="flex items-center justify-between rounded-lg border border-surface-4/60 bg-surface-3/40 px-4 py-2.5"
+                    >
+                      <span className="text-sm text-text-secondary">{row.item_title}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-text-muted">{toCurrency(row.revenue)}</span>
+                        <span className="text-xs font-semibold text-brand-gold">
+                          {toPercent(row.margin_pct)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-text-muted">No profitability data yet.</p>
                 )}
               </div>
             </div>
           </div>
-        </section>
-      ) : null}
-
-      {activeTab === "ACCURACY" ? (
-        <section className="mt-10">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Forecast Accuracy Impact
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              {timeframeLabel}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Current Accuracy
-              </p>
-              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                {toPercent(forecastImpact?.accuracy_pct ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                Average forecast accuracy
-              </p>
-            </article>
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Waste Prevented
-              </p>
-              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                {toCurrency(forecastImpact?.waste_prevented ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                Improvement vs prior period
-              </p>
-            </article>
-            <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-                Stockouts Avoided
-              </p>
-              <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
-                {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
-              </p>
-              <p className="mt-3 text-xs text-text-muted">
-                Avoided lost revenue
-              </p>
-            </article>
-          </div>
-        </section>
-      ) : null}
-
-      {activeTab === "PROFIT" ? (
-        <section className="mt-10">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Item Profitability
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Top Profit Drivers
-            </h3>
-          </div>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {[
-              { id: "REVENUE", label: "Top Revenue" },
-              { id: "MARGIN", label: "Top Margin %" },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setProfitSort(option.id as ProfitSort)}
-                className={`inline-flex h-9 items-center px-3 rounded-lg text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
-                  profitSort === option.id
-                    ? "bg-brand-gold/20 text-brand-gold border border-brand-gold/40 shadow-sm"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-3 border border-transparent"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px]">
-                <thead className="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Revenue
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Food Cost
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Margin %
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-4">
-                  {sortedProfitability.length ? (
-                    sortedProfitability.map((row) => (
-                      <tr
-                        key={row.item_id}
-                        className="transition-all duration-200 hover:bg-surface-3/50"
-                      >
-                        <td className="px-6 py-4 text-sm font-semibold text-text-primary">
-                          {row.item_title}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {toCurrency(row.revenue)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {toCurrency(row.food_cost)}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-status-success">
-                          {toCurrency(row.gross_margin)}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-brand-gold">
-                          {toPercent(row.margin_pct)}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-6 text-sm text-text-muted"
-                      >
-                        No profitability data available for this period.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+        </div>
       ) : null}
 
       {activeTab === "BRANCHES" ? (
-        <section className="mt-10">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {topBranches.map((branch) => (
-              <article
-                key={branch.id}
-                className="bg-surface-2 rounded-xl p-6 border border-surface-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
+              <article key={branch.id} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
                   {branch.branch}
                 </p>
-                <p className="font-display text-3xl font-semibold text-status-success tracking-tight">
+                <p className="mt-2 font-display text-2xl font-semibold text-status-success">
                   {toCurrency(branch.revenue)}
                 </p>
-                <p className="mt-3 text-xs text-text-muted">
-                  Margin {toPercent(branch.marginPct)}
+                <p className="mt-2 text-xs text-text-muted">
+                  {toPercent(branch.marginPct)} margin
                 </p>
               </article>
             ))}
           </div>
-          <div className="mb-6">
+
+          <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Branch Performance
+              All branches
             </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              Revenue, Cost, and Margin Breakdown
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+              How your locations compare
             </h3>
           </div>
 
-          <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
+          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
             <div className="overflow-x-auto">
               <NativeTable
                 table={branchTable}
                 tableClassName="w-full min-w-[860px]"
-                headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-                bodyClassName="divide-y divide-surface-4"
-                headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-                bodyRowClassName="transition-all duration-200 hover:bg-surface-3/50"
-                cellClassName="px-6 py-4"
+                headerClassName="border-b border-surface-4/80 bg-surface-3/40"
+                bodyClassName="divide-y divide-surface-4/50"
+                headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
+                bodyRowClassName="align-middle transition-colors hover:bg-surface-3/20"
+                cellClassName="px-4 py-3"
               />
             </div>
           </div>
-        </section>
+        </div>
+      ) : null}
+
+      {activeTab === "ACCURACY" ? (
+        <div className="space-y-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              Forecast accuracy
+            </p>
+            <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+              How well PrepIQ predicted demand
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">{timeframeLabel}</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Accuracy</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
+                {toPercent(forecastImpact?.accuracy_pct ?? 0)}
+              </p>
+              <p className="mt-2 text-xs text-text-muted">How often we got it right</p>
+            </article>
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste prevented</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
+                {toCurrency(forecastImpact?.waste_prevented ?? 0)}
+              </p>
+              <p className="mt-2 text-xs text-text-muted">Compared to prior period</p>
+            </article>
+            <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Stockout revenue saved</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-status-success">
+                {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
+              </p>
+              <p className="mt-2 text-xs text-text-muted">Revenue you didn&apos;t lose</p>
+            </article>
+          </div>
+        </div>
       ) : null}
 
       {activeTab === "TRENDS" ? (
-        <section className="mt-10">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Cost Trends
+                Cost trends
               </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-                Revenue, Waste, Food Cost, Margin
+              <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
+                How your numbers have moved
               </h3>
+              <p className="mt-1 text-sm text-text-secondary">{timeframeLabel}</p>
             </div>
             <button
               type="button"
               onClick={exportTrendCsv}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-3 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-text-primary transition-all duration-200 hover:bg-surface-4 hover:border-brand-gold hover:text-brand-gold active:scale-[0.98]"
               disabled={!costTrends.length}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download className="h-4 w-4" />
-              Download Trend CSV
+              <Download className="h-3.5 w-3.5" />
+              Download CSV
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {[
-              {
-                label: "Revenue",
-                color: "text-status-success",
-                series: trendSeries.revenue,
-              },
-              {
-                label: "Food Cost",
-                color: "text-text-secondary",
-                series: trendSeries.food,
-              },
-              {
-                label: "Waste Cost",
-                color: "text-status-critical",
-                series: trendSeries.waste,
-              },
-              {
-                label: "Margin",
-                color: "text-brand-gold",
-                series: trendSeries.margin,
-              },
+              { label: "Revenue", color: "text-status-success", series: trendSeries.revenue },
+              { label: "Food cost", color: "text-text-secondary", series: trendSeries.food },
+              { label: "Waste cost", color: "text-status-critical", series: trendSeries.waste },
+              { label: "Margin", color: "text-brand-gold", series: trendSeries.margin },
             ].map((chart) => {
               const points = buildSparklinePoints(chart.series, 520, 160);
               return (
-                <div
-                  key={chart.label}
-                  className="rounded-xl border border-surface-4 bg-surface-2 p-5"
-                >
+                <div key={chart.label} className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                    {chart.label} Trend
+                    {chart.label}
                   </p>
                   {chart.series.length ? (
                     <div className="mt-4">
@@ -931,9 +696,7 @@ export default function FinancialPage() {
                             <p>{label}</p>
                             <p className="font-semibold text-text-secondary">
                               {toCurrency(
-                                chart.series[
-                                  Math.max(0, chart.series.length - 6 + index)
-                                ] ?? 0,
+                                chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0,
                               )}
                             </p>
                           </div>
@@ -941,16 +704,16 @@ export default function FinancialPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm text-text-muted">
-                      Not enough historical data yet.
-                    </p>
+                    <p className="mt-4 text-sm text-text-muted">Not enough data yet.</p>
                   )}
                 </div>
               );
             })}
           </div>
-        </section>
+        </div>
       ) : null}
+        </>
+      )}
     </WorkspaceShell>
   );
 }

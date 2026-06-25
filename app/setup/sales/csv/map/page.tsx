@@ -18,6 +18,7 @@ import {
   useImportPOSCSV,
   usePreviewPOSCSVImport,
 } from "@/services/production-intelligence/hooks";
+import { useTranslation } from "@/lib/i18n";
 
 const REQUIRED_FIELDS: Array<{
   id: keyof CSVColumnMapping;
@@ -52,6 +53,7 @@ const OPTIONAL_FIELDS: Array<{
 ];
 
 export default function CSVMappingPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const file = useCSVUploadSessionStore((state) => state.file);
   const branchId = useCSVUploadSessionStore((state) => state.branchId);
@@ -70,7 +72,8 @@ export default function CSVMappingPage() {
     unit: "",
     externalRef: "",
   });
-  const [autoCreateItems, setAutoCreateItems] = useState(false);
+  // Default true: new branches have no catalog items, so rows fail without auto-create.
+  const [autoCreateItems, setAutoCreateItems] = useState(true);
   const [mappingError, setMappingError] = useState("");
   const [mappedFile, setMappedFile] = useState<File | null>(null);
   const [isTransitioningAfterImport, setIsTransitioningAfterImport] =
@@ -86,7 +89,7 @@ export default function CSVMappingPage() {
       const result = await parseCSVFile(file);
       const availableHeaders = result.headers.filter(Boolean);
       if (!availableHeaders.length) {
-        setMappingError("CSV has no header row.");
+        setMappingError(t("setup.map.noHeaderRow"));
         return;
       }
       setHeaders(availableHeaders);
@@ -106,9 +109,9 @@ export default function CSVMappingPage() {
 
   const mappingSchema = z
     .object({
-      saleDate: z.string().min(1, "Sale date column is required."),
-      item: z.string().min(1, "Item column is required."),
-      quantity: z.string().min(1, "Quantity column is required."),
+      saleDate: z.string().min(1, t("setup.map.zodRequired.saleDate")),
+      item: z.string().min(1, t("setup.map.zodRequired.item")),
+      quantity: z.string().min(1, t("setup.map.zodRequired.quantity")),
       revenue: z.string().optional(),
       unit: z.string().optional(),
       externalRef: z.string().optional(),
@@ -126,7 +129,7 @@ export default function CSVMappingPage() {
       if (unique.size !== values.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each CSV column can only map to one field.",
+          message: t("setup.map.uniqueMappingRequired"),
         });
       }
       if (headers.length) {
@@ -136,7 +139,7 @@ export default function CSVMappingPage() {
           if (!headerSet.has(value)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Column "${value}" is not in the CSV headers.`,
+              message: t("setup.map.columnNotFound", { value }),
               path: [key],
             });
           }
@@ -150,10 +153,10 @@ export default function CSVMappingPage() {
 
   const selectOptions = useMemo(
     () => [
-      { value: "", label: "Unmapped" },
+      { value: "", label: t("setup.map.unmappedOption") },
       ...headers.map((header) => ({ value: header, label: header })),
     ],
-    [headers],
+    [headers, t],
   );
 
   function handleMapChange(fieldId: keyof CSVColumnMapping, value: string) {
@@ -166,7 +169,7 @@ export default function CSVMappingPage() {
 
     const validation = mappingSchema.safeParse(mapping);
     if (!validation.success) {
-      setMappingError(validation.error.issues[0]?.message ?? "Please fix mapping errors.");
+      setMappingError(validation.error.issues[0]?.message ?? t("setup.map.fixErrors"));
       return;
     }
 
@@ -184,7 +187,7 @@ export default function CSVMappingPage() {
         preview_limit: 50,
       });
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "Failed to preview CSV.");
+      setMappingError(error instanceof Error ? error.message : t("setup.map.failedPreview"));
     }
   }
 
@@ -204,8 +207,8 @@ export default function CSVMappingPage() {
       if (created + updated > 0) {
         toast.success(
           failed > 0
-            ? `Imported ${created + updated} rows (${failed} failed).`
-            : `Import complete: ${created + updated} rows processed.`,
+            ? t("setup.map.importSuccessFailed", { count: created + updated, failed })
+            : t("setup.map.importSuccessAll", { count: created + updated }),
         );
         setIsTransitioningAfterImport(true);
         // In setup flow (no returnPath), go to items confirmation; otherwise return to caller
@@ -214,11 +217,11 @@ export default function CSVMappingPage() {
         return;
       }
 
-      toast.error("No rows were imported. Please check your mapping.");
-      setMappingError("No rows were imported. Please review mapping and try again.");
+      toast.error(t("setup.map.noRowsImportedToast"));
+      setMappingError(t("setup.map.noRowsImportedError"));
     } catch (error) {
-      setMappingError(error instanceof Error ? error.message : "Failed to import CSV.");
-      toast.error(error instanceof Error ? error.message : "Failed to import CSV.");
+      setMappingError(error instanceof Error ? error.message : t("setup.map.failedImport"));
+      toast.error(error instanceof Error ? error.message : t("setup.map.failedImport"));
     }
   }
 
@@ -231,38 +234,37 @@ export default function CSVMappingPage() {
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
           >
-            ← Back
+            {t("setup.staff.back")}
           </button>
           {returnPath ? (
             <button
               onClick={() => router.push(returnPath)}
               className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F] hover:text-[#D6A83A] transition-colors"
             >
-              Back to Live
+              {t("setup.map.backToLive")}
             </button>
           ) : null}
           <span className="h-px flex-1 bg-[#2E2E33]" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Step 2 — Map Columns
+            {t("setup.map.step")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
-          Match your columns
+          {t("setup.map.title")}
         </h1>
         <p className="text-[14px] text-[#8E8E93] mb-8">
-          We found {headers.length} columns in your CSV. Please tell us
-          which column matches the data we need to generate your forecasts.
+          {t("setup.map.description", { count: headers.length })}
         </p>
 
         {/* Mapping Form */}
         <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-5 mb-8">
           <div className="grid grid-cols-2 gap-8 mb-4 px-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Required Data
+              {t("setup.map.requiredDataHeader")}
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
-              Your CSV Column
+              {t("setup.map.csvColumnHeader")}
             </span>
           </div>
 
@@ -286,10 +288,10 @@ export default function CSVMappingPage() {
                     </div>
                     <div>
                       <p className="text-[13px] font-semibold text-[#F5F5F7]">
-                        {field.label}
+                        {t(`setup.map.fields.${field.id}.label` as any)}
                       </p>
                       <p className="text-[12px] text-[#5A5A60] mt-0.5">
-                        {field.description}
+                        {t(`setup.map.fields.${field.id}.desc` as any)}
                       </p>
                     </div>
                   </div>
@@ -321,7 +323,7 @@ export default function CSVMappingPage() {
             onChange={(event) => setAutoCreateItems(event.target.checked)}
             className="accent-[#A8821F]"
           />
-          Auto-create missing items from CSV
+          {t("setup.map.autoCreateItemsLabel")}
         </label>
 
         {mappingError && (
@@ -333,9 +335,12 @@ export default function CSVMappingPage() {
         {!!previewMutation.data && (
           <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-4 text-[13px] text-[#C7C7CC]">
             <p>
-              Preview: {previewMutation.data.valid_rows} valid,{" "}
-              {previewMutation.data.failed_rows} failed, {previewMutation.data.would_create} create,{" "}
-              {previewMutation.data.would_update} update.
+              {t("setup.map.previewInfo", {
+                valid: previewMutation.data.valid_rows,
+                failed: previewMutation.data.failed_rows,
+                create: previewMutation.data.would_create,
+                update: previewMutation.data.would_update,
+              })}
             </p>
             {!!previewMutation.data.warnings.length && (
               <p className="text-[#C48B2A] mt-2">{previewMutation.data.warnings[0]}</p>
@@ -357,10 +362,10 @@ export default function CSVMappingPage() {
           {previewMutation.isPending ? (
             <>
               <Spinner size="sm" color="#F5F5F7" />
-              Validating...
+              {t("setup.map.validating")}
             </>
           ) : (
-            "Validate Mapping"
+            t("setup.map.validateButton")
           )}
         </button>
 
@@ -374,11 +379,11 @@ export default function CSVMappingPage() {
           {importMutation.isPending ? (
             <>
               <Spinner size="sm" color="#141416" />
-              Importing...
+              {t("setup.map.importing")}
             </>
           ) : (
             <>
-              Import Sales Data
+              {t("setup.map.importButton")}
               <ArrowRight className="h-4 w-4" />
             </>
           )}

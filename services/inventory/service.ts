@@ -1,6 +1,7 @@
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { inventoryEndpoints } from "./endpoints";
 import {
+  catalogItemsResponseSchema,
   ingredientSchema,
   ingredientsResponseSchema,
   menuItemSchema,
@@ -22,6 +23,18 @@ export type IngredientPayload = {
   shelf_life_days?: number | null;
   is_perishable: boolean;
 };
+
+// ============================================================================
+// SERVICE FUNCTIONS - CATALOG ITEMS
+// ============================================================================
+
+export async function getCatalogItems(organizationId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.catalogItems.list(organizationId),
+    catalogItemsResponseSchema,
+    { method: "GET" }
+  );
+}
 
 // ============================================================================
 // SERVICE FUNCTIONS - INGREDIENTS
@@ -181,10 +194,10 @@ export async function getPrepBatches(branchId: string) {
 // SERVICE FUNCTIONS - INGREDIENT DEMAND
 // ============================================================================
 
-export async function calculateIngredientDemand(branchId: string, date: string) {
+export async function calculateIngredientDemand(branchId: string, date: string, productId?: string) {
   return apiClientWithSchema(
     inventoryEndpoints.demand.calculate,
     ingredientDemandSchema,
-    { method: "POST", body: { branch_id: branchId, date } }
+    { method: "POST", body: { branch_id: branchId, date, ...(productId ? { product_id: productId } : {}) } }
   );
 }

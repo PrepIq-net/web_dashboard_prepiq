@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  getCatalogItems,
   getIngredients,
   getMenuItems,
   createMenuItem,
@@ -23,6 +24,8 @@ import {
 
 export const inventoryQueryKeys = {
   all: ["inventory"] as const,
+  catalogItems: (organizationId: string) =>
+    [...inventoryQueryKeys.all, "catalogItems", organizationId] as const,
   ingredients: (organizationId: string) =>
     [...inventoryQueryKeys.all, "ingredients", organizationId] as const,
   menuItems: (branchId: string) =>
@@ -38,6 +41,20 @@ export const inventoryQueryKeys = {
   ingredientDemand: (branchId: string, date: string) =>
     [...inventoryQueryKeys.all, "ingredientDemand", branchId, date] as const,
 };
+
+// ============================================================================
+// HOOKS - CATALOG ITEMS
+// ============================================================================
+
+export function useCatalogItems(organizationId: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.catalogItems(organizationId),
+    queryFn: () => getCatalogItems(organizationId),
+    enabled: enabled && Boolean(organizationId),
+    select: (data) => data.data.results,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 // ============================================================================
 // HOOKS - INGREDIENTS
@@ -198,8 +215,8 @@ export function usePrepBatches(branchId: string, enabled = true) {
 // HOOKS - INGREDIENT DEMAND
 // ============================================================================
 
-export function useIngredientDemand(branchId: string, date: string, enabled = true) {
+export function useIngredientDemand(branchId: string, date: string, productId?: string) {
   return useMutation({
-    mutationFn: () => calculateIngredientDemand(branchId, date),
+    mutationFn: () => calculateIngredientDemand(branchId, date, productId),
   });
 }
