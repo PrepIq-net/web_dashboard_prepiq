@@ -2,6 +2,7 @@
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 
+import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -9,11 +10,11 @@ import {
   CheckCircle,
   Coins,
   Download,
-  GraphUp,
   Sparks,
+  WarningTriangle,
+  ArrowUpCircle,
 } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { Select } from "@/components/ui/select";
 import {
   useBranches,
   useCurrentSubscription,
@@ -59,6 +60,39 @@ function limitLabel(value?: number | null) {
   return String(value);
 }
 
+function parseMoney(value: string | number | undefined | null): number {
+  if (value == null) return 0;
+  if (typeof value === "number") return value;
+  return parseFloat(String(value).replace(/[^0-9.]/g, "")) || 0;
+}
+
+function daysUntil(dateStr?: string | null): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function subStatusClasses(status: string) {
+  const s = status.toUpperCase();
+  if (s === "ACTIVE")
+    return "border-status-success/30 bg-status-success/10 text-status-success";
+  if (s === "TRIALING")
+    return "border-brand-gold/30 bg-brand-gold/10 text-brand-gold";
+  if (s === "EXPIRED" || s === "CANCELLED")
+    return "border-status-critical/30 bg-status-critical/10 text-status-critical";
+  if (s === "SUSPENDED")
+    return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+  return "border-surface-4 bg-surface-3 text-text-muted";
+}
+
+function planTierClasses(planType: string) {
+  const t = (planType || "").toUpperCase();
+  if (t === "COMMAND") return "bg-brand-gold/15 text-brand-gold";
+  if (t === "INTELLIGENCE") return "bg-[#3F5FBF]/20 text-[#8FAFF5]";
+  return "bg-surface-4 text-text-muted";
+}
+
 export default function BillingPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -76,11 +110,9 @@ export default function BillingPage() {
   const paymentsQuery = usePayments({
     branch_id: selectedBranchId || undefined,
   });
-
-  const roiQuery = useOwnerMarginProtectionReport({
-    branch_id: selectedBranchId || undefined,
-  });
-
+  const roiQuery = useOwnerMarginProtectionReport(
+    selectedBranchId ? { branch_id: selectedBranchId } : undefined,
+  );
   const pricingQuery = useSubscriptionPlanPricing({
     branch_id: selectedBranchId || undefined,
   });
@@ -111,13 +143,6 @@ export default function BillingPage() {
     [branches],
   );
 
-  const branchOptions = useMemo(
-    () => [
-      { value: "", label: "All Locations" },
-      ...activeBranches.map((b: Branch) => ({ value: b.id, label: b.name })),
-    ],
-    [activeBranches],
-  );
   const primaryBranch =
     activeBranches.find((branch: Branch) => branch.is_primary) ??
     activeBranches[0] ??
@@ -133,17 +158,6 @@ export default function BillingPage() {
     );
     return active ?? branchSubs[0] ?? null;
   }, [subscriptions, primaryBranch]);
-
-  const planMix = useMemo(() => {
-    const counts = new Map<string, number>();
-    summarySubscriptions.forEach((sub: SubscriptionList) => {
-      const key = sub.plan_type || sub.plan_name || "Plan";
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    });
-    return Array.from(counts.entries())
-      .map(([key, count]) => `${key} x${count}`)
-      .join(", ");
-  }, [summarySubscriptions]);
 
   const highestTier = useMemo(() => {
     let top = "";
@@ -186,324 +200,555 @@ export default function BillingPage() {
   const latestPayment = payments[0];
   const invoiceRows = invoices.slice(0, 5);
 
+  // ROI multiplier
+  const protectedRevenue = parseMoney(
+    roiQuery.data?.summary?.total_money_protected_vs_baseline,
+  );
+  const wasteSaved = parseMoney(roiQuery.data?.summary?.total_waste_cost);
+  const totalROI = protectedRevenue + wasteSaved;
+  const roiMultiplier =
+    monthlyTotal > 0 ? (totalROI / monthlyTotal).toFixed(1) : null;
+
+  // Expiry warnings: subscriptions expiring in ≤7 days
+  const expiringWarnings = useMemo(() => {
+    return summarySubscriptions
+      .filter((sub: SubscriptionList) => {
+        const days = daysUntil(sub.next_billing_date);
+        return days !== null && days <= 7 && days >= 0;
+      })
+      .slice(0, 2);
+  }, [summarySubscriptions]);
+
+  const recommendation = pricingQuery.data?.recommendation;
+
+  const currentPlanName =
+    primaryBranchSubscription?.plan_name ??
+    currentSubscriptionQuery.data?.plan?.name ??
+    "No active plan";
+
   return (
     <WorkspaceShell
       eyebrow="Executive"
       title="Billing"
-      description="Plan, subscriptions, and payment operations across all active locations."
+      description="Plan, subscriptions, and ROI across all active locations."
       insight={
-        pricingQuery.data?.recommendation?.reason ??
-        "Branch-level billing is enabled. Review plan mix and upcoming renewals regularly."
+        recommendation?.reason ??
+        "Review your plan mix and upcoming renewals regularly."
       }
     >
-      <section className="pb-8 border-b border-[#2A2A2E]">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">
-              Current Plan
-            </p>
-            <p className="mt-2 font-display text-[28px] leading-[34px] text-[#F5F5F7]">
-              {primaryBranchSubscription?.plan_name ??
-                currentSubscriptionQuery.data?.plan?.name ??
-                "No active plan"}
-            </p>
-            <p className="mt-1 text-[13px] text-[#A0A0A5]">
-              {planMix || "No subscriptions yet"} · Highest tier: {highestTier}
+      {/* ── Expiry warnings ── */}
+      {expiringWarnings.map((sub: SubscriptionList) => {
+        const days = daysUntil(sub.next_billing_date);
+        return (
+          <div
+            key={sub.id}
+            className="mb-4 flex items-center gap-3 rounded-xl border border-status-warning/30 bg-status-warning/8 px-4 py-3"
+          >
+            <WarningTriangle className="h-4 w-4 shrink-0 text-status-warning" />
+            <p className="text-sm text-text-primary">
+              <span className="font-semibold">{sub.branch_name}</span>{" "}
+              subscription renews in{" "}
+              <span className="font-semibold text-status-warning">
+                {days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"}`}
+              </span>{" "}
+              · {formatDate(sub.next_billing_date)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="rounded-full border border-[#2A2A2E] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#F5F5F7] hover:border-[#3A3A3E]">
+        );
+      })}
+
+      {/* ── Upgrade recommendation banner ── */}
+      {recommendation &&
+        recommendation.recommended_plan_type !==
+          recommendation.current_plan_type && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-gold/25 bg-brand-gold/6 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <ArrowUpCircle className="h-4 w-4 shrink-0 text-brand-gold" />
+              <p className="text-sm text-text-primary">
+                <span className="font-semibold text-brand-gold">
+                  Upgrade recommended
+                </span>{" "}
+                — {recommendation.reason}
+              </p>
+            </div>
+            <Link
+              href="/workspace/settings?tab=plan"
+              className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
+            >
+              View Plans
+            </Link>
+          </div>
+        )}
+
+      {/* ── Section 1: Plan snapshot ── */}
+      <section className="border-b border-surface-4/60 pb-8 mb-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Current Plan
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <p className="text-2xl font-semibold text-text-primary">
+                {currentPlanName}
+              </p>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(highestTier)}`}
+              >
+                {highestTier}
+              </span>
+              {primaryBranchSubscription?.billing_cycle && (
+                <span className="inline-flex items-center rounded-full border border-surface-4 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-muted">
+                  {primaryBranchSubscription.billing_cycle}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/workspace/branches/new"
+              className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            >
+              + Add Location
+            </Link>
+            <Link
+              href="/workspace/settings?tab=plan"
+              className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
+            >
               Upgrade Plan
-            </button>
-            <button className="rounded-full border border-[#2A2A2E] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#F5F5F7] hover:border-[#3A3A3E]">
-              Add Location
-            </button>
-            <button className="rounded-full border border-[#3A2A2A] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#E58D8D] hover:border-[#4A2F2F]">
-              Cancel Subscription
-            </button>
+            </Link>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Monthly Total
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Monthly spend
             </p>
-            <p className="mt-2 font-display text-[26px] text-[#F5F5F7]">
-              {formatCurrency(monthlyTotal)}
+            <p className="mt-2 text-2xl font-semibold text-text-primary">
+              {monthlyTotal > 0 ? formatCurrency(monthlyTotal) : "—"}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              {summarySubscriptions.length} active subscription
+              {summarySubscriptions.length !== 1 ? "s" : ""}
             </p>
           </article>
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Active Locations
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Active locations
             </p>
-            <p className="mt-2 font-display text-[26px] text-[#F5F5F7]">
+            <p className="mt-2 text-2xl font-semibold text-text-primary">
               {activeBranches.length}
+              {maxBranches ? (
+                <span className="ml-1 text-sm font-normal text-text-muted">
+                  / {maxBranches}
+                </span>
+              ) : null}
             </p>
+            {maxBranches && activeBranches.length >= maxBranches ? (
+              <p className="mt-1 text-xs text-status-warning">
+                At plan limit — upgrade to add more
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-text-muted">
+                {maxBranches
+                  ? `${maxBranches - activeBranches.length} slot${maxBranches - activeBranches.length !== 1 ? "s" : ""} remaining`
+                  : "Unlimited"}
+              </p>
+            )}
           </article>
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Next Billing Date
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Next billing
             </p>
-            <p className="mt-2 font-display text-[26px] text-[#F5F5F7]">
-              {nextBillingDate
-                ? formatDate(nextBillingDate.toISOString())
-                : "—"}
+            <p className="mt-2 text-2xl font-semibold text-text-primary">
+              {nextBillingDate ? formatDate(nextBillingDate.toISOString()) : "—"}
             </p>
+            {nextBillingDate && (
+              <p className="mt-1 text-xs text-text-muted">
+                {(() => {
+                  const d = daysUntil(nextBillingDate.toISOString());
+                  if (d === null) return "";
+                  if (d <= 0) return "Due today";
+                  if (d <= 7)
+                    return (
+                      <span className="text-status-warning">
+                        in {d} day{d !== 1 ? "s" : ""}
+                      </span>
+                    );
+                  return `in ${d} days`;
+                })()}
+              </p>
+            )}
           </article>
         </div>
       </section>
 
-      {/* Section 5 - Usage Summary (ROI) */}
-      <section className="mt-10">
-        <div className="flex items-center gap-2">
-          <GraphUp className="h-4 w-4 text-brand-gold" />
-          <p className="text-[12px] uppercase tracking-[0.16em] text-[#8E8E93]">
-            PrepIQ Impact This Month —{" "}
-            {selectedBranchId
-              ? activeBranches.find((b: Branch) => b.id === selectedBranchId)
-                  ?.name
-              : "All Locations"}
-          </p>
+      {/* ── Section 2: PrepIQ ROI ── */}
+      <section className="border-b border-surface-4/60 pb-8 mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2.5">
+            <Brain className="h-4 w-4 text-brand-gold" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              PrepIQ return this month
+            </p>
+          </div>
+          {roiMultiplier && Number(roiMultiplier) > 0 && (
+            <div className="flex items-center gap-2 rounded-full border border-brand-gold/25 bg-brand-gold/8 px-3 py-1">
+              <span className="text-sm font-bold text-brand-gold">
+                {roiMultiplier}×
+              </span>
+              <span className="text-xs text-text-muted">return on spend</span>
+            </div>
+          )}
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <article className="rounded-2xl border border-[#2A2A2E] bg-gradient-to-b from-[#16161A] to-[#121215] px-5 py-5 transition-transform hover:scale-[1.02]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1C2A22] text-[#3F8F68]">
-                <Coins className="h-4 w-4" />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-status-success/10">
+                <Coins className="h-4 w-4 text-status-success" />
               </div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                Waste Saved
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Waste saved
               </p>
             </div>
-            <p className="mt-4 font-display text-[24px] font-semibold text-[#F5F5F7]">
-              {roiQuery.data?.summary?.total_waste_cost ?? "$0"}
+            <p className="text-2xl font-semibold text-text-primary">
+              {roiQuery.data?.summary?.total_waste_cost ?? "—"}
             </p>
-            <p className="mt-1 text-[12px] text-[#3F8F68]">
-              Estimated leakage protected
+            <p className="mt-1 text-xs text-text-muted">
+              Food cost protected
             </p>
           </article>
 
-          <article className="rounded-2xl border border-[#2A2A2E] bg-gradient-to-b from-[#16161A] to-[#121215] px-5 py-5 transition-transform hover:scale-[1.02]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A241C] text-brand-gold">
-                <Sparks className="h-4 w-4" />
+          <article className="rounded-xl border border-brand-gold/20 bg-surface-2 px-5 py-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gold/10">
+                <Brain className="h-4 w-4 text-brand-gold" />
               </div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                Accuracy
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-gold/80">
+                Revenue protected
               </p>
             </div>
-            <p className="mt-4 font-display text-[24px] font-semibold text-[#F5F5F7]">
+            <p className="text-2xl font-semibold text-brand-gold">
+              {roiQuery.data?.summary?.total_money_protected_vs_baseline ?? "—"}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              vs. baseline without AI
+            </p>
+          </article>
+
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3F5FBF]/15">
+                <Sparks className="h-4 w-4 text-[#8FAFF5]" />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Forecast accuracy
+              </p>
+            </div>
+            <p className="text-2xl font-semibold text-text-primary">
               {roiQuery.data?.summary?.forecast_accuracy_avg_pct
                 ? `${Math.round(roiQuery.data.summary.forecast_accuracy_avg_pct)}%`
                 : "—"}
             </p>
-            <p className="mt-1 text-[12px] text-[#A0A0A5]">
-              Mean forecast performance
+            <p className="mt-1 text-xs text-text-muted">
+              Mean prediction performance
             </p>
           </article>
 
-          <article className="rounded-2xl border border-[#2A2A2E] bg-gradient-to-b from-[#16161A] to-[#121215] px-5 py-5 transition-transform hover:scale-[1.02]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1C202A] text-[#5E81AC]">
-                <CheckCircle className="h-4 w-4" />
+          <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-4">
+                <CheckCircle className="h-4 w-4 text-text-muted" />
               </div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-                Status
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
+                Model status
               </p>
             </div>
-            <p className="mt-4 font-display text-[24px] font-semibold text-[#F5F5F7]">
+            <p className="text-2xl font-semibold text-text-primary">
               {roiQuery.data?.summary?.margin_reliability?.is_reliable
                 ? "Reliable"
                 : "Learning"}
             </p>
-            <p className="mt-1 text-[12px] text-[#A0A0A5]">
+            <p className="mt-1 text-xs text-text-muted">
               {roiQuery.data?.summary?.margin_reliability?.warning ??
-                "Impact model is stable"}
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#1C1C1F] px-5 py-5 transition-transform hover:scale-[1.02] border-brand-gold/20 shadow-[0_0_20px_rgba(168,130,31,0.05)]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A241C] text-brand-gold">
-                <Brain className="h-4 w-4" />
-              </div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-brand-gold">
-                Protected Revenue
-              </p>
-            </div>
-            <p className="mt-4 font-display text-[24px] font-semibold text-brand-gold">
-              {roiQuery.data?.summary?.total_money_protected_vs_baseline ??
-                "$0"}
-            </p>
-            <p className="mt-1 text-[12px] text-brand-gold/70">
-              Direct PrepIQ value
+                "Impact model stable"}
             </p>
           </article>
         </div>
       </section>
 
-      <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <p className="text-[12px] uppercase tracking-[0.16em] text-[#8E8E93]">
-            Location Billing
+      {/* ── Section 3: Location subscriptions ── */}
+      <section className="border-b border-surface-4/60 pb-8 mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Location subscriptions
           </p>
-          <div className="flex items-center gap-3">
-            <Select
-              options={branchOptions}
-              value={selectedBranchId}
-              onChange={setSelectedBranchId}
-              className="min-w-[180px]"
-            />
-            <button className="rounded-full border border-[#2A2A2E] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[#F5F5F7] hover:bg-[#1C1C21]">
-              Add Location
-            </button>
-            <button className="rounded-full border border-[#2A2A2E] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[#F5F5F7] hover:bg-[#1C1C21]">
-              Change Plan
-            </button>
-          </div>
+          <Link
+            href="/workspace/branches/new"
+            className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+          >
+            + Add Location
+          </Link>
         </div>
-        <div className="mt-4 space-y-3">
-          {activeBranches.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[#2A2A2E] p-6 text-sm text-[#8E8E93]">
-              No active locations yet.
-            </div>
-          )}
-          {activeBranches.map((branch: Branch) => {
-            const branchSubs = subscriptions.filter(
-              (sub: SubscriptionList) => sub.branch === branch.id,
-            );
-            const activeSub = branchSubs.find(
-              (sub: SubscriptionList) => sub.status === "ACTIVE",
-            );
-            const latestSub = activeSub ?? branchSubs[0];
-            return (
-              <div
-                key={branch.id}
-                className="flex flex-col gap-3 rounded-2xl border border-[#2A2A2E] bg-[#16161A] px-5 py-4 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="text-[15px] font-medium text-[#F5F5F7]">
-                      {branch.name}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-[12px] text-[#8E8E93]">
-                        {latestSub?.plan_name ?? "Core"} Plan
-                      </span>
-                      <span className="h-1 w-1 rounded-full bg-[#2A2A2E]" />
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
-                          latestSub?.status === "ACTIVE"
-                            ? "bg-[#1C2A22] text-[#3F8F68]"
-                            : "bg-[#232326] text-[#8E8E93]"
-                        }`}
+
+        {activeBranches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-4 py-12 text-center">
+            <p className="text-sm font-medium text-text-primary">
+              No active locations
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Add your first location to start a subscription.
+            </p>
+            <Link
+              href="/workspace/branches/new"
+              className="mt-4 inline-flex h-9 items-center rounded-full bg-brand-gold px-5 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E]"
+            >
+              + Add Location
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeBranches.map((branch: Branch) => {
+              const branchSubs = subscriptions.filter(
+                (sub: SubscriptionList) => sub.branch === branch.id,
+              );
+              const activeSub = branchSubs.find(
+                (sub: SubscriptionList) => sub.status === "ACTIVE",
+              );
+              const latestSub = activeSub ?? branchSubs[0];
+              const daysLeft = daysUntil(latestSub?.next_billing_date);
+              const monthlyPrice = latestSub
+                ? (() => {
+                    const raw = Number(latestSub.price_at_subscription ?? 0);
+                    const cycle = String(
+                      latestSub.billing_cycle ?? "",
+                    ).toLowerCase();
+                    return cycle === "yearly" ? raw / 12 : raw;
+                  })()
+                : null;
+
+              return (
+                <div
+                  key={branch.id}
+                  className="flex flex-col gap-4 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="flex flex-wrap items-center gap-4 min-w-0">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-text-primary truncate">
+                          {branch.name}
+                        </p>
+                        {branch.is_primary && (
+                          <span className="shrink-0 rounded-full border border-surface-4 px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {latestSub?.plan_type && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(latestSub.plan_type)}`}
+                          >
+                            {latestSub.plan_name ?? latestSub.plan_type}
+                          </span>
+                        )}
+                        {latestSub?.status && (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${subStatusClasses(latestSub.status)}`}
+                          >
+                            {latestSub.status === "ACTIVE" &&
+                            latestSub.is_currently_active
+                              ? "Active"
+                              : latestSub.status}
+                          </span>
+                        )}
+                        {!latestSub && (
+                          <span className="inline-flex items-center rounded-full border border-surface-4 bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                            No subscription
+                          </span>
+                        )}
+                        {latestSub?.billing_cycle && (
+                          <span className="text-xs text-text-muted">
+                            ·{" "}
+                            {latestSub.billing_cycle.charAt(0) +
+                              latestSub.billing_cycle.slice(1).toLowerCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-6 shrink-0">
+                    {monthlyPrice !== null && monthlyPrice > 0 ? (
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {formatCurrency(monthlyPrice)}
+                          <span className="ml-1 text-xs font-normal text-text-muted">
+                            /mo
+                          </span>
+                        </p>
+                        {daysLeft !== null && daysLeft <= 14 ? (
+                          <p
+                            className={`text-[11px] ${daysLeft <= 3 ? "text-status-warning" : "text-text-muted"}`}
+                          >
+                            Renews {daysLeft === 0 ? "today" : `in ${daysLeft}d`}
+                          </p>
+                        ) : latestSub?.next_billing_date ? (
+                          <p className="text-[11px] text-text-muted">
+                            {formatDate(latestSub.next_billing_date)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/workspace/settings?tab=plan&branch=${branch.id}`}
+                        className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
                       >
-                        {latestSub?.status ?? "TRIALING"}
-                      </span>
+                        Change Plan
+                      </Link>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button className="rounded-full border border-[#2A2A2E] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-[#F5F5F7]">
-                    Remove
-                  </button>
-                  <button className="rounded-full border border-[#2A2A2E] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] text-[#F5F5F7]">
-                    Change Plan
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      <section className="mt-10">
-        <p className="text-[12px] uppercase tracking-[0.16em] text-[#8E8E93]">
-          Plan Limits & Usage
-        </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Locations
-            </p>
-            <p className="mt-2 text-[18px] text-[#F5F5F7]">
-              {activeBranches.length} / {limitLabel(maxBranches)}
-            </p>
-            {maxBranches && (
-              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[#2A2A2E]">
-                <div
-                  className="h-full bg-brand-gold transition-all duration-500"
-                  style={{
-                    width: `${Math.min(100, (activeBranches.length / maxBranches) * 100)}%`,
-                  }}
-                />
-              </div>
-            )}
-          </article>
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Staff Per Location
-            </p>
-            <p className="mt-2 text-[18px] text-[#F5F5F7]">
-              {limitLabel(maxStaffPerBranch)}
-            </p>
-          </article>
-          <article className="rounded-2xl border border-[#2A2A2E] bg-[#151518] px-4 py-4">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
-              Total Staff
-            </p>
-            <p className="mt-2 text-[18px] text-[#F5F5F7]">
-              {limitLabel(maxTotalStaff)}
-            </p>
-          </article>
-        </div>
-      </section>
-
-      {/* Section 4 - Billing History */}
-      <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <p className="text-[12px] uppercase tracking-[0.16em] text-[#8E8E93]">
-            Billing History
+      {/* ── Section 4: Plan limits ── */}
+      {(maxBranches || maxStaffPerBranch || maxTotalStaff) && (
+        <section className="border-b border-surface-4/60 pb-8 mb-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+            Plan limits & usage
           </p>
-        </div>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-[#2A2A2E] bg-[#16161A]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {maxBranches && (
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Locations
+                  </p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {activeBranches.length}
+                    <span className="font-normal text-text-muted">
+                      {" "}
+                      / {limitLabel(maxBranches)}
+                    </span>
+                  </p>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-4">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      activeBranches.length >= maxBranches
+                        ? "bg-status-warning"
+                        : "bg-brand-gold"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, (activeBranches.length / maxBranches) * 100)}%`,
+                    }}
+                  />
+                </div>
+                {activeBranches.length >= maxBranches && (
+                  <p className="mt-2 text-xs text-status-warning">
+                    At limit — upgrade to add more
+                  </p>
+                )}
+              </article>
+            )}
+            {maxStaffPerBranch && (
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Staff / location
+                  </p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {limitLabel(maxStaffPerBranch)}
+                  </p>
+                </div>
+                <p className="text-xs text-text-muted">
+                  Max staff per branch on this plan
+                </p>
+              </article>
+            )}
+            {maxTotalStaff && (
+              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    Total staff
+                  </p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {limitLabel(maxTotalStaff)}
+                  </p>
+                </div>
+                <p className="text-xs text-text-muted">
+                  Org-wide staff allowance
+                </p>
+              </article>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Section 5: Billing history ── */}
+      <section className="border-b border-surface-4/60 pb-8 mb-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+          Billing history
+        </p>
+        <div className="overflow-hidden rounded-xl border border-surface-4">
           {invoiceRows.length === 0 ? (
-            <div className="p-10 text-center text-sm text-[#8E8E93]">
-              No transactions detected in this billing cycle.
+            <div className="px-6 py-10 text-center text-sm text-text-muted">
+              No invoices yet.
             </div>
           ) : (
-            <div className="divide-y divide-[#2A2A2E]">
+            <div className="divide-y divide-surface-4/60">
               {invoiceRows.map((invoice: Invoice) => (
                 <div
                   key={invoice.id}
-                  className="group flex flex-col items-start gap-4 p-5 hover:bg-[#1C1C21] md:flex-row md:items-center md:justify-between"
+                  className="group flex flex-col gap-4 px-5 py-4 hover:bg-surface-3/50 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#232326] text-[#8E8E93] group-hover:bg-[#2A2A2F] group-hover:text-[#F5F5F7]">
-                      <Download className="h-5 w-5" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-text-muted group-hover:text-text-secondary">
+                      <Download className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-[14px] font-medium text-[#F5F5F7]">
-                        {invoice.invoice_number} ·{" "}
-                        {invoice.branch_name ?? "Enterprise Plan"}
+                      <p className="text-sm font-medium text-text-primary">
+                        {invoice.invoice_number}
+                        {invoice.branch_name
+                          ? ` · ${invoice.branch_name}`
+                          : ""}
                       </p>
-                      <p className="mt-0.5 text-[12px] text-[#8E8E93]">
-                        {formatDate(invoice.issue_date)} ·{" "}
-                        {invoice.payment_status}
-                      </p>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-text-muted">
+                        <span>{formatDate(invoice.issue_date)}</span>
+                        {invoice.payment_status && (
+                          <>
+                            <span>·</span>
+                            <span
+                              className={
+                                invoice.is_paid
+                                  ? "text-status-success"
+                                  : "text-text-muted"
+                              }
+                            >
+                              {invoice.payment_status}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex w-full items-center justify-between gap-6 md:w-auto">
-                    <p className="text-[14px] font-semibold text-[#F5F5F7]">
+                  <div className="flex items-center justify-between gap-6 md:justify-end">
+                    <p className="text-sm font-semibold text-text-primary">
                       {formatCurrency(Number(invoice.total_amount ?? 0))}
                     </p>
                     <button
                       onClick={() => handleDownloadInvoice(invoice.id)}
-                      className="flex items-center gap-2 rounded-lg border border-[#2A2A2E] px-3 py-1.5 text-[12px] text-[#F5F5F7] transition-colors hover:bg-[#2A2A2E] active:scale-95"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary active:scale-95"
                     >
-                      <Download className="h-3.5 w-3.5 text-[#8E8E93]" />
-                      Download Invoice
+                      <Download className="h-3 w-3" />
+                      Download
                     </button>
                   </div>
                 </div>
@@ -512,44 +757,46 @@ export default function BillingPage() {
           )}
         </div>
         {invoiceRows.length > 0 && (
-          <p className="mt-3 text-center text-[12px] text-[#636366]">
-            Showing last 5 invoices. Includes PDF receipts and local tax
-            information.
+          <p className="mt-2 text-center text-xs text-text-muted">
+            Showing last 5 invoices
           </p>
         )}
       </section>
 
-      <section className="mt-10">
-        <p className="text-[12px] uppercase tracking-[0.16em] text-[#8E8E93]">
-          Payment Method
+      {/* ── Section 6: Payment method ── */}
+      <section>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+          Payment method
         </p>
-        <div className="mt-4 rounded-2xl border border-[#2A2A2E] bg-[#16161A] px-5 py-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[15px] text-[#F5F5F7]">
+              <p className="text-sm font-medium text-text-primary">
                 {latestPayment?.payment_method
-                  ? latestPayment.payment_method.replace(/_/g, " ")
+                  ? latestPayment.payment_method
+                      .replace(/_/g, " ")
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c) => c.toUpperCase())
                   : "No payment method on file"}
               </p>
-              <p className="mt-1 text-[12px] text-[#8E8E93]">
-                Last charge{" "}
+              <p className="mt-0.5 text-xs text-text-muted">
                 {latestPayment?.completed_at
-                  ? formatDate(latestPayment.completed_at)
-                  : "—"}
+                  ? `Last charge ${formatDate(latestPayment.completed_at)}`
+                  : "No charges recorded"}
                 {latestPayment?.branch_name
                   ? ` · ${latestPayment.branch_name}`
                   : ""}
               </p>
+              {latestPayment?.payer_email && (
+                <p className="mt-1 text-xs text-text-muted">
+                  Billing email: {latestPayment.payer_email}
+                </p>
+              )}
             </div>
-            <button className="rounded-full border border-[#2A2A2E] px-4 py-2 text-[11px] uppercase tracking-[0.16em] text-[#F5F5F7]">
+            <button className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary">
               Update Payment Method
             </button>
           </div>
-          {latestPayment?.payer_email && (
-            <p className="mt-3 text-[12px] text-[#8E8E93]">
-              Billing email: {latestPayment.payer_email}
-            </p>
-          )}
         </div>
       </section>
     </WorkspaceShell>
