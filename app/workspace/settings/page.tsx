@@ -75,9 +75,18 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
-import { useCreateConnectorToken } from "@/services/connector/hook";
-import { ClipboardModal } from "@/components/ClipboardModal";
+import {
+  useCreateConnectorToken,
+  usePrepConectors,
+} from "@/services/connector/hook";
+import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ConnectorData,
+  ConnectorList,
+  connectorsDummy,
+} from "@/services/connector/types";
+import { Table } from "@/components/ui/table";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -534,6 +543,15 @@ const POS_SYSTEMS = [
   { id: "lightspeed", name: "Lightspeed" },
 ];
 
+export function generateColumns<T extends Record<string, any>>(data: T[]) {
+  if (!data.length) return [];
+
+  return Object.keys(data[0]).map((key) => ({
+    key,
+    header: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  }));
+}
+
 const PREP_CNECTORON = [{ id: "connect", name: "Prep Connector" }];
 
 function IntegrationsSettings({
@@ -547,6 +565,46 @@ function IntegrationsSettings({
 }) {
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
+
+  const { data: orgConnectors } = usePrepConectors(orgId ?? "");
+
+  // const baseColumns = generateColumns<ConnectorList>(
+  //   // @ts-expect-error - type
+  //   orgConnectors?.data ?? [],
+  // ).filter((col) => col.key !== "id");
+
+  const baseColumns = generateColumns<ConnectorList>(
+    // @ts-expect-error - type
+    connectorsDummy,
+  ).filter((col) => col.key !== "id");
+
+  const columns = baseColumns.map((col) => {
+    if (col.key === "is_online") {
+      return {
+        ...col,
+        header: "Online",
+        render: (row: ConnectorData) =>
+          row.is_online ? "🟢 Online" : "🔴 Offline",
+      };
+    }
+
+    if (col.key === "status") {
+      return {
+        ...col,
+        header: "Status",
+        render: (row: ConnectorData) => <span>{row.status}</span>,
+      };
+    }
+    if (col.key == "is_active") {
+      return {
+        ...col,
+        header: "ACTIVE",
+        render: (row: ConnectorData) =>
+          row.is_active ? "🟢 Active" : "🔴 Inactive",
+      };
+    }
+    return col;
+  });
 
   const [selectedBranchId, setSelectedBranchId] = useState(
     focusedBranchId ?? "",
@@ -860,6 +918,11 @@ function IntegrationsSettings({
             </div>
           ))}
         </div>
+        <Table
+          columns={columns}
+          data={connectorsDummy}
+          rowKey={(row) => row.id}
+        />
       </section>
     </div>
   );
