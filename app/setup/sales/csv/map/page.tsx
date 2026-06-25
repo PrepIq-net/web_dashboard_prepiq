@@ -72,7 +72,8 @@ export default function CSVMappingPage() {
     unit: "",
     externalRef: "",
   });
-  const [autoCreateItems, setAutoCreateItems] = useState(false);
+  // Default true: new branches have no catalog items, so rows fail without auto-create.
+  const [autoCreateItems, setAutoCreateItems] = useState(true);
   const [mappingError, setMappingError] = useState("");
   const [mappedFile, setMappedFile] = useState<File | null>(null);
   const [isTransitioningAfterImport, setIsTransitioningAfterImport] =
