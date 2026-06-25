@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
-import { Building, ArrowRight } from "iconoir-react";
+import { Building, ArrowRight, Sparks } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
@@ -310,10 +310,16 @@ export default function CreateBranchPage() {
   return (
     <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
-        <div className="flex items-center gap-2 mb-10">
-          <Building className="h-4 w-4 text-[#A8821F]" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            {t("setup.branch.step")}
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-[#A8821F]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
+              {t("setup.branch.step")}
+            </span>
+          </div>
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A8821F] bg-[#A8821F]/10 border border-[#A8821F]/25 rounded-full px-3 py-1">
+            <Sparks className="h-3 w-3" />
+            30-day Intelligence trial
           </span>
         </div>
 

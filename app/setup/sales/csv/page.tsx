@@ -137,29 +137,31 @@ export default function CSVUploadPage() {
           {t("setup.csv.description")}
         </p>
 
-        <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-6">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
-            {t("setup.csv.branchLabel")}
-          </label>
-          {scopeLoading ? (
-            <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
-              <Spinner size="sm" color="#8E8E93" />
-              {t("setup.csv.loadingBranches")}
-            </div>
-          ) : (
-            <Select
-              label=""
-              options={branches.map((branch) => ({
-                value: branch.id,
-                label: branch.name,
-              }))}
-              value={selectedBranchId}
-              onChange={setBranchId}
-              placeholder={t("setup.csv.selectBranchPlaceholder")}
-              className="space-y-0"
-            />
-          )}
-        </div>
+        {!scopeError && (
+          <div className="rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-4 mb-6">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93] block mb-2">
+              {t("setup.csv.branchLabel")}
+            </label>
+            {scopeLoading ? (
+              <div className="h-11 rounded-[8px] border border-[#2E2E33] bg-[#232327] flex items-center px-3 gap-2 text-[#8E8E93] text-sm">
+                <Spinner size="sm" color="#8E8E93" />
+                {t("setup.csv.loadingBranches")}
+              </div>
+            ) : (
+              <Select
+                label=""
+                options={branches.map((branch) => ({
+                  value: branch.id,
+                  label: branch.name,
+                }))}
+                value={selectedBranchId}
+                onChange={setBranchId}
+                placeholder={t("setup.csv.selectBranchPlaceholder")}
+                className="space-y-0"
+              />
+            )}
+          </div>
+        )}
 
         {/* Drop zone */}
         <div

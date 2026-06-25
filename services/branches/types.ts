@@ -128,20 +128,27 @@ export type CreateDepartmentPayload = z.infer<
 >;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Staff roles — now role-slug based to match the dynamic RBAC system.
-// The invite flow sends a custom_role_slug; the backend resolves it to a Role.
+// Staff roles — backend ORG_MEMBER_ROLE values from branches/models.py
 // ─────────────────────────────────────────────────────────────────────────────
 export const staffRoleEnum = z.enum([
-  "system-super-admin",
-  "system-admin",
-  "system-member",
+  "OWNER",
+  "OPS_DIRECTOR",
+  "ADMIN",
+  "GM",
+  "BRANCH_MANAGER",
+  "STAFF",
+  "AUDITOR",
 ]);
 export type StaffRole = z.infer<typeof staffRoleEnum>;
 
 export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
-  "system-super-admin": "Super Admin",
-  "system-admin": "Admin",
-  "system-member": "Member",
+  OWNER: "Owner",
+  OPS_DIRECTOR: "Operations Director",
+  ADMIN: "Admin",
+  GM: "General Manager",
+  BRANCH_MANAGER: "Branch Manager",
+  STAFF: "Staff",
+  AUDITOR: "Auditor",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,7 +183,7 @@ export type StaffInvite = z.infer<typeof staffInviteSchema>;
 /** POST /<org_id>/invites/ */
 export const createStaffInvitePayloadSchema = z.object({
   email: z.string().email("Valid email required"),
-  role: staffRoleEnum,
+  role: z.string(),
   /**
    * Required when role is BRANCH_MANAGER or STAFF.
    * Must NOT be provided for OWNER, ADMIN, AUDITOR.

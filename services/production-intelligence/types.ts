@@ -1277,33 +1277,24 @@ export const salesDataValidationSchema = z.object({
 export type SalesDataValidation = z.infer<typeof salesDataValidationSchema>;
 
 export const setupForecastWOWSchema = z.object({
-  branch_id: z.string().uuid(),
   branch_name: z.string(),
-  target_date: z.string(),
-  has_sales_data: z.boolean(),
   lookback_days: z.number(),
-  sales_rows: z.number(),
-  distinct_items: z.number(),
   first_real_insight: z.object({
-    yesterday: z.string(),
+    item_title: z.string(),
     forecast_quantity: z.number(),
     prepared_quantity: z.number(),
     sold_quantity: z.number(),
-    waste_cost: z.string(),
+    waste_cost: z.number(),
   }),
   performance: z.object({
-    total_quantity_28d: z.number(),
-    total_revenue_28d: z.string(),
-    days_with_sales: z.number(),
-    trend_percentage: z.number(),
     top_items: z.array(
       z.object({
-        item_id: z.string().uuid(),
+        item_id: z.string(),
         item_title: z.string(),
         unit: z.string(),
         trend_percentage: z.number(),
         projected_quantity_next_weeks: z.array(z.number()),
-        last_28d_revenue: z.string(),
+        last_28d_revenue: z.number(),
       }),
     ),
   }),
@@ -1313,15 +1304,14 @@ export const setupForecastWOWSchema = z.object({
       start_date: z.string(),
       end_date: z.string(),
       projected_quantity: z.number(),
-      projected_revenue: z.string(),
-      confidence_score: z.number(),
+      projected_revenue: z.number(),
     }),
   ),
   money_leakage: z.object({
-    waste_cost_30d: z.string(),
-    refund_leakage_30d: z.string(),
-    potential_savings_21d: z.string(),
-    projected_revenue_21d: z.string(),
+    waste_cost_30d: z.number(),
+    refund_leakage_30d: z.number(),
+    potential_savings_21d: z.number(),
+    projected_revenue_21d: z.number(),
   }),
   playbook: z.array(z.string()),
 });

@@ -47,6 +47,7 @@ export default function ItemConfirmationPage() {
   const [overrides, setOverrides] = useState<Record<string, { category?: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recipeProgress, setRecipeProgress] = useState<{ done: number; total: number } | null>(null);
+  const [failedItemIds, setFailedItemIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const items = useMemo(() => {
@@ -60,6 +61,21 @@ export default function ItemConfirmationPage() {
     setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], category } }));
   }
 
+  async function runRecipeGeneration(targetItems: typeof items) {
+    const failed: string[] = [];
+    setRecipeProgress({ done: 0, total: targetItems.length });
+    for (let i = 0; i < targetItems.length; i++) {
+      try {
+        await autoGenerateRecipe.mutateAsync(targetItems[i].id);
+      } catch {
+        failed.push(targetItems[i].id);
+      }
+      setRecipeProgress({ done: i + 1, total: targetItems.length });
+    }
+    setFailedItemIds(failed);
+    return failed;
+  }
+
   async function handleConfirm() {
     if (!items.length) {
       router.push("/setup/forecast");
@@ -68,28 +84,33 @@ export default function ItemConfirmationPage() {
 
     setIsSubmitting(true);
     setError(null);
+    setFailedItemIds([]);
 
     try {
-      // 1. Patch any category overrides (PATCH each changed item)
-      // We skip this for now since MenuItemCreateSerializer handles category on create.
-      // Category changes on existing items would need a PATCH endpoint — skipping for setup flow.
-
-      // 2. Auto-generate recipes for all items
-      setRecipeProgress({ done: 0, total: items.length });
-      for (let i = 0; i < items.length; i++) {
-        try {
-          await autoGenerateRecipe.mutateAsync(items[i].id);
-        } catch {
-          // Non-fatal — recipe generation failure shouldn't block setup
-        }
-        setRecipeProgress({ done: i + 1, total: items.length });
+      const failed = await runRecipeGeneration(items);
+      if (failed.length === 0) {
+        router.push("/setup/forecast");
+      } else {
+        setIsSubmitting(false);
+        setRecipeProgress(null);
       }
-
-      router.push("/setup/forecast");
     } catch (err) {
       setError(t("setup.items.errorMessage"));
       setIsSubmitting(false);
       setRecipeProgress(null);
+    }
+  }
+
+  async function handleRetryFailed() {
+    const failedItems = items.filter((item) => failedItemIds.includes(item.id));
+    if (!failedItems.length) return;
+    setIsSubmitting(true);
+    setError(null);
+    const stillFailed = await runRecipeGeneration(failedItems);
+    setIsSubmitting(false);
+    setRecipeProgress(null);
+    if (stillFailed.length === 0) {
+      router.push("/setup/forecast");
     }
   }
 
@@ -168,6 +189,40 @@ export default function ItemConfirmationPage() {
           <div className="bg-[#C44949]/10 border border-[#C44949]/50 rounded-[8px] p-4 flex items-center gap-3 mb-6">
             <WarningTriangle className="h-5 w-5 text-[#C44949] shrink-0" />
             <p className="text-[13px] text-[#F5F5F7]">{error}</p>
+          </div>
+        )}
+
+        {/* Partial recipe failure */}
+        {!isSubmitting && failedItemIds.length > 0 && (
+          <div className="bg-[#C48B2A]/10 border border-[#C48B2A]/40 rounded-[8px] p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <WarningTriangle className="h-5 w-5 text-[#C48B2A] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-[#F5F5F7] mb-1">
+                  {failedItemIds.length === 1
+                    ? "1 recipe couldn't be generated"
+                    : `${failedItemIds.length} recipes couldn't be generated`}
+                </p>
+                <p className="text-[12px] text-[#8E8E93] mb-3">
+                  This won't block setup — you can retry now or generate them
+                  later from the menu settings.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleRetryFailed}
+                    className="h-8 px-4 bg-[#C48B2A]/20 hover:bg-[#C48B2A]/30 border border-[#C48B2A]/40 text-[#C48B2A] text-[12px] font-semibold rounded-lg transition-colors"
+                  >
+                    Retry failed
+                  </button>
+                  <button
+                    onClick={() => router.push("/setup/forecast")}
+                    className="h-8 px-4 text-[#8E8E93] hover:text-[#C7C7CC] text-[12px] font-medium transition-colors"
+                  >
+                    Continue anyway
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

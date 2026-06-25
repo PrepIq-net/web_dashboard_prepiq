@@ -57,8 +57,15 @@ export function Select({
   const updateMenuPosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const DROPDOWN_MAX_HEIGHT = 248; // max-h-[240px] + padding
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const openUpward =
+      spaceBelow < DROPDOWN_MAX_HEIGHT && spaceAbove > spaceBelow;
     setMenuPosition({
-      top: rect.bottom + 8,
+      top: openUpward
+        ? rect.top - 8 - Math.min(DROPDOWN_MAX_HEIGHT, spaceAbove)
+        : rect.bottom + 8,
       left: rect.left,
       width: rect.width,
     });

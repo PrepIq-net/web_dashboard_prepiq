@@ -1,6 +1,6 @@
 "use client";
 
-import { OnboardingStep } from "../store";
+import { OnboardingStep, useOnboardingStore } from "../store";
 
 const STEPS = [
   {
@@ -10,7 +10,7 @@ const STEPS = [
   },
   {
     label: "Operations",
-    description: "Operational setup",
+    description: "Kitchen details",
     step: OnboardingStep.OPERATIONS,
   },
   {
@@ -20,7 +20,7 @@ const STEPS = [
   },
   {
     label: "Review",
-    description: "Final confirmation",
+    description: "Confirm & create",
     step: OnboardingStep.REVIEW,
   },
 ];
@@ -30,6 +30,8 @@ export function StepIndicator({
 }: {
   currentStep: OnboardingStep;
 }) {
+  const { setStep } = useOnboardingStore();
+
   return (
     <nav className="flex flex-row md:flex-col gap-4 md:gap-10">
       {STEPS.map((step, idx) => {
@@ -39,12 +41,15 @@ export function StepIndicator({
         return (
           <div
             key={step.step}
+            onClick={() => isCompleted && setStep(step.step)}
             className={`flex flex-col md:flex-row items-center md:items-start gap-3 transition-opacity duration-300 ${
+              isCompleted ? "cursor-pointer" : "cursor-default"
+            } ${
               isActive
                 ? "opacity-100"
                 : isCompleted
-                  ? "opacity-70"
-                  : "opacity-40"
+                  ? "opacity-70 hover:opacity-90"
+                  : "opacity-35"
             }`}
           >
             <div className="relative flex flex-col items-center">
