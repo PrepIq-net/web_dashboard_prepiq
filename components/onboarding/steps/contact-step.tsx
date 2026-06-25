@@ -31,10 +31,11 @@ export function ContactStep() {
     <div className="space-y-12 animate-fade-in">
       <div className="space-y-3">
         <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary">
-          Communication.
+          How do we reach you?
         </h2>
         <p className="text-xl text-text-secondary max-w-lg leading-relaxed">
-          How should the system and your team reach this organization?
+          Provide at least an email or phone number. These appear on reports and
+          alerts — not shared publicly.
         </p>
       </div>
 
@@ -85,7 +86,7 @@ export function ContactStep() {
           disabled={!isValid}
           className="px-12 py-7 text-base font-semibold shadow-level-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          Review Workspace
+          Review & Create
         </Button>
       </div>
     </div>

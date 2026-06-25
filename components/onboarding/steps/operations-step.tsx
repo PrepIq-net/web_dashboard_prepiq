@@ -25,11 +25,11 @@ export function OperationsStep() {
     <div className="space-y-12 animate-fade-in">
       <div className="space-y-3">
         <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary">
-          About your kitchen.
+          A bit about your kitchen.
         </h2>
         <p className="text-xl text-text-secondary max-w-lg leading-relaxed">
-          Briefly describe your kitchen operations, capacity, or goals to help
-          us get things set up.
+          Optional — helps the forecast engine calibrate early. You can always
+          fill this in later.
         </p>
       </div>
 

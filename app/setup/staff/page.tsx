@@ -9,6 +9,7 @@ import {
   NavArrowDown,
   Database,
   Eye,
+  Check,
 } from "iconoir-react";
 import {
   useCurrentUserProfile,
@@ -43,6 +44,8 @@ export default function StaffInvitePage() {
   const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<SystemRoleSlug | "">("");
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSent, setInviteSent] = useState(false);
 
   const defaultRole: SystemRoleSlug =
     salesAccess === "yes" ? SYSTEM_ROLE_SLUG.ADMIN : SYSTEM_ROLE_SLUG.MEMBER;
@@ -68,13 +71,20 @@ export default function StaffInvitePage() {
   async function handleSendInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !email.includes("@") || !orgId) return;
+    setInviteError(null);
 
-    await inviteMutation.mutateAsync({
-      email: email.trim(),
-      role: role || defaultRole,
-    });
-
-    router.push("/setup/pricing");
+    try {
+      await inviteMutation.mutateAsync({
+        email: email.trim(),
+        role: role || defaultRole,
+      });
+      setInviteSent(true);
+      setTimeout(() => router.push("/setup/pricing"), 1800);
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to send invite.";
+      setInviteError(msg);
+    }
   }
 
   // Step 1 — ask if they have someone who handles sales data
@@ -238,10 +248,27 @@ export default function StaffInvitePage() {
             )}
           </div>
 
+          {inviteError && (
+            <div className="rounded-lg border border-[#C44949]/40 bg-[#C44949]/8 px-4 py-3">
+              <p className="text-[13px] text-[#C44949]">{inviteError}</p>
+            </div>
+          )}
+
+          {inviteSent && (
+            <div className="rounded-lg border border-[#3F8F68]/40 bg-[#3F8F68]/8 px-4 py-3 flex items-center gap-3">
+              <span className="h-5 w-5 rounded-full bg-[#3F8F68]/20 flex items-center justify-center shrink-0">
+                <Check className="h-3 w-3 text-[#3F8F68]" />
+              </span>
+              <p className="text-[13px] text-[#3F8F68] font-medium">
+                Invite sent to {email} — redirecting…
+              </p>
+            </div>
+          )}
+
           <div className="pt-2 space-y-3">
             <button
               type="submit"
-              disabled={!email.trim() || inviteMutation.isPending}
+              disabled={!email.trim() || inviteMutation.isPending || inviteSent}
               className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-[14px] font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors duration-150"
             >
               {inviteMutation.isPending ? (

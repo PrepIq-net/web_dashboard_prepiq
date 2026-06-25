@@ -80,11 +80,11 @@ export function IdentityStep() {
       <div className="space-y-12 animate-fade-in">
         <div className="space-y-3">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary">
-            First, the basics.
+            Name your workspace.
           </h2>
           <p className="text-xl text-text-secondary max-w-lg leading-relaxed">
-            Give your workspace a name and tell us which industry you operate
-            in.
+            This is how your organization appears across the platform. You can
+            upload a logo and change this any time.
           </p>
         </div>
 
@@ -171,7 +171,7 @@ export function IdentityStep() {
             disabled={!isValid}
             className="px-12 py-7 text-base font-semibold shadow-level-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            Begin Setup
+            Continue
           </Button>
         </div>
       </div>
