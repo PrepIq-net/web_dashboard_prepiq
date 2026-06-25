@@ -19,6 +19,7 @@ import {
   Trash,
   Edit,
   HelpCircle,
+  EvPlug,
 } from "iconoir-react";
 import Link from "next/link";
 import {
@@ -74,6 +75,9 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
+import { useCreateConnectorToken } from "@/services/connector/hook";
+import { ClipboardModal } from "@/components/ClipboardModal";
+import { Spinner } from "@/components/ui/spinner";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -120,7 +124,8 @@ function SettingsPageContent() {
   const branchFromUrl = searchParams.get("branch") ?? undefined;
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
-    if (tabFromUrl && VALID_SETTINGS_TABS.includes(tabFromUrl)) return tabFromUrl;
+    if (tabFromUrl && VALID_SETTINGS_TABS.includes(tabFromUrl))
+      return tabFromUrl;
     return "organization";
   });
   const { data: user } = useCurrentUserProfile();
@@ -131,7 +136,9 @@ function SettingsPageContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("branch", branchId);
     params.set("tab", "integrations");
-    router.replace(`/workspace/settings?${params.toString()}`, { scroll: false });
+    router.replace(`/workspace/settings?${params.toString()}`, {
+      scroll: false,
+    });
   }
   const { data: organizations } = useMyOrganizations();
   const org = organizations?.[0];
@@ -233,7 +240,6 @@ function SettingsPageContent() {
               </button>
             ))}
           </nav>
-
         </aside>
 
         {/* Content Panel */}
@@ -528,6 +534,8 @@ const POS_SYSTEMS = [
   { id: "lightspeed", name: "Lightspeed" },
 ];
 
+const PREP_CNECTORON = [{ id: "connect", name: "Prep Connector" }];
+
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
@@ -540,7 +548,9 @@ function IntegrationsSettings({
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
 
-  const [selectedBranchId, setSelectedBranchId] = useState(focusedBranchId ?? "");
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    focusedBranchId ?? "",
+  );
   const initDone = useRef(false);
 
   // Initialize exactly once when branches first load — never resets on user changes.
@@ -567,24 +577,43 @@ function IntegrationsSettings({
   const summary = integrationsQuery.data?.summary;
   // API now filters by branch_id, so the first (and only) item is our branch.
   const branchStatus =
-    integrationsQuery.data?.branches.find((b) => b.branch_id === selectedBranchId) ??
-    integrationsQuery.data?.branches?.[0];
+    integrationsQuery.data?.branches.find(
+      (b) => b.branch_id === selectedBranchId,
+    ) ?? integrationsQuery.data?.branches?.[0];
   const selectedBranch = branches.find((b) => b.id === selectedBranchId);
   const isConnected = branchStatus?.status === "CONNECTED";
   const isFocusedBranchWithIssue =
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
+
+  const createConnectorToken = useCreateConnectorToken();
+
+  const [generatedToken, setGeneratedToken] = useState<string | "">("");
+  const [openTokenDialog, setOpenTokenDialog] = useState(false);
 
   function handleBranchChange(branchId: string) {
     setSelectedBranchId(branchId);
     onBranchChange?.(branchId);
   }
 
+  async function handleTokenCreation(branchId: string) {
+    const response = await createConnectorToken.mutateAsync(branchId);
+    toast.loading(<Spinner />);
+
+    setGeneratedToken(response.data.token);
+    setOpenTokenDialog(true);
+  }
+
   const handleConnect = (posId: string) => {
-    const branch_id = selectedBranchId || "00000000-0000-0000-0000-000000000000";
+    const branch_id =
+      selectedBranchId || "00000000-0000-0000-0000-000000000000";
     if (posId === "square") {
       squareOAuth.mutate({ branch_id });
     } else if (posId === "toast") {
-      toastOAuth.mutate({ branch_id, client_id: "placeholder", client_secret: "placeholder" });
+      toastOAuth.mutate({
+        branch_id,
+        client_id: "placeholder",
+        client_secret: "placeholder",
+      });
     } else if (posId === "loyverse") {
       loyverseOAuth.mutate({ branch_id });
     } else if (posId === "clover") {
@@ -598,7 +627,9 @@ function IntegrationsSettings({
     <div className="space-y-10">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
+        <h2 className="text-xl font-semibold text-text-primary">
+          Integrations
+        </h2>
         <p className="text-sm text-text-muted mt-1">
           Connect your POS and accounting systems to PrepIQ — per branch.
         </p>
@@ -609,7 +640,8 @@ function IntegrationsSettings({
         <div className="flex flex-wrap gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-status-ok" />
-            {summary.active_connections} of {summary.total_branches} branches connected
+            {summary.active_connections} of {summary.total_branches} branches
+            connected
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
             {summary.health_pct}% sync health
@@ -623,7 +655,9 @@ function IntegrationsSettings({
         options={branches.map((b) => ({ value: b.id, label: b.name }))}
         value={selectedBranchId}
         onChange={handleBranchChange}
-        placeholder={branches.length === 0 ? "Loading branches…" : "Select branch"}
+        placeholder={
+          branches.length === 0 ? "Loading branches…" : "Select branch"
+        }
         disabled={branches.length === 0}
         className="max-w-xs"
       />
@@ -665,7 +699,10 @@ function IntegrationsSettings({
             </div>
           </div>
           {isConnected && (
-            <Badge variant="outline" className="text-[10px] text-status-ok border-status-ok/40">
+            <Badge
+              variant="outline"
+              className="text-[10px] text-status-ok border-status-ok/40"
+            >
               Active
             </Badge>
           )}
@@ -686,7 +723,8 @@ function IntegrationsSettings({
               POS issue detected for {selectedBranch?.name}
             </p>
             <p className="text-xs text-text-muted mt-1 leading-relaxed">
-              Sales data isn&apos;t syncing for this branch. Connect a POS system below.
+              Sales data isn&apos;t syncing for this branch. Connect a POS
+              system below.
             </p>
           </div>
         </div>
@@ -701,7 +739,9 @@ function IntegrationsSettings({
           </h3>
           {selectedBranch && (
             <span className="ml-auto text-xs text-text-muted">
-              {isConnected ? `${selectedBranch.name} is connected` : `Connect for ${selectedBranch.name}`}
+              {isConnected
+                ? `${selectedBranch.name} is connected`
+                : `Connect for ${selectedBranch.name}`}
             </span>
           )}
         </div>
@@ -718,7 +758,10 @@ function IntegrationsSettings({
                 </div>
                 <div>
                   <p className="font-medium text-text-primary">{pos.name}</p>
-                  <Badge variant="outline" className="mt-1 text-[10px] opacity-60">
+                  <Badge
+                    variant="outline"
+                    className="mt-1 text-[10px] opacity-60"
+                  >
                     {isConnected ? "Connected" : "Not connected"}
                   </Badge>
                 </div>
@@ -749,9 +792,73 @@ function IntegrationsSettings({
         <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
           <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
           <p className="text-sm text-text-muted max-w-xs mx-auto">
-            QuickBooks, Xero, and OpenTable integrations are currently in private beta.
-            Contact support to join the waitlist.
+            QuickBooks, Xero, and OpenTable integrations are currently in
+            private beta. Contact support to join the waitlist.
           </p>
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <EvPlug className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            Prep Connector
+          </h3>
+          {selectedBranch && (
+            <span className="ml-auto text-xs text-text-muted">
+              {isConnected
+                ? `${selectedBranch.name} is connected`
+                : `Connect for ${selectedBranch.name}`}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {PREP_CNECTORON.map((connector) => (
+            <div
+              key={connector.id}
+              className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
+                  <EvPlug className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-medium text-text-primary">
+                    {connector.name}
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className="mt-1 text-[10px] opacity-60"
+                  >
+                    {isConnected ? "Connected" : "Not connected"}
+                  </Badge>
+                </div>
+              </div>
+
+              {!isConnected && (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleTokenCreation(selectedBranchId)}
+                  disabled={!selectedBranchId}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Generate Token
+                </Button>
+              )}
+
+              {openTokenDialog && (
+                <ClipboardModal
+                  open={openTokenDialog}
+                  title="Connector Token Generated"
+                  description="Copy this token and paste it into your Prep Connector setup."
+                  value={generatedToken}
+                  onClose={() => setOpenTokenDialog(false)}
+                  copyLabel="Copy Token"
+                />
+              )}
+            </div>
+          ))}
         </div>
       </section>
     </div>
