@@ -194,7 +194,7 @@ export default function BranchesPage() {
             Manage plan
           </Link>
           <Link
-            href="/workspace/settings?tab=branches"
+            href="/workspace/branches/new"
             className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
           >
             + Add Branch
@@ -279,7 +279,7 @@ export default function BranchesPage() {
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2 px-5 py-4">
                 <Link
-                  href={`/workspace/today?branch=${card.id}`}
+                  href={`/workspace/today?branch_id=${card.id}`}
                   className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
                 >
                   View Today →
@@ -294,7 +294,7 @@ export default function BranchesPage() {
                   href={`/workspace/settings?tab=integrations&branch=${card.id}`}
                   className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
                 >
-                  POS
+                  Integration
                 </Link>
                 <Link
                   href={`/workspace/settings?tab=branches&branch=${card.id}`}
@@ -316,7 +316,7 @@ export default function BranchesPage() {
             Add your first branch to start using PrepIQ.
           </p>
           <Link
-            href="/workspace/settings?tab=branches"
+            href="/workspace/branches/new"
             className="mt-5 inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
           >
             + Add Branch
