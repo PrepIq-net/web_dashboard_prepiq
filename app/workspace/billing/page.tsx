@@ -3,18 +3,21 @@ import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Brain,
   CheckCircle,
   Coins,
   Download,
+  Reports,
   Sparks,
   WarningTriangle,
   ArrowUpCircle,
+  Mail,
 } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { ModalShell } from "@/components/ui/modal-shell";
 import {
   useBranches,
   useCurrentSubscription,
@@ -23,12 +26,12 @@ import {
   usePayments,
   useSubscriptions,
   useOwnerMarginProtectionReport,
-  useDownloadInvoice,
+  useDownloadInvoicePDF,
+  useDownloadBillingReport,
   useSubscriptionPlanPricing,
 } from "@/services";
 import { Branch } from "@/services/branches/types";
 import { Invoice, SubscriptionList } from "@/services/payment/types";
-import { useState } from "react";
 
 const PLAN_RANK: Record<string, number> = {
   CORE: 1,
@@ -44,9 +47,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | Date | null) {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -93,31 +96,189 @@ function planTierClasses(planType: string) {
   return "bg-surface-4 text-text-muted";
 }
 
+// ── Invoice detail modal ──────────────────────────────────────────────────────
+
+function InvoiceModal({
+  invoice,
+  onClose,
+  onDownload,
+  isDownloading,
+}: {
+  invoice: Invoice;
+  onClose: () => void;
+  onDownload: () => void;
+  isDownloading: boolean;
+}) {
+  const lineItems = (invoice.line_items ?? []) as Array<
+    Record<string, string | number>
+  >;
+
+  return (
+    <ModalShell
+      open
+      title={invoice.invoice_number}
+      description={
+        invoice.branch_name
+          ? `Branch: ${invoice.branch_name}`
+          : "Organization invoice"
+      }
+      onClose={onClose}
+      maxWidthClassName="max-w-xl"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:text-text-primary"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={isDownloading}
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:opacity-60"
+          >
+            {isDownloading ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#141416]/30 border-t-[#141416]" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {isDownloading ? "Generating…" : "Download PDF"}
+          </button>
+        </>
+      }
+    >
+      {/* Meta grid */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+        {[
+          ["Issue Date", formatDate(invoice.issue_date)],
+          ["Due Date", formatDate(invoice.due_date)],
+          [
+            "Status",
+            invoice.is_paid ? "Paid" : invoice.payment_status ?? "Pending",
+          ],
+          [
+            "Subtotal",
+            `$${Number(invoice.subtotal ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          ],
+          [
+            "Tax",
+            `$${Number(invoice.tax_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          ],
+          ["Total", formatCurrency(Number(invoice.total_amount ?? 0))],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {label}
+            </p>
+            <p
+              className={`mt-1 text-sm font-medium ${label === "Status" && invoice.is_paid ? "text-status-success" : label === "Total" ? "text-brand-gold" : "text-text-primary"}`}
+            >
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Line items */}
+      {lineItems.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Line Items
+          </p>
+          <div className="overflow-hidden rounded-xl border border-surface-4">
+            <div className="divide-y divide-surface-4/60">
+              {lineItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between px-4 py-3 text-sm"
+                >
+                  <span className="text-text-primary">
+                    {String(item.description ?? "")}
+                  </span>
+                  <span className="font-medium text-text-primary">
+                    ${Number(item.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes */}
+      {invoice.notes && (
+        <p className="mt-4 text-xs text-text-muted">{invoice.notes}</p>
+      )}
+    </ModalShell>
+  );
+}
+
+// ── Payment method modal ──────────────────────────────────────────────────────
+
+function PaymentMethodModal({ onClose }: { onClose: () => void }) {
+  return (
+    <ModalShell
+      open
+      title="Update Payment Method"
+      description="Payment method changes are handled by our billing team"
+      onClose={onClose}
+      maxWidthClassName="max-w-md"
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:text-text-primary"
+        >
+          Close
+        </button>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-text-secondary">
+          To update your card, bank transfer details, or mobile money number,
+          reach out to our billing team. We typically respond within one
+          business day.
+        </p>
+        <a
+          href="mailto:support@prepiq.app?subject=Update payment method"
+          className="inline-flex items-center gap-2 rounded-xl border border-surface-4 bg-surface-3 px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-brand-gold/30 hover:text-brand-gold"
+        >
+          <Mail className="h-4 w-4" />
+          support@prepiq.app
+        </a>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function BillingPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_BILLING);
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [openInvoice, setOpenInvoice] = useState<Invoice | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const subscriptionsQuery = useSubscriptions();
   const currentSubscriptionQuery = useCurrentSubscription();
-  const invoicesQuery = useInvoices({
-    branch_id: selectedBranchId || undefined,
-  });
-  const paymentsQuery = usePayments({
-    branch_id: selectedBranchId || undefined,
-  });
-  const roiQuery = useOwnerMarginProtectionReport(
-    selectedBranchId ? { branch_id: selectedBranchId } : undefined,
-  );
-  const pricingQuery = useSubscriptionPlanPricing({
-    branch_id: selectedBranchId || undefined,
-  });
+  const invoicesQuery = useInvoices(undefined);
+  const paymentsQuery = usePayments(undefined);
+  const roiQuery = useOwnerMarginProtectionReport(undefined);
+  const pricingQuery = useSubscriptionPlanPricing(undefined);
 
-  const { mutate: handleDownloadInvoice } = useDownloadInvoice();
+  const { mutate: handleDownloadInvoicePDF, isPending: isDownloadingInvoice } =
+    useDownloadInvoicePDF();
+  const {
+    mutate: handleDownloadReport,
+    isPending: isDownloadingReport,
+    isSuccess: reportDownloaded,
+  } = useDownloadBillingReport();
 
   const branches = branchesQuery.data ?? [];
   const subscriptions = subscriptionsQuery.data ?? [];
@@ -133,18 +294,16 @@ export default function BillingPage() {
     activeSubscriptions.length > 0 ? activeSubscriptions : subscriptions;
 
   useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
+    if (!isLoading && !canAccess) router.replace("/");
   }, [isLoading, canAccess, router]);
 
   const activeBranches = useMemo(
-    () => branches.filter((branch: Branch) => branch.is_active),
+    () => branches.filter((b: Branch) => b.is_active),
     [branches],
   );
 
   const primaryBranch =
-    activeBranches.find((branch: Branch) => branch.is_primary) ??
+    activeBranches.find((b: Branch) => b.is_primary) ??
     activeBranches[0] ??
     null;
 
@@ -153,10 +312,11 @@ export default function BillingPage() {
     const branchSubs = subscriptions.filter(
       (sub: SubscriptionList) => sub.branch === primaryBranch.id,
     );
-    const active = branchSubs.find(
-      (sub: SubscriptionList) => sub.status === "ACTIVE",
+    return (
+      branchSubs.find((sub: SubscriptionList) => sub.status === "ACTIVE") ??
+      branchSubs[0] ??
+      null
     );
-    return active ?? branchSubs[0] ?? null;
   }, [subscriptions, primaryBranch]);
 
   const highestTier = useMemo(() => {
@@ -177,8 +337,7 @@ export default function BillingPage() {
     return summarySubscriptions.reduce((sum: number, sub: SubscriptionList) => {
       const raw = Number(sub.price_at_subscription ?? 0);
       const cycle = String(sub.billing_cycle ?? "").toLowerCase();
-      const monthly = cycle === "yearly" ? raw / 12 : raw;
-      return sum + monthly;
+      return sum + (cycle === "yearly" ? raw / 12 : raw);
     }, 0);
   }, [summarySubscriptions]);
 
@@ -186,8 +345,8 @@ export default function BillingPage() {
     const dates = summarySubscriptions
       .map((sub: SubscriptionList) => sub.next_billing_date)
       .filter(Boolean)
-      .map((value) => new Date(value as string))
-      .filter((value: Date) => !Number.isNaN(value.getTime()))
+      .map((v) => new Date(v as string))
+      .filter((d: Date) => !Number.isNaN(d.getTime()))
       .sort((a: Date, b: Date) => a.getTime() - b.getTime());
     return dates[0] ?? null;
   }, [summarySubscriptions]);
@@ -198,9 +357,9 @@ export default function BillingPage() {
   const maxTotalStaff = planLimits?.MAX_TOTAL_STAFF ?? null;
 
   const latestPayment = payments[0];
-  const invoiceRows = invoices.slice(0, 5);
+  const invoiceRows = invoices.slice(0, 8);
 
-  // ROI multiplier
+  // ROI
   const protectedRevenue = parseMoney(
     roiQuery.data?.summary?.total_money_protected_vs_baseline,
   );
@@ -209,22 +368,23 @@ export default function BillingPage() {
   const roiMultiplier =
     monthlyTotal > 0 ? (totalROI / monthlyTotal).toFixed(1) : null;
 
-  // Expiry warnings: subscriptions expiring in ≤7 days
+  // Expiry warnings
   const expiringWarnings = useMemo(() => {
     return summarySubscriptions
       .filter((sub: SubscriptionList) => {
-        const days = daysUntil(sub.next_billing_date);
-        return days !== null && days <= 7 && days >= 0;
+        const d = daysUntil(sub.next_billing_date);
+        return d !== null && d <= 7 && d >= 0;
       })
       .slice(0, 2);
   }, [summarySubscriptions]);
 
   const recommendation = pricingQuery.data?.recommendation;
-
   const currentPlanName =
     primaryBranchSubscription?.plan_name ??
     currentSubscriptionQuery.data?.plan?.name ??
     "No active plan";
+
+  const showLimits = maxBranches || maxStaffPerBranch || maxTotalStaff;
 
   return (
     <WorkspaceShell
@@ -236,6 +396,19 @@ export default function BillingPage() {
         "Review your plan mix and upcoming renewals regularly."
       }
     >
+      {/* ── Modals ── */}
+      {openInvoice && (
+        <InvoiceModal
+          invoice={openInvoice}
+          onClose={() => setOpenInvoice(null)}
+          onDownload={() => handleDownloadInvoicePDF(openInvoice.id)}
+          isDownloading={isDownloadingInvoice}
+        />
+      )}
+      {showPaymentModal && (
+        <PaymentMethodModal onClose={() => setShowPaymentModal(false)} />
+      )}
+
       {/* ── Expiry warnings ── */}
       {expiringWarnings.map((sub: SubscriptionList) => {
         const days = daysUntil(sub.next_billing_date);
@@ -246,8 +419,8 @@ export default function BillingPage() {
           >
             <WarningTriangle className="h-4 w-4 shrink-0 text-status-warning" />
             <p className="text-sm text-text-primary">
-              <span className="font-semibold">{sub.branch_name}</span>{" "}
-              subscription renews in{" "}
+              <span className="font-semibold">{sub.branch_name}</span> renews
+              in{" "}
               <span className="font-semibold text-status-warning">
                 {days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"}`}
               </span>{" "}
@@ -257,7 +430,7 @@ export default function BillingPage() {
         );
       })}
 
-      {/* ── Upgrade recommendation banner ── */}
+      {/* ── Upgrade recommendation ── */}
       {recommendation &&
         recommendation.recommended_plan_type !==
           recommendation.current_plan_type && (
@@ -280,22 +453,28 @@ export default function BillingPage() {
           </div>
         )}
 
-      {/* ── Section 1: Plan snapshot ── */}
-      <section className="border-b border-surface-4/60 pb-8 mb-8">
+      {/* ══ Section 1: Plan snapshot ══════════════════════════════════════════ */}
+      <section className="mb-8 border-b border-surface-4/60 pb-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Current Plan
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <p className="text-2xl font-semibold text-text-primary">
                 {currentPlanName}
               </p>
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(highestTier)}`}
-              >
-                {highestTier}
-              </span>
+              {/* Only show tier badge when name doesn't already make it obvious */}
+              {highestTier &&
+                !currentPlanName
+                  .toUpperCase()
+                  .includes(highestTier.toUpperCase()) && (
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(highestTier)}`}
+                  >
+                    {highestTier}
+                  </span>
+                )}
               {primaryBranchSubscription?.billing_cycle && (
                 <span className="inline-flex items-center rounded-full border border-surface-4 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-muted">
                   {primaryBranchSubscription.billing_cycle}
@@ -303,7 +482,24 @@ export default function BillingPage() {
               )}
             </div>
           </div>
+
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => handleDownloadReport()}
+              disabled={isDownloadingReport}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-60"
+            >
+              {isDownloadingReport ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+              ) : (
+                <Reports className="h-3.5 w-3.5" />
+              )}
+              {isDownloadingReport
+                ? "Generating…"
+                : reportDownloaded
+                  ? "Downloaded ✓"
+                  : "Billing Report"}
+            </button>
             <Link
               href="/workspace/branches/new"
               className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
@@ -332,6 +528,7 @@ export default function BillingPage() {
               {summarySubscriptions.length !== 1 ? "s" : ""}
             </p>
           </article>
+
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Active locations
@@ -356,26 +553,30 @@ export default function BillingPage() {
               </p>
             )}
           </article>
+
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               Next billing
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
-              {nextBillingDate ? formatDate(nextBillingDate.toISOString()) : "—"}
+              {nextBillingDate ? formatDate(nextBillingDate) : "—"}
             </p>
             {nextBillingDate && (
-              <p className="mt-1 text-xs text-text-muted">
+              <p className="mt-1 text-xs">
                 {(() => {
                   const d = daysUntil(nextBillingDate.toISOString());
-                  if (d === null) return "";
-                  if (d <= 0) return "Due today";
+                  if (d === null) return null;
+                  if (d <= 0)
+                    return <span className="text-status-warning">Due today</span>;
                   if (d <= 7)
                     return (
                       <span className="text-status-warning">
                         in {d} day{d !== 1 ? "s" : ""}
                       </span>
                     );
-                  return `in ${d} days`;
+                  return (
+                    <span className="text-text-muted">in {d} days</span>
+                  );
                 })()}
               </p>
             )}
@@ -383,9 +584,9 @@ export default function BillingPage() {
         </div>
       </section>
 
-      {/* ── Section 2: PrepIQ ROI ── */}
-      <section className="border-b border-surface-4/60 pb-8 mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      {/* ══ Section 2: PrepIQ ROI ═════════════════════════════════════════════ */}
+      <section className="mb-8 border-b border-surface-4/60 pb-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Brain className="h-4 w-4 text-brand-gold" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
@@ -393,18 +594,50 @@ export default function BillingPage() {
             </p>
           </div>
           {roiMultiplier && Number(roiMultiplier) > 0 && (
-            <div className="flex items-center gap-2 rounded-full border border-brand-gold/25 bg-brand-gold/8 px-3 py-1">
-              <span className="text-sm font-bold text-brand-gold">
+            <div className="flex items-center gap-2 rounded-full border border-brand-gold/25 bg-brand-gold/8 px-3 py-1.5">
+              <span className="text-base font-bold text-brand-gold">
                 {roiMultiplier}×
               </span>
-              <span className="text-xs text-text-muted">return on spend</span>
+              <span className="text-xs text-text-muted">
+                return on subscription
+              </span>
             </div>
           )}
         </div>
 
+        {/* ROI vs cost callout */}
+        {monthlyTotal > 0 && totalROI > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-muted">You pay</p>
+              <p className="mt-0.5 text-lg font-semibold text-text-primary">
+                {formatCurrency(monthlyTotal)}
+                <span className="ml-1 text-xs font-normal text-text-muted">
+                  /month
+                </span>
+              </p>
+            </div>
+            <div className="text-text-muted">→</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-muted">PrepIQ returns</p>
+              <p className="mt-0.5 text-lg font-semibold text-brand-gold">
+                {formatCurrency(totalROI)}
+                <span className="ml-1 text-xs font-normal text-text-muted">
+                  /month
+                </span>
+              </p>
+            </div>
+            <div className="shrink-0 rounded-full border border-brand-gold/25 bg-brand-gold/10 px-3 py-1">
+              <span className="text-sm font-bold text-brand-gold">
+                {roiMultiplier}× ROI
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-status-success/10">
                 <Coins className="h-4 w-4 text-status-success" />
               </div>
@@ -415,13 +648,11 @@ export default function BillingPage() {
             <p className="text-2xl font-semibold text-text-primary">
               {roiQuery.data?.summary?.total_waste_cost ?? "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">
-              Food cost protected
-            </p>
+            <p className="mt-1 text-xs text-text-muted">Food cost protected</p>
           </article>
 
           <article className="rounded-xl border border-brand-gold/20 bg-surface-2 px-5 py-5">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gold/10">
                 <Brain className="h-4 w-4 text-brand-gold" />
               </div>
@@ -432,13 +663,11 @@ export default function BillingPage() {
             <p className="text-2xl font-semibold text-brand-gold">
               {roiQuery.data?.summary?.total_money_protected_vs_baseline ?? "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">
-              vs. baseline without AI
-            </p>
+            <p className="mt-1 text-xs text-text-muted">vs. baseline without AI</p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3F5FBF]/15">
                 <Sparks className="h-4 w-4 text-[#8FAFF5]" />
               </div>
@@ -451,13 +680,11 @@ export default function BillingPage() {
                 ? `${Math.round(roiQuery.data.summary.forecast_accuracy_avg_pct)}%`
                 : "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">
-              Mean prediction performance
-            </p>
+            <p className="mt-1 text-xs text-text-muted">Mean performance</p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-4">
                 <CheckCircle className="h-4 w-4 text-text-muted" />
               </div>
@@ -478,19 +705,11 @@ export default function BillingPage() {
         </div>
       </section>
 
-      {/* ── Section 3: Location subscriptions ── */}
-      <section className="border-b border-surface-4/60 pb-8 mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            Location subscriptions
-          </p>
-          <Link
-            href="/workspace/branches/new"
-            className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
-          >
-            + Add Location
-          </Link>
-        </div>
+      {/* ══ Section 3: Location subscriptions ════════════════════════════════ */}
+      <section className="mb-8 border-b border-surface-4/60 pb-8">
+        <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Location subscriptions
+        </p>
 
         {activeBranches.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-4 py-12 text-center">
@@ -521,10 +740,10 @@ export default function BillingPage() {
               const monthlyPrice = latestSub
                 ? (() => {
                     const raw = Number(latestSub.price_at_subscription ?? 0);
-                    const cycle = String(
-                      latestSub.billing_cycle ?? "",
-                    ).toLowerCase();
-                    return cycle === "yearly" ? raw / 12 : raw;
+                    return String(latestSub.billing_cycle ?? "").toLowerCase() ===
+                      "yearly"
+                      ? raw / 12
+                      : raw;
                   })()
                 : null;
 
@@ -533,54 +752,56 @@ export default function BillingPage() {
                   key={branch.id}
                   className="flex flex-col gap-4 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4 md:flex-row md:items-center md:justify-between"
                 >
-                  <div className="flex flex-wrap items-center gap-4 min-w-0">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-text-primary truncate">
-                          {branch.name}
-                        </p>
-                        {branch.is_primary && (
-                          <span className="shrink-0 rounded-full border border-surface-4 px-2 py-0.5 text-[10px] font-medium text-text-muted">
-                            Primary
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-text-primary">
+                        {branch.name}
+                      </p>
+                      {branch.is_primary && (
+                        <span className="shrink-0 rounded-full border border-surface-4 px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {latestSub?.plan_type && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(latestSub.plan_type)}`}
+                        >
+                          {latestSub.plan_name ?? latestSub.plan_type}
+                        </span>
+                      )}
+                      {latestSub?.status ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${subStatusClasses(latestSub.status)}`}
+                        >
+                          {latestSub.status}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full border border-surface-4 bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                          No subscription
+                        </span>
+                      )}
+                      {latestSub?.billing_cycle && (
+                        <span className="text-xs text-text-muted">
+                          ·{" "}
+                          {latestSub.billing_cycle.charAt(0) +
+                            latestSub.billing_cycle.slice(1).toLowerCase()}
+                        </span>
+                      )}
+                      {latestSub?.is_currently_active &&
+                        String(latestSub?.status ?? "")
+                          .toUpperCase()
+                          .includes("TRIAL") && (
+                          <span className="text-xs text-brand-gold">
+                            Trial ends {formatDate(latestSub.trial_ends_at as string | null | undefined)}
                           </span>
                         )}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        {latestSub?.plan_type && (
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${planTierClasses(latestSub.plan_type)}`}
-                          >
-                            {latestSub.plan_name ?? latestSub.plan_type}
-                          </span>
-                        )}
-                        {latestSub?.status && (
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${subStatusClasses(latestSub.status)}`}
-                          >
-                            {latestSub.status === "ACTIVE" &&
-                            latestSub.is_currently_active
-                              ? "Active"
-                              : latestSub.status}
-                          </span>
-                        )}
-                        {!latestSub && (
-                          <span className="inline-flex items-center rounded-full border border-surface-4 bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                            No subscription
-                          </span>
-                        )}
-                        {latestSub?.billing_cycle && (
-                          <span className="text-xs text-text-muted">
-                            ·{" "}
-                            {latestSub.billing_cycle.charAt(0) +
-                              latestSub.billing_cycle.slice(1).toLowerCase()}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-6 shrink-0">
-                    {monthlyPrice !== null && monthlyPrice > 0 ? (
+                  <div className="flex flex-wrap items-center gap-5 shrink-0">
+                    {monthlyPrice !== null && monthlyPrice > 0 && (
                       <div className="text-right">
                         <p className="text-sm font-semibold text-text-primary">
                           {formatCurrency(monthlyPrice)}
@@ -588,11 +809,12 @@ export default function BillingPage() {
                             /mo
                           </span>
                         </p>
-                        {daysLeft !== null && daysLeft <= 14 ? (
+                        {daysLeft !== null && daysLeft >= 0 && daysLeft <= 14 ? (
                           <p
                             className={`text-[11px] ${daysLeft <= 3 ? "text-status-warning" : "text-text-muted"}`}
                           >
-                            Renews {daysLeft === 0 ? "today" : `in ${daysLeft}d`}
+                            Renews{" "}
+                            {daysLeft === 0 ? "today" : `in ${daysLeft}d`}
                           </p>
                         ) : latestSub?.next_billing_date ? (
                           <p className="text-[11px] text-text-muted">
@@ -600,16 +822,13 @@ export default function BillingPage() {
                           </p>
                         ) : null}
                       </div>
-                    ) : null}
-
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/workspace/settings?tab=plan&branch=${branch.id}`}
-                        className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
-                      >
-                        Change Plan
-                      </Link>
-                    </div>
+                    )}
+                    <Link
+                      href={`/workspace/settings?tab=plan&branch=${branch.id}`}
+                      className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+                    >
+                      Change Plan
+                    </Link>
                   </div>
                 </div>
               );
@@ -618,16 +837,16 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* ── Section 4: Plan limits ── */}
-      {(maxBranches || maxStaffPerBranch || maxTotalStaff) && (
-        <section className="border-b border-surface-4/60 pb-8 mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+      {/* ══ Section 4: Plan limits ════════════════════════════════════════════ */}
+      {showLimits && (
+        <section className="mb-8 border-b border-surface-4/60 pb-8">
+          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             Plan limits & usage
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {maxBranches && (
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     Locations
                   </p>
@@ -641,11 +860,7 @@ export default function BillingPage() {
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-4">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      activeBranches.length >= maxBranches
-                        ? "bg-status-warning"
-                        : "bg-brand-gold"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${activeBranches.length >= maxBranches ? "bg-status-warning" : "bg-brand-gold"}`}
                     style={{
                       width: `${Math.min(100, (activeBranches.length / maxBranches) * 100)}%`,
                     }}
@@ -660,7 +875,7 @@ export default function BillingPage() {
             )}
             {maxStaffPerBranch && (
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     Staff / location
                   </p>
@@ -675,7 +890,7 @@ export default function BillingPage() {
             )}
             {maxTotalStaff && (
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     Total staff
                   </p>
@@ -692,9 +907,9 @@ export default function BillingPage() {
         </section>
       )}
 
-      {/* ── Section 5: Billing history ── */}
-      <section className="border-b border-surface-4/60 pb-8 mb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+      {/* ══ Section 5: Billing history ════════════════════════════════════════ */}
+      <section className="mb-8 border-b border-surface-4/60 pb-8">
+        <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
           Billing history
         </p>
         <div className="overflow-hidden rounded-xl border border-surface-4">
@@ -705,67 +920,68 @@ export default function BillingPage() {
           ) : (
             <div className="divide-y divide-surface-4/60">
               {invoiceRows.map((invoice: Invoice) => (
-                <div
+                <button
                   key={invoice.id}
-                  className="group flex flex-col gap-4 px-5 py-4 hover:bg-surface-3/50 md:flex-row md:items-center md:justify-between"
+                  type="button"
+                  onClick={() => setOpenInvoice(invoice)}
+                  className="group w-full text-left"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-text-muted group-hover:text-text-secondary">
-                      <Download className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">
-                        {invoice.invoice_number}
-                        {invoice.branch_name
-                          ? ` · ${invoice.branch_name}`
-                          : ""}
-                      </p>
-                      <div className="mt-0.5 flex items-center gap-2 text-xs text-text-muted">
-                        <span>{formatDate(invoice.issue_date)}</span>
-                        {invoice.payment_status && (
-                          <>
-                            <span>·</span>
-                            <span
-                              className={
-                                invoice.is_paid
-                                  ? "text-status-success"
-                                  : "text-text-muted"
-                              }
-                            >
-                              {invoice.payment_status}
-                            </span>
-                          </>
-                        )}
+                  <div className="flex flex-col gap-3 px-5 py-4 hover:bg-surface-3/50 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-text-muted group-hover:border-brand-gold/30 group-hover:text-brand-gold">
+                        <Reports className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">
+                          {invoice.invoice_number}
+                          {invoice.branch_name
+                            ? ` · ${invoice.branch_name}`
+                            : ""}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-text-muted">
+                          <span>{formatDate(invoice.issue_date)}</span>
+                          {invoice.payment_status && (
+                            <>
+                              <span>·</span>
+                              <span
+                                className={
+                                  invoice.is_paid
+                                    ? "text-status-success"
+                                    : "text-text-muted"
+                                }
+                              >
+                                {invoice.is_paid ? "Paid" : invoice.payment_status}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center justify-between gap-6 md:justify-end">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {formatCurrency(Number(invoice.total_amount ?? 0))}
+                      </p>
+                      <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-surface-4 px-2.5 text-[11px] font-medium text-text-muted group-hover:border-brand-gold/30 group-hover:text-brand-gold">
+                        <Download className="h-3 w-3" />
+                        View
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-6 md:justify-end">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {formatCurrency(Number(invoice.total_amount ?? 0))}
-                    </p>
-                    <button
-                      onClick={() => handleDownloadInvoice(invoice.id)}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary active:scale-95"
-                    >
-                      <Download className="h-3 w-3" />
-                      Download
-                    </button>
-                  </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
         {invoiceRows.length > 0 && (
           <p className="mt-2 text-center text-xs text-text-muted">
-            Showing last 5 invoices
+            Click any row to view details and download PDF
           </p>
         )}
       </section>
 
-      {/* ── Section 6: Payment method ── */}
+      {/* ══ Section 6: Payment method ═════════════════════════════════════════ */}
       <section>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-5">
+        <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
           Payment method
         </p>
         <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
@@ -779,21 +995,25 @@ export default function BillingPage() {
                       .replace(/\b\w/g, (c) => c.toUpperCase())
                   : "No payment method on file"}
               </p>
-              <p className="mt-0.5 text-xs text-text-muted">
-                {latestPayment?.completed_at
-                  ? `Last charge ${formatDate(latestPayment.completed_at)}`
-                  : "No charges recorded"}
-                {latestPayment?.branch_name
-                  ? ` · ${latestPayment.branch_name}`
-                  : ""}
-              </p>
-              {latestPayment?.payer_email && (
-                <p className="mt-1 text-xs text-text-muted">
-                  Billing email: {latestPayment.payer_email}
-                </p>
-              )}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                {latestPayment?.completed_at && (
+                  <span>
+                    Last charge {formatDate(latestPayment.completed_at)}
+                  </span>
+                )}
+                {latestPayment?.branch_name && (
+                  <span>· {latestPayment.branch_name}</span>
+                )}
+                {latestPayment?.payer_email && (
+                  <span>· {latestPayment.payer_email}</span>
+                )}
+              </div>
             </div>
-            <button className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary">
+            <button
+              type="button"
+              onClick={() => setShowPaymentModal(true)}
+              className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary"
+            >
               Update Payment Method
             </button>
           </div>
