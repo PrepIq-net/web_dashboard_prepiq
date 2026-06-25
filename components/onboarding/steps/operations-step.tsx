@@ -35,18 +35,23 @@ export function OperationsStep() {
 
       <div className="space-y-10">
         <div className="grid grid-cols-1 gap-8">
-          <Input
-            label="Storage Capacity (Units)"
-            type="number"
-            placeholder="e.g. 5000"
-            value={formData.capacity || ""}
-            onChange={(e) =>
-              updateData({ capacity: parseInt(e.target.value) || undefined })
-            }
-            leadingIcon={<Building className="h-4 w-4" />}
-            error={errors.capacity}
-            className="text-lg"
-          />
+          <div className="space-y-2">
+            <Input
+              label="Daily Production Capacity"
+              type="number"
+              placeholder="e.g. 200"
+              value={formData.capacity || ""}
+              onChange={(e) =>
+                updateData({ capacity: parseInt(e.target.value) || undefined })
+              }
+              leadingIcon={<Building className="h-4 w-4" />}
+              error={errors.capacity}
+              className="text-lg"
+            />
+            <p className="text-sm text-text-muted pl-1">
+              Covers per service, meals per day, or production batches — used to calibrate prep targets.
+            </p>
+          </div>
 
           <div className="space-y-3">
             <label className="text-sm font-semibold uppercase tracking-widest text-text-muted">
