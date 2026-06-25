@@ -353,3 +353,38 @@ export async function downloadInvoice(invoiceId: string) {
     { method: "GET" },
   );
 }
+
+function proxyUrl(apiEndpoint: string): string {
+  const withoutApiPrefix = apiEndpoint.replace(/^\/api(?=\/)/, "");
+  return `/api/proxy${withoutApiPrefix}`;
+}
+
+async function triggerBlobDownload(url: string, filename: string): Promise<void> {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.statusText}`);
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(objectUrl);
+}
+
+export async function downloadInvoicePDF(invoiceId: string): Promise<void> {
+  await triggerBlobDownload(
+    proxyUrl(paymentEndpoints.invoiceDownload(invoiceId)),
+    `invoice-${invoiceId}.pdf`,
+  );
+}
+
+export async function downloadBillingReport(): Promise<void> {
+  await triggerBlobDownload(
+    proxyUrl(paymentEndpoints.invoiceBillingReport()),
+    `billing-report.pdf`,
+  );
+}

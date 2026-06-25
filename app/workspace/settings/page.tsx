@@ -241,7 +241,7 @@ function SettingsPageContent() {
           {activeTab === "organization" && (
             <OrganizationSettings orgId={org?.id} />
           )}
-          {activeTab === "branches" && <BranchSettings orgId={org?.id} />}
+          {activeTab === "branches" && <BranchSettings orgId={org?.id} focusedBranchId={branchFromUrl} />}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
             <IntegrationsSettings
@@ -909,7 +909,7 @@ function NotificationsSettings() {
   );
 }
 
-function BranchSettings({ orgId }: { orgId?: string }) {
+function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBranchId?: string }) {
   const { data: branches, isLoading: loadingBranches } = useBranches(
     orgId || "",
   );
@@ -921,12 +921,14 @@ function BranchSettings({ orgId }: { orgId?: string }) {
   const updateBranch = useUpdateBranch(orgId || "", selectedBranchId);
   const [formData, setFormData] = useState<any>(null);
 
-  // Default to first branch if none selected
+  // Default to focusedBranchId from URL, then first branch
   useEffect(() => {
-    if (branches?.length && !selectedBranchId) {
-      setSelectedBranchId(branches[0].id);
-    }
-  }, [branches, selectedBranchId]);
+    if (!branches?.length || selectedBranchId) return;
+    const target = focusedBranchId && branches.some((b) => b.id === focusedBranchId)
+      ? focusedBranchId
+      : branches[0].id;
+    setSelectedBranchId(target);
+  }, [branches, focusedBranchId, selectedBranchId]);
 
   // Sync form data when branch details are loaded
   useEffect(() => {

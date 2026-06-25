@@ -61,6 +61,9 @@ type ImpactPreview = {
     stockout_probability_change: number;
     margin_savings: number;
   };
+  narrative?: string;
+  food_cost_at_risk?: number;
+  shortfall_margin_risk?: number;
 };
 
 const EMPTY_LIST: never[] = [];
@@ -167,6 +170,27 @@ function formatCurrency(value: number) {
 function formatSignedCurrency(value: number) {
   const base = formatCurrency(Math.abs(value));
   return value >= 0 ? `+${base}` : `-${base}`;
+}
+
+function overrideImpactLine(
+  impact: ImpactPreview | undefined,
+  variance: number | null,
+  suggestedQty: number,
+): { text: string; tone: "warning" | "critical" } | null {
+  if (!impact || variance == null || Math.abs(variance) < suggestedQty * 0.06) return null;
+  if (variance > 0 && impact.food_cost_at_risk && impact.food_cost_at_risk > 0) {
+    return {
+      text: `~${formatCurrency(impact.food_cost_at_risk)} food at risk if demand falls short`,
+      tone: "warning",
+    };
+  }
+  if (variance < 0 && impact.shortfall_margin_risk && impact.shortfall_margin_risk > 0) {
+    return {
+      text: `~${formatCurrency(impact.shortfall_margin_risk)} margin at risk if demand holds`,
+      tone: "critical",
+    };
+  }
+  return null;
 }
 
 function buildFinancialSnapshot(params: {
@@ -1734,17 +1758,25 @@ function TodayWorkspacePageContent() {
                   Demand signals
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {demandSignals.slice(0, 4).map((signal) => (
-                    <span
-                      key={signal.key}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                    >
-                      {signal.label}
-                      <span className="font-semibold">
-                        {signal.direction === "neutral" ? "—" : toPercent(signal.value_pct)}
+                  {(() => {
+                    const activeSignals = demandSignals.filter((s) => s.direction !== "neutral");
+                    if (activeSignals.length === 0) {
+                      return (
+                        <span className="text-[11px] italic text-text-muted">
+                          No strong signals today
+                        </span>
+                      );
+                    }
+                    return activeSignals.slice(0, 4).map((signal) => (
+                      <span
+                        key={signal.key}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                      >
+                        {signal.label}
+                        <span className="font-semibold">{toPercent(signal.value_pct)}</span>
                       </span>
-                    </span>
-                  ))}
+                    ));
+                  })()}
                 </div>
                 {outlookActionSentence ? (
                   <p className="mt-3 text-xs text-text-secondary">
@@ -1808,6 +1840,13 @@ function TodayWorkspacePageContent() {
                     </p>
                   </div>
                 </div>
+                {branchDay.demand_signal.confidence_breakdown &&
+                  branchDay.demand_signal.forecast_confidence < 0.75 ? (
+                  <p className="mt-2 max-w-[180px] text-[10px] leading-snug text-text-muted">
+                    <span className="font-semibold text-status-warning">Why: </span>
+                    {branchDay.demand_signal.confidence_breakdown.limiting_factor}.
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1831,10 +1870,16 @@ function TodayWorkspacePageContent() {
                     </p>
                     <p className="mt-0.5 text-sm text-text-secondary">
                       {alert.riskType === "STOCKOUT"
-                        ? "Stockout risk. Your current plan falls short of projected demand."
+                        ? alert.financials.lostMarginIfStockout != null && alert.financials.lostMarginIfStockout > 0
+                          ? `Stockout risk. At this plan, ~${formatCurrency(alert.financials.lostMarginIfStockout)} in margin is at risk if demand holds.`
+                          : "Stockout risk. Your current plan falls short of projected demand."
                         : alert.riskType === "WASTE"
-                          ? "Waste exposure detected. Demand signal is weaker than your current prep."
-                          : "Margin variance. Deviation from forecast affects estimated contribution."}
+                          ? alert.financials.wasteIfAll != null && alert.financials.wasteIfAll > 0
+                            ? `Waste exposure. At this plan, ~${formatCurrency(alert.financials.wasteIfAll)} in food cost is at risk if demand stays flat.`
+                            : "Waste exposure detected. Demand signal is weaker than your current prep."
+                          : alert.riskMetrics.marginImpact !== 0
+                            ? `Margin variance. Estimated margin shift: ${formatSignedCurrency(alert.riskMetrics.marginImpact)}.`
+                            : "Margin variance. Deviation from forecast affects estimated contribution."}
                     </p>
                   </div>
                   <button
@@ -2026,6 +2071,14 @@ function TodayWorkspacePageContent() {
                               ? `${signedQuantity(variance, item.unit)} above`
                               : `${signedQuantity(variance, item.unit)} below`}
                         </p>
+                        {(() => {
+                          const line = overrideImpactLine(impact, variance, item.suggested_quantity);
+                          return line ? (
+                            <p className={`mt-0.5 text-[11px] font-medium ${line.tone === "warning" ? "text-status-warning" : "text-status-critical"}`}>
+                              {line.text}
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 
@@ -2119,11 +2172,17 @@ function TodayWorkspacePageContent() {
                           </div>
                         ) : null}
                         {impact ? (
-                          <p className="border-t border-surface-4/40 pt-2">
-                            Margin impact:{" "}
-                            <span className={`font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
-                              {formatSignedCurrency(impact.margin_impact_estimate)}
-                            </span>
+                          <p className={`border-t border-surface-4/40 pt-2 ${impact.narrative ? (impact.delta_quantity > 0 ? "text-status-warning" : "text-status-critical") : ""}`}>
+                            {impact.narrative ? (
+                              impact.narrative
+                            ) : (
+                              <>
+                                Margin impact:{" "}
+                                <span className={`font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
+                                  {formatSignedCurrency(impact.margin_impact_estimate)}
+                                </span>
+                              </>
+                            )}
                           </p>
                         ) : null}
                         {hasPricing ? (
@@ -2288,6 +2347,14 @@ function TodayWorkspacePageContent() {
                                   ? `${signedQuantity(variance, item.unit)} above`
                                   : `${signedQuantity(variance, item.unit)} below`}
                             </p>
+                            {(() => {
+                              const line = overrideImpactLine(impact, variance, item.suggested_quantity);
+                              return line ? (
+                                <p className={`mt-0.5 text-[11px] font-medium ${line.tone === "warning" ? "text-status-warning" : "text-status-critical"}`}>
+                                  {line.text}
+                                </p>
+                              ) : null;
+                            })()}
                             {actionErrorByItem[item.id] ? (
                               <p className="mt-1 text-[11px] text-status-critical">
                                 {actionErrorByItem[item.id]}
@@ -2394,7 +2461,16 @@ function TodayWorkspacePageContent() {
 
                                 {/* Financial */}
                                 <div>
-                                  {impact ? (
+                                  {impact?.narrative ? (
+                                    <div className="mb-3">
+                                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                                        Override impact
+                                      </p>
+                                      <p className={`text-sm font-medium ${impact.delta_quantity > 0 ? "text-status-warning" : "text-status-critical"}`}>
+                                        {impact.narrative}
+                                      </p>
+                                    </div>
+                                  ) : impact ? (
                                     <div className="mb-3">
                                       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                                         Margin impact
@@ -2711,6 +2787,34 @@ function TodayWorkspacePageContent() {
               </div>
             </div>
           </ModalShell>
+
+          {/* ── System health banner — POS / data gap alert ── */}
+          {branchDay.system_health && branchDay.system_health.readiness !== "GREEN" ? (
+            <div
+              className={`mb-5 flex items-center gap-3 rounded-xl border px-4 py-3 ${
+                branchDay.system_health.readiness === "RED"
+                  ? "border-status-critical/35 bg-status-critical/8"
+                  : "border-status-warning/35 bg-status-warning/8"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  branchDay.system_health.readiness === "RED"
+                    ? "bg-status-critical"
+                    : "bg-status-warning animate-pulse"
+                }`}
+              />
+              <p
+                className={`text-sm font-medium ${
+                  branchDay.system_health.readiness === "RED"
+                    ? "text-status-critical"
+                    : "text-status-warning"
+                }`}
+              >
+                {branchDay.system_health.note}
+              </p>
+            </div>
+          ) : null}
 
           {/* ── TIER 1: NEEDS ACTION ── */}
           {criticalRows.length > 0 ? (
@@ -3135,6 +3239,14 @@ function TodayWorkspacePageContent() {
                   <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
                     {overrideItems.map((row) => {
                       const won = row.service_outcome === "IMPROVED_BY_CHEF";
+                      const snapshot = branchDay.review_item_snapshot?.find((s) => s.item_id === row.item_id);
+                      const wasteCost = snapshot ? parseFloat(snapshot.waste_cost) : 0;
+                      const missedRevenue = snapshot ? parseFloat(snapshot.lost_revenue_estimate) : 0;
+                      const costLine = wasteCost > 1
+                        ? `Waste: ~${formatCurrency(wasteCost)}`
+                        : missedRevenue > 1
+                          ? `Missed: ~${formatCurrency(missedRevenue)}`
+                          : null;
                       return (
                         <div key={row.item_id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3.5">
                           <p className="min-w-[140px] text-sm font-medium text-text-primary">{row.item_title}</p>
@@ -3144,6 +3256,11 @@ function TodayWorkspacePageContent() {
                             <span>You: <span className="font-medium text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</span></span>
                             <span className="text-text-muted">→</span>
                             <span>Sold: <span className="font-semibold text-text-primary">{formatQuantity(row.actual_sales, row.unit)}</span></span>
+                            {costLine && (
+                              <span className={won ? "text-status-success" : "text-status-warning"}>
+                                · {costLine}
+                              </span>
+                            )}
                           </div>
                           <span className={`ml-auto shrink-0 text-xs font-semibold ${won ? "text-status-success" : "text-status-warning"}`}>
                             {won ? "✓ Your call paid off" : "AI was closer"}
