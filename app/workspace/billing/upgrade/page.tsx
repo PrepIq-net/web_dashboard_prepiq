@@ -192,7 +192,9 @@ export default function BillingUpgradePage() {
               const isActiveCurrentPlan = isCurrent && isCurrentlyActive;
               const isExpiredCurrentPlan = isCurrent && !isCurrentlyActive;
               const isUpgrade = planTier > currentTier;
-              const isDowngrade = currentTier > 0 && planTier < currentTier && !isCurrent;
+              // Only block downgrade when there is an *active* subscription to preserve.
+              // No sub or expired sub → user can freely pick any tier.
+              const isDowngrade = isCurrentlyActive && currentTier > 0 && planTier < currentTier && !isCurrent;
               const isRecommended = plan.plan_type === recommendedType;
 
               const price =
