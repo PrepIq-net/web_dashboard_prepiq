@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 interface ClipboardModalProps {
   open: boolean;

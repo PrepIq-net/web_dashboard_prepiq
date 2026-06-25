@@ -24,7 +24,7 @@ export function useCreateConnectorToken() {
   });
 }
 
-export function usetPrepConectors(orgId: string) {
+export function usePrepConectors(orgId: string) {
   return useQuery({
     queryKey: ["connectors", orgId],
     queryFn: () => tokenConnector.listConnectors(orgId),

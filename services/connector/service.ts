@@ -18,10 +18,12 @@ export async function createConnectorToken(branchId: string) {
 }
 
 export async function listConnectors(orgId: string) {
-  const response = await apiClient<unknown>(PrepConnector.listConnector(), {
-    method: "GET",
-    body: { org_id: orgId },
-  });
+  const response = await apiClient<unknown>(
+    PrepConnector.listConnector(orgId),
+    {
+      method: "GET",
+    },
+  );
 
   return ConnectorListSchema.safeParse(response);
 }

@@ -2,15 +2,18 @@ const CONNECT = () => `api/connectors`;
 
 export const PrepConnector = {
   createToken: () => `${CONNECT()}/tokens/`,
-  RegisterConnector: () => `${CONNECT()}register/`,
   refreshConnectorToken: () => `${CONNECT()}token/refresh/`,
-  listConnector: () => `${CONNECT()}`,
+  listConnector: (orgId: string) => `${CONNECT()}/?org_id=${orgId}`,
 
-  connectorDetail: () => `${CONNECT()}token/refresh/`,
-  connectorLogs: () => `${CONNECT()}token/refresh/`,
-  connectorHeartbeat: () => `${CONNECT()}heartbeat/`,
-  connectorSchema: () => `${CONNECT()}schema/`,
+  connectorDetail: (connectorId: string) => `${CONNECT()}/${connectorId}`,
+  connectorLogs: (connectorId: string) => `${CONNECT()}/${connectorId}/logs/`,
+  connectorHeartbeat: (connectorId: string) =>
+    `${CONNECT()}/${connectorId}/heartbeat/`,
+  connectorSchema: (connectorId: string) =>
+    `${CONNECT()}/${connectorId}/schema/`,
 
-  mappingConnectorUpdate: () => `${CONNECT()}mappings/`,
-  connectorSyncConfig: () => `${CONNECT()}sync-config/`,
+  mappingConnectorUpdate: (connectorId: string) =>
+    `${CONNECT()}/${connectorId}/mappings/`,
+  connectorSyncConfig: (connectorId: string) =>
+    `${CONNECT()}/${connectorId}/sync-config/`,
 };
