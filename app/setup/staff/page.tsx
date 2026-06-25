@@ -17,17 +17,13 @@ import {
   useStaffInviteContext,
   // useTranslation,
 } from "@/services";
-import {
-  SYSTEM_ROLE_OPTIONS,
-  SYSTEM_ROLE_SLUG,
-  SystemRoleSlug,
-} from "@/services/organizations/types";
+import { SYSTEM_ROLE_OPTIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 
 type SalesAccessAnswer = "yes" | "no" | null;
 
 type StaffRoleOption = {
-  value: SystemRoleSlug;
+  value: string;
   label: string;
   description: string;
   requiresBranch: boolean;
@@ -43,12 +39,12 @@ export default function StaffInvitePage() {
 
   const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<SystemRoleSlug | "">("");
+  const [role, setRole] = useState<string>("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSent, setInviteSent] = useState(false);
 
-  const defaultRole: SystemRoleSlug =
-    salesAccess === "yes" ? SYSTEM_ROLE_SLUG.ADMIN : SYSTEM_ROLE_SLUG.MEMBER;
+  // Use backend role values directly — never frontend RBAC slugs like "system-admin"
+  const defaultRole = salesAccess === "yes" ? "ADMIN" : "GM";
   const roleOptions: StaffRoleOption[] =
     inviteContext.data?.roles
       .map((roleOption) => ({
@@ -228,7 +224,7 @@ export default function StaffInvitePage() {
             <div className="relative">
               <select
                 value={role || defaultRole}
-                onChange={(e) => setRole(e.target.value as SystemRoleSlug)}
+                onChange={(e) => setRole(e.target.value)}
                 className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-lg px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
               >
                 {roleOptions.map((opt) => (
