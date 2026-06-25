@@ -66,17 +66,18 @@ export default function CheckoutPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [submitError, setSubmitError] = useState("");
 
+  // Seed state from URL params (planId, cycle, branchId)
   useEffect(() => {
     const planId = searchParams.get("planId");
     const cycle = searchParams.get("cycle");
-    if (planId) {
-      setSelectedPlanId(planId);
-    }
+    const branchIdParam = searchParams.get("branchId");
+    if (planId) setSelectedPlanId(planId);
     if (cycle === "YEARLY") {
       setBillingCycle("YEARLY");
     } else {
       setBillingCycle("MONTHLY");
     }
+    if (branchIdParam) setSelectedBranchId(branchIdParam);
   }, [searchParams]);
 
   const plans = useMemo(

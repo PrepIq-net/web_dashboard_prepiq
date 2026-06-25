@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CoinsSwap,
@@ -58,6 +58,9 @@ const PLAN_TIERS = {
 export default function PricingStepPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const branchIdFromUrl = searchParams.get("branchId") ?? "";
+
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const plansQuery = useSubscriptionPlanPricing();
   const currentSubscriptionQuery = useCurrentSubscription();
@@ -82,11 +85,14 @@ export default function PricingStepPage() {
   const recommendationReason = plansQuery.data?.recommendation?.reason;
 
   function handleSelect(plan: SubscriptionPlan) {
-    router.push(`/setup/checkout?planId=${plan.id}&cycle=${billingCycle}`);
+    const params = new URLSearchParams({ planId: plan.id, cycle: billingCycle });
+    if (branchIdFromUrl) params.set("branchId", branchIdFromUrl);
+    router.push(`/setup/checkout?${params.toString()}`);
   }
 
   function handleContinue() {
-    router.push("/");
+    // Already subscribed — take them into the workspace
+    router.push("/workspace/overview");
   }
 
   if (plansQuery.isLoading || userLoading) {
@@ -191,13 +197,13 @@ export default function PricingStepPage() {
             let showArrow = true;
 
             if (isCurrent) {
-              buttonLabel = t("setup.pricing.currentTier");
-              isDisabled = false; // Allow "Continue" logic
+              buttonLabel = "Continue with this plan →";
+              isDisabled = false;
               showArrow = false;
             } else if (planTier > currentTier) {
               buttonLabel = currentTier === 0 ? t("setup.pricing.getStarted") : t("setup.pricing.upgradeNow");
             } else {
-              buttonLabel = t("setup.pricing.downgradeRestricted");
+              buttonLabel = "Contact support to downgrade";
               isDisabled = true;
               showArrow = false;
             }

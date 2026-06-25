@@ -4,7 +4,7 @@ import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Brain,
   CheckCircle,
@@ -257,12 +257,25 @@ function PaymentMethodModal({ onClose }: { onClose: () => void }) {
 
 export default function BillingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_BILLING);
 
   const [openInvoice, setOpenInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentSuccessBanner, setPaymentSuccessBanner] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      setPaymentSuccessBanner(true);
+      // Clear the query param without a page reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment");
+      url.searchParams.delete("ref");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const subscriptionsQuery = useSubscriptions();
@@ -409,6 +422,29 @@ export default function BillingPage() {
         <PaymentMethodModal onClose={() => setShowPaymentModal(false)} />
       )}
 
+      {/* ── Payment success banner ── */}
+      {paymentSuccessBanner && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-status-success/30 bg-status-success/8 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-4 w-4 shrink-0 text-status-success" />
+            <div>
+              <p className="text-[13px] font-semibold text-status-success">
+                Payment received — subscription is now active.
+              </p>
+              <p className="text-[12px] text-text-muted">
+                Your plan has been updated. It may take a moment to reflect below.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setPaymentSuccessBanner(false)}
+            className="shrink-0 text-[11px] font-medium text-text-muted hover:text-text-primary"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ── Expiry warnings ── */}
       {expiringWarnings.map((sub: SubscriptionList) => {
         const days = daysUntil(sub.next_billing_date);
@@ -507,7 +543,7 @@ export default function BillingPage() {
               + Add Location
             </Link>
             <Link
-              href="/workspace/settings?tab=plan"
+              href="/workspace/billing/upgrade"
               className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
             >
               Upgrade Plan
@@ -824,7 +860,7 @@ export default function BillingPage() {
                       </div>
                     )}
                     <Link
-                      href={`/workspace/settings?tab=plan&branch=${branch.id}`}
+                      href={`/workspace/billing/upgrade?branchId=${branch.id}`}
                       className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
                     >
                       Change Plan
