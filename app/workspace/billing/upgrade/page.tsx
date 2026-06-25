@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useBranches,
@@ -74,7 +75,9 @@ export default function BillingUpgradePage() {
 
   const plans = useMemo(() => sortedPlans(plansQuery.data?.plans ?? []), [plansQuery.data]);
   const selectedBranch = branches.find((b) => b.id === branchId);
-  const currentPlanType = currentSubQuery.data?.plan?.plan_type ?? null;
+  const currentSub = currentSubQuery.data;
+  const currentPlanType = currentSub?.plan?.plan_type ?? null;
+  const isCurrentlyActive = currentSub?.is_currently_active ?? false;
   const currentTier = PLAN_TIERS[currentPlanType ?? ""] ?? 0;
   const recommendedType = plansQuery.data?.recommendation?.recommended_plan_type;
   const recommendationReason = plansQuery.data?.recommendation?.reason;
@@ -82,7 +85,7 @@ export default function BillingUpgradePage() {
   function goToCheckout(plan: SubscriptionPlan) {
     const p = new URLSearchParams({ planId: plan.id, cycle });
     if (branchId) p.set("branchId", branchId);
-    router.push(`/setup/checkout?${p.toString()}`);
+    router.push(`/workspace/billing/checkout?${p.toString()}`);
   }
 
   const isLoading =
@@ -127,18 +130,15 @@ export default function BillingUpgradePage() {
                 <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
                   Location:
                 </span>
-                <select
+                <Select
                   value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  className="rounded-lg border border-surface-4 bg-surface-2 px-3 py-1.5 text-[13px] text-text-primary outline-none focus:border-brand-gold/50"
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                      {b.is_primary ? " (Primary)" : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setBranchId}
+                  options={branches.map((b) => ({
+                    value: b.id,
+                    label: b.name + (b.is_primary ? " (Primary)" : ""),
+                  }))}
+                  placeholder="Select location"
+                />
               </div>
             )}
           </div>
@@ -188,8 +188,11 @@ export default function BillingUpgradePage() {
             {plans.map((plan) => {
               const planTier = PLAN_TIERS[plan.plan_type ?? ""] ?? 0;
               const isCurrent = currentPlanType === plan.plan_type;
+              // Treat expired current plan as renewable (not disabled)
+              const isActiveCurrentPlan = isCurrent && isCurrentlyActive;
+              const isExpiredCurrentPlan = isCurrent && !isCurrentlyActive;
               const isUpgrade = planTier > currentTier;
-              const isDowngrade = currentTier > 0 && planTier < currentTier;
+              const isDowngrade = currentTier > 0 && planTier < currentTier && !isCurrent;
               const isRecommended = plan.plan_type === recommendedType;
 
               const price =
@@ -228,8 +231,13 @@ export default function BillingUpgradePage() {
                             </span>
                           )}
                         </div>
-                        {isCurrent && (
+                        {isActiveCurrentPlan && (
                           <DoubleCheck className="h-4 w-4 shrink-0 text-brand-gold" />
+                        )}
+                        {isExpiredCurrentPlan && (
+                          <span className="rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-status-warning">
+                            Expired
+                          </span>
                         )}
                       </div>
                       <p className="mt-1.5 text-[12px] text-text-muted">
@@ -274,7 +282,7 @@ export default function BillingUpgradePage() {
                     </ul>
 
                     {/* CTA */}
-                    {isCurrent ? (
+                    {isActiveCurrentPlan ? (
                       <div className="flex h-9 w-full items-center justify-center rounded-full bg-brand-gold/10 text-[12px] font-semibold text-brand-gold">
                         Current plan
                       </div>
@@ -286,14 +294,16 @@ export default function BillingUpgradePage() {
                       <button
                         onClick={() => goToCheckout(plan)}
                         className={`group flex h-9 w-full items-center justify-center gap-1.5 rounded-full text-[12px] font-semibold transition-all active:scale-[0.98] ${
-                          isRecommended
+                          isRecommended || isExpiredCurrentPlan
                             ? "bg-brand-gold text-[#141416] hover:bg-[#B8962E]"
                             : "border border-surface-4 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
                         }`}
                       >
-                        {isUpgrade
-                          ? `Upgrade to ${plan.name}`
-                          : `Select ${plan.name}`}
+                        {isExpiredCurrentPlan
+                          ? `Renew ${plan.name}`
+                          : isUpgrade
+                            ? `Upgrade to ${plan.name}`
+                            : `Select ${plan.name}`}
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                       </button>
                     )}
