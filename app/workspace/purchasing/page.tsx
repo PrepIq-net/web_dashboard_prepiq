@@ -1,564 +1,391 @@
-"use client";
-import { resolvePermissions } from "@/lib/permissions";
-import { PERMISSIONS } from "@/services/organizations/types";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  useReactTable,
-  NativeTable,
-} from "@/components/ui/native-table";
-import { Download, WarningTriangle, CoinsSwap } from "iconoir-react";
-import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { Select } from "@/components/ui/select";
-import { useBranches, useCurrentUserProfile } from "@/services";
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Download, WarningTriangle, CoinsSwap } from 'iconoir-react';
+import { WorkspaceShell } from '@/components/dashboard/workspace-shell';
+import { Select } from '@/components/ui/select';
+import { useBranches, useCurrentUserProfile } from '@/services';
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
-} from "@/services/production-intelligence/hooks";
-import { useSubscriptionTier } from "@/services/payment/hooks";
-import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+} from '@/services/production-intelligence/hooks';
+import { useSubscriptionTier } from '@/services/payment/hooks';
+import { SubscriptionRequiredState } from '@/components/dashboard/empty-states/subscription-required-state';
+import { resolvePermissions } from '@/lib/permissions';
+import { PERMISSIONS } from '@/services/organizations/types';
 
-type SupplierRow = {
-  id: string;
-  supplier: string;
-  totalSpend: number;
-  costChangePct: number;
-  contractVariancePct: number;
-};
-
-type ItemTrendRow = {
-  id: string;
-  item: string;
-  currentUnitCost: number;
-  costDeltaPct: number;
-  volatility: "LOW" | "MEDIUM" | "HIGH";
-  varianceAlert: string;
-};
-
-type VarianceRow = {
-  id: string;
-  item: string;
-  expectedCost: number;
-  actualCost: number;
-  overpaymentFlag: boolean;
-  duplicateInvoiceFlag: boolean;
-};
-
-type EfficiencyRow = {
-  id: string;
-  branch: string;
-  overOrdering: number;
-  emergencyPurchases: number;
-  stockoutCausedPurchases: number;
-};
-
-const EMPTY_LIST: never[] = [];
-const supplierColumnHelper = createColumnHelper<SupplierRow>();
-const varianceColumnHelper = createColumnHelper<VarianceRow>();
-const CORE_ROW_MODEL = getCoreRowModel();
+type PurchasingTab = 'SUPPLIERS' | 'TRENDS' | 'VARIANCE' | 'EFFICIENCY';
 
 function toCurrency(value: number) {
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function toPercent(value: number) {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+  return value >= 0 ? '+' : '' + value.toFixed(1) + '%';
 }
 
 function downloadCsv(filename: string, headers: string[], rows: string[][]) {
-  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
 
+const EMPTY_LIST: never[] = [];
+
 export default function PurchasingPage() {
   const router = useRouter();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_INVENTORY);
   const isReadOnlyBranchManager = !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
-  const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
+  const { isLoading: tierLoading, tier, planType } = useSubscriptionTier();
 
-  const branchesQuery = useBranches(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
-  const marginReportQuery = useOwnerMarginProtectionReport(
+  const branchesQuery = useBranches(user?.organization_id ?? '');
+  const controlTowerQuery = useExecutiveControlTower(
     undefined,
     canAccess && Boolean(user?.organization_id),
   );
+  useOwnerMarginProtectionReport(undefined, canAccess && Boolean(user?.organization_id));
 
   useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [isLoading, canAccess, router]);
+    if (!tierLoading && !canAccess) router.replace('/');
+  }, [tierLoading, canAccess, router]);
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
   const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
-  const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
-  const supplierRows = useMemo<SupplierRow[]>(() => {
-    const suppliers = [
-      "Prime Foods",
-      "Lake Dairy",
-      "Urban Grains",
-      "Fresh Farms",
-      "Capital Meats",
-    ];
-    const revenueBase = Math.max(
-      1,
-      branchGrid.reduce((sum, branch) => sum + Number(branch.revenue ?? 0), 0),
-    );
-
-    return suppliers.map((supplier, index) => {
-      const spend = Math.round((revenueBase * (0.08 + index * 0.015)) / suppliers.length);
-      const anomalyWeight = alerts.length ? Math.min(6, alerts.length) : 2;
-      const costChangePct = (index % 2 === 0 ? 1 : -1) * (1.2 + index + anomalyWeight * 0.3);
-      const contractVariancePct = Math.max(-3, Math.min(9, costChangePct * 0.75));
+  const supplierRows = useMemo(() => {
+    const revenueBase = Math.max(1, branchGrid.reduce((s, b) => s + Number(b.revenue ?? 0), 0));
+    const suppliers = ['Prime Provisions', 'Sysco Metro', 'US Foods Central', 'Gordon Food Service', "Charlie's Produce"];
+    return suppliers.map((supplier, i) => {
+      const spend = Math.round((revenueBase * (0.08 + i * 0.015)) / suppliers.length);
+      const w = alerts.length ? Math.min(6, alerts.length) : 2;
+      const costChangePct = (i % 2 === 0 ? 1 : -1) * (1.2 + i + w * 0.3);
       return {
-        id: supplier.toLowerCase().replace(/\s+/g, "-"),
+        id: supplier.toLowerCase().replace(/\s+/g, '-'),
         supplier,
         totalSpend: spend,
         costChangePct,
-        contractVariancePct,
+        contractVariancePct: Math.max(-3, Math.min(9, costChangePct * 0.75)),
       };
     });
   }, [branchGrid, alerts.length]);
 
-  const itemTrendRows = useMemo<ItemTrendRow[]>(() => {
-    const itemPool = [
-      "Butter",
-      "Flour",
-      "Milk",
-      "Sugar",
-      "Coffee Beans",
-      "Chocolate",
-      "Cheese",
-    ];
-    const alertCount = alerts.length;
-
-    return itemPool.map((item, index) => {
-      const currentUnitCost = 8 + index * 2.4 + alertCount * 0.2;
-      const costDeltaPct = (index % 3 === 0 ? 1 : -1) * (1.5 + (index % 4) * 1.3);
-      const volatility: ItemTrendRow["volatility"] =
-        Math.abs(costDeltaPct) >= 4.5 ? "HIGH" : Math.abs(costDeltaPct) >= 2.5 ? "MEDIUM" : "LOW";
+  const itemTrendRows = useMemo(() => {
+    const pool = ['Lettuce (Romaine)', 'All-Purpose Flour', 'Chicken Breast', 'Granulated Sugar', 'Arabica Coffee Beans', 'Semi-Sweet Chocolate', 'Sharp Cheddar Cheese'];
+    return pool.map((item, i) => {
+      const cost = 8 + i * 2.4 + alerts.length * 0.2;
+      const delta = (i % 3 === 0 ? -1 : 1) * (1.5 + (i % 4) * 1.3);
+      const v: 'LOW' | 'MEDIUM' | 'HIGH' = Math.abs(delta) >= 4.5 ? 'HIGH' : Math.abs(delta) >= 2.5 ? 'MEDIUM' : 'LOW';
       return {
-        id: item.toLowerCase().replace(/\s+/g, "-"),
+        id: item.toLowerCase().replace(/\s+/g, '-'),
         item,
-        currentUnitCost,
-        costDeltaPct,
-        volatility,
-        varianceAlert:
-          volatility === "HIGH"
-            ? "Variance exceeds threshold"
-            : volatility === "MEDIUM"
-              ? "Watch closely"
-              : "Stable",
+        currentUnitCost: cost,
+        costDeltaPct: delta,
+        volatility: v,
+        varianceAlert: v === 'HIGH' ? 'Critical spike' : v === 'MEDIUM' ? 'Monitor closely' : 'Stable',
       };
     });
   }, [alerts.length]);
 
-  const varianceRows = useMemo<VarianceRow[]>(() => {
-    return itemTrendRows.slice(0, 6).map((item, index) => {
-      const expectedCost = item.currentUnitCost * (95 + index * 2);
-      const driftFactor = 1 + Math.max(-0.08, item.costDeltaPct / 100);
-      const actualCost = expectedCost * driftFactor + (index % 2 === 0 ? 35 : 0);
-      const overpaymentFlag = actualCost > expectedCost * 1.04;
-      const duplicateInvoiceFlag = index % 4 === 0;
+  const varianceRows = useMemo(() => {
+    return itemTrendRows.slice(0, 6).map((item, i) => {
+      const exp = item.currentUnitCost * (95 + i * 2);
+      const actual = exp * (1 + Math.max(-0.08, item.costDeltaPct / 100)) + (i % 2 === 0 ? 35 : 0);
       return {
-        id: `variance-${item.id}`,
+        id: 'variance-' + item.id,
         item: item.item,
-        expectedCost,
-        actualCost,
-        overpaymentFlag,
-        duplicateInvoiceFlag,
+        expectedCost: exp,
+        actualCost: actual,
+        overpaymentFlag: actual > exp * 1.04,
+        duplicateInvoiceFlag: i % 4 === 0,
       };
     });
   }, [itemTrendRows]);
 
-  const efficiencyRows = useMemo<EfficiencyRow[]>(() => {
-    const sourceBranches = branchGrid.length
-      ? branchGrid
-      : branches.map((branch) => ({
-          branch_id: branch.id,
-          branch_name: branch.name,
-          waste_pct: 0,
-          surplus_pct: 0,
-        }));
-
-    return sourceBranches.slice(0, 8).map((branch, index) => {
-      const wastePct = Number(branch.waste_pct ?? 0);
-      const surplusPct = Number(branch.surplus_pct ?? 0);
-      return {
-        id: `${branch.branch_id}-eff`,
-        branch: branch.branch_name,
-        overOrdering: Number((wastePct * 1.1 + index).toFixed(1)),
-        emergencyPurchases: Math.max(0, Math.round(surplusPct + index % 3)),
-        stockoutCausedPurchases: Math.max(0, Math.round(wastePct * 0.4)),
-      };
-    });
+  const efficiencyRows = useMemo(() => {
+    const src = branchGrid.length ? branchGrid : branches.map((b) => ({ branch_id: b.id, branch_name: b.name, waste_pct: 0, surplus_pct: 0 }));
+    return src.slice(0, 8).map((b, i) => ({
+      id: b.branch_id + '-eff',
+      branch: b.branch_name,
+      overOrdering: Number((Number(b.waste_pct ?? 0) * 1.1 + i).toFixed(1)),
+      emergencyPurchases: Math.max(0, Math.round(Number(b.surplus_pct ?? 0) + (i % 3))),
+      stockoutCausedPurchases: Math.max(0, Math.round(Number(b.waste_pct ?? 0) * 0.4)),
+    }));
   }, [branchGrid, branches]);
 
   const [flaggedIds, setFlaggedIds] = useState<string[]>([]);
-  const [supplierA, setSupplierA] = useState("");
-  const [supplierB, setSupplierB] = useState("");
+  const [supplierA, setSupplierA] = useState('');
+  const [supplierB, setSupplierB] = useState('');
+  const [activeTab, setActiveTab] = useState<PurchasingTab>('SUPPLIERS');
 
-  const supplierMap = useMemo(() => new Map(supplierRows.map((row) => [row.id, row])), [supplierRows]);
-  const supplierDelta =
-    supplierA && supplierB && supplierA !== supplierB
-      ? Math.abs((supplierMap.get(supplierA)?.totalSpend ?? 0) - (supplierMap.get(supplierB)?.totalSpend ?? 0))
-      : 0;
+  const supplierMap = useMemo(() => new Map(supplierRows.map((r) => [r.id, r])), [supplierRows]);
+  const supplierDelta = supplierA && supplierB && supplierA !== supplierB
+    ? Math.abs((supplierMap.get(supplierA)?.totalSpend ?? 0) - (supplierMap.get(supplierB)?.totalSpend ?? 0))
+    : 0;
 
-  const supplierColumns = useMemo(
-    () => [
-      supplierColumnHelper.accessor("supplier", {
-        header: "Supplier",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
-      }),
-      supplierColumnHelper.accessor("totalSpend", {
-        header: "Total Spend",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
-      }),
-      supplierColumnHelper.accessor("costChangePct", {
-        header: "Cost Change",
-        cell: (info) => {
-          const value = info.getValue();
-          return (
-            <span className={`text-[12px] ${value >= 0 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
-              {toPercent(value)}
-            </span>
-          );
-        },
-      }),
-      supplierColumnHelper.accessor("contractVariancePct", {
-        header: "Contract vs Actual",
-        cell: (info) => {
-          const value = info.getValue();
-          return (
-            <span className={`text-[12px] ${Math.abs(value) >= 4 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
-              {toPercent(value)}
-            </span>
-          );
-        },
-      }),
-    ],
-    [],
-  );
-  const supplierTable = useReactTable({
-    data: supplierRows,
-    columns: supplierColumns,
-    getCoreRowModel: CORE_ROW_MODEL,
-  });
+  const kpis = useMemo(() => ({
+    totalSpend: supplierRows.reduce((s, r) => s + r.totalSpend, 0),
+    avgCostChange: supplierRows.length ? supplierRows.reduce((s, r) => s + r.costChangePct, 0) / supplierRows.length : 0,
+    overpaymentCount: varianceRows.filter((r) => r.overpaymentFlag).length,
+    duplicateCount: varianceRows.filter((r) => r.duplicateInvoiceFlag).length,
+    highVolatilityCount: itemTrendRows.filter((r) => r.volatility === 'HIGH').length,
+  }), [supplierRows, varianceRows, itemTrendRows]);
 
-  const varianceColumns = useMemo(
-    () => [
-      varianceColumnHelper.accessor("item", {
-        header: "Item",
-        cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
-      }),
-      varianceColumnHelper.accessor("expectedCost", {
-        header: "Expected",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
-      }),
-      varianceColumnHelper.accessor("actualCost", {
-        header: "Actual",
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{toCurrency(info.getValue())}</span>,
-      }),
-      varianceColumnHelper.display({
-        id: "flags",
-        header: "Flags",
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <span className="text-[11px] text-[#8E8E93]">
-              {row.overpaymentFlag ? "Overpayment" : ""}
-              {row.overpaymentFlag && row.duplicateInvoiceFlag ? " · " : ""}
-              {row.duplicateInvoiceFlag ? "Duplicate invoice" : ""}
-              {!row.overpaymentFlag && !row.duplicateInvoiceFlag ? "None" : ""}
-            </span>
-          );
-        },
-      }),
-      varianceColumnHelper.display({
-        id: "actions",
-        header: "Actions",
-        cell: (info) => {
-          const row = info.row.original;
-          const flagged = flaggedIds.includes(row.id);
-          return (
-            <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        className="h-7 rounded-[7px] border border-[#2E2E33] px-2 text-[11px] text-[#F5F5F7]"
-                      >
-                        Drill item
-                      </button>
-                      {!isReadOnlyBranchManager ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFlaggedIds((prev) =>
-                              prev.includes(row.id)
-                                ? prev.filter((id) => id !== row.id)
-                                : [...prev, row.id],
-                            )
-                          }
-                          className={`h-7 rounded-[7px] border px-2 text-[11px] ${
-                            flagged
-                              ? "border-[#C44949] text-[#C44949]"
-                              : "border-[#2E2E33] text-[#C48B2A]"
-                          }`}
-                        >
-                          {flagged ? "Flagged" : "Flag anomaly"}
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                },
-      }),
-    ],
-    [flaggedIds, isReadOnlyBranchManager],
-  );
-  const varianceTable = useReactTable({
-    data: varianceRows,
-    columns: varianceColumns,
-    getCoreRowModel: CORE_ROW_MODEL,
-  });
+  const tabs: { id: PurchasingTab; label: string }[] = [
+    { id: 'SUPPLIERS', label: 'Suppliers' },
+    { id: 'TRENDS', label: 'Item Trends' },
+    { id: 'VARIANCE', label: 'Variance Detection' },
+    { id: 'EFFICIENCY', label: 'Order Efficiency' },
+  ];
 
   const exportAll = () => {
-    const rows = varianceRows.map((row) => [
-      row.item,
-      row.expectedCost.toFixed(2),
-      row.actualCost.toFixed(2),
-      row.overpaymentFlag ? "YES" : "NO",
-      row.duplicateInvoiceFlag ? "YES" : "NO",
-    ]);
-    downloadCsv(
-      "purchasing-variance.csv",
-      ["Item", "Expected", "Actual", "Overpayment", "DuplicateInvoice"],
-      rows,
-    );
+    downloadCsv('purchasing-variance.csv',
+      ['Item', 'Expected', 'Actual', 'Overpayment', 'Duplicate'],
+      varianceRows.map((r) => [r.item, r.expectedCost.toFixed(2), r.actualCost.toFixed(2), r.overpaymentFlag ? 'YES' : 'NO', r.duplicateInvoiceFlag ? 'YES' : 'NO']));
   };
 
   if (!tierLoading && tier < 2) {
     return (
-      <WorkspaceShell
-        eyebrow="Purchasing"
-        title="Purchasing Intelligence"
-        description="Cost control surface for supplier performance, variance, and ordering efficiency."
-        insight="Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage."
-      >
-        <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
+      <WorkspaceShell eyebrow='Purchasing' title='Purchasing' description='Cost control and supplier benchmarking.'
+        insight='Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage.'>
+        <SubscriptionRequiredState variant='intelligence_required' currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }
 
   return (
-    <WorkspaceShell
-      eyebrow="Purchasing"
-      title="Purchasing Intelligence"
-      description="Cost control surface for supplier performance, variance, and ordering efficiency."
-      insight="Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage."
-    >
+    <WorkspaceShell eyebrow='Purchasing' title='Purchasing Intelligence'
+      description='Cost control, supplier benchmarking, and inventory planning.'
+      insight='Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage.'>
       {isReadOnlyBranchManager ? (
-        <p className="mb-6 text-[12px] text-[#8E8E93]">
-          Read-only mode: branch manager visibility for purchasing trends and anomalies.
-        </p>
+        <div className='mb-6 flex items-start gap-2 rounded-xl border border-status-warning/20 bg-status-warning/8 p-4'>
+          <WarningTriangle className='mt-0.5 h-4 w-4 text-status-warning' />
+          <p className='text-sm text-text-secondary'>Read-only mode: branch manager visibility for purchasing trends and anomalies.</p>
+        </div>
       ) : null}
 
-      <section className="grid grid-cols-1 gap-6 border-b border-[#2A2A2E] pb-8 md:grid-cols-4">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Suppliers Tracked</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">{supplierRows.length}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Total Supplier Spend</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-            {toCurrency(supplierRows.reduce((sum, row) => sum + row.totalSpend, 0))}
-          </p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Overpayment Flags</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-            {varianceRows.filter((row) => row.overpaymentFlag).length}
-          </p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Duplicate Invoice Flags</p>
-          <p className="mt-1 font-display text-[30px] text-[#F5F5F7]">
-            {varianceRows.filter((row) => row.duplicateInvoiceFlag).length}
-          </p>
-        </article>
+      <section className='grid grid-cols-1 gap-6 border-b border-surface-4/60 pb-8 md:grid-cols-4'>
+        {[
+          { label: 'Total Supplier Spend', value: toCurrency(kpis.totalSpend), cls: '' },
+          { label: 'Avg Cost Change', value: toPercent(kpis.avgCostChange), cls: kpis.avgCostChange > 0 ? 'text-status-critical' : 'text-status-success' },
+          { label: 'Overpayment Flags', value: String(kpis.overpaymentCount), cls: '' },
+          { label: 'High Volatility Items', value: String(kpis.highVolatilityCount), cls: '' },
+        ].map((kpi) => (
+          <article key={kpi.label} className='rounded-xl border border-surface-4 bg-surface-2 p-5'>
+            <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>{kpi.label}</p>
+            <p className={'mt-2 font-display text-[30px] text-text-primary' + (kpi.cls ? ' ' + kpi.cls : '')}>{kpi.value}</p>
+          </article>
+        ))}
       </section>
 
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Supplier Overview</p>
-          <button
-            type="button"
-            onClick={exportAll}
-            disabled={isReadOnlyBranchManager}
-            className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#2E2E33] px-2.5 text-[11px] text-[#F5F5F7] disabled:cursor-not-allowed disabled:text-[#5A5A60]"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export data
-          </button>
-        </div>
-        <div className="mt-3 overflow-x-auto">
-          <NativeTable
-            table={supplierTable}
-            tableClassName="w-full min-w-[760px]"
-            headerClassName="border-b border-[#2A2A2E]"
-            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-            bodyRowClassName="border-b border-[#2A2A2E]"
-            cellClassName="px-2 py-3"
-          />
+      <section className='mt-6'>
+        <div className='flex gap-1 border-b-2 border-b-surface-4/60'>
+          {tabs.map((tab) => (
+            <button key={tab.id} type='button' onClick={() => setActiveTab(tab.id)}
+              className={'inline-flex h-10 items-center px-4 text-sm font-medium transition-all sm:text-base' + (
+                activeTab === tab.id
+                  ? ' -mb-[2px] border-b-2 border-brand-gold text-brand-gold'
+                  : ' text-text-muted hover:text-text-secondary'
+              )}>{tab.label}</button>
+          ))}
         </div>
       </section>
 
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Item Cost Trends</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead className="border-b border-[#2A2A2E]">
-              <tr>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Item</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Unit cost</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Variance</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Volatility</th>
-                <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Alert</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itemTrendRows.map((row) => (
-                <tr key={row.id} className="border-b border-[#2A2A2E]">
-                  <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.item}</td>
-                  <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">${row.currentUnitCost.toFixed(2)}</td>
-                  <td className={`px-2 py-3 text-[12px] ${row.costDeltaPct >= 0 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
-                    {toPercent(row.costDeltaPct)}
-                  </td>
-                  <td className={`px-2 py-3 text-[11px] ${
-                    row.volatility === "HIGH"
-                      ? "text-[#C44949]"
-                      : row.volatility === "MEDIUM"
-                        ? "text-[#C48B2A]"
-                        : "text-[#3F8F68]"
-                  }`}
-                  >
-                    {row.volatility}
-                  </td>
-                  <td className="px-2 py-3 text-[11px] text-[#8E8E93]">{row.varianceAlert}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="mt-8 border-b border-[#2A2A2E] pb-8">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Purchase Variance Detection</p>
-        <div className="mt-3 overflow-x-auto">
-          <NativeTable
-            table={varianceTable}
-            tableClassName="w-full min-w-[980px]"
-            headerClassName="border-b border-[#2A2A2E]"
-            headerCellClassName="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]"
-            bodyRowClassName="border-b border-[#2A2A2E]"
-            cellClassName="px-2 py-3 align-top"
-          />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <article className="lg:col-span-2">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Order Efficiency</p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[760px]">
-                <thead className="border-b border-[#2A2A2E]">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Branch</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Over-ordering</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Emergency purchases</th>
-                    <th className="px-2 py-2 text-left text-[10px] uppercase tracking-[0.14em] text-[#8E8E93]">Stock-out caused purchases</th>
+      {activeTab === 'SUPPLIERS' && (
+        <section className='mt-8'>
+          <div className='mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Supplier Overview</p>
+              <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Top spend analysis</h3>
+              <p className='mt-1 text-sm text-text-secondary'>Track cost changes and contract variance per supplier.</p>
+            </div>
+            <button type='button' onClick={exportAll} disabled={isReadOnlyBranchManager}
+              className='inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 px-2.5 text-sm text-text-primary transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-50'>
+              <Download className='h-3.5 w-3.5' /> Export
+            </button>
+          </div>
+          <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <table className='w-full min-w-[780px]'>
+              <thead className='border-b border-surface-4/80 bg-surface-3/40'>
+                <tr>{['Supplier', 'Total Spend', 'Cost Change', 'Contract vs Actual'].map((h) => (
+                  <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className='divide-y divide-surface-4/50'>
+                {supplierRows.map((row) => (
+                  <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
+                    <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.supplier}</td>
+                    <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.totalSpend)}</td>
+                    <td className={'px-4 py-3 text-sm ' + (row.costChangePct >= 0 ? 'text-status-critical' : 'text-status-success')}>{toPercent(row.costChangePct)}</td>
+                    <td className={'px-4 py-3 text-sm ' + (Math.abs(row.contractVariancePct) >= 4 ? 'text-status-critical' : 'text-text-secondary')}>{toPercent(row.contractVariancePct)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {efficiencyRows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#2A2A2E]">
-                      <td className="px-2 py-3 text-[13px] text-[#F5F5F7]">{row.branch}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C48B2A]">{row.overOrdering.toFixed(1)}%</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.emergencyPurchases}</td>
-                      <td className="px-2 py-3 text-[12px] text-[#C7C7CC]">{row.stockoutCausedPurchases}</td>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'TRENDS' && (
+        <section className='mt-8'>
+          <div className='mb-4'>
+            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Item Cost Trends</p>
+            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Unit cost and volatility</h3>
+            <p className='mt-1 text-sm text-text-secondary'>Monitor unit costs and spot unusual volatility.</p>
+          </div>
+          <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <table className='w-full min-w-[780px]'>
+              <thead className='border-b border-surface-4/80 bg-surface-3/40'>
+                <tr>{['Item', 'Unit Cost', 'Variance', 'Volatility', 'Alert'].map((h) => (
+                  <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className='divide-y divide-surface-4/50'>
+                {itemTrendRows.map((row) => {
+                  const badge = row.volatility === 'HIGH'
+                    ? 'bg-status-critical/10 text-status-critical border-status-critical/30'
+                    : row.volatility === 'MEDIUM'
+                      ? 'bg-status-warning/10 text-status-warning border-status-warning/30'
+                      : 'bg-status-success/10 text-status-success border-status-success/30';
+                  return (
+                    <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
+                      <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.item}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>${row.currentUnitCost.toFixed(2)}</td>
+                      <td className={'px-4 py-3 text-sm ' + (row.costDeltaPct >= 0 ? 'text-status-critical' : 'text-status-success')}>{toPercent(row.costDeltaPct)}</td>
+                      <td className='px-4 py-3 text-sm'>
+                        <span className={'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ' + badge}>{row.volatility}</span>
+                      </td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>{row.varianceAlert}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
-          <article>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-[#8E8E93]">Compare Suppliers</p>
-            <div className="mt-3 space-y-2">
-              <Select
-                options={[
-                  { value: "", label: "Supplier A" },
-                  ...supplierRows.map((row) => ({
-                    value: row.id,
-                    label: row.supplier,
-                  })),
-                ]}
-                value={supplierA}
-                onChange={(value) => setSupplierA(value)}
-                placeholder="Select supplier A"
-              />
-              <Select
-                options={[
-                  { value: "", label: "Supplier B" },
-                  ...supplierRows.map((row) => ({
-                    value: row.id,
-                    label: row.supplier,
-                  })),
-                ]}
-                value={supplierB}
-                onChange={(value) => setSupplierB(value)}
-                placeholder="Select supplier B"
-              />
-              <div className="pt-2">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Spend delta</p>
-                <p className="mt-1 font-display text-[26px] text-[#F5F5F7]">{toCurrency(supplierDelta)}</p>
+      {activeTab === 'VARIANCE' && (
+        <section className='mt-8'>
+          <div className='mb-4'>
+            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Purchase Variance Detection</p>
+            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Expected vs actual costs</h3>
+            <p className='mt-1 text-sm text-text-secondary'>Flagged overpayments and duplicate invoices.</p>
+          </div>
+          <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <table className='w-full min-w-[860px]'>
+              <thead className='border-b border-surface-4/80 bg-surface-3/40'>
+                <tr>{['Item', 'Expected', 'Actual', 'Flags', 'Actions'].map((h) => (
+                  <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className='divide-y divide-surface-4/50'>
+                {varianceRows.map((row) => {
+                  const flagged = flaggedIds.includes(row.id);
+                  return (
+                    <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
+                      <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.item}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.expectedCost)}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.actualCost)}</td>
+                      <td className='px-4 py-3 text-sm'>
+                        {row.overpaymentFlag && (
+                          <span className='mr-2 inline-flex items-center rounded-full border border-status-critical/30 bg-status-critical/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-critical'>Overpayment</span>
+                        )}
+                        {row.duplicateInvoiceFlag && (
+                          <span className='inline-flex items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-warning'>Duplicate</span>
+                        )}
+                      </td>
+                      <td className='px-4 py-3 text-sm'>
+                        <div className='flex gap-2'>
+                          <button type='button'
+                            className='h-7 rounded-full border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>Drill item</button>
+                          {!isReadOnlyBranchManager && (
+                            <button type='button' onClick={() => setFlaggedIds((p) => p.includes(row.id) ? p.filter((id) => id !== row.id) : [...p, row.id])}
+                              className={'h-7 rounded-full border px-3 text-xs transition-colors ' + (flagged
+                                ? 'border-status-critical/30 bg-status-critical/10 text-status-critical'
+                                : 'border-surface-4 text-text-secondary hover:border-status-warning/40 hover:text-status-warning')}>
+                              {flagged ? 'Flagged' : 'Flag anomaly'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'EFFICIENCY' && (
+        <section className='mt-8'>
+          <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+            <article className='lg:col-span-2'>
+              <div className='mb-4'>
+                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Order Efficiency</p>
+                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Branch purchasing patterns</h3>
+                <p className='mt-1 text-sm text-text-secondary'>Over-ordering, emergency buys, and stockout-driven purchases.</p>
               </div>
-              <button
-                type="button"
-                className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-[#2E2E33] px-3 text-[12px] text-[#F5F5F7]"
-              >
-                <CoinsSwap className="h-3.5 w-3.5" />
-                Compare suppliers
-              </button>
-            </div>
+              <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+                <table className='w-full min-w-[780px]'>
+                  <thead className='border-b border-surface-4/80 bg-surface-3/40'>
+                    <tr>{['Branch', 'Over-ordering', 'Emergency purchases', 'Stock-out purchases'].map((h) => (
+                      <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody className='divide-y divide-surface-4/50'>
+                    {efficiencyRows.map((row) => (
+                      <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
+                        <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.branch}</td>
+                        <td className='px-4 py-3 text-sm text-status-warning'>{row.overOrdering.toFixed(1)}%</td>
+                        <td className='px-4 py-3 text-sm text-text-secondary'>{row.emergencyPurchases}</td>
+                        <td className='px-4 py-3 text-sm text-text-secondary'>{row.stockoutCausedPurchases}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
 
-            <div className="mt-4 border-l-2 border-[#C48B2A] pl-3 text-[12px] text-[#8E8E93]">
-              {flaggedIds.length} anomalies flagged for finance follow-up.
-            </div>
-            {isReadOnlyBranchManager ? (
-              <p className="mt-3 inline-flex items-start gap-2 text-[12px] text-[#8E8E93]">
-                <WarningTriangle className="mt-0.5 h-3.5 w-3.5 text-[#C48B2A]" />
-                Read-only access. Adjustments and exports are reserved for finance and executive roles.
-              </p>
-            ) : null}
-          </article>
-        </div>
-      </section>
+            <article className='rounded-xl border border-surface-4 bg-surface-2 p-5'>
+              <div className='mb-4'>
+                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Compare Suppliers</p>
+                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Side-by-side</h3>
+                <p className='mt-1 text-sm text-text-secondary'>Select two suppliers to compare spend.</p>
+              </div>
+              <div className='space-y-3'>
+                <Select options={[{ value: '', label: 'Supplier A' }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
+                  value={supplierA} onChange={(v) => setSupplierA(v)} placeholder='Select supplier A' />
+                <Select options={[{ value: '', label: 'Supplier B' }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
+                  value={supplierB} onChange={(v) => setSupplierB(v)} placeholder='Select supplier B' />
+              </div>
+              <div className='mt-6'>
+                <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>Spend Delta</p>
+                <p className='mt-1 font-display text-[26px] text-text-primary'>{toCurrency(supplierDelta)}</p>
+              </div>
+              <button type='button'
+                className='mt-4 inline-flex h-10 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>
+                <CoinsSwap className='h-4 w-4' /> Compare
+              </button>
+            </article>
+          </div>
+        </section>
+      )}
     </WorkspaceShell>
   );
 }
