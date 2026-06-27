@@ -594,6 +594,15 @@
     "AUDITOR": "Auditeur / Lecture seule"
   },
   "setup": {
+    "steps": {
+      "setup": "Configuration",
+      "branch": "Succursale",
+      "salesData": "Données de vente",
+      "menuItems": "Articles du menu",
+      "forecast": "Prévisions",
+      "team": "Équipe",
+      "plan": "Forfait"
+    },
     "branch": {
       "step": "Étape 1 — Configuration de la succursale",
       "title": "Créez votre première succursale",
@@ -748,7 +757,21 @@
       "termsPrivacy": "En continuant, vous acceptez les Conditions d'utilisation et la Politique de confidentialité de PrepIQ. Les paiements ne sont pas remboursables.",
       "pciCompliant": "Conforme PCI",
       "shieldTitle": "Bouclier d'intelligence",
-      "shieldDesc": "Vos données sont cryptées et traitées dans des VPC isolés. La gestion des abonnements est effectuée uniquement via des fournisseurs de paiement autorisés."
+      "shieldDesc": "Vos données sont cryptées et traitées dans des VPC isolés. La gestion des abonnements est effectuée uniquement via des fournisseurs de paiement autorisés.",
+      "billing": "Facturation",
+      "billingDetails": "Coordonnées de facturation",
+      "backToPlans": "Retour aux forfaits",
+      "completePurchase": "Finalisez votre achat.",
+      "descriptionWithDetails": "Forfait {plan} · {branch} · Facturation {cycle}",
+      "noPlanSelected": "Aucun forfait sélectionné. Revenez en arrière et choisissez un forfait.",
+      "noLocationSelected": "Aucune succursale sélectionnée. Revenez en arrière et choisissez une succursale.",
+      "fieldsRequired": "Le nom de l'entreprise, l'e-mail de facturation et le numéro de téléphone sont requis.",
+      "checkoutFailed": "Le paiement a échoué — veuillez réessayer ou contacter le support.",
+      "cardNotStored": "Votre carte n'est jamais stockée sur nos serveurs. Tous les paiements sont traités via une passerelle conforme PCI.",
+      "cardAccepted": "Visa, Mastercard et toutes les principales cartes acceptées",
+      "securePayment": "Paiement sécurisé et crypté — vous serez redirigé pour finaliser le paiement.",
+      "monthlyLabel": "Mensuel",
+      "yearlyLabel": "Annuel"
     },
     "forecast": {
       "title": "Prévisions & Demande",
