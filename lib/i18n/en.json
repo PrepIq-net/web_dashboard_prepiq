@@ -1846,21 +1846,21 @@
   },
   "workspace": {
     "chat": {
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
-      "insight": "Insight"
+      "eyebrow": "Chat",
+      "title": "Chat",
+      "description": "Team communication",
+      "insight": "Real-time messaging for your kitchen team."
     },
     "notifications": {
-      "eyebrow": "Eyebrow",
-      "title": "Title",
+      "eyebrow": "Notifications",
+      "title": "Notifications",
       "markAllRead": "Mark All Read",
       "loading": "Loading",
       "empty": {
-        "title": "Title",
-        "description": "Description"
+        "title": "No notifications yet",
+        "description": "You will see operational alerts here."
       },
-      "domainSystem": "Domain System",
+      "domainSystem": "System",
       "markAsRead": "Mark As Read",
       "resolve": "Resolve"
     },
@@ -1870,9 +1870,9 @@
         "atRisk": "At Risk",
         "underperforming": "Underperforming"
       },
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Branches",
+      "title": "Branches",
+      "description": "Manage your branch locations and performance.",
       "location": "Location",
       "locations": "Locations",
       "fleetHealthy": "Fleet Healthy",
@@ -1894,8 +1894,8 @@
         "configure": "Configure"
       },
       "empty": {
-        "title": "Title",
-        "description": "Description"
+        "title": "No branches",
+        "description": "Add your first branch to get started."
       },
       "new": {
         "branchNameRequired": "Branch Name Required",
@@ -1909,9 +1909,9 @@
         "loadOrgFailed": "Load Org Failed",
         "noOrg": "No Org",
         "createFailed": "Create Failed",
-        "eyebrow": "Eyebrow",
-        "title": "Title",
-        "description": "Description",
+        "eyebrow": "New Branch",
+        "title": "Create Branch",
+        "description": "Set up a new branch location.",
         "loadingOrg": "Loading Org",
         "loadOrgsFailed": "Load Orgs Failed",
         "branchNameLabel": "Branch Name Label",
@@ -1948,9 +1948,9 @@
           "noPlan": "No Plan"
         },
         "yourLocation": "Your Location",
-        "eyebrow": "Eyebrow",
-        "title": "Title",
-        "description": "Description",
+        "eyebrow": "Upgrade",
+        "title": "Upgrade Plan",
+        "description": "Choose a plan that fits your needs.",
         "backToBilling": "Back To Billing",
         "locationLabel": "Location Label",
         "primarySuffix": "Primary Suffix",
@@ -1972,7 +1972,7 @@
         "renew": "Renew",
         "upgradeTo": "Upgrade To",
         "select": "Select",
-        "footer": "Footer"
+        "footer": "All plans include standard forecasting infrastructure."
       },
       "unlimited": "Unlimited",
       "invoice": {
@@ -1992,23 +1992,23 @@
         "lineItems": "Line Items"
       },
       "paymentMethodModal": {
-        "title": "Title",
-        "description": "Description",
+        "title": "Payment Method",
+        "description": "Manage your payment details.",
         "close": "Close",
-        "body": "Body"
+        "body": "Update your payment method below."
       },
       "noActivePlan": "No Active Plan",
       "renewsToday": "Renews Today",
       "renewsInDays": "Renews In Days",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Billing",
+      "title": "Billing & Plans",
+      "description": "Manage subscriptions, invoices, and payment methods.",
       "insight": {
-        "default": "Default"
+        "default": "Track subscription costs and ROI across your organization."
       },
       "paymentSuccess": {
-        "title": "Title",
-        "description": "Description",
+        "title": "Payment Successful",
+        "description": "Your payment has been processed successfully.",
         "dismiss": "Dismiss"
       },
       "renewsLabel": "Renews Label",
@@ -2029,7 +2029,7 @@
       "dueToday": "Due Today",
       "inDays": "In Days",
       "roi": {
-        "title": "Title",
+        "title": "ROI Summary",
         "returnOnSubscription": "Return On Subscription",
         "youPay": "You Pay",
         "perMonth": "Per Month",
@@ -2085,9 +2085,9 @@
       "profitabilityMedium": "Profitability Medium",
       "profitabilityLow": "Profitability Low",
       "drillIn": "Drill In",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Sales & Waste",
+      "title": "Sales & Waste Analysis",
+      "description": "Track sales performance and waste across items.",
       "filterBranch": "Filter Branch",
       "filterPeriod": "Filter Period",
       "filterToday": "Filter Today",
@@ -2127,9 +2127,9 @@
       "insightsNoFlags": "Insights No Flags",
       "loadingFallback": "Loading Fallback",
       "item": {
-        "eyebrow": "Eyebrow",
-        "title": "Title",
-        "description": "Description",
+        "eyebrow": "Item Details",
+        "title": "Item Performance",
+        "description": "Detailed sales and waste analysis for this item.",
         "missingId": "Missing Id",
         "descriptionNotFound": "Description Not Found",
         "notFoundMessage": "Not Found Message",
@@ -2181,9 +2181,9 @@
     "risk": {
       "stockoutDetail": "Stockout Detail",
       "excessDetail": "Excess Detail",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Risk",
+      "title": "Risk Dashboard",
+      "description": "Monitor operational risks across your locations.",
       "filterBranch": "Filter Branch",
       "filterDate": "Filter Date",
       "dailyRiskScore": "Daily Risk Score",
@@ -2223,10 +2223,10 @@
       "columnTrend": "Column Trend",
       "trendValue": "Trend Value",
       "columnCoaching": "Column Coaching",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
-      "insight": "Insight",
+      "eyebrow": "Staff Performance",
+      "title": "Staff Performance",
+      "description": "Track staff efficiency, quality, and coaching needs.",
+      "insight": "Identify top performers and coaching opportunities.",
       "staffTracked": "Staff Tracked",
       "activeOperators": "Active Operators",
       "avgEfficiency": "Avg Efficiency",
@@ -2238,7 +2238,7 @@
       "medium": "Medium",
       "reliability": "Reliability",
       "scope": "Scope",
-      "scopeDescription": "Scope Description",
+      "scopeDescription": "Performance scope and filters",
       "timeframe": "Timeframe",
       "last7Days": "Last7 Days",
       "last30Days": "Last30 Days",
@@ -2264,11 +2264,11 @@
       "selectStaffB": "Select Staff B",
       "efficiencyDelta": "Efficiency Delta",
       "coachingNeeds": "Coaching Needs",
-      "coachingNeedsDesc": "Coaching Needs Desc",
+      "coachingNeedsDesc": "Areas where coaching may be beneficial",
       "coachingRowDetail": "Coaching Row Detail",
       "noCoachingNeeded": "No Coaching Needed",
       "staffManagement": "Staff Management",
-      "staffManagementDesc": "Staff Management Desc",
+      "staffManagementDesc": "Manage team members and roles",
       "adminControlsEnabled": "Admin Controls Enabled",
       "remove": "Remove",
       "noActiveMembers": "No Active Members"
@@ -2278,10 +2278,10 @@
       "gradeGood": "Grade Good",
       "gradeSolid": "Grade Solid",
       "gradeTough": "Grade Tough",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
-      "insight": "Insight",
+      "eyebrow": "History",
+      "title": "Day History",
+      "description": "Review past service days and execution data.",
+      "insight": "Track accuracy trends and identify improvement areas.",
       "branchLabel": "Branch Label",
       "selectBranch": "Select Branch",
       "windowLabel": "Window Label",
@@ -2342,11 +2342,11 @@
         "wasteReasonOther": "Waste Reason Other",
         "wasteReasonPrefix": "Waste Reason Prefix",
         "error": "Error",
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Log Batch / Waste",
+        "subtitle": "Record production or waste",
         "loggingFor": "Logging For",
         "clear": "Clear",
-        "selectHint": "Select Hint",
+        "selectHint": "Select an item to log",
         "selectItem": "Select Item",
         "suggested": "Suggested",
         "quantity": "Quantity",
@@ -2364,18 +2364,18 @@
         "sent": "Sent"
       },
       "restricted": {
-        "eyebrow": "Eyebrow",
-        "title": "Title",
-        "description": "Description",
-        "body": "Body"
+        "eyebrow": "Access Restricted",
+        "title": "Limited Access",
+        "description": "You do not have access to production features.",
+        "body": "Contact your organization admin for access."
       },
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Production",
+      "title": "Production Ledger",
+      "description": "Track batches, waste, and production status.",
       "branch": {
-        "label": "Label",
-        "selectPlaceholder": "Select Placeholder",
-        "noBranches": "No Branches"
+        "label": "Branch",
+        "selectPlaceholder": "Select branch...",
+        "noBranches": "No branches available"
       },
       "status": {
         "live": "Live",
@@ -2398,8 +2398,8 @@
       "runout": "Runout",
       "logBatch": "Log Batch",
       "allItems": "All Items",
-      "ledgerTitle": "Ledger Title",
-      "ledgerCount": "Ledger Count",
+      "ledgerTitle": "Production Ledger",
+      "ledgerCount": "{count} entries",
       "table": {
         "item": "Item",
         "planned": "Planned",
@@ -2411,11 +2411,11 @@
         "log": "Log"
       },
       "empty": {
-        "items": "Items"
+        "items": "No items to display"
       },
       "queue": {
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Prep Queue",
+        "subtitle": "Items needing preparation",
         "count": "Count",
         "table": {
           "item": "Item",
@@ -2424,11 +2424,11 @@
           "runout": "Runout",
           "priority": "Priority"
         },
-        "empty": "Empty"
+        "empty": "No items in queue"
       },
       "velocity": {
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Velocity Monitor",
+        "subtitle": "Real-time sales velocity",
         "count": "Count",
         "table": {
           "item": "Item",
@@ -2437,15 +2437,15 @@
           "remaining": "Remaining",
           "trend": "Trend"
         },
-        "empty": "Empty"
+        "empty": "No velocity data"
       },
       "waste": {
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Waste Monitor",
+        "subtitle": "Track waste events",
         "count": "Count",
         "slowing": "Slowing",
         "slowProduction": "Slow Production",
-        "empty": "Empty"
+        "empty": "No waste events"
       }
     },
     "financial": {
@@ -2472,9 +2472,9 @@
         "90d": "90d",
         "30d": "30d"
       },
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
+      "eyebrow": "Financial",
+      "title": "Financial Dashboard",
+      "description": "Track revenue, costs, margins, and waste impact.",
       "filter": {
         "timeframe": "Timeframe",
         "branch": "Branch",
@@ -2494,14 +2494,14 @@
         "trends": "Trends"
       },
       "overview": {
-        "revenueLabel": "Revenue Label",
+        "revenueLabel": "Total Revenue",
         "allBranches": "All Branches",
         "grossMargin": "Gross Margin",
         "gross": "Gross",
         "foodCost": "Food Cost",
         "waste": "Waste",
-        "grossMarginLabel": "Gross Margin Label",
-        "prepIqImpact": "Prep Iq Impact",
+        "grossMarginLabel": "Gross Margin",
+        "prepIqImpact": "PrepIQ Impact",
         "forecastAccuracy": "Forecast Accuracy",
         "wasteReduced": "Waste Reduced",
         "stockoutsAvoided": "Stockouts Avoided",
@@ -2517,11 +2517,11 @@
       "branches": {
         "margin": "Margin",
         "allBranches": "All Branches",
-        "subtitle": "Subtitle"
+        "subtitle": "Branch-level financial comparison"
       },
       "accuracy": {
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Forecast Accuracy",
+        "subtitle": "How accurate were our forecasts?",
         "accuracy": "Accuracy",
         "howOftenRight": "How Often Right",
         "wastePrevented": "Waste Prevented",
@@ -2530,8 +2530,8 @@
         "revenueNotLost": "Revenue Not Lost"
       },
       "trends": {
-        "title": "Title",
-        "subtitle": "Subtitle",
+        "title": "Financial Trends",
+        "subtitle": "Revenue, costs, and margin over time",
         "downloadCsv": "Download Csv",
         "chartRevenue": "Chart Revenue",
         "chartFoodCost": "Chart Food Cost",
@@ -2549,9 +2549,9 @@
         "ranShort": "Ran Short",
         "soldClean": "Sold Clean",
         "stockout": "Stockout",
-        "eyebrow": "Eyebrow",
-        "item": "Item",
-        "description": "Description",
+        "eyebrow": "Item",
+        "item": "Item Detail",
+        "description": "Performance and forecast data for this item.",
         "backHistory": "Back History",
         "noData": "No Data",
         "revenue": "Revenue",
@@ -2575,7 +2575,7 @@
         "yourOverrides": "Your Overrides",
         "overrideTimes": "Override Times",
         "overridePaidOff": "Override Paid Off",
-        "chartTitle": "Chart Title",
+        "chartTitle": "Forecast vs Actual",
         "everyServiceDay": "Every Service Day",
         "aiLabel": "Ai Label",
         "plannedLabel": "Planned Label",
@@ -2590,9 +2590,9 @@
       "recipes": {
         "quantityError": "Quantity Error",
         "saveFailed": "Save Failed",
-        "eyebrow": "Eyebrow",
-        "description": "Description",
-        "insight": "Insight",
+        "eyebrow": "Recipe",
+        "description": "Manage recipe ingredients and quantities.",
+        "insight": "Accurate recipes improve forecast precision.",
         "backToInventory": "Back To Inventory",
         "ingredients": "Ingredients",
         "noIngredientsYet": "No Ingredients Yet",
@@ -2619,7 +2619,7 @@
         "wasteInputTitle": "Waste Input Title",
         "saveLineAria": "Save Line Aria",
         "selectIngredientAria": "Select Ingredient Aria",
-        "searchPlaceholder": "Search Placeholder",
+        "searchPlaceholder": "Search ingredients...",
         "clear": "Clear",
         "noSearchResults": "No Search Results",
         "allUsed": "All Used",
@@ -2632,22 +2632,22 @@
         "item": "Item",
         "items": "Items",
         "addButton": "Add Button",
-        "emptyTitle": "Empty Title",
-        "emptyHint": "Empty Hint",
-        "addFirstButton": "Add First Button",
+        "emptyTitle": "No ingredients",
+        "emptyHint": "Add ingredients to build a recipe.",
+        "addFirstButton": "Add First Ingredient",
         "uncategorized": "Uncategorized",
         "statusActive": "Status Active",
         "statusInactive": "Status Inactive",
-        "selectHint": "Select Hint",
-        "selectDescription": "Select Description"
+        "selectHint": "Select an ingredient",
+        "selectDescription": "Choose from available ingredients"
       },
       "page": {
-        "eyebrow": "Eyebrow",
-        "title": "Title",
-        "description": "Description",
-        "insight": "Insight",
-        "branchLabel": "Branch Label",
-        "branchNote": "Branch Note"
+        "eyebrow": "Inventory",
+        "title": "Inventory",
+        "description": "Manage ingredients, recipes, and stock.",
+        "insight": "Keep your inventory up to date for accurate forecasting.",
+        "branchLabel": "Branch",
+        "branchNote": "Showing data for selected branch."
       },
       "kpi": {
         "ingredients": "Ingredients",
@@ -2671,9 +2671,9 @@
         "summary": "Summary",
         "addButton": "Add Button",
         "loading": "Loading",
-        "emptyTitle": "Empty Title",
-        "emptyHint": "Empty Hint",
-        "addFirstButton": "Add First Button"
+        "emptyTitle": "No ingredients",
+        "emptyHint": "Add your first ingredient.",
+        "addFirstButton": "Add First Ingredient"
       },
       "detail": {
         "editImageAria": "Edit Image Aria",
@@ -2682,7 +2682,7 @@
         "statusInactive": "Status Inactive",
         "editButton": "Edit Button",
         "editNote": "Edit Note",
-        "trackRecordLabel": "Track Record Label",
+        "trackRecordLabel": "Track Record",
         "dayButton": "Day Button",
         "fullHistory": "Full History",
         "loadingTrack": "Loading Track",
@@ -2709,9 +2709,9 @@
         "buildRecipe": "Build Recipe",
         "loadingRecipe": "Loading Recipe",
         "noRecipeLines": "No Recipe Lines",
-        "recipeHint": "Recipe Hint",
+        "recipeHint": "Add ingredients to track food costs.",
         "buildRecipeNow": "Build Recipe Now",
-        "accuracyWarning": "Accuracy Warning",
+        "accuracyWarning": "Accuracy may vary with limited data.",
         "perishableLabel": "Perishable Label",
         "wastePercent": "Waste Percent",
         "perishableCount": "Perishable Count",
@@ -2728,10 +2728,10 @@
       },
       "waste": {
         "loading": "Loading",
-        "emptyTitle": "Empty Title",
-        "emptyHint": "Empty Hint",
-        "sectionLabel": "Section Label",
-        "title": "Title",
+        "emptyTitle": "No waste events",
+        "emptyHint": "Waste events will appear here.",
+        "sectionLabel": "Waste",
+        "title": "Waste Summary",
         "summary": "Summary",
         "totalEvents": "Total Events",
         "top": "Top",
@@ -2749,9 +2749,9 @@
         "colPreparedAt": "Col Prepared At",
         "colPreparedBy": "Col Prepared By",
         "loading": "Loading",
-        "sectionLabel": "Section Label",
-        "title": "Title",
-        "description": "Description",
+        "sectionLabel": "Signals",
+        "title": "Production Signals",
+        "description": "Recent batch and prep activity.",
         "mostPrepped": "Most Prepped",
         "batch": "Batch",
         "batches": "Batches",
@@ -2772,10 +2772,10 @@
       "exportColActual": "Export Col Actual",
       "exportColOverpayment": "Export Col Overpayment",
       "exportColDuplicate": "Export Col Duplicate",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
-      "insight": "Insight",
+      "eyebrow": "Purchasing",
+      "title": "Purchasing",
+      "description": "Track suppliers, item costs, and order efficiency.",
+      "insight": "Monitor supplier performance and cost trends.",
       "mainTitle": "Main Title",
       "mainDescription": "Main Description",
       "readOnlyBanner": "Read Only Banner",
@@ -2830,10 +2830,10 @@
     },
     "forecastIntelligence": {
       "branchFallback": "Branch Fallback",
-      "eyebrow": "Eyebrow",
-      "title": "Title",
-      "description": "Description",
-      "insight": "Insight",
+      "eyebrow": "Forecast Intelligence",
+      "title": "Forecast Intelligence",
+      "description": "Deep dive into forecast data and model performance.",
+      "insight": "Understand how the model generates predictions.",
       "missingTitle": "Missing Title",
       "missingDescription": "Missing Description",
       "missingInsight": "Missing Insight",
@@ -2844,7 +2844,7 @@
       "lossOptimized": "Loss Optimized",
       "confidence": "Confidence",
       "modelAgreement": "Model Agreement",
-      "modelAgreementDesc": "Model Agreement Desc",
+      "modelAgreementDesc": "How closely the models agree on the forecast.",
       "chefSignal": "Chef Signal",
       "chefWeight": "Chef Weight",
       "performanceMetrics": "Performance Metrics",
@@ -2854,11 +2854,11 @@
       "waste": "Waste",
       "dataQualityGate": "Data Quality Gate",
       "noQualityScore": "No Quality Score",
-      "qualityChecksHint": "Quality Checks Hint",
+      "qualityChecksHint": "Quality checks appear after data ingestion.",
       "chefSkillSignal": "Chef Skill Signal",
       "noChefSignal": "No Chef Signal",
       "realTimeVelocityFeed": "Real Time Velocity Feed",
-      "velocityDescription": "Velocity Description",
+      "velocityDescription": "Real-time sales velocity compared to plan.",
       "pauseFeed": "Pause Feed",
       "resumeFeed": "Resume Feed",
       "updating": "Updating",
@@ -2876,10 +2876,10 @@
         "risk_medium": "Risk medium",
         "risk_low": "Risk low",
         "fallback_name": "Fallback name",
-        "eyebrow": "Eyebrow",
+        "eyebrow": "Branch Snapshot",
         "title_snapshot": "Title snapshot",
-        "description": "Description",
-        "insight": "Insight",
+        "description": "Read-only snapshot of the branch for today.",
+        "insight": "Review the plan, forecast, and risk exposure at a glance.",
         "back_to_overview": "Back to overview",
         "loading": "Loading",
         "no_day_title": "No day title",
@@ -2891,15 +2891,15 @@
         "projected_margin": "Projected margin",
         "prep_cost_estimate": "Prep cost estimate",
         "margin_at_risk": "Margin at risk",
-        "risk_description": "Risk description",
+        "risk_description": "Overall operational risk level.",
         "projected_protected_margin": "Projected protected margin",
         "ai_accepted": "Ai accepted",
         "chef_overrides": "Chef overrides",
         "daily_projection": "Daily projection",
-        "expected_demand_delta_label": "Expected demand delta label",
+        "expected_demand_delta_label": "Demand vs Typical",
         "vs_typical": "Vs typical",
         "typical_day": "Typical day",
-        "forecast_confidence_label": "Forecast confidence label",
+        "forecast_confidence_label": "Forecast Confidence",
         "signal_neutral": "Signal neutral",
         "ai_operations_commentary": "Ai operations commentary",
         "tracked_items": "Tracked items",
@@ -2908,7 +2908,7 @@
         "ai_focus_advice": "Ai focus advice",
         "ai_focus_detail": "Ai focus detail",
         "branch_item_plan": "Branch item plan",
-        "item_plan_subtitle": "Item plan subtitle",
+        "item_plan_subtitle": "Planned quantities for each tracked item.",
         "no_reasoning": "No reasoning",
         "forecast_label": "Forecast label",
         "planned_label": "Planned label",
