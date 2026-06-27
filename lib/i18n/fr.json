@@ -508,6 +508,28 @@
     "alertsDescription": "Les risques opérationnels et les informations IA apparaîtront ici en temps réel.",
     "viewAllNotifications": "Voir toutes les notifications"
   },
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "today": "Aujourd'hui",
+    "planning": "Planification",
+    "production": "Production",
+    "inventory": "Inventaire",
+    "history": "Historique",
+    "salesWaste": "Ventes & Gaspillage",
+    "financial": "Financier",
+    "staff": "Personnel",
+    "branches": "Succursales",
+    "purchasing": "Achats",
+    "risk": "Risque",
+    "billing": "Facturation",
+    "chat": "Chat",
+    "settings": "Paramètres",
+    "section": {
+      "analytics": "Analytique",
+      "management": "Gestion",
+      "workspace": "Espace de travail"
+    }
+  },
   "roles": {
     "ORG_OWNER": "Propriétaire de l'organisation",
     "OPS_DIRECTOR": "Directeur des opérations",

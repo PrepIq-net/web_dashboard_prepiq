@@ -508,6 +508,28 @@
     "alertsDescription": "Operational risks and AI insights will appear here in real-time.",
     "viewAllNotifications": "View all notifications"
   },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "today": "Today",
+    "planning": "Planning",
+    "production": "Production",
+    "inventory": "Inventory",
+    "history": "History",
+    "salesWaste": "Sales & Waste",
+    "financial": "Financial",
+    "staff": "Staff",
+    "branches": "Branches",
+    "purchasing": "Purchasing",
+    "risk": "Risk",
+    "billing": "Billing",
+    "chat": "Chat",
+    "settings": "Settings",
+    "section": {
+      "analytics": "Analytics",
+      "management": "Management",
+      "workspace": "Workspace"
+    }
+  },
   "roles": {
     "ORG_OWNER": "Organization Owner",
     "OPS_DIRECTOR": "Operations Director",

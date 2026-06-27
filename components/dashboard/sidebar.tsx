@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import {
   Home,
   Settings,
@@ -25,6 +25,7 @@ import {
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useTranslation } from "@/lib/i18n";
 import type { UserProfile } from "@/services/users/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,14 +34,15 @@ import type { UserProfile } from "@/services/users/types";
 
 interface NavItem {
   label: string;
+  labelKey?: string;
   href: string;
   icon: React.ReactNode;
-  /** Permission code required to see this item. Omit = visible to all. */
   permission?: string;
 }
 
 interface NavSection {
   title: string;
+  titleKey?: string;
   items: NavItem[];
 }
 
@@ -52,39 +54,45 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     title: "Operations",
+    titleKey: "dashboard.sidebar.operations",
     items: [
       {
         label: "Dashboard",
+        labelKey: "sidebar.dashboard",
         href: "/",
         icon: <Home className="h-4 w-4" />,
-        // Everyone can see the home/dashboard
       },
       {
         label: "Today",
+        labelKey: "sidebar.today",
         href: "/workspace/today",
         icon: <Clock className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_FORECASTS,
       },
       {
         label: "Planning",
+        labelKey: "sidebar.planning",
         href: "/workspace/planning",
         icon: <Calendar className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_CALENDAR,
       },
       {
         label: "Production",
+        labelKey: "sidebar.production",
         href: "/workspace/production",
         icon: <GraphUp className="h-4 w-4" />,
         permission: PERMISSIONS.CREATE_PRODUCTION_BATCH,
       },
       {
         label: "Inventory",
+        labelKey: "sidebar.inventory",
         href: "/workspace/inventory",
         icon: <Package className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_INVENTORY,
       },
       {
         label: "History",
+        labelKey: "sidebar.history",
         href: "/workspace/history",
         icon: <ClockRotateRight className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
@@ -93,21 +101,25 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Analytics",
+    titleKey: "sidebar.section.analytics",
     items: [
       {
         label: "Sales & Waste",
+        labelKey: "sidebar.salesWaste",
         href: "/workspace/sales-waste",
         icon: <StatsReport className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
       },
       {
         label: "Financial",
+        labelKey: "sidebar.financial",
         href: "/workspace/financial",
         icon: <Coins className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_FINANCIAL_DATA,
       },
       {
         label: "Staff",
+        labelKey: "sidebar.staff",
         href: "/workspace/staff-performance",
         icon: <Group className="h-4 w-4" />,
         permission: PERMISSIONS.MANAGE_TEAM,
@@ -116,27 +128,32 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Management",
+    titleKey: "sidebar.section.management",
     items: [
       {
         label: "Branches",
+        labelKey: "sidebar.branches",
         href: "/workspace/branches",
         icon: <Shop className="h-4 w-4" />,
         permission: PERMISSIONS.MANAGE_BRANCHES,
       },
       {
         label: "Purchasing",
+        labelKey: "sidebar.purchasing",
         href: "/workspace/purchasing",
         icon: <Cart className="h-4 w-4" />,
         permission: PERMISSIONS.MANAGE_INVENTORY,
       },
       {
         label: "Risk",
+        labelKey: "sidebar.risk",
         href: "/workspace/risk",
         icon: <ShieldAlert className="h-4 w-4" />,
         permission: PERMISSIONS.VIEW_COMPLIANCE,
       },
       {
         label: "Billing",
+        labelKey: "sidebar.billing",
         href: "/workspace/billing",
         icon: <CreditCard className="h-4 w-4" />,
         permission: PERMISSIONS.MANAGE_BILLING,
@@ -145,18 +162,20 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Workspace",
+    titleKey: "sidebar.section.workspace",
     items: [
       {
         label: "Chat",
+        labelKey: "sidebar.chat",
         href: "/workspace/chat",
         icon: <ChatBubble className="h-4 w-4" />,
         permission: PERMISSIONS.ACCESS_GLOBAL_CHAT,
       },
       {
         label: "Settings",
+        labelKey: "sidebar.settings",
         href: "/workspace/settings",
         icon: <Settings className="h-4 w-4" />,
-        // Settings page internally filters tabs by role
       },
     ],
   },
@@ -221,6 +240,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 }: {
   user?: UserProfile | null;
 }) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebarState();
 
@@ -236,13 +256,22 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
     return normalizedPath === norm;
   }
 
-  // Filter sections and items based on permissions; drop empty sections.
-  const visibleSections = NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter(
-      (item) => !item.permission || permissions.has(item.permission),
-    ),
-  })).filter((section) => section.items.length > 0);
+  const visibleSections = useMemo(
+    () =>
+      NAV_SECTIONS.map((section) => ({
+        ...section,
+        title: section.titleKey ? t(section.titleKey) : section.title,
+        items: section.items
+          .filter(
+            (item) => !item.permission || permissions.has(item.permission),
+          )
+          .map((item) => ({
+            ...item,
+            label: item.labelKey ? t(item.labelKey) : item.label,
+          })),
+      })).filter((section) => section.items.length > 0),
+    [permissions, t],
+  );
 
   // Org logo — use organization_logo if set, else fall back to app logo
   const orgLogo = user?.organization_logo ?? null;
