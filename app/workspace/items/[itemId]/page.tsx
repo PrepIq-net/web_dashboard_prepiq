@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useTranslation } from "@/lib/i18n";
 import {
   useItemHistory,
   useProductionIntelligenceAccessScope,
@@ -43,6 +44,7 @@ function ItemSparkline({
   timeSeries: ItemTimeSeriesRow[];
   unit: string;
 }) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState<number | null>(null);
 
   const maxVal = useMemo(
@@ -140,16 +142,16 @@ function ItemSparkline({
             <p className="font-semibold text-text-primary mb-1">
               {formatDate(timeSeries[hovered].date)}
             </p>
-            <p>AI forecast: {fmtQty(timeSeries[hovered].ai_forecast, unit)}</p>
-            <p>Planned: {fmtQty(timeSeries[hovered].planned_qty, unit)}</p>
-            <p>Sold: {fmtQty(timeSeries[hovered].actual_sales, unit)}</p>
+            <p>{t("workspace.items.detail.aiForecast", { qty: fmtQty(timeSeries[hovered].ai_forecast, unit) })}</p>
+            <p>{t("workspace.items.detail.planned", { qty: fmtQty(timeSeries[hovered].planned_qty, unit) })}</p>
+            <p>{t("workspace.items.detail.sold", { qty: fmtQty(timeSeries[hovered].actual_sales, unit) })}</p>
             {timeSeries[hovered].waste_qty > 0 && (
               <p className="text-status-warning">
-                Waste: {fmtQty(timeSeries[hovered].waste_qty, unit)}
+                {t("workspace.items.detail.waste", { qty: fmtQty(timeSeries[hovered].waste_qty, unit) })}
               </p>
             )}
             {timeSeries[hovered].stockout_flag && (
-              <p className="text-status-critical">Ran short</p>
+              <p className="text-status-critical">{t("workspace.items.detail.ranShort")}</p>
             )}
           </div>
         </div>
@@ -159,23 +161,23 @@ function ItemSparkline({
       <div className="mt-2 flex items-center gap-4 text-[10px] text-text-muted">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-white/20" />
-          Planned
+          {t("workspace.items.detail.planned")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-status-success/70" />
-          Sold clean
+          {t("workspace.items.detail.soldClean")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-status-warning/70" />
-          Waste
+          {t("workspace.items.detail.waste")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-status-critical/70" />
-          Stockout
+          {t("workspace.items.detail.stockout")}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/60" />
-          AI forecast
+          {t("workspace.items.detail.aiForecast")}
         </span>
       </div>
     </div>
@@ -183,6 +185,7 @@ function ItemSparkline({
 }
 
 function ItemHistoryContent() {
+  const { t } = useTranslation();
   const params = useParams<{ itemId: string }>();
   const searchParams = useSearchParams();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -232,9 +235,9 @@ function ItemHistoryContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Item track record"
-      title={report?.item_title ?? (isLoading ? "Loading…" : "Item")}
-      description={`How this item has performed service after service — what the AI is learning and where gaps keep appearing.`}
+      eyebrow={t("workspace.items.detail.eyebrow")}
+      title={report?.item_title ?? (isLoading ? t("common.loading") : t("workspace.items.detail.item"))}
+      description={t("workspace.items.detail.description")}
       insight=""
     >
       {/* ── Back link + window selector ── */}
@@ -243,7 +246,7 @@ function ItemHistoryContent() {
           href={`/workspace/history${branchId ? `?branch=${branchId}` : ""}`}
           className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text-primary transition-colors"
         >
-          ← History
+          {t("workspace.items.detail.backHistory")}
         </Link>
         <div className="flex h-10 items-center gap-1 rounded-button border border-border-default bg-surface-3 px-2">
           {[7, 14, 30, 60].map((w) => (
@@ -264,14 +267,14 @@ function ItemHistoryContent() {
       </div>
 
       {isLoading && (
-        <p className="mt-10 text-center text-sm text-text-muted">Loading…</p>
+        <p className="mt-10 text-center text-sm text-text-muted">{t("common.loading")}</p>
       )}
 
       {!isLoading && !summary && (
         <div className="mt-10 rounded-xl border border-surface-4 bg-surface-2 px-6 py-10 text-center">
           <p className="text-sm text-text-muted">
             {report?.data_note ??
-              "No history data found for this item in the selected window."}
+              t("workspace.items.detail.noData")}
           </p>
         </div>
       )}
@@ -282,30 +285,30 @@ function ItemHistoryContent() {
           <div className="mt-6 grid grid-cols-2 gap-px bg-surface-4/40 rounded-xl overflow-hidden sm:grid-cols-4">
             {[
               {
-                label: "Revenue",
+                label: t("workspace.items.detail.revenue"),
                 value: toCurrency(summary.total_revenue),
-                sub: `${summary.days_tracked} service days`,
+                sub: t("workspace.items.detail.serviceDays", { days: summary.days_tracked }),
               },
               {
-                label: "Waste cost",
+                label: t("workspace.items.detail.wasteCost"),
                 value: toCurrency(summary.total_waste_cost),
                 sub:
                   summary.total_waste_cost > 0
-                    ? "Over-prep losses"
-                    : "No waste",
+                    ? t("workspace.items.detail.overPrepLosses")
+                    : t("workspace.items.detail.noWaste"),
               },
               {
-                label: "Stockout days",
+                label: t("workspace.items.detail.stockoutDays"),
                 value: String(summary.stockout_days),
                 sub:
                   summary.stockout_days > 0
-                    ? `${toCurrency(summary.total_lost_revenue)} missed revenue`
-                    : "Never ran short",
+                    ? t("workspace.items.detail.missedRevenue", { revenue: toCurrency(summary.total_lost_revenue) })
+                    : t("workspace.items.detail.neverRanShort"),
               },
               {
-                label: "Avg accuracy",
+                label: t("workspace.items.detail.avgAccuracy"),
                 value: `${summary.avg_accuracy.toFixed(0)}%`,
-                sub: "AI forecast vs actual",
+                sub: t("workspace.items.detail.aiForecastVsActual"),
               },
             ].map((k) => (
               <div key={k.label} className="bg-surface-2 px-5 py-4">
@@ -324,11 +327,11 @@ function ItemHistoryContent() {
           {insights && (
             <div className="mt-6 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-3">
-                What the AI is learning
+                {t("workspace.items.detail.whatAiLearning")}
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <p className="text-[11px] text-text-muted">Accuracy trend</p>
+                  <p className="text-[11px] text-text-muted">{t("workspace.items.detail.accuracyTrend")}</p>
                   <p className="mt-0.5 text-sm font-semibold text-text-primary flex items-center gap-1">
                     <TrendIcon trend={insights.accuracy_trend} />
                     {insights.accuracy_trend.charAt(0).toUpperCase() +
@@ -336,37 +339,35 @@ function ItemHistoryContent() {
                   </p>
                   {insights.accuracy_prior_14d > 0 && (
                     <p className="mt-0.5 text-[11px] text-text-muted">
-                      {insights.accuracy_14d.toFixed(0)}% last 14 days vs{" "}
-                      {insights.accuracy_prior_14d.toFixed(0)}% prior
+                      {t("workspace.items.detail.accuracyCompare", { current: insights.accuracy_14d.toFixed(0), prior: insights.accuracy_prior_14d.toFixed(0) })}
                     </p>
                   )}
                 </div>
                 <div>
                   <p className="text-[11px] text-text-muted">
-                    Avg forecast error
+                    {t("workspace.items.detail.avgForecastError")}
                   </p>
                   <p className="mt-0.5 text-sm font-semibold text-text-primary">
-                    {insights.avg_error_pct.toFixed(1)}% off
+                    {t("workspace.items.detail.percentOff", { pct: insights.avg_error_pct.toFixed(1) })}
                   </p>
                   <p className="mt-0.5 text-[11px] text-text-muted">
                     {insights.avg_error_pct < 10
-                      ? "Very precise"
+                      ? t("workspace.items.detail.veryPrecise")
                       : insights.avg_error_pct < 20
-                        ? "Reasonable"
-                        : "Still learning this item"}
+                        ? t("workspace.items.detail.reasonable")
+                        : t("workspace.items.detail.stillLearning")}
                   </p>
                 </div>
                 {insights.override_count > 0 && (
                   <div>
                     <p className="text-[11px] text-text-muted">
-                      Your overrides
+                      {t("workspace.items.detail.yourOverrides")}
                     </p>
                     <p className="mt-0.5 text-sm font-semibold text-text-primary">
-                      {insights.override_count} times
+                      {t("workspace.items.detail.overrideTimes", { count: insights.override_count })}
                     </p>
                     <p className="mt-0.5 text-[11px] text-text-muted">
-                      {insights.override_win_count}/{insights.override_count}{" "}
-                      paid off
+                      {t("workspace.items.detail.overridePaidOff", { wins: insights.override_win_count, total: insights.override_count })}
                     </p>
                   </div>
                 )}
@@ -378,7 +379,7 @@ function ItemHistoryContent() {
           {(report?.time_series?.length ?? 0) > 0 && (
             <div className="mt-6 rounded-xl border border-surface-4 bg-surface-2 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                AI forecast vs planned vs sold — last {days} days
+                {t("workspace.items.detail.chartTitle", { days })}
               </p>
               <ItemSparkline timeSeries={report!.time_series} unit={unit} />
             </div>
@@ -388,7 +389,7 @@ function ItemHistoryContent() {
           {(report?.time_series?.length ?? 0) > 0 && (
             <div className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-3">
-                Every service day
+                {t("workspace.items.detail.everyServiceDay")}
               </p>
               <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
                 {/* Stockouts first */}
@@ -419,37 +420,28 @@ function ItemHistoryContent() {
                       </p>
                       <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-text-muted">
                         <span>
-                          AI:{" "}
-                          <span className="font-medium text-text-secondary">
-                            {fmtQty(row.ai_forecast, unit)}
-                          </span>
+                          {t("workspace.items.detail.aiLabel", { qty: fmtQty(row.ai_forecast, unit) })}
                         </span>
                         <span>
-                          Planned:{" "}
-                          <span className="font-medium text-text-secondary">
-                            {fmtQty(row.planned_qty, unit)}
-                          </span>
+                          {t("workspace.items.detail.plannedLabel", { qty: fmtQty(row.planned_qty, unit) })}
                         </span>
                         <span>
-                          Sold:{" "}
-                          <span className="font-semibold text-text-primary">
-                            {fmtQty(row.actual_sales, unit)}
-                          </span>
+                          {t("workspace.items.detail.soldLabel", { qty: fmtQty(row.actual_sales, unit) })}
                         </span>
                         {row.waste_qty > 0 && (
                           <span className="text-status-warning">
-                            Waste: {fmtQty(row.waste_qty, unit)}
+                            {t("workspace.items.detail.wasteLabel", { qty: fmtQty(row.waste_qty, unit) })}
                           </span>
                         )}
                         {row.lost_revenue_estimate > 0 && (
                           <span className="text-status-critical">
-                            ~{toCurrency(row.lost_revenue_estimate)} missed
+                            {t("workspace.items.detail.missedLabel", { revenue: toCurrency(row.lost_revenue_estimate) })}
                           </span>
                         )}
                       </div>
                       {isOverride && (
                         <span className="shrink-0 rounded-full border border-brand-gold/30 px-2 py-0.5 text-[10px] font-medium text-brand-gold">
-                          Your call
+                          {t("workspace.items.detail.yourCall")}
                         </span>
                       )}
                     </div>
@@ -465,11 +457,12 @@ function ItemHistoryContent() {
 }
 
 export default function ItemHistoryPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading item history…
+          {t("workspace.items.detail.loadingHistory")}
         </div>
       }
     >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -46,6 +47,7 @@ function asStrings(v: unknown): string[] {
 }
 
 export default function BillingUpgradePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const branchIdFromUrl = searchParams.get("branchId") ?? "";
@@ -92,21 +94,24 @@ export default function BillingUpgradePage() {
     plansQuery.isLoading || userLoading || (!!user && branchesQuery.isLoading);
 
   // Insight line for WorkspaceShell
+  const planName = currentPlanType
+    ? currentPlanType.charAt(0) + currentPlanType.slice(1).toLowerCase()
+    : "";
   const insight =
     recommendationReason ??
     (currentPlanType
-      ? `Currently on ${currentPlanType.charAt(0) + currentPlanType.slice(1).toLowerCase()} plan. Upgrade to unlock more.`
-      : "Each location runs its own subscription. Select a plan to get started.");
+      ? t("workspace.billing.upgrade.insight.currentPlan", { plan: planName })
+      : t("workspace.billing.upgrade.insight.noPlan"));
 
   const branchLabel = selectedBranch
     ? selectedBranch.name
-    : "your location";
+    : t("workspace.billing.upgrade.yourLocation");
 
   return (
     <WorkspaceShell
-      eyebrow="Billing"
-      title="Change Plan"
-      description={`Subscriptions are per location. Changing plan for ${branchLabel}.`}
+      eyebrow={t("workspace.billing.upgrade.eyebrow")}
+      title={t("workspace.billing.upgrade.title")}
+      description={t("workspace.billing.upgrade.description", { branch: branchLabel })}
       insight={insight}
     >
       {isLoading ? (
@@ -122,22 +127,22 @@ export default function BillingUpgradePage() {
               className="flex items-center gap-1.5 text-[12px] font-medium text-text-muted transition-colors hover:text-text-primary"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Billing
+              {t("workspace.billing.upgrade.backToBilling")}
             </button>
 
             {branches.length > 1 && (
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                  Location:
+                  {t("workspace.billing.upgrade.locationLabel")}
                 </span>
                 <Select
                   value={branchId}
                   onChange={setBranchId}
                   options={branches.map((b) => ({
                     value: b.id,
-                    label: b.name + (b.is_primary ? " (Primary)" : ""),
+                    label: b.name + (b.is_primary ? ` ${t("workspace.billing.upgrade.primarySuffix")}` : ""),
                   }))}
-                  placeholder="Select location"
+                  placeholder={t("workspace.billing.upgrade.selectLocation")}
                 />
               </div>
             )}
@@ -159,12 +164,12 @@ export default function BillingUpgradePage() {
               onClick={() => setCycle("MONTHLY")}
               className={`text-[13px] font-medium transition-colors ${cycle === "MONTHLY" ? "text-text-primary" : "text-text-muted"}`}
             >
-              Monthly
+              {t("workspace.billing.upgrade.monthly")}
             </button>
             <button
               onClick={() => setCycle(cycle === "MONTHLY" ? "YEARLY" : "MONTHLY")}
               className="relative h-6 w-11 rounded-full border border-surface-4 bg-surface-3 transition-colors hover:border-brand-gold/30"
-              aria-label="Toggle billing cycle"
+              aria-label={t("workspace.billing.upgrade.toggleLabel")}
             >
               <span
                 className={`absolute top-0.5 h-5 w-5 rounded-full transition-all duration-200 ${cycle === "YEARLY" ? "left-[1.375rem] bg-brand-gold" : "left-0.5 bg-text-muted/60"}`}
@@ -175,10 +180,10 @@ export default function BillingUpgradePage() {
                 onClick={() => setCycle("YEARLY")}
                 className={`text-[13px] font-medium transition-colors ${cycle === "YEARLY" ? "text-text-primary" : "text-text-muted"}`}
               >
-                Yearly
+                {t("workspace.billing.upgrade.yearly")}
               </button>
               <span className="rounded-full border border-status-success/20 bg-status-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-status-success">
-                Save 15%
+                {t("workspace.billing.upgrade.savePercent")}
               </span>
             </div>
           </div>
@@ -229,7 +234,7 @@ export default function BillingUpgradePage() {
                           </h3>
                           {isRecommended && (
                             <span className="mt-1 inline-block rounded-full bg-brand-gold/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-brand-gold">
-                              AI Recommended
+                              {t("workspace.billing.upgrade.aiRecommended")}
                             </span>
                           )}
                         </div>
@@ -238,12 +243,12 @@ export default function BillingUpgradePage() {
                         )}
                         {isExpiredCurrentPlan && (
                           <span className="rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-status-warning">
-                            Expired
+                            {t("workspace.billing.upgrade.expired")}
                           </span>
                         )}
                       </div>
                       <p className="mt-1.5 text-[12px] text-text-muted">
-                        {plan.tagline ?? "Intelligence engine"}
+                        {plan.tagline ?? t("workspace.billing.upgrade.taglineFallback")}
                       </p>
                     </div>
 
@@ -254,10 +259,12 @@ export default function BillingUpgradePage() {
                           ${price.toLocaleString()}
                         </span>
                         <span className="text-[12px] text-text-muted">
-                          /{cycle === "MONTHLY" ? "mo" : "yr"}
+                          /{cycle === "MONTHLY" ? t("workspace.billing.upgrade.priceSuffixMonth") : t("workspace.billing.upgrade.priceSuffixYear")}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[11px] text-text-muted">per location</p>
+                      <p className="mt-0.5 text-[11px] text-text-muted">
+                        {t("workspace.billing.upgrade.perLocation")}
+                      </p>
                     </div>
 
                     {/* Capacity */}
@@ -265,8 +272,9 @@ export default function BillingUpgradePage() {
                       <div className="mb-5 flex items-center gap-2 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-2">
                         <MultiplePages className="h-3.5 w-3.5 text-text-muted" />
                         <span className="text-[12px] text-text-secondary">
-                          Up to {plan.plan_limits.MAX_BRANCHES} location
-                          {plan.plan_limits.MAX_BRANCHES !== 1 ? "s" : ""}
+                          {plan.plan_limits.MAX_BRANCHES === 1
+                            ? t("workspace.billing.upgrade.upToLocation", { count: plan.plan_limits.MAX_BRANCHES })
+                            : t("workspace.billing.upgrade.upToLocations", { count: plan.plan_limits.MAX_BRANCHES })}
                         </span>
                       </div>
                     )}
@@ -286,11 +294,11 @@ export default function BillingUpgradePage() {
                     {/* CTA */}
                     {isActiveCurrentPlan ? (
                       <div className="flex h-9 w-full items-center justify-center rounded-full bg-brand-gold/10 text-[12px] font-semibold text-brand-gold">
-                        Current plan
+                        {t("workspace.billing.upgrade.currentPlan")}
                       </div>
                     ) : isDowngrade ? (
                       <div className="flex h-9 w-full items-center justify-center rounded-full border border-surface-4 text-[12px] font-medium text-text-muted opacity-40 cursor-not-allowed">
-                        Contact support to downgrade
+                        {t("workspace.billing.upgrade.downgradeDisabled")}
                       </div>
                     ) : (
                       <button
@@ -302,10 +310,10 @@ export default function BillingUpgradePage() {
                         }`}
                       >
                         {isExpiredCurrentPlan
-                          ? `Renew ${plan.name}`
+                          ? t("workspace.billing.upgrade.renew", { name: plan.name })
                           : isUpgrade
-                            ? `Upgrade to ${plan.name}`
-                            : `Select ${plan.name}`}
+                            ? t("workspace.billing.upgrade.upgradeTo", { name: plan.name })
+                            : t("workspace.billing.upgrade.select", { name: plan.name })}
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                       </button>
                     )}
@@ -317,7 +325,7 @@ export default function BillingUpgradePage() {
 
           {/* Footer */}
           <p className="mt-8 text-center text-[11px] text-text-muted">
-            Secure checkout powered by Flutterwave · Subscriptions renew automatically · Cancel anytime
+            {t("workspace.billing.upgrade.footer")}
           </p>
         </div>
       )}

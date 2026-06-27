@@ -74,6 +74,7 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
+import { useTranslation } from "@/lib/i18n";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -114,6 +115,7 @@ const VALID_SETTINGS_TABS: SettingsTab[] = [
 ];
 
 function SettingsPageContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabFromUrl = searchParams.get("tab") as SettingsTab | null;
@@ -141,46 +143,46 @@ function SettingsPageContent() {
   const tabs: TabItem[] = [
     {
       id: "organization",
-      label: "Organization",
+      label: t("settings.tabs.organization"),
       icon: <Building className="h-4 w-4" />,
       permission: PERMISSIONS.MANAGE_ORG_SETTINGS,
     },
     {
       id: "branches",
-      label: "Branches",
+      label: t("settings.tabs.branches"),
       icon: <Shop className="h-4 w-4" />,
       permission: PERMISSIONS.MANAGE_BRANCHES,
     },
     {
       id: "users-roles",
-      label: "Users & Roles",
+      label: t("settings.tabs.usersRoles"),
       icon: <Group className="h-4 w-4" />,
       permission: PERMISSIONS.MANAGE_TEAM,
     },
     {
       id: "integrations",
-      label: "Integrations",
+      label: t("settings.tabs.integrations"),
       icon: <CloudSync className="h-4 w-4" />,
       permission: PERMISSIONS.MANAGE_INTEGRATIONS,
     },
     {
       id: "notifications",
-      label: "Notifications",
+      label: t("settings.tabs.notifications"),
       icon: <BellNotification className="h-4 w-4" />,
     },
     {
       id: "security",
-      label: "Security",
+      label: t("settings.tabs.security"),
       icon: <ShieldCheck className="h-4 w-4" />,
     },
     {
       id: "data-ai",
-      label: "Data & AI Preferences",
+      label: t("settings.tabs.dataAI"),
       icon: <Brain className="h-4 w-4" />,
     },
     {
       id: "support",
-      label: "Support",
+      label: t("settings.tabs.support"),
       icon: <HelpCircle className="h-4 w-4" />,
     },
   ];
@@ -202,10 +204,10 @@ function SettingsPageContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="System"
-      title="Settings"
-      description="Workspace configuration, access controls, and platform preferences."
-      insight="Enable branch-level default context to reduce navigation friction for operators."
+      eyebrow={t("settings.shell.eyebrow")}
+      title={t("settings.shell.title")}
+      description={t("settings.shell.description")}
+      insight={t("settings.shell.insight")}
     >
       <div className="flex flex-col md:flex-row gap-8 mt-4">
         {/* Settings Sidebar */}
@@ -269,7 +271,7 @@ function SettingsPageContent() {
                 {tabs.find((t) => t.id === activeTab)?.label}
               </h3>
               <p className="text-sm text-text-muted mt-1">
-                This section is currently under development.
+                {t("settings.underDevelopment")}
               </p>
             </div>
           )}
@@ -284,6 +286,7 @@ function SettingsPageContent() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OrganizationSettings({ orgId }: { orgId?: string }) {
+  const { t } = useTranslation();
   const { data: org, isLoading } = useOrganizationDetail(orgId || "");
   const updateOrg = useUpdateOrganization(orgId || "");
   const [formData, setFormData] = useState<any>(null);
@@ -315,7 +318,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
   const handleSave = () => {
     updateOrg.mutate(formData, {
       onSuccess: () => {
-        toast.success("Organization settings updated");
+        toast.success(t("settings.organization.updated"));
       },
     });
   };
@@ -329,10 +332,10 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">
-            Organization Settings
+            {t("settings.organization.title")}
           </h2>
           <p className="text-sm text-text-muted mt-1">
-            Manage global business identity and operational defaults.
+            {t("settings.organization.description")}
           </p>
         </div>
         <Button
@@ -340,7 +343,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           disabled={updateOrg.isPending}
           className="font-semibold px-6"
         >
-          {updateOrg.isPending ? "Saving..." : "Save Changes"}
+          {updateOrg.isPending ? t("settings.organization.saving") : t("settings.organization.saveChanges")}
         </Button>
       </div>
 
@@ -349,51 +352,51 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <InfoCircle className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            General
+            {t("settings.organization.general")}
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
-            label="Organization Name"
+            label={t("settings.organization.orgName")}
             value={formData.name}
             onChange={(e) => handleChange("name", e.target.value)}
-            placeholder="e.g. PrepIQ Kitchen"
+            placeholder={t("settings.organization.orgNamePlaceholder")}
           />
           <Select
-            label="Business Type"
+            label={t("settings.organization.businessType")}
             value={formData.business_type}
             onChange={(val: string) => handleChange("business_type", val)}
             options={[
-              { label: "Restaurant", value: "RESTAURANT" },
-              { label: "Hotel", value: "HOTEL" },
-              { label: "Bakery", value: "BAKERY" },
-              { label: "Cloud Kitchen", value: "CLOUD_KITCHEN" },
-              { label: "Catering", value: "CATERING" },
-              { label: "Institutional", value: "INSTITUTIONAL" },
+              { label: t("settings.organization.businessTypeOptions.restaurant"), value: "RESTAURANT" },
+              { label: t("settings.organization.businessTypeOptions.hotel"), value: "HOTEL" },
+              { label: t("settings.organization.businessTypeOptions.bakery"), value: "BAKERY" },
+              { label: t("settings.organization.businessTypeOptions.cloudKitchen"), value: "CLOUD_KITCHEN" },
+              { label: t("settings.organization.businessTypeOptions.catering"), value: "CATERING" },
+              { label: t("settings.organization.businessTypeOptions.institutional"), value: "INSTITUTIONAL" },
             ]}
           />
           <Select
-            label="Timezone"
+            label={t("settings.organization.timezone")}
             value={formData.timezone}
             onChange={(val: string) => handleChange("timezone", val)}
             options={[
-              { label: "UTC", value: "UTC" },
-              { label: "Eastern Time (ET)", value: "America/New_York" },
-              { label: "Pacific Time (PT)", value: "America/Los_Angeles" },
-              { label: "London (GMT)", value: "Europe/London" },
-              { label: "East Africa (EAT)", value: "Africa/Nairobi" },
+              { label: t("settings.organization.timezoneOptions.utc"), value: "UTC" },
+              { label: t("settings.organization.timezoneOptions.eastern"), value: "America/New_York" },
+              { label: t("settings.organization.timezoneOptions.pacific"), value: "America/Los_Angeles" },
+              { label: t("settings.organization.timezoneOptions.london"), value: "Europe/London" },
+              { label: t("settings.organization.timezoneOptions.eastAfrica"), value: "Africa/Nairobi" },
             ]}
           />
           <Select
-            label="Default Currency"
+            label={t("settings.organization.defaultCurrency")}
             value={formData.currency}
             onChange={(val: string) => handleChange("currency", val)}
             options={[
-              { label: "USD ($)", value: "USD" },
-              { label: "EUR (€)", value: "EUR" },
-              { label: "GBP (£)", value: "GBP" },
-              { label: "KES (KSh)", value: "KES" },
+              { label: t("settings.organization.currencyOptions.usd"), value: "USD" },
+              { label: t("settings.organization.currencyOptions.eur"), value: "EUR" },
+              { label: t("settings.organization.currencyOptions.gbp"), value: "GBP" },
+              { label: t("settings.organization.currencyOptions.kes"), value: "KES" },
             ]}
           />
         </div>
@@ -404,14 +407,14 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <Building className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            Branding
+            {t("settings.organization.branding")}
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <span className="text-sm font-medium text-text-secondary">
-              Organization Logo
+              {t("settings.organization.orgLogo")}
             </span>
             <div className="flex items-center gap-6">
               <div className="h-24 w-24 rounded-2xl bg-[#1C1C1F] border border-[#2A2A2E] flex items-center justify-center overflow-hidden relative group">
@@ -431,16 +434,16 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-text-primary">
-                  Update Logo
+                  {t("settings.organization.updateLogo")}
                 </p>
                 <p className="text-xs text-text-muted">
-                  SVG, PNG or JPG (max 2MB)
+                  {t("settings.organization.logoHint")}
                 </p>
                 <Button
                   variant="secondary"
                   className="mt-2 text-[11px] h-8 px-3"
                 >
-                  Upload New
+                  {t("settings.organization.uploadNew")}
                 </Button>
               </div>
             </div>
@@ -449,7 +452,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           <div className="space-y-6">
             <div className="flex gap-3 items-end">
               <Input
-                label="Brand Color"
+                label={t("settings.organization.brandColor")}
                 value={formData.brand_color}
                 onChange={(e) => handleChange("brand_color", e.target.value)}
                 className="font-mono uppercase"
@@ -460,10 +463,10 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
               />
             </div>
             <Input
-              label="Receipt Name"
+              label={t("settings.organization.receiptName")}
               value={formData.receipt_name}
               onChange={(e) => handleChange("receipt_name", e.target.value)}
-              placeholder="e.g. PREPIQ KITCHEN LTD"
+              placeholder={t("settings.organization.receiptNamePlaceholder")}
             />
           </div>
         </div>
@@ -474,13 +477,13 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <Brain className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            Operational Defaults
+            {t("settings.organization.operationalDefaults")}
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
-            label="Default Prep Buffer (Minutes)"
+            label={t("settings.organization.defaultPrepBuffer")}
             type="number"
             value={formData.default_prep_buffer_minutes}
             onChange={(e) =>
@@ -491,7 +494,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
             }
           />
           <Input
-            label="Forecast Horizon (Days)"
+            label={t("settings.organization.forecastHorizon")}
             type="number"
             value={formData.forecast_horizon_days}
             onChange={(e) =>
@@ -506,12 +509,12 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <InfoCircle className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            Language
+            {t("settings.organization.language")}
           </h3>
         </div>
         <div>
           <p className="text-xs text-text-muted mb-3">
-            Interface language for this organization's workspace.
+            {t("settings.organization.languageDescription")}
           </p>
           <LanguageSwitcher />
         </div>
@@ -537,6 +540,7 @@ function IntegrationsSettings({
   focusedBranchId?: string;
   onBranchChange?: (branchId: string) => void;
 }) {
+  const { t } = useTranslation();
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
 
@@ -590,7 +594,7 @@ function IntegrationsSettings({
     } else if (posId === "clover") {
       cloverOAuth.mutate({ branch_id });
     } else {
-      toast.error(`${posId} connection not implemented yet.`);
+      toast.error(t("settings.integrations.connectionNotImplemented", { posId }));
     }
   };
 
@@ -598,9 +602,9 @@ function IntegrationsSettings({
     <div className="space-y-10">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-text-primary">Integrations</h2>
+        <h2 className="text-xl font-semibold text-text-primary">{t("settings.integrations.title")}</h2>
         <p className="text-sm text-text-muted mt-1">
-          Connect your POS and accounting systems to PrepIQ — per branch.
+          {t("settings.integrations.description")}
         </p>
       </div>
 
@@ -609,21 +613,21 @@ function IntegrationsSettings({
         <div className="flex flex-wrap gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-status-ok" />
-            {summary.active_connections} of {summary.total_branches} branches connected
+            {t("settings.integrations.branchesConnected", { count: summary.active_connections, total: summary.total_branches })}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
-            {summary.health_pct}% sync health
+            {t("settings.integrations.syncHealth", { pct: summary.health_pct })}
           </span>
         </div>
       )}
 
       {/* Branch picker */}
       <Select
-        label="Integration for"
+        label={t("settings.integrations.integrationFor")}
         options={branches.map((b) => ({ value: b.id, label: b.name }))}
         value={selectedBranchId}
         onChange={handleBranchChange}
-        placeholder={branches.length === 0 ? "Loading branches…" : "Select branch"}
+        placeholder={branches.length === 0 ? t("settings.integrations.loadingBranches") : t("settings.integrations.selectBranch")}
         disabled={branches.length === 0}
         className="max-w-xs"
       />
@@ -651,11 +655,11 @@ function IntegrationsSettings({
             <div>
               <p className="text-sm font-medium text-text-primary">
                 {selectedBranch?.name ?? "Branch"} —{" "}
-                {isConnected ? "POS connected" : "No POS connected"}
+                  {isConnected ? t("settings.integrations.posConnected") : t("settings.integrations.noPosConnected")}
               </p>
               {branchStatus.last_sync && (
                 <p className="text-xs text-text-muted mt-0.5">
-                  Last sync:{" "}
+                  {t("settings.integrations.lastSync")}{" "}
                   {new Date(branchStatus.last_sync).toLocaleString([], {
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -666,14 +670,14 @@ function IntegrationsSettings({
           </div>
           {isConnected && (
             <Badge variant="outline" className="text-[10px] text-status-ok border-status-ok/40">
-              Active
+              {t("settings.integrations.active")}
             </Badge>
           )}
         </div>
       ) : selectedBranch ? (
         <div className="flex items-center gap-3 rounded-2xl border border-surface-4 px-5 py-4 text-sm text-text-muted">
           <span className="h-2 w-2 rounded-full bg-text-muted/30" />
-          No integration data for {selectedBranch.name} yet.
+          {t("settings.integrations.noIntegrationData", { name: selectedBranch.name })}
         </div>
       ) : null}
 
@@ -683,10 +687,10 @@ function IntegrationsSettings({
           <InfoCircle className="h-4 w-4 text-status-warning shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-text-primary">
-              POS issue detected for {selectedBranch?.name}
+              {t("settings.integrations.posIssueTitle", { name: selectedBranch?.name ?? "" })}
             </p>
             <p className="text-xs text-text-muted mt-1 leading-relaxed">
-              Sales data isn&apos;t syncing for this branch. Connect a POS system below.
+              {t("settings.integrations.posIssueDescription")}
             </p>
           </div>
         </div>
@@ -697,11 +701,11 @@ function IntegrationsSettings({
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <Shop className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            POS Systems
+            {t("settings.integrations.sectionPos")}
           </h3>
           {selectedBranch && (
             <span className="ml-auto text-xs text-text-muted">
-              {isConnected ? `${selectedBranch.name} is connected` : `Connect for ${selectedBranch.name}`}
+              {isConnected ? t("settings.integrations.isConnectedSuffix", { name: selectedBranch.name }) : t("settings.integrations.connectFor", { name: selectedBranch.name })}
             </span>
           )}
         </div>
@@ -717,9 +721,9 @@ function IntegrationsSettings({
                   <Shop className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-medium text-text-primary">{pos.name}</p>
+                  <p className="font-medium text-text-primary">{t(`settings.integrations.posSystems.${pos.id}`)}</p>
                   <Badge variant="outline" className="mt-1 text-[10px] opacity-60">
-                    {isConnected ? "Connected" : "Not connected"}
+                    {isConnected ? t("settings.integrations.connected") : t("settings.integrations.notConnected")}
                   </Badge>
                 </div>
               </div>
@@ -730,7 +734,7 @@ function IntegrationsSettings({
                   disabled={!selectedBranchId}
                   className="h-9 px-4 text-xs font-semibold"
                 >
-                  Connect
+                  {t("settings.integrations.connect")}
                 </Button>
               )}
             </div>
@@ -742,15 +746,14 @@ function IntegrationsSettings({
         <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
           <CloudSync className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            Accounting & Reservations
+            {t("settings.integrations.sectionAccounting")}
           </h3>
         </div>
 
         <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
           <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
           <p className="text-sm text-text-muted max-w-xs mx-auto">
-            QuickBooks, Xero, and OpenTable integrations are currently in private beta.
-            Contact support to join the waitlist.
+            {t("settings.integrations.privateBeta")}
           </p>
         </div>
       </section>
@@ -759,6 +762,7 @@ function IntegrationsSettings({
 }
 
 function NotificationsSettings() {
+  const { t } = useTranslation();
   const { data: preferences, isLoading } = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
   const [localPrefs, setLocalPrefs] = useState<any[]>([]);
@@ -788,23 +792,23 @@ function NotificationsSettings() {
   const notificationTypes = [
     {
       domain: "PRODUCTION",
-      label: "Production & Prep",
-      description: "Prep plan updates and completion alerts",
+      label: t("settings.notifications.types.production"),
+      description: t("settings.notifications.types.productionDesc"),
     },
     {
       domain: "INVENTORY",
-      label: "Inventory & Waste",
-      description: "Stockout risks and high-waste threshold alerts",
+      label: t("settings.notifications.types.inventory"),
+      description: t("settings.notifications.types.inventoryDesc"),
     },
     {
       domain: "PROCUREMENT",
-      label: "Supplier & Purchasing",
-      description: "Order reminders and delivery status",
+      label: t("settings.notifications.types.supplier"),
+      description: t("settings.notifications.types.supplierDesc"),
     },
     {
       domain: "STAFF",
-      label: "Staff & Performance",
-      description: "Shift assignments and daily summaries",
+      label: t("settings.notifications.types.staff"),
+      description: t("settings.notifications.types.staffDesc"),
     },
   ];
 
@@ -812,10 +816,10 @@ function NotificationsSettings() {
     <div className="space-y-10">
       <div>
         <h2 className="text-xl font-semibold text-text-primary">
-          Notification Settings
+          {t("settings.notifications.title")}
         </h2>
         <p className="text-sm text-text-muted mt-1">
-          Control how and when you receive operational alerts.
+          {t("settings.notifications.description")}
         </p>
       </div>
 
@@ -824,16 +828,16 @@ function NotificationsSettings() {
           <thead className="bg-[#1C1C1F]/50">
             <tr>
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                Notification Type
+                {t("settings.notifications.tableHeader.type")}
               </th>
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                In-App
+                {t("settings.notifications.tableHeader.inApp")}
               </th>
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                Email
+                {t("settings.notifications.tableHeader.email")}
               </th>
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                Push
+                {t("settings.notifications.tableHeader.push")}
               </th>
             </tr>
           </thead>
@@ -896,12 +900,10 @@ function NotificationsSettings() {
         </div>
         <div>
           <h4 className="text-sm font-semibold text-text-primary">
-            Operational Escalation
+            {t("settings.notifications.escalationTitle")}
           </h4>
           <p className="text-xs text-text-muted mt-1 leading-relaxed">
-            Critical system alerts (like server downtime or major inventory
-            discrepancies) bypass these settings and are always sent via all
-            available channels to ensure operational continuity.
+            {t("settings.notifications.escalationDescription")}
           </p>
         </div>
       </div>
@@ -910,6 +912,7 @@ function NotificationsSettings() {
 }
 
 function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBranchId?: string }) {
+  const { t } = useTranslation();
   const { data: branches, isLoading: loadingBranches } = useBranches(
     orgId || "",
   );
@@ -952,7 +955,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
   const handleSave = () => {
     updateBranch.mutate(formData, {
       onSuccess: () => {
-        toast.success("Branch settings updated");
+        toast.success(t("settings.branch.updated"));
       },
     });
   };
@@ -980,10 +983,10 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">
-            Branch Settings
+            {t("settings.branch.title")}
           </h2>
           <p className="text-sm text-text-muted mt-1">
-            Configure kitchen capacity, schedules, and local demand signals.
+            {t("settings.branch.description")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -992,7 +995,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
               value={selectedBranchId}
               onChange={setSelectedBranchId}
               options={branchOptions}
-              placeholder="Select Branch"
+              placeholder={t("settings.branch.selectBranchPlaceholder")}
             />
           </div>
           <Button
@@ -1000,7 +1003,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             disabled={updateBranch.isPending || !selectedBranchId}
             className="font-semibold px-6"
           >
-            {updateBranch.isPending ? "Saving..." : "Save Changes"}
+            {updateBranch.isPending ? t("settings.branch.saving") : t("settings.branch.saveChanges")}
           </Button>
         </div>
       </div>
@@ -1009,7 +1012,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
         <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
           <Shop className="h-8 w-8 text-text-muted mb-3" />
           <p className="text-sm text-text-muted">
-            Select a branch to configure its settings.
+            {t("settings.branch.noBranchSelected")}
           </p>
         </div>
       ) : loadingBranch || !formData ? (
@@ -1023,30 +1026,30 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
               <Shop className="h-4 w-4 text-brand-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                General
+                {t("settings.branch.general")}
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
-                label="Branch Name"
+                label={t("settings.branch.branchName")}
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
               />
               <Input
-                label="Address"
+                label={t("settings.branch.address")}
                 value={formData.address}
                 onChange={(e) => handleChange("address", e.target.value)}
               />
               <Select
-                label="Timezone"
+                label={t("settings.branch.timezone")}
                 value={formData.timezone}
                 onChange={(val: string) => handleChange("timezone", val)}
                 options={[
-                  { label: "UTC", value: "UTC" },
-                  { label: "Eastern Time (ET)", value: "America/New_York" },
-                  { label: "Pacific Time (PT)", value: "America/Los_Angeles" },
-                  { label: "London (GMT)", value: "Europe/London" },
-                  { label: "East Africa (EAT)", value: "Africa/Nairobi" },
+                  { label: t("settings.organization.timezoneOptions.utc"), value: "UTC" },
+                  { label: t("settings.organization.timezoneOptions.eastern"), value: "America/New_York" },
+                  { label: t("settings.organization.timezoneOptions.pacific"), value: "America/Los_Angeles" },
+                  { label: t("settings.organization.timezoneOptions.london"), value: "Europe/London" },
+                  { label: t("settings.organization.timezoneOptions.eastAfrica"), value: "Africa/Nairobi" },
                 ]}
               />
             </div>
@@ -1057,12 +1060,12 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
               <Brain className="h-4 w-4 text-brand-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                Kitchen Configuration
+                {t("settings.branch.kitchenConfiguration")}
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
-                label="Kitchen Capacity (Units)"
+                label={t("settings.branch.kitchenCapacity")}
                 type="number"
                 value={formData.capacity}
                 onChange={(e) =>
@@ -1070,7 +1073,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 }
               />
               <Input
-                label="Average Prep Time (Minutes)"
+                label={t("settings.branch.avgPrepTime")}
                 type="number"
                 value={formData.average_prep_time_minutes}
                 onChange={(e) =>
@@ -1081,7 +1084,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 }
               />
               <Input
-                label="Service Start Time"
+                label={t("settings.branch.serviceStartTime")}
                 type="time"
                 value={formData.service_start_time}
                 onChange={(e) =>
@@ -1089,7 +1092,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 }
               />
               <Input
-                label="Service End Time"
+                label={t("settings.branch.serviceEndTime")}
                 type="time"
                 value={formData.service_end_time}
                 onChange={(e) =>
@@ -1104,28 +1107,27 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
               <CloudSync className="h-4 w-4 text-brand-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                Demand Context
+                {t("settings.branch.demandContext")}
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
-                label="Seasonality Profile"
+                label={t("settings.branch.seasonalityProfile")}
                 value={formData.seasonality_profile}
                 onChange={(e) =>
                   handleChange("seasonality_profile", e.target.value)
                 }
-                placeholder="e.g. Campus-Heavy, Tourist"
+                placeholder={t("settings.branch.seasonalityPlaceholder")}
               />
               <div className="p-4 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E] flex items-start gap-3">
                 <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Advanced demand patterns (nearby venues, events) are currently
-                  managed via the
+                  {t("settings.branch.demandContextBefore")}
                   <span className="text-brand-gold font-medium">
                     {" "}
-                    PrepIQ Intelligence Engine
+                    {t("settings.branch.intelligenceEngine")}
                   </span>{" "}
-                  automatically.
+                  {t("settings.branch.demandContextAfter")}
                 </p>
               </div>
             </div>
@@ -1136,12 +1138,12 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
               <ShieldCheck className="h-4 w-4 text-brand-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                Inventory Rules
+                {t("settings.branch.inventoryRules")}
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Input
-                label="Min Stock Buffer (%)"
+                label={t("settings.branch.minStockBuffer")}
                 type="number"
                 value={formData.min_stock_buffer}
                 onChange={(e) =>
@@ -1149,7 +1151,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 }
               />
               <Input
-                label="Waste Threshold (%)"
+                label={t("settings.branch.wasteThreshold")}
                 type="number"
                 step="0.01"
                 value={formData.waste_threshold}
@@ -1158,7 +1160,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 }
               />
               <Input
-                label="Reorder Buffer"
+                label={t("settings.branch.reorderBuffer")}
                 type="number"
                 value={formData.reorder_buffer}
                 onChange={(e) =>
@@ -1174,6 +1176,7 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
 }
 
 function UserRoleSettings({ orgId }: { orgId?: string }) {
+  const { t } = useTranslation();
   const { data: members, isLoading: membersLoading } = useOrganizationMembers(
     orgId || "",
   );
@@ -1290,7 +1293,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
 
   const handleSaveRole = () => {
     if (!roleForm.name.trim()) {
-      toast.error("Role name is required.");
+      toast.error(t("settings.roles.modal.nameError"));
       return;
     }
 
@@ -1351,7 +1354,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     () => [
       columnHelper.display({
         id: "user",
-        header: "User",
+        header: t("settings.users.table.user"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
@@ -1371,7 +1374,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       }),
       columnHelper.display({
         id: "role",
-        header: "Role",
+        header: t("settings.users.table.role"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           const currentSlug =
@@ -1393,7 +1396,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       }),
       columnHelper.display({
         id: "role_label",
-        header: "Assigned Role",
+        header: t("settings.users.table.assignedRole"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
@@ -1405,19 +1408,19 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       }),
       columnHelper.display({
         id: "branch",
-        header: "Branch",
+        header: t("settings.users.table.branch"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
             <span className="text-sm text-text-secondary">
-              {member.branch_name || "All Branches"}
+              {member.branch_name || t("settings.users.table.allBranches")}
             </span>
           );
         },
       }),
       columnHelper.display({
         id: "actions",
-        header: "Actions",
+        header: t("settings.users.table.actions"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
@@ -1429,7 +1432,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 )
               }
               className="p-2 text-text-muted hover:text-red-500 transition-colors"
-              title="Remove Member"
+              title={t("settings.users.removeMember")}
             >
               <Trash className="h-4 w-4" />
             </button>
@@ -1461,10 +1464,10 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
-              Custom Roles
+              {t("settings.roles.title")}
             </h3>
             <p className="text-sm text-text-muted mt-1">
-              Create and manage custom roles with specific permissions.
+              {t("settings.roles.description")}
             </p>
           </div>
           <Button
@@ -1472,7 +1475,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             leftIcon={<Plus className="h-4 w-4" />}
             className="font-semibold px-4"
           >
-            New Role
+            {t("settings.roles.newRole")}
           </Button>
         </div>
 
@@ -1483,16 +1486,16 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 <thead className="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      Name
+                      {t("settings.roles.table.name")}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      Description
+                      {t("settings.roles.table.description")}
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      Permissions
+                      {t("settings.roles.table.permissions")}
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
-                      Actions
+                      {t("settings.roles.table.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -1529,7 +1532,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                             ))}
                             {role.permission_codes.length > 2 && (
                               <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-text-muted">
-                                +{role.permission_codes.length - 2} more
+                                {t("settings.roles.table.more", { n: role.permission_codes.length - 2 })}
                               </span>
                             )}
                           </div>
@@ -1539,7 +1542,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                             <button
                               onClick={() => handleOpenEditRoleModal(role)}
                               className="p-2 text-text-muted hover:text-brand-gold transition-colors"
-                              title="Edit Role"
+                              title={t("settings.roles.editRole")}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -1548,7 +1551,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                                 handleDeleteRole(role.id, role.name)
                               }
                               className="p-2 text-text-muted hover:text-red-500 transition-colors"
-                              title="Delete Role"
+                              title={t("settings.roles.deleteRole")}
                             >
                               <Trash className="h-4 w-4" />
                             </button>
@@ -1562,9 +1565,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           </div>
         ) : (
           <div className="rounded-xl border border-[#1C1C1F] p-8 text-center">
-            <p className="text-sm text-text-muted">No custom roles yet.</p>
+            <p className="text-sm text-text-muted">{t("settings.roles.empty.title")}</p>
             <p className="text-xs text-text-muted mt-2">
-              Create your first custom role to get started.
+              {t("settings.roles.empty.description")}
             </p>
           </div>
         )}
@@ -1575,10 +1578,10 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
-              Team Members
+              {t("settings.users.title")}
             </h3>
             <p className="text-sm text-text-muted mt-1">
-              Manage team access and role assignments.
+              {t("settings.users.description")}
             </p>
           </div>
           <Button
@@ -1586,7 +1589,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             leftIcon={<Plus className="h-4 w-4" />}
             className="font-semibold px-4"
           >
-            Add Member
+            {t("settings.users.addMember")}
           </Button>
         </div>
 
@@ -1602,21 +1605,21 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       <ModalShell
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add Organization Member"
-        description="Invite a registered user. They'll receive the selected role."
+        title={t("settings.users.addMemberModal.title")}
+        description={t("settings.users.addMemberModal.description")}
       >
         <div className="space-y-6 py-4 px-1">
           <Input
-            label="User Email"
+            label={t("settings.users.addMemberModal.emailLabel")}
             type="email"
             value={newMember.user_email}
             onChange={(e) =>
               setNewMember({ ...newMember, user_email: e.target.value })
             }
-            placeholder="colleague@example.com"
+            placeholder={t("settings.users.addMemberModal.emailPlaceholder")}
           />
           <Select
-            label="Assign Role"
+            label={t("settings.users.addMemberModal.roleLabel")}
             value={newMember.custom_role_slug}
             onChange={(val: string) =>
               setNewMember({ ...newMember, custom_role_slug: val })
@@ -1625,13 +1628,15 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           />
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
+              {t("settings.users.addMemberModal.cancel")}
             </Button>
             <Button
               onClick={handleAddMember}
               disabled={addMember.isPending || !newMember.user_email}
             >
-              {addMember.isPending ? "Adding..." : "Add Member"}
+              {addMember.isPending
+                ? t("settings.users.addMemberModal.adding")
+                : t("settings.users.addMemberModal.add")}
             </Button>
           </div>
         </div>
@@ -1642,40 +1647,44 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         open={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
         title={
-          roleFormMode === "create" ? "Create Custom Role" : "Edit Custom Role"
+          roleFormMode === "create"
+            ? t("settings.roles.createModal.title")
+            : t("settings.roles.editModal.title")
         }
         description={
           roleFormMode === "create"
-            ? "Define a new custom role and assign permissions."
-            : "Update the custom role and its permissions."
+            ? t("settings.roles.createModal.description")
+            : t("settings.roles.editModal.description")
         }
         maxWidthClassName="max-w-3xl"
       >
         <div className="space-y-6 py-4 px-1 max-h-[70vh] overflow-y-auto">
           <Input
-            label="Role Name"
+            label={t("settings.roles.modal.roleNameLabel")}
             value={roleForm.name}
             onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
-            placeholder="e.g., Branch Manager"
+            placeholder={t("settings.roles.modal.roleNamePlaceholder")}
           />
           <Input
-            label="Description (optional)"
+            label={t("settings.roles.modal.descriptionLabel")}
             value={roleForm.description}
             onChange={(e) =>
               setRoleForm({ ...roleForm, description: e.target.value })
             }
-            placeholder="e.g., Manages branch operations"
+            placeholder={t("settings.roles.modal.descriptionPlaceholder")}
           />
           {/* Slug is auto-generated by the backend from the role name; no user input needed. */}
 
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <label className="block text-sm font-medium text-text-primary">
-                Permissions
+                {t("settings.roles.modal.permissionsLabel")}
               </label>
               <p className="text-sm text-text-muted">
-                {roleForm.permission_codes.length} of {permissions?.length ?? 0}{" "}
-                selected
+                {t("settings.roles.modal.selected", {
+                  n: roleForm.permission_codes.length,
+                  m: permissions?.length ?? 0,
+                })}
               </p>
             </div>
             <div className="max-h-72 overflow-y-auto rounded-3xl border border-[#2A2A2E] bg-[#0F0F11] p-3 shadow-inner shadow-black/20">
@@ -1720,7 +1729,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 </div>
               ) : (
                 <p className="text-sm text-text-muted text-center py-4">
-                  No permissions available.
+                  {t("settings.roles.noPermissions")}
                 </p>
               )}
             </div>
@@ -1728,7 +1737,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
 
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>
-              Cancel
+              {t("settings.roles.modal.cancel")}
             </Button>
             <Button
               onClick={handleSaveRole}
@@ -1736,11 +1745,11 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             >
               {roleFormMode === "create"
                 ? createRole.isPending
-                  ? "Creating..."
-                  : "Create Role"
+                  ? t("settings.roles.modal.creating")
+                  : t("settings.roles.modal.create")
                 : updateRole.isPending
-                  ? "Updating..."
-                  : "Update Role"}
+                  ? t("settings.roles.modal.updating")
+                  : t("settings.roles.modal.update")}
             </Button>
           </div>
         </div>
@@ -1749,14 +1758,16 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       <ConfirmActionModal
         open={isConfirmRoleDeleteOpen}
         title={
-          roleToDelete ? `Delete role "${roleToDelete.name}"?` : "Delete role"
+          roleToDelete
+            ? t("settings.roles.deleteModal.title", { name: roleToDelete.name })
+            : t("settings.roles.deleteModal.titleDefault")
         }
         description={
           roleToDelete
-            ? `Deleting "${roleToDelete.name}" cannot be undone. Members assigned to this role will need a new role.`
-            : "This action cannot be undone."
+            ? t("settings.roles.deleteModal.description", { name: roleToDelete.name })
+            : t("settings.roles.deleteModal.descriptionDefault")
         }
-        confirmLabel="Delete role"
+        confirmLabel={t("settings.roles.deleteModal.confirmLabel")}
         tone="critical"
         isConfirming={deleteRole.isPending}
         onClose={() => {
@@ -1769,14 +1780,16 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       <ConfirmActionModal
         open={isConfirmMemberRemoveOpen}
         title={
-          memberToRemove ? `Remove ${memberToRemove.label}?` : "Remove member"
+          memberToRemove
+            ? t("settings.users.removeModal.title", { label: memberToRemove.label })
+            : t("settings.users.removeModal.titleDefault")
         }
         description={
           memberToRemove
-            ? `This will remove ${memberToRemove.label} from the organization and revoke access immediately.`
-            : "This action will remove the member from the organization."
+            ? t("settings.users.removeModal.description", { label: memberToRemove.label })
+            : t("settings.users.removeModal.descriptionDefault")
         }
-        confirmLabel="Remove member"
+        confirmLabel={t("settings.users.removeModal.confirmLabel")}
         tone="critical"
         isConfirming={removeMember.isPending}
         onClose={() => {

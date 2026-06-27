@@ -6,6 +6,7 @@ import { Download, WarningTriangle, CoinsSwap } from 'iconoir-react';
 import { WorkspaceShell } from '@/components/dashboard/workspace-shell';
 import { Select } from '@/components/ui/select';
 import { useBranches, useCurrentUserProfile } from '@/services';
+import { useTranslation } from "@/lib/i18n";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
@@ -45,6 +46,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 const EMPTY_LIST: never[] = [];
 
 export default function PurchasingPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
@@ -96,10 +98,14 @@ export default function PurchasingPage() {
         currentUnitCost: cost,
         costDeltaPct: delta,
         volatility: v,
-        varianceAlert: v === 'HIGH' ? 'Critical spike' : v === 'MEDIUM' ? 'Monitor closely' : 'Stable',
+        varianceAlert: v === 'HIGH'
+          ? t('workspace.purchasing.alertCriticalSpike')
+          : v === 'MEDIUM'
+            ? t('workspace.purchasing.alertMonitorClosely')
+            : t('workspace.purchasing.alertStable'),
       };
     });
-  }, [alerts.length]);
+  }, [alerts.length, t]);
 
   const varianceRows = useMemo(() => {
     return itemTrendRows.slice(0, 6).map((item, i) => {
@@ -146,44 +152,55 @@ export default function PurchasingPage() {
   }), [supplierRows, varianceRows, itemTrendRows]);
 
   const tabs: { id: PurchasingTab; label: string }[] = [
-    { id: 'SUPPLIERS', label: 'Suppliers' },
-    { id: 'TRENDS', label: 'Item Trends' },
-    { id: 'VARIANCE', label: 'Variance Detection' },
-    { id: 'EFFICIENCY', label: 'Order Efficiency' },
+    { id: 'SUPPLIERS', label: t('workspace.purchasing.tabSuppliers') },
+    { id: 'TRENDS', label: t('workspace.purchasing.tabItemTrends') },
+    { id: 'VARIANCE', label: t('workspace.purchasing.tabVarianceDetection') },
+    { id: 'EFFICIENCY', label: t('workspace.purchasing.tabOrderEfficiency') },
   ];
 
   const exportAll = () => {
     downloadCsv('purchasing-variance.csv',
-      ['Item', 'Expected', 'Actual', 'Overpayment', 'Duplicate'],
+      [
+        t('workspace.purchasing.exportColItem'),
+        t('workspace.purchasing.exportColExpected'),
+        t('workspace.purchasing.exportColActual'),
+        t('workspace.purchasing.exportColOverpayment'),
+        t('workspace.purchasing.exportColDuplicate'),
+      ],
       varianceRows.map((r) => [r.item, r.expectedCost.toFixed(2), r.actualCost.toFixed(2), r.overpaymentFlag ? 'YES' : 'NO', r.duplicateInvoiceFlag ? 'YES' : 'NO']));
   };
 
   if (!tierLoading && tier < 2) {
     return (
-      <WorkspaceShell eyebrow='Purchasing' title='Purchasing' description='Cost control and supplier benchmarking.'
-        insight='Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage.'>
+      <WorkspaceShell
+        eyebrow={t('workspace.purchasing.eyebrow')}
+        title={t('workspace.purchasing.title')}
+        description={t('workspace.purchasing.description')}
+        insight={t('workspace.purchasing.insight')}>
         <SubscriptionRequiredState variant='intelligence_required' currentPlanType={planType} compact />
       </WorkspaceShell>
     );
   }
 
   return (
-    <WorkspaceShell eyebrow='Purchasing' title='Purchasing Intelligence'
-      description='Cost control, supplier benchmarking, and inventory planning.'
-      insight='Purchasing intelligence protects margin by exposing variance before it becomes recurring leakage.'>
+    <WorkspaceShell
+      eyebrow={t('workspace.purchasing.eyebrow')}
+      title={t('workspace.purchasing.mainTitle')}
+      description={t('workspace.purchasing.mainDescription')}
+      insight={t('workspace.purchasing.insight')}>
       {isReadOnlyBranchManager ? (
         <div className='mb-6 flex items-start gap-2 rounded-xl border border-status-warning/20 bg-status-warning/8 p-4'>
           <WarningTriangle className='mt-0.5 h-4 w-4 text-status-warning' />
-          <p className='text-sm text-text-secondary'>Read-only mode: branch manager visibility for purchasing trends and anomalies.</p>
+          <p className='text-sm text-text-secondary'>{t('workspace.purchasing.readOnlyBanner')}</p>
         </div>
       ) : null}
 
       <section className='grid grid-cols-1 gap-6 border-b border-surface-4/60 pb-8 md:grid-cols-4'>
         {[
-          { label: 'Total Supplier Spend', value: toCurrency(kpis.totalSpend), cls: '' },
-          { label: 'Avg Cost Change', value: toPercent(kpis.avgCostChange), cls: kpis.avgCostChange > 0 ? 'text-status-critical' : 'text-status-success' },
-          { label: 'Overpayment Flags', value: String(kpis.overpaymentCount), cls: '' },
-          { label: 'High Volatility Items', value: String(kpis.highVolatilityCount), cls: '' },
+          { label: t('workspace.purchasing.kpiTotalSpend'), value: toCurrency(kpis.totalSpend), cls: '' },
+          { label: t('workspace.purchasing.kpiAvgCostChange'), value: toPercent(kpis.avgCostChange), cls: kpis.avgCostChange > 0 ? 'text-status-critical' : 'text-status-success' },
+          { label: t('workspace.purchasing.kpiOverpaymentFlags'), value: String(kpis.overpaymentCount), cls: '' },
+          { label: t('workspace.purchasing.kpiHighVolatilityItems'), value: String(kpis.highVolatilityCount), cls: '' },
         ].map((kpi) => (
           <article key={kpi.label} className='rounded-xl border border-surface-4 bg-surface-2 p-5'>
             <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>{kpi.label}</p>
@@ -209,19 +226,24 @@ export default function PurchasingPage() {
         <section className='mt-8'>
           <div className='mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
             <div>
-              <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Supplier Overview</p>
-              <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Top spend analysis</h3>
-              <p className='mt-1 text-sm text-text-secondary'>Track cost changes and contract variance per supplier.</p>
+              <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>{t('workspace.purchasing.supplierSectionLabel')}</p>
+              <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>{t('workspace.purchasing.supplierSectionTitle')}</h3>
+              <p className='mt-1 text-sm text-text-secondary'>{t('workspace.purchasing.supplierSectionDesc')}</p>
             </div>
             <button type='button' onClick={exportAll} disabled={isReadOnlyBranchManager}
               className='inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 px-2.5 text-sm text-text-primary transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-50'>
-              <Download className='h-3.5 w-3.5' /> Export
+              <Download className='h-3.5 w-3.5' /> {t('workspace.purchasing.exportButton')}
             </button>
           </div>
           <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
             <table className='w-full min-w-[780px]'>
               <thead className='border-b border-surface-4/80 bg-surface-3/40'>
-                <tr>{['Supplier', 'Total Spend', 'Cost Change', 'Contract vs Actual'].map((h) => (
+                <tr>{[
+                  t('workspace.purchasing.colSupplier'),
+                  t('workspace.purchasing.colTotalSpend'),
+                  t('workspace.purchasing.colCostChange'),
+                  t('workspace.purchasing.colContractVsActual'),
+                ].map((h) => (
                   <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
                 ))}</tr>
               </thead>
@@ -243,14 +265,20 @@ export default function PurchasingPage() {
       {activeTab === 'TRENDS' && (
         <section className='mt-8'>
           <div className='mb-4'>
-            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Item Cost Trends</p>
-            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Unit cost and volatility</h3>
-            <p className='mt-1 text-sm text-text-secondary'>Monitor unit costs and spot unusual volatility.</p>
+            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>{t('workspace.purchasing.trendsSectionLabel')}</p>
+            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>{t('workspace.purchasing.trendsSectionTitle')}</h3>
+            <p className='mt-1 text-sm text-text-secondary'>{t('workspace.purchasing.trendsSectionDesc')}</p>
           </div>
           <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
             <table className='w-full min-w-[780px]'>
               <thead className='border-b border-surface-4/80 bg-surface-3/40'>
-                <tr>{['Item', 'Unit Cost', 'Variance', 'Volatility', 'Alert'].map((h) => (
+                <tr>{[
+                  t('workspace.purchasing.colItem'),
+                  t('workspace.purchasing.colUnitCost'),
+                  t('workspace.purchasing.colVariance'),
+                  t('workspace.purchasing.colVolatility'),
+                  t('workspace.purchasing.colAlert'),
+                ].map((h) => (
                   <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
                 ))}</tr>
               </thead>
@@ -282,14 +310,20 @@ export default function PurchasingPage() {
       {activeTab === 'VARIANCE' && (
         <section className='mt-8'>
           <div className='mb-4'>
-            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Purchase Variance Detection</p>
-            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Expected vs actual costs</h3>
-            <p className='mt-1 text-sm text-text-secondary'>Flagged overpayments and duplicate invoices.</p>
+            <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>{t('workspace.purchasing.varianceSectionLabel')}</p>
+            <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>{t('workspace.purchasing.varianceSectionTitle')}</h3>
+            <p className='mt-1 text-sm text-text-secondary'>{t('workspace.purchasing.varianceSectionDesc')}</p>
           </div>
           <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
             <table className='w-full min-w-[860px]'>
               <thead className='border-b border-surface-4/80 bg-surface-3/40'>
-                <tr>{['Item', 'Expected', 'Actual', 'Flags', 'Actions'].map((h) => (
+                <tr>{[
+                  t('workspace.purchasing.colItem'),
+                  t('workspace.purchasing.colExpected'),
+                  t('workspace.purchasing.colActual'),
+                  t('workspace.purchasing.colFlags'),
+                  t('workspace.purchasing.colActions'),
+                ].map((h) => (
                   <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
                 ))}</tr>
               </thead>
@@ -303,22 +337,22 @@ export default function PurchasingPage() {
                       <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.actualCost)}</td>
                       <td className='px-4 py-3 text-sm'>
                         {row.overpaymentFlag && (
-                          <span className='mr-2 inline-flex items-center rounded-full border border-status-critical/30 bg-status-critical/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-critical'>Overpayment</span>
+                          <span className='mr-2 inline-flex items-center rounded-full border border-status-critical/30 bg-status-critical/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-critical'>{t('workspace.purchasing.flagOverpayment')}</span>
                         )}
                         {row.duplicateInvoiceFlag && (
-                          <span className='inline-flex items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-warning'>Duplicate</span>
+                          <span className='inline-flex items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-warning'>{t('workspace.purchasing.flagDuplicate')}</span>
                         )}
                       </td>
                       <td className='px-4 py-3 text-sm'>
                         <div className='flex gap-2'>
                           <button type='button'
-                            className='h-7 rounded-full border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>Drill item</button>
+                            className='h-7 rounded-full border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>{t('workspace.purchasing.buttonDrillItem')}</button>
                           {!isReadOnlyBranchManager && (
                             <button type='button' onClick={() => setFlaggedIds((p) => p.includes(row.id) ? p.filter((id) => id !== row.id) : [...p, row.id])}
                               className={'h-7 rounded-full border px-3 text-xs transition-colors ' + (flagged
                                 ? 'border-status-critical/30 bg-status-critical/10 text-status-critical'
                                 : 'border-surface-4 text-text-secondary hover:border-status-warning/40 hover:text-status-warning')}>
-                              {flagged ? 'Flagged' : 'Flag anomaly'}
+                              {flagged ? t('workspace.purchasing.buttonFlagged') : t('workspace.purchasing.buttonFlagAnomaly')}
                             </button>
                           )}
                         </div>
@@ -337,14 +371,19 @@ export default function PurchasingPage() {
           <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
             <article className='lg:col-span-2'>
               <div className='mb-4'>
-                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Order Efficiency</p>
-                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Branch purchasing patterns</h3>
-                <p className='mt-1 text-sm text-text-secondary'>Over-ordering, emergency buys, and stockout-driven purchases.</p>
+                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>{t('workspace.purchasing.efficiencySectionLabel')}</p>
+                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>{t('workspace.purchasing.efficiencySectionTitle')}</h3>
+                <p className='mt-1 text-sm text-text-secondary'>{t('workspace.purchasing.efficiencySectionDesc')}</p>
               </div>
               <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
                 <table className='w-full min-w-[780px]'>
                   <thead className='border-b border-surface-4/80 bg-surface-3/40'>
-                    <tr>{['Branch', 'Over-ordering', 'Emergency purchases', 'Stock-out purchases'].map((h) => (
+                    <tr>{[
+                      t('workspace.purchasing.colBranch'),
+                      t('workspace.purchasing.colOverOrdering'),
+                      t('workspace.purchasing.colEmergencyPurchases'),
+                      t('workspace.purchasing.colStockoutPurchases'),
+                    ].map((h) => (
                       <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
                     ))}</tr>
                   </thead>
@@ -364,23 +403,23 @@ export default function PurchasingPage() {
 
             <article className='rounded-xl border border-surface-4 bg-surface-2 p-5'>
               <div className='mb-4'>
-                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Compare Suppliers</p>
-                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>Side-by-side</h3>
-                <p className='mt-1 text-sm text-text-secondary'>Select two suppliers to compare spend.</p>
+                <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>{t('workspace.purchasing.compareSectionLabel')}</p>
+                <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>{t('workspace.purchasing.compareSectionTitle')}</h3>
+                <p className='mt-1 text-sm text-text-secondary'>{t('workspace.purchasing.compareSectionDesc')}</p>
               </div>
               <div className='space-y-3'>
-                <Select options={[{ value: '', label: 'Supplier A' }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
-                  value={supplierA} onChange={(v) => setSupplierA(v)} placeholder='Select supplier A' />
-                <Select options={[{ value: '', label: 'Supplier B' }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
-                  value={supplierB} onChange={(v) => setSupplierB(v)} placeholder='Select supplier B' />
+                <Select options={[{ value: '', label: t('workspace.purchasing.supplierALabel') }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
+                  value={supplierA} onChange={(v) => setSupplierA(v)} placeholder={t('workspace.purchasing.selectSupplierAPlaceholder')} />
+                <Select options={[{ value: '', label: t('workspace.purchasing.supplierBLabel') }, ...supplierRows.map((r) => ({ value: r.id, label: r.supplier }))]}
+                  value={supplierB} onChange={(v) => setSupplierB(v)} placeholder={t('workspace.purchasing.selectSupplierBPlaceholder')} />
               </div>
               <div className='mt-6'>
-                <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>Spend Delta</p>
+                <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>{t('workspace.purchasing.spendDeltaLabel')}</p>
                 <p className='mt-1 font-display text-[26px] text-text-primary'>{toCurrency(supplierDelta)}</p>
               </div>
               <button type='button'
                 className='mt-4 inline-flex h-10 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>
-                <CoinsSwap className='h-4 w-4' /> Compare
+                <CoinsSwap className='h-4 w-4' /> {t('workspace.purchasing.compareButton')}
               </button>
             </article>
           </div>

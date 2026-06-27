@@ -21,6 +21,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -86,6 +87,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 }
 
 export default function FinancialPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
@@ -111,7 +113,6 @@ export default function FinancialPage() {
     if (!isLoading && !canAccess) {
       router.replace("/");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canAccess]);
 
   const financialData = financialQuery.data;
@@ -197,7 +198,13 @@ export default function FinancialPage() {
     ]);
     downloadCsv(
       `financial-trends-${timeframe}.csv`,
-      ["Date", "Revenue", "FoodCost", "WasteCost", "Margin"],
+      [
+        t("workspace.financial.csv.date"),
+        t("workspace.financial.csv.revenue"),
+        t("workspace.financial.csv.foodCost"),
+        t("workspace.financial.csv.wasteCost"),
+        t("workspace.financial.csv.margin"),
+      ],
       rows,
     );
   };
@@ -205,7 +212,7 @@ export default function FinancialPage() {
   const branchColumns = useMemo(
     () => [
       branchColumnHelper.accessor("branch", {
-        header: "Branch",
+        header: t("workspace.financial.branchTable.branch"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
             {info.getValue()}
@@ -213,7 +220,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("revenue", {
-        header: "Revenue",
+        header: t("workspace.financial.branchTable.revenue"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -221,7 +228,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("foodCost", {
-        header: "Food Cost",
+        header: t("workspace.financial.branchTable.foodCost"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
             {toCurrency(info.getValue())}
@@ -229,7 +236,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("wasteCost", {
-        header: "Waste Cost",
+        header: t("workspace.financial.branchTable.wasteCost"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-warning">
             {toCurrency(info.getValue())}
@@ -237,7 +244,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("grossMargin", {
-        header: "Gross Margin",
+        header: t("workspace.financial.branchTable.grossMargin"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-success">
             {toCurrency(info.getValue())}
@@ -245,7 +252,7 @@ export default function FinancialPage() {
         ),
       }),
       branchColumnHelper.accessor("marginPct", {
-        header: "Margin %",
+        header: t("workspace.financial.branchTable.marginPct"),
         cell: (info) => (
           <span className="text-sm font-semibold text-text-primary">
             {toPercent(info.getValue())}
@@ -253,7 +260,7 @@ export default function FinancialPage() {
         ),
       }),
     ],
-    [],
+    [t],
   );
 
   const branchTable = useReactTable({
@@ -263,7 +270,11 @@ export default function FinancialPage() {
   });
 
   const timeframeLabel =
-    timeframe === "7d" ? "Last 7 days" : timeframe === "90d" ? "Last 90 days" : "Last 30 days";
+    timeframe === "7d"
+      ? t("workspace.financial.timeframe.7d")
+      : timeframe === "90d"
+        ? t("workspace.financial.timeframe.90d")
+        : t("workspace.financial.timeframe.30d");
 
   const exportReport = () => {
     const rows = branchRows.map((row) => [
@@ -276,28 +287,34 @@ export default function FinancialPage() {
     ]);
     downloadCsv(
       `financials-${timeframe}.csv`,
-      ["Branch", "Revenue", "FoodCost", "WasteCost", "GrossMargin", "MarginPct"],
+      [
+        t("workspace.financial.csv.branch"),
+        t("workspace.financial.csv.revenue"),
+        t("workspace.financial.csv.foodCost"),
+        t("workspace.financial.csv.wasteCost"),
+        t("workspace.financial.csv.grossMargin"),
+        t("workspace.financial.csv.marginPct"),
+      ],
       rows,
     );
   };
 
   return (
     <WorkspaceShell
-      eyebrow="Executive"
-      title="Financials"
-      description="Revenue, margins, and waste cost — your business in one view."
+      eyebrow={t("workspace.financial.eyebrow")}
+      title={t("workspace.financial.title")}
+      description={t("workspace.financial.description")}
       insight=""
     >
-      {/* Filter bar */}
       <div className="mb-6 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
         <div className="min-w-45">
           <Select
-            label="Timeframe"
+            label={t("workspace.financial.filter.timeframe")}
             leadingIcon={<Calendar className="h-4 w-4" />}
             options={[
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
-              { value: "90d", label: "Last 90 days" },
+              { value: "7d", label: t("workspace.financial.timeframe.7d") },
+              { value: "30d", label: t("workspace.financial.timeframe.30d") },
+              { value: "90d", label: t("workspace.financial.timeframe.90d") },
             ]}
             value={timeframe}
             onChange={setTimeframe}
@@ -305,9 +322,9 @@ export default function FinancialPage() {
         </div>
         <div className="min-w-45">
           <Select
-            label="Branch"
+            label={t("workspace.financial.filter.branch")}
             options={[
-              { value: "ALL", label: "All branches" },
+              { value: "ALL", label: t("workspace.financial.filter.allBranches") },
               ...branchOptions,
             ]}
             value={branchFilter}
@@ -328,7 +345,7 @@ export default function FinancialPage() {
           className="ml-auto inline-flex h-10 items-center gap-2 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-semibold text-text-primary transition-all hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download className="h-3.5 w-3.5" />
-          Export
+          {t("workspace.financial.export")}
         </button>
       </div>
 
@@ -338,44 +355,42 @@ export default function FinancialPage() {
         <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
       ) : (
         <>
-      {/* KPI strip */}
       {financialData ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <span className="text-text-muted">
             <span className="font-semibold text-status-success">
               {toCurrency(summary?.revenue ?? 0)}
             </span>{" "}
-            revenue
+            {t("workspace.financial.kpi.revenue")}
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-status-success">
               {toCurrency(summary?.gross_margin ?? 0)}
             </span>{" "}
-            gross margin
+            {t("workspace.financial.kpi.grossMargin")}
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-brand-gold">
               {toPercent(summary?.margin_pct ?? 0)}
             </span>{" "}
-            margin
+            {t("workspace.financial.kpi.margin")}
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-status-critical">
               {toCurrency(summary?.waste_cost ?? 0)}
             </span>{" "}
-            wasted
+            {t("workspace.financial.kpi.wasted")}
           </span>
         </div>
       ) : null}
 
-      {/* Tab bar */}
       <div className="mb-6 flex gap-1 border-b border-surface-4/60">
         {(
           [
-            { id: "OVERVIEW", label: "Overview" },
-            { id: "BRANCHES", label: "Branches" },
-            { id: "ACCURACY", label: "Forecast Impact" },
-            { id: "TRENDS", label: "Trends" },
+            { id: "OVERVIEW", label: t("workspace.financial.tab.overview") },
+            { id: "BRANCHES", label: t("workspace.financial.tab.branches") },
+            { id: "ACCURACY", label: t("workspace.financial.tab.forecastImpact") },
+            { id: "TRENDS", label: t("workspace.financial.tab.trends") },
           ] as { id: FinancialTab; label: string }[]
         ).map((tab) => (
           <button
@@ -395,11 +410,14 @@ export default function FinancialPage() {
 
       {activeTab === "OVERVIEW" ? (
         <div className="space-y-8">
-          {/* Hero: the two numbers managers care about most */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                Revenue · {branchFilter === "ALL" || !financialData?.branch_name ? "all branches" : financialData.branch_name}
+                {t("workspace.financial.overview.revenueLabel", {
+                  branch: branchFilter === "ALL" || !financialData?.branch_name
+                    ? t("workspace.financial.overview.allBranches")
+                    : financialData.branch_name
+                })}
               </p>
               <p className="mt-3 font-display text-4xl font-semibold text-status-success tracking-tight">
                 {toCurrency(summary?.revenue ?? 0)}
@@ -407,12 +425,12 @@ export default function FinancialPage() {
               <p className="mt-3 text-xs text-text-muted">{formatDelta(summary?.revenue_delta_pct)}</p>
             </article>
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Gross margin</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.overview.grossMargin")}</p>
               <p className="mt-3 font-display text-4xl font-semibold text-brand-gold tracking-tight">
                 {toPercent(summary?.margin_pct ?? 0)}
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                {toCurrency(summary?.gross_margin ?? 0)} gross
+                {toCurrency(summary?.gross_margin ?? 0)} {t("workspace.financial.overview.gross")}
               </p>
               <p className="mt-2 text-xs text-text-muted">
                 {summary?.margin_pct_delta != null
@@ -422,10 +440,9 @@ export default function FinancialPage() {
             </article>
           </div>
 
-          {/* Supporting P&L — compact inline, no cards */}
           <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-surface-4/60 pb-6 text-sm">
             <span className="text-text-muted">
-              Food cost{" "}
+              {t("workspace.financial.overview.foodCost")}{" "}
               <span className="font-semibold text-text-primary">
                 {toCurrency(summary?.food_cost ?? 0)}
               </span>
@@ -434,7 +451,7 @@ export default function FinancialPage() {
               </span>
             </span>
             <span className="text-text-muted">
-              Waste{" "}
+              {t("workspace.financial.overview.waste")}{" "}
               <span className="font-semibold text-status-critical">
                 {toCurrency(summary?.waste_cost ?? 0)}
               </span>
@@ -443,7 +460,7 @@ export default function FinancialPage() {
               </span>
             </span>
             <span className="text-text-muted">
-              Gross margin{" "}
+              {t("workspace.financial.overview.grossMarginLabel")}{" "}
               <span className="font-semibold text-status-success">
                 {toCurrency(summary?.gross_margin ?? 0)}
               </span>
@@ -453,35 +470,34 @@ export default function FinancialPage() {
             </span>
           </div>
 
-          {/* PrepIQ impact + stockout losses — inline, scannable */}
           <div className="rounded-xl border border-surface-4/60 bg-surface-2 px-5 py-4 space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              What PrepIQ delivered · {timeframeLabel}
+              {t("workspace.financial.overview.prepIqImpact", { timeframe: timeframeLabel })}
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <span className="text-text-muted">
                 <span className="font-semibold text-status-success">
                   {toPercent(impactReport?.accuracy_pct ?? 0)}
                 </span>{" "}
-                forecast accuracy
+                {t("workspace.financial.overview.forecastAccuracy")}
               </span>
               <span className="text-text-muted">
                 <span className="font-semibold text-status-success">
                   {toCurrency(impactReport?.waste_reduced ?? 0)}
                 </span>{" "}
-                waste reduced
+                {t("workspace.financial.overview.wasteReduced")}
               </span>
               <span className="text-text-muted">
                 <span className="font-semibold text-text-primary">
                   {impactReport?.stockouts_avoided ?? 0}
                 </span>{" "}
-                stockouts avoided
+                {t("workspace.financial.overview.stockoutsAvoided")}
               </span>
               <span className="text-text-muted">
                 <span className="font-semibold text-status-success">
                   {toCurrency(impactReport?.revenue_protected ?? 0)}
                 </span>{" "}
-                revenue protected
+                {t("workspace.financial.overview.revenueProtected")}
               </span>
             </div>
             {(stockoutImpact?.lost_revenue ?? 0) > 0 || (stockoutImpact?.stockout_events ?? 0) > 0 ? (
@@ -490,30 +506,29 @@ export default function FinancialPage() {
                   <span className="font-semibold text-status-critical">
                     {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
                   </span>{" "}
-                  lost to stockouts
+                  {t("workspace.financial.overview.lostToStockouts")}
                 </span>
                 <span className="text-text-muted">
                   <span className="font-semibold text-text-primary">
                     {stockoutImpact?.stockout_events ?? 0}
                   </span>{" "}
-                  stockout events
+                  {t("workspace.financial.overview.stockoutEvents")}
                 </span>
               </div>
             ) : null}
           </div>
 
-          {/* Biggest waste + best performers */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Biggest waste sources
+                  {t("workspace.financial.overview.biggestWasteSources")}
                 </p>
                 <Link
                   href={`/workspace/sales-waste${financialData?.branch_id ? `?branch=${financialData.branch_id}` : ""}`}
                   className="text-xs text-text-muted transition-colors hover:text-brand-gold"
                 >
-                  See all items →
+                  {t("workspace.financial.overview.seeAllItems")}
                 </Link>
               </div>
               <div className="space-y-2">
@@ -530,14 +545,14 @@ export default function FinancialPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted">No waste events recorded.</p>
+                  <p className="text-sm text-text-muted">{t("workspace.financial.overview.noWasteEvents")}</p>
                 )}
               </div>
             </div>
 
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Best performers
+                {t("workspace.financial.overview.bestPerformers")}
               </p>
               <div className="space-y-2">
                 {topProfitItems.length ? (
@@ -556,7 +571,7 @@ export default function FinancialPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted">No profitability data yet.</p>
+                  <p className="text-sm text-text-muted">{t("workspace.financial.overview.noProfitabilityData")}</p>
                 )}
               </div>
             </div>
@@ -576,7 +591,7 @@ export default function FinancialPage() {
                   {toCurrency(branch.revenue)}
                 </p>
                 <p className="mt-2 text-xs text-text-muted">
-                  {toPercent(branch.marginPct)} margin
+                  {toPercent(branch.marginPct)} {t("workspace.financial.branches.margin")}
                 </p>
               </article>
             ))}
@@ -584,10 +599,10 @@ export default function FinancialPage() {
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              All branches
+              {t("workspace.financial.branches.allBranches")}
             </p>
             <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              How your locations compare
+              {t("workspace.financial.branches.subtitle")}
             </h3>
           </div>
 
@@ -611,34 +626,34 @@ export default function FinancialPage() {
         <div className="space-y-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Forecast accuracy
+              {t("workspace.financial.accuracy.title")}
             </p>
             <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              How well PrepIQ predicted demand
+              {t("workspace.financial.accuracy.subtitle")}
             </h3>
             <p className="mt-1 text-sm text-text-secondary">{timeframeLabel}</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Accuracy</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.accuracy.accuracy")}</p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
                 {toPercent(forecastImpact?.accuracy_pct ?? 0)}
               </p>
-              <p className="mt-2 text-xs text-text-muted">How often we got it right</p>
+              <p className="mt-2 text-xs text-text-muted">{t("workspace.financial.accuracy.howOftenRight")}</p>
             </article>
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Waste prevented</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.accuracy.wastePrevented")}</p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
                 {toCurrency(forecastImpact?.waste_prevented ?? 0)}
               </p>
-              <p className="mt-2 text-xs text-text-muted">Compared to prior period</p>
+              <p className="mt-2 text-xs text-text-muted">{t("workspace.financial.accuracy.comparedToPrior")}</p>
             </article>
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">Stockout revenue saved</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.accuracy.stockoutRevenueSaved")}</p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
                 {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
               </p>
-              <p className="mt-2 text-xs text-text-muted">Revenue you didn&apos;t lose</p>
+              <p className="mt-2 text-xs text-text-muted">{t("workspace.financial.accuracy.revenueNotLost")}</p>
             </article>
           </div>
         </div>
@@ -649,10 +664,10 @@ export default function FinancialPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Cost trends
+                {t("workspace.financial.trends.title")}
               </p>
               <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-                How your numbers have moved
+                {t("workspace.financial.trends.subtitle")}
               </h3>
               <p className="mt-1 text-sm text-text-secondary">{timeframeLabel}</p>
             </div>
@@ -663,15 +678,15 @@ export default function FinancialPage() {
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-semibold text-text-primary transition-all hover:border-brand-gold hover:text-brand-gold active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="h-3.5 w-3.5" />
-              Download CSV
+              {t("workspace.financial.trends.downloadCsv")}
             </button>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {[
-              { label: "Revenue", color: "text-status-success", series: trendSeries.revenue },
-              { label: "Food cost", color: "text-text-secondary", series: trendSeries.food },
-              { label: "Waste cost", color: "text-status-critical", series: trendSeries.waste },
-              { label: "Margin", color: "text-brand-gold", series: trendSeries.margin },
+              { label: t("workspace.financial.trends.chartRevenue"), color: "text-status-success", series: trendSeries.revenue },
+              { label: t("workspace.financial.trends.chartFoodCost"), color: "text-text-secondary", series: trendSeries.food },
+              { label: t("workspace.financial.trends.chartWasteCost"), color: "text-status-critical", series: trendSeries.waste },
+              { label: t("workspace.financial.trends.chartMargin"), color: "text-brand-gold", series: trendSeries.margin },
             ].map((chart) => {
               const points = buildSparklinePoints(chart.series, 520, 160);
               return (
@@ -704,7 +719,7 @@ export default function FinancialPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm text-text-muted">Not enough data yet.</p>
+                    <p className="mt-4 text-sm text-text-muted">{t("workspace.financial.trends.notEnoughData")}</p>
                   )}
                 </div>
               );

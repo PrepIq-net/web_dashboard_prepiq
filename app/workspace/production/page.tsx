@@ -16,6 +16,7 @@ import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useTranslation } from "@/lib/i18n";
 
 type LocalLog = {
   id: string;
@@ -102,15 +103,15 @@ function riskRank(value: LiveItem["stockoutRisk"]) {
 }
 
 function getTrendLabel(value: number) {
-  if (value >= 12) return "High";
-  if (value <= -12) return "Slow";
-  return "Normal";
+  if (value >= 12) return "HIGH";
+  if (value <= -12) return "SLOW";
+  return "NORMAL";
 }
 
 function getTrendToneClasses(label: string) {
-  if (label === "High")
+  if (label === "HIGH")
     return "border-status-critical/30 bg-status-critical/10 text-status-critical";
-  if (label === "Slow")
+  if (label === "SLOW")
     return "border-status-warning/30 bg-status-warning/10 text-status-warning";
   return "border-status-success/30 bg-status-success/10 text-status-success";
 }
@@ -120,21 +121,21 @@ function getPriority(item: LiveItem) {
     item.stockoutRisk === "HIGH" ||
     (item.runoutMinutes !== null && item.runoutMinutes <= 30)
   ) {
-    return "High";
+    return "HIGH";
   }
   if (
     item.prepNowQty > 0 ||
     (item.runoutMinutes !== null && item.runoutMinutes <= 60)
   ) {
-    return "Medium";
+    return "MEDIUM";
   }
-  return "Low";
+  return "LOW";
 }
 
 function getPriorityToneClasses(label: string) {
-  if (label === "High")
+  if (label === "HIGH")
     return "border-status-critical/30 bg-status-critical/10 text-status-critical";
-  if (label === "Medium")
+  if (label === "MEDIUM")
     return "border-status-warning/30 bg-status-warning/10 text-status-warning";
   return "border-status-success/30 bg-status-success/10 text-status-success";
 }
@@ -146,6 +147,7 @@ function getStockoutAccentClass(risk: LiveItem["stockoutRisk"]) {
 }
 
 export default function ProductionPage() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -336,7 +338,7 @@ export default function ProductionPage() {
 
   const prepQueueItems = useMemo(() => {
     const priorityRank = (label: string) =>
-      label === "High" ? 0 : label === "Medium" ? 1 : 2;
+      label === "HIGH" ? 0 : label === "MEDIUM" ? 1 : 2;
     return [...enrichedItems].sort((a, b) => {
       const pa = getPriority(a);
       const pb = getPriority(b);
@@ -352,7 +354,6 @@ export default function ProductionPage() {
       .slice(0, 6);
   }, [enrichedItems]);
 
-  // Items tab — sorted by stockout risk then remaining for ledger view
   const itemLedgerRows = useMemo(() => {
     return [...enrichedItems].sort((a, b) => {
       const riskDelta = riskRank(a.stockoutRisk) - riskRank(b.stockoutRisk);
@@ -373,9 +374,9 @@ export default function ProductionPage() {
   const [activeTab, setActiveTab] = useState<ProductionTab>("ITEMS");
 
   const sectionTabs: { id: ProductionTab; label: string }[] = [
-    { id: "ITEMS", label: "Items" },
-    { id: "QUEUE", label: "Queue" },
-    { id: "SIGNALS", label: "Signals" },
+    { id: "ITEMS", label: t("workspace.production.tab.items") },
+    { id: "QUEUE", label: t("workspace.production.tab.queue") },
+    { id: "SIGNALS", label: t("workspace.production.tab.signals") },
   ];
 
   const selectedItem = enrichedItems.find((item) => item.id === selectedItemId);
@@ -408,15 +409,15 @@ export default function ProductionPage() {
     if (type === "WASTE" && wasteReason !== "UNSPECIFIED") {
       const reasonLabel =
         wasteReason === "OVER_PREP"
-          ? "Over-prep"
+          ? t("workspace.production.log.wasteReasonOverPrep")
           : wasteReason === "DEMAND_FLUCTUATION"
-            ? "Demand fluctuation"
+            ? t("workspace.production.log.wasteReasonDemandFluctuation")
             : wasteReason === "CHEF_OVERRIDE"
-              ? "Chef override"
+              ? t("workspace.production.log.wasteReasonChefOverride")
               : wasteReason === "INVENTORY_EXPIRY"
-                ? "Inventory expiry"
-                : "Other";
-      noteParts.push(`Waste reason: ${reasonLabel}.`);
+                ? t("workspace.production.log.wasteReasonInventoryExpiry")
+                : t("workspace.production.log.wasteReasonOther");
+      noteParts.push(t("workspace.production.log.wasteReasonPrefix", { reason: reasonLabel }));
     }
     if (batchNotes.trim()) {
       noteParts.push(batchNotes.trim());
@@ -467,7 +468,7 @@ export default function ProductionPage() {
           entry.id === logId ? { ...entry, status: "failed" } : entry,
         ),
       );
-      setLogError("Unable to log production. Please retry.");
+      setLogError(t("workspace.production.log.error"));
     }
   };
 
@@ -485,14 +486,13 @@ export default function ProductionPage() {
   if (!canViewProduction) {
     return (
       <WorkspaceShell
-        eyebrow="Production"
-        title="Production"
-        description="Live kitchen operations are restricted to service roles."
+        eyebrow={t("workspace.production.restricted.eyebrow")}
+        title={t("workspace.production.restricted.title")}
+        description={t("workspace.production.restricted.description")}
         insight=""
       >
         <p className="text-sm text-text-muted">
-          Production command center is limited to chef, line cook, supervisor,
-          branch manager, and ops monitoring roles.
+          {t("workspace.production.restricted.body")}
         </p>
       </WorkspaceShell>
     );
@@ -500,16 +500,15 @@ export default function ProductionPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Production"
-      title="Production Ledger"
-      description="Execution view for live service. Every batch, every item, every shift."
+      eyebrow={t("workspace.production.eyebrow")}
+      title={t("workspace.production.title")}
+      description={t("workspace.production.description")}
       insight=""
     >
-      {/* Slim context bar — matches Today's style */}
       <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
         <div className="flex-1 min-w-[180px] max-w-xs">
           <Select
-            label="Branch"
+            label={t("workspace.production.branch.label")}
             leadingIcon={<Shop className="h-4 w-4" />}
             options={branchOptions.map((branch) => ({
               value: branch.id,
@@ -518,7 +517,9 @@ export default function ProductionPage() {
             value={activeBranchId}
             onChange={(value) => setSelectedBranchId(value)}
             placeholder={
-              branchOptions.length ? "Select branch" : "No branches available"
+              branchOptions.length
+                ? t("workspace.production.branch.selectPlaceholder")
+                : t("workspace.production.branch.noBranches")
             }
           />
         </div>
@@ -533,17 +534,17 @@ export default function ProductionPage() {
           />
           <p className="text-sm text-text-muted">
             {status === "LIVE"
-              ? "Service live"
+              ? t("workspace.production.status.live")
               : status === "MORNING"
-                ? "Planning mode"
+                ? t("workspace.production.status.planning")
                 : status === "CLOSED"
-                  ? "Day closed"
-                  : "Not started"}
+                  ? t("workspace.production.status.closed")
+                  : t("workspace.production.status.notStarted")}
           </p>
         </div>
 
         <p className="pb-1 text-xs text-text-muted">
-          Sync {formatShortTime(lastSync)}
+          {t("workspace.production.sync")} {formatShortTime(lastSync)}
         </p>
       </div>
 
@@ -551,26 +552,25 @@ export default function ProductionPage() {
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : (
         <>
-      {/* Persistent KPI strip */}
       {enrichedItems.length > 0 ? (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           {timeOpen !== "--" ? (
             <span className="text-text-muted">
               <span className="font-semibold text-text-primary">{timeOpen}</span>{" "}
-              open
+              {t("workspace.production.kpi.open")}
             </span>
           ) : null}
           <span className="text-text-muted">
             <span className="font-semibold text-text-primary">
               {Math.round(totals.totalSold).toLocaleString()}
             </span>{" "}
-            sold
+            {t("workspace.production.kpi.sold")}
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-text-primary">
               {Math.round(totals.totalRemaining).toLocaleString()}
             </span>{" "}
-            remaining
+            {t("workspace.production.kpi.remaining")}
           </span>
           <span className="text-text-muted">
             <span
@@ -578,7 +578,7 @@ export default function ProductionPage() {
             >
               {totals.prepNowCount}
             </span>{" "}
-            need prep
+            {t("workspace.production.kpi.needPrep")}
           </span>
           <span className="text-text-muted">
             <span
@@ -586,14 +586,14 @@ export default function ProductionPage() {
             >
               {totals.stockoutCount}
             </span>{" "}
-            at risk
+            {t("workspace.production.kpi.atRisk")}
           </span>
           {salesPerHour > 0 ? (
             <span className="text-text-muted">
               <span className="font-semibold text-text-primary">
                 {salesPerHour.toFixed(1)}
               </span>
-              /hr
+              {t("workspace.production.kpi.perHour")}
             </span>
           ) : null}
         </div>
@@ -601,12 +601,10 @@ export default function ProductionPage() {
 
       {salesValidationQuery.data?.missing_sales_detected ? (
         <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
-          Sales feed missing entries for some items. Verify POS sync or use
-          manual entry.
+          {t("workspace.production.salesWarning")}
         </div>
       ) : null}
 
-      {/* Tab bar */}
       <div className="mb-6 flex gap-1 border-b border-surface-4/60">
         {sectionTabs.map((tab) => (
           <button
@@ -624,14 +622,12 @@ export default function ProductionPage() {
         ))}
       </div>
 
-      {/* ITEMS tab — full production ledger */}
       {activeTab === "ITEMS" ? (
         <div className="space-y-8">
-          {/* Urgent prep-now callouts */}
           {prepNowItems.length > 0 ? (
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Needs prep now
+                {t("workspace.production.needsPrepNow")}
               </p>
               {prepNowItems.map((item) => (
                 <div
@@ -647,8 +643,8 @@ export default function ProductionPage() {
                       {item.title}
                     </p>
                     <p className="mt-0.5 text-xs text-text-muted">
-                      {formatQuantity(item.remaining, item.unit)} left ·
-                      Runout {formatMinutes(item.runoutMinutes)}
+                      {formatQuantity(item.remaining, item.unit)} {t("workspace.production.left")} ·
+                      {t("workspace.production.runout")} {formatMinutes(item.runoutMinutes)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -673,7 +669,7 @@ export default function ProductionPage() {
                       }}
                       className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 bg-brand-gold/10 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 active:scale-[0.98]"
                     >
-                      Log batch →
+                      {t("workspace.production.logBatch")}
                     </button>
                   </div>
                 </div>
@@ -681,47 +677,45 @@ export default function ProductionPage() {
             </div>
           ) : null}
 
-          {/* Full items ledger table */}
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  All Items
+                  {t("workspace.production.allItems")}
                 </p>
                 <h3 className="font-display text-xl font-semibold text-text-primary">
-                  Production ledger
+                  {t("workspace.production.ledgerTitle")}
                 </h3>
                 <p className="mt-1 text-sm text-text-secondary">
-                  {enrichedItems.length} items tracked this shift.
+                  {t("workspace.production.ledgerCount", { count: enrichedItems.length })}
                 </p>
               </div>
             </div>
 
-            {/* Desktop table */}
             <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
               <table className="w-full min-w-[860px]">
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
                     <th className="w-[220px] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
+                      {t("workspace.production.table.item")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Planned
+                      {t("workspace.production.table.planned")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Prepared
+                      {t("workspace.production.table.prepared")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Sold
+                      {t("workspace.production.table.sold")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Remaining
+                      {t("workspace.production.table.remaining")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Runout
+                      {t("workspace.production.table.runout")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Trend
+                      {t("workspace.production.table.trend")}
                     </th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -804,7 +798,7 @@ export default function ProductionPage() {
                           <span
                             className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
                           >
-                            {trendLabel}
+                            {t(`workspace.production.trend.${trendLabel.toLowerCase()}`)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -820,7 +814,7 @@ export default function ProductionPage() {
                             }}
                             className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold active:scale-[0.98]"
                           >
-                            Log
+                            {t("workspace.production.table.log")}
                           </button>
                         </td>
                       </tr>
@@ -831,14 +825,12 @@ export default function ProductionPage() {
               {!itemLedgerRows.length ? (
                 <div className="py-12 text-center">
                   <p className="text-sm text-text-muted">
-                    No items tracked yet. Data populates once the service day is
-                    initialized.
+                    {t("workspace.production.empty.items")}
                   </p>
                 </div>
               ) : null}
             </div>
 
-            {/* Mobile cards */}
             <div className="space-y-2 lg:hidden">
               {itemLedgerRows.map((item) => {
                 const trendLabel = getTrendLabel(item.trendPct);
@@ -874,13 +866,13 @@ export default function ProductionPage() {
                       <span
                         className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
                       >
-                        {trendLabel}
+                        {t(`workspace.production.trend.${trendLabel.toLowerCase()}`)}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 divide-x divide-surface-4/60 border-y border-surface-4/60">
                       <div className="px-3 py-2.5">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          Prepared
+                          {t("workspace.production.table.prepared")}
                         </p>
                         <p className="mt-1 text-base font-semibold text-text-primary">
                           {Math.round(item.prepared)}
@@ -888,7 +880,7 @@ export default function ProductionPage() {
                       </div>
                       <div className="px-3 py-2.5">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          Sold
+                          {t("workspace.production.table.sold")}
                         </p>
                         <p className="mt-1 text-base font-semibold text-text-primary">
                           {Math.round(item.sold)}
@@ -896,7 +888,7 @@ export default function ProductionPage() {
                       </div>
                       <div className="px-3 py-2.5">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          Remaining
+                          {t("workspace.production.table.remaining")}
                         </p>
                         <p
                           className={`mt-1 text-base font-semibold ${
@@ -913,7 +905,7 @@ export default function ProductionPage() {
                     </div>
                     <div className="flex items-center justify-between px-4 py-3">
                       <p className="text-xs text-text-muted">
-                        Runout{" "}
+                        {t("workspace.production.table.runout")}{" "}
                         <span
                           className={
                             item.runoutMinutes !== null &&
@@ -937,7 +929,7 @@ export default function ProductionPage() {
                         }}
                         className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
                       >
-                        Log
+                        {t("workspace.production.table.log")}
                       </button>
                     </div>
                   </article>
@@ -946,17 +938,16 @@ export default function ProductionPage() {
             </div>
           </div>
 
-          {/* Log form — always visible, pre-fills when item row is clicked */}
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Production Log
+              {t("workspace.production.log.title")}
             </p>
             <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              Record a batch or waste event
+              {t("workspace.production.log.subtitle")}
             </h3>
             {selectedItem ? (
               <p className="mt-1 text-sm text-text-secondary">
-                Logging for:{" "}
+                {t("workspace.production.log.loggingFor")}{" "}
                 <span className="font-semibold text-text-primary">
                   {selectedItem.title}
                 </span>{" "}
@@ -969,19 +960,19 @@ export default function ProductionPage() {
                   }}
                   className="text-text-muted hover:text-text-secondary transition-colors"
                 >
-                  Clear ×
+                  {t("workspace.production.log.clear")}
                 </button>
               </p>
             ) : (
               <p className="mt-1 text-sm text-text-muted">
-                Select an item from the table above, or choose below.
+                {t("workspace.production.log.selectHint")}
               </p>
             )}
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Select
                 options={[
-                  { value: "", label: "Select item" },
+                  { value: "", label: t("workspace.production.log.selectItem") },
                   ...enrichedItems.map((item) => ({
                     value: item.id,
                     label: item.title,
@@ -989,7 +980,7 @@ export default function ProductionPage() {
                 ]}
                 value={selectedItemId}
                 onChange={(value) => setSelectedItemId(value)}
-                placeholder="Select item"
+                placeholder={t("workspace.production.log.selectItem")}
               />
               <input
                 value={batchQuantity}
@@ -997,9 +988,9 @@ export default function ProductionPage() {
                 placeholder={
                   selectedItem
                     ? selectedItem.prepNowQty > 0
-                      ? `Suggested: ${Math.round(selectedItem.prepNowQty)}`
-                      : "Quantity"
-                    : "Quantity"
+                      ? t("workspace.production.log.suggested", { quantity: Math.round(selectedItem.prepNowQty) })
+                      : t("workspace.production.log.quantity")
+                    : t("workspace.production.log.quantity")
                 }
                 type="number"
                 min={0}
@@ -1010,21 +1001,21 @@ export default function ProductionPage() {
               />
               <Select
                 options={[
-                  { value: "UNSPECIFIED", label: "Waste reason (optional)" },
-                  { value: "OVER_PREP", label: "Over-prep" },
-                  { value: "DEMAND_FLUCTUATION", label: "Demand fluctuation" },
-                  { value: "CHEF_OVERRIDE", label: "Chef override" },
-                  { value: "INVENTORY_EXPIRY", label: "Inventory expiry" },
-                  { value: "OTHER", label: "Other" },
+                  { value: "UNSPECIFIED", label: t("workspace.production.log.wasteReason") },
+                  { value: "OVER_PREP", label: t("workspace.production.log.wasteReasonOverPrep") },
+                  { value: "DEMAND_FLUCTUATION", label: t("workspace.production.log.wasteReasonDemandFluctuation") },
+                  { value: "CHEF_OVERRIDE", label: t("workspace.production.log.wasteReasonChefOverride") },
+                  { value: "INVENTORY_EXPIRY", label: t("workspace.production.log.wasteReasonInventoryExpiry") },
+                  { value: "OTHER", label: t("workspace.production.log.wasteReasonOther") },
                 ]}
                 value={wasteReason}
                 onChange={(value) => setWasteReason(value as WasteReason)}
-                placeholder="Waste reason"
+                placeholder={t("workspace.production.log.wasteReasonPlaceholder")}
               />
               <input
                 value={batchNotes}
                 onChange={(event) => setBatchNotes(event.target.value)}
-                placeholder="Notes (optional)"
+                placeholder={t("workspace.production.log.notes")}
                 className="h-10 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
               />
             </div>
@@ -1039,8 +1030,8 @@ export default function ProductionPage() {
                 className="inline-flex h-10 items-center rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {createProductionLogMutation.isPending
-                  ? "Logging..."
-                  : "Log batch"}
+                  ? t("workspace.production.log.logging")
+                  : t("workspace.production.log.logBatch")}
               </button>
               <button
                 type="button"
@@ -1050,18 +1041,17 @@ export default function ProductionPage() {
                 }
                 className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-medium text-text-secondary transition-colors hover:border-status-warning/50 hover:text-status-warning active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Report waste
+                {t("workspace.production.log.reportWaste")}
               </button>
             </div>
             {logError ? (
               <p className="mt-3 text-xs text-status-critical">{logError}</p>
             ) : null}
 
-            {/* Recent logs */}
             {localLogs.length > 0 ? (
               <div className="mt-5 space-y-2 border-t border-surface-4/60 pt-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  This session
+                  {t("workspace.production.log.thisSession")}
                 </p>
                 {localLogs.slice(0, 5).map((entry) => (
                   <div
@@ -1070,7 +1060,9 @@ export default function ProductionPage() {
                   >
                     <div>
                       <span className="font-medium text-text-secondary">
-                        {entry.type}
+                        {entry.type === "BATCH"
+                          ? t("workspace.production.log.typeBatch")
+                          : t("workspace.production.log.typeWaste")}
                       </span>
                       <span className="mx-1.5 text-surface-4">·</span>
                       <span className="text-text-primary">{entry.itemTitle}</span>
@@ -1094,10 +1086,10 @@ export default function ProductionPage() {
                         }
                       >
                         {entry.status === "pending"
-                          ? "Sending"
+                          ? t("workspace.production.log.sending")
                           : entry.status === "failed"
-                            ? "Failed"
-                            : "✓"}
+                            ? t("workspace.production.log.failed")
+                            : t("workspace.production.log.sent")}
                       </span>
                     </div>
                   </div>
@@ -1108,18 +1100,17 @@ export default function ProductionPage() {
         </div>
       ) : null}
 
-      {/* QUEUE tab — priority-sorted full list */}
       {activeTab === "QUEUE" ? (
         <div>
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Prep Queue
+              {t("workspace.production.queue.title")}
             </p>
             <h3 className="font-display text-xl font-semibold text-text-primary">
-              What to prepare next
+              {t("workspace.production.queue.subtitle")}
             </h3>
             <p className="mt-1 text-sm text-text-secondary">
-              {prepQueueItems.length} items · sorted by urgency
+              {t("workspace.production.queue.count", { count: prepQueueItems.length })}
             </p>
           </div>
 
@@ -1128,19 +1119,19 @@ export default function ProductionPage() {
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Item
+                    {t("workspace.production.queue.table.item")}
                   </th>
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Remaining
+                    {t("workspace.production.queue.table.remaining")}
                   </th>
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Prep needed
+                    {t("workspace.production.queue.table.prepNeeded")}
                   </th>
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Runout
+                    {t("workspace.production.queue.table.runout")}
                   </th>
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                    Priority
+                    {t("workspace.production.queue.table.priority")}
                   </th>
                 </tr>
               </thead>
@@ -1182,7 +1173,7 @@ export default function ProductionPage() {
                         <span
                           className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getPriorityToneClasses(priority)}`}
                         >
-                          {priority}
+                          {t(`workspace.production.priority.${priority.toLowerCase()}`)}
                         </span>
                       </td>
                     </tr>
@@ -1192,45 +1183,43 @@ export default function ProductionPage() {
             </table>
             {!prepQueueItems.length ? (
               <div className="py-12 text-center">
-                <p className="text-sm text-text-muted">No prep queue items.</p>
+                <p className="text-sm text-text-muted">{t("workspace.production.queue.empty")}</p>
               </div>
             ) : null}
           </div>
         </div>
       ) : null}
 
-      {/* SIGNALS tab — velocity + waste in one view */}
       {activeTab === "SIGNALS" ? (
         <div className="space-y-8">
-          {/* Velocity */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Sales Velocity
+              {t("workspace.production.velocity.title")}
             </p>
             <h3 className="font-display text-xl font-semibold text-text-primary">
-              Actual demand vs forecast
+              {t("workspace.production.velocity.subtitle")}
             </h3>
             <p className="mt-1 text-sm text-text-secondary">
-              Top {velocityRows.length} items by volume
+              {t("workspace.production.velocity.count", { count: velocityRows.length })}
             </p>
             <div className="mt-4 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
               <table className="w-full min-w-[640px]">
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
+                      {t("workspace.production.velocity.table.item")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Forecast
+                      {t("workspace.production.velocity.table.forecast")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Sold
+                      {t("workspace.production.velocity.table.sold")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Remaining
+                      {t("workspace.production.velocity.table.remaining")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Trend
+                      {t("workspace.production.velocity.table.trend")}
                     </th>
                   </tr>
                 </thead>
@@ -1258,7 +1247,7 @@ export default function ProductionPage() {
                           <span
                             className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${getTrendToneClasses(trendLabel)}`}
                           >
-                            {trendLabel}
+                            {t(`workspace.production.trend.${trendLabel.toLowerCase()}`)}
                           </span>
                         </td>
                       </tr>
@@ -1269,23 +1258,22 @@ export default function ProductionPage() {
               {!velocityRows.length ? (
                 <div className="py-12 text-center">
                   <p className="text-sm text-text-muted">
-                    No velocity data yet.
+                    {t("workspace.production.velocity.empty")}
                   </p>
                 </div>
               ) : null}
             </div>
           </div>
 
-          {/* Waste prevention */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Waste Prevention
+              {t("workspace.production.waste.title")}
             </p>
             <h3 className="font-display text-xl font-semibold text-text-primary">
-              Demand slowing — adjust prep
+              {t("workspace.production.waste.subtitle")}
             </h3>
             <p className="mt-1 text-sm text-text-secondary">
-              {wasteSignals.length} items trending below forecast
+              {t("workspace.production.waste.count", { count: wasteSignals.length })}
             </p>
             <div className="mt-4 space-y-2">
               {wasteSignals.map((item) => {
@@ -1307,22 +1295,18 @@ export default function ProductionPage() {
                         {item.title}
                       </p>
                       <p className="mt-0.5 text-xs text-text-secondary">
-                        Demand slowing. Prep may exceed demand by{" "}
-                        <span className="font-semibold text-status-warning">
-                          {overage} {item.unit}
-                        </span>
-                        .
+                        {t("workspace.production.waste.slowing", { overage, unit: item.unit })}
                       </p>
                     </div>
                     <p className="shrink-0 text-xs font-semibold text-status-warning">
-                      Slow production
+                      {t("workspace.production.waste.slowProduction")}
                     </p>
                   </div>
                 );
               })}
               {!wasteSignals.length ? (
                 <p className="text-sm text-text-muted">
-                  No waste prevention alerts.
+                  {t("workspace.production.waste.empty")}
                 </p>
               ) : null}
             </div>

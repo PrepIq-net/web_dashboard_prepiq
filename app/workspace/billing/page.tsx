@@ -32,6 +32,7 @@ import {
 } from "@/services";
 import { Branch } from "@/services/branches/types";
 import { Invoice, SubscriptionList } from "@/services/payment/types";
+import { useTranslation } from "@/lib/i18n";
 
 const PLAN_RANK: Record<string, number> = {
   CORE: 1,
@@ -58,8 +59,8 @@ function formatDate(value?: string | Date | null) {
   }).format(date);
 }
 
-function limitLabel(value?: number | null) {
-  if (value === null || value === undefined) return "Unlimited";
+function limitLabel(value?: number | null, t?: (key: string) => string) {
+  if (value === null || value === undefined) return t ? t("workspace.billing.unlimited") : "Unlimited";
   return String(value);
 }
 
@@ -96,8 +97,6 @@ function planTierClasses(planType: string) {
   return "bg-surface-4 text-text-muted";
 }
 
-// ── Invoice detail modal ──────────────────────────────────────────────────────
-
 function InvoiceModal({
   invoice,
   onClose,
@@ -109,6 +108,7 @@ function InvoiceModal({
   onDownload: () => void;
   isDownloading: boolean;
 }) {
+  const { t } = useTranslation();
   const lineItems = (invoice.line_items ?? []) as Array<
     Record<string, string | number>
   >;
@@ -119,8 +119,8 @@ function InvoiceModal({
       title={invoice.invoice_number}
       description={
         invoice.branch_name
-          ? `Branch: ${invoice.branch_name}`
-          : "Organization invoice"
+          ? t("workspace.billing.invoice.branchPrefix", { branch: invoice.branch_name })
+          : t("workspace.billing.invoice.orgInvoice")
       }
       onClose={onClose}
       maxWidthClassName="max-w-xl"
@@ -131,7 +131,7 @@ function InvoiceModal({
             onClick={onClose}
             className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:text-text-primary"
           >
-            Close
+            {t("workspace.billing.invoice.close")}
           </button>
           <button
             type="button"
@@ -144,36 +144,35 @@ function InvoiceModal({
             ) : (
               <Download className="h-3.5 w-3.5" />
             )}
-            {isDownloading ? "Generating…" : "Download PDF"}
+            {isDownloading ? t("workspace.billing.invoice.generating") : t("workspace.billing.invoice.downloadPdf")}
           </button>
         </>
       }
     >
-      {/* Meta grid */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
         {[
-          ["Issue Date", formatDate(invoice.issue_date)],
-          ["Due Date", formatDate(invoice.due_date)],
+          [t("workspace.billing.invoice.issueDate"), formatDate(invoice.issue_date)],
+          [t("workspace.billing.invoice.dueDate"), formatDate(invoice.due_date)],
           [
-            "Status",
-            invoice.is_paid ? "Paid" : invoice.payment_status ?? "Pending",
+            t("workspace.billing.invoice.status"),
+            invoice.is_paid ? t("workspace.billing.invoice.paid") : invoice.payment_status ?? t("workspace.billing.invoice.pending"),
           ],
           [
-            "Subtotal",
+            t("workspace.billing.invoice.subtotal"),
             `$${Number(invoice.subtotal ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
           ],
           [
-            "Tax",
+            t("workspace.billing.invoice.tax"),
             `$${Number(invoice.tax_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
           ],
-          ["Total", formatCurrency(Number(invoice.total_amount ?? 0))],
+          [t("workspace.billing.invoice.total"), formatCurrency(Number(invoice.total_amount ?? 0))],
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               {label}
             </p>
             <p
-              className={`mt-1 text-sm font-medium ${label === "Status" && invoice.is_paid ? "text-status-success" : label === "Total" ? "text-brand-gold" : "text-text-primary"}`}
+              className={`mt-1 text-sm font-medium ${label === t("workspace.billing.invoice.status") && invoice.is_paid ? "text-status-success" : label === t("workspace.billing.invoice.total") ? "text-brand-gold" : "text-text-primary"}`}
             >
               {value}
             </p>
@@ -181,11 +180,10 @@ function InvoiceModal({
         ))}
       </div>
 
-      {/* Line items */}
       {lineItems.length > 0 && (
         <div className="mt-6">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            Line Items
+            {t("workspace.billing.invoice.lineItems")}
           </p>
           <div className="overflow-hidden rounded-xl border border-surface-4">
             <div className="divide-y divide-surface-4/60">
@@ -207,7 +205,6 @@ function InvoiceModal({
         </div>
       )}
 
-      {/* Notes */}
       {invoice.notes && (
         <p className="mt-4 text-xs text-text-muted">{invoice.notes}</p>
       )}
@@ -215,14 +212,13 @@ function InvoiceModal({
   );
 }
 
-// ── Payment method modal ──────────────────────────────────────────────────────
-
 function PaymentMethodModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <ModalShell
       open
-      title="Update Payment Method"
-      description="Payment method changes are handled by our billing team"
+      title={t("workspace.billing.paymentMethodModal.title")}
+      description={t("workspace.billing.paymentMethodModal.description")}
       onClose={onClose}
       maxWidthClassName="max-w-md"
       footer={
@@ -231,15 +227,13 @@ function PaymentMethodModal({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:text-text-primary"
         >
-          Close
+          {t("workspace.billing.paymentMethodModal.close")}
         </button>
       }
     >
       <div className="space-y-4">
         <p className="text-sm text-text-secondary">
-          To update your card, bank transfer details, or mobile money number,
-          reach out to our billing team. We typically respond within one
-          business day.
+          {t("workspace.billing.paymentMethodModal.body")}
         </p>
         <a
           href="mailto:support@prepiq.app?subject=Update payment method"
@@ -253,9 +247,8 @@ function PaymentMethodModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
 export default function BillingPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -269,7 +262,6 @@ export default function BillingPage() {
   useEffect(() => {
     if (searchParams.get("payment") === "success") {
       setPaymentSuccessBanner(true);
-      // Clear the query param without a page reload
       const url = new URL(window.location.href);
       url.searchParams.delete("payment");
       url.searchParams.delete("ref");
@@ -372,7 +364,6 @@ export default function BillingPage() {
   const latestPayment = payments[0];
   const invoiceRows = invoices.slice(0, 8);
 
-  // ROI
   const protectedRevenue = parseMoney(
     roiQuery.data?.summary?.total_money_protected_vs_baseline,
   );
@@ -381,7 +372,6 @@ export default function BillingPage() {
   const roiMultiplier =
     monthlyTotal > 0 ? (totalROI / monthlyTotal).toFixed(1) : null;
 
-  // Expiry warnings
   const expiringWarnings = useMemo(() => {
     return summarySubscriptions
       .filter((sub: SubscriptionList) => {
@@ -395,21 +385,25 @@ export default function BillingPage() {
   const currentPlanName =
     primaryBranchSubscription?.plan_name ??
     currentSubscriptionQuery.data?.plan?.name ??
-    "No active plan";
+    t("workspace.billing.noActivePlan");
 
   const showLimits = maxBranches || maxStaffPerBranch || maxTotalStaff;
 
+  const formatDaysRenew = (days: number) => {
+    if (days === 0) return t("workspace.billing.renewsToday");
+    return t("workspace.billing.renewsInDays", { days });
+  };
+
   return (
     <WorkspaceShell
-      eyebrow="Executive"
-      title="Billing"
-      description="Plan, subscriptions, and ROI across all active locations."
+      eyebrow={t("workspace.billing.eyebrow")}
+      title={t("workspace.billing.title")}
+      description={t("workspace.billing.description")}
       insight={
         recommendation?.reason ??
-        "Review your plan mix and upcoming renewals regularly."
+        t("workspace.billing.insight.default")
       }
     >
-      {/* ── Modals ── */}
       {openInvoice && (
         <InvoiceModal
           invoice={openInvoice}
@@ -422,17 +416,16 @@ export default function BillingPage() {
         <PaymentMethodModal onClose={() => setShowPaymentModal(false)} />
       )}
 
-      {/* ── Payment success banner ── */}
       {paymentSuccessBanner && (
         <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-status-success/30 bg-status-success/8 px-4 py-3">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-4 w-4 shrink-0 text-status-success" />
             <div>
               <p className="text-[13px] font-semibold text-status-success">
-                Payment received — subscription is now active.
+                {t("workspace.billing.paymentSuccess.title")}
               </p>
               <p className="text-[12px] text-text-muted">
-                Your plan has been updated. It may take a moment to reflect below.
+                {t("workspace.billing.paymentSuccess.description")}
               </p>
             </div>
           </div>
@@ -440,12 +433,11 @@ export default function BillingPage() {
             onClick={() => setPaymentSuccessBanner(false)}
             className="shrink-0 text-[11px] font-medium text-text-muted hover:text-text-primary"
           >
-            Dismiss
+            {t("workspace.billing.paymentSuccess.dismiss")}
           </button>
         </div>
       )}
 
-      {/* ── Expiry warnings ── */}
       {expiringWarnings.map((sub: SubscriptionList) => {
         const days = daysUntil(sub.next_billing_date);
         return (
@@ -455,10 +447,10 @@ export default function BillingPage() {
           >
             <WarningTriangle className="h-4 w-4 shrink-0 text-status-warning" />
             <p className="text-sm text-text-primary">
-              <span className="font-semibold">{sub.branch_name}</span> renews
-              in{" "}
+              <span className="font-semibold">{sub.branch_name}</span>{" "}
+              {t("workspace.billing.renewsLabel")}{" "}
               <span className="font-semibold text-status-warning">
-                {days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"}`}
+                {formatDaysRenew(days ?? 0)}
               </span>{" "}
               · {formatDate(sub.next_billing_date)}
             </p>
@@ -466,7 +458,6 @@ export default function BillingPage() {
         );
       })}
 
-      {/* ── Upgrade recommendation ── */}
       {recommendation &&
         recommendation.recommended_plan_type !==
           recommendation.current_plan_type && (
@@ -475,32 +466,30 @@ export default function BillingPage() {
               <ArrowUpCircle className="h-4 w-4 shrink-0 text-brand-gold" />
               <p className="text-sm text-text-primary">
                 <span className="font-semibold text-brand-gold">
-                  Upgrade recommended
-                </span>{" "}
-                — {recommendation.reason}
+                  {t("workspace.billing.upgradeRecommended")}
+                </span>
+                {" — "}{recommendation.reason}
               </p>
             </div>
             <Link
               href="/workspace/settings?tab=plan"
               className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
             >
-              View Plans
+              {t("workspace.billing.viewPlans")}
             </Link>
           </div>
         )}
 
-      {/* ══ Section 1: Plan snapshot ══════════════════════════════════════════ */}
       <section className="mb-8 border-b border-surface-4/60 pb-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Current Plan
+              {t("workspace.billing.currentPlan")}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <p className="text-2xl font-semibold text-text-primary">
                 {currentPlanName}
               </p>
-              {/* Only show tier badge when name doesn't already make it obvious */}
               {highestTier &&
                 !currentPlanName
                   .toUpperCase()
@@ -531,22 +520,22 @@ export default function BillingPage() {
                 <Reports className="h-3.5 w-3.5" />
               )}
               {isDownloadingReport
-                ? "Generating…"
+                ? t("workspace.billing.generating")
                 : reportDownloaded
-                  ? "Downloaded ✓"
-                  : "Billing Report"}
+                  ? t("workspace.billing.downloaded")
+                  : t("workspace.billing.billingReport")}
             </button>
             <Link
               href="/workspace/branches/new"
               className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
             >
-              + Add Location
+              {t("workspace.billing.addLocation")}
             </Link>
             <Link
               href="/workspace/billing/upgrade"
               className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
             >
-              Upgrade Plan
+              {t("workspace.billing.upgradePlan")}
             </Link>
           </div>
         </div>
@@ -554,20 +543,19 @@ export default function BillingPage() {
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Monthly spend
+              {t("workspace.billing.monthlySpend")}
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {monthlyTotal > 0 ? formatCurrency(monthlyTotal) : "—"}
             </p>
             <p className="mt-1 text-xs text-text-muted">
-              {summarySubscriptions.length} active subscription
-              {summarySubscriptions.length !== 1 ? "s" : ""}
+              {t("workspace.billing.activeSubscriptionCount", { count: summarySubscriptions.length })}
             </p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Active locations
+              {t("workspace.billing.activeLocations")}
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {activeBranches.length}
@@ -579,20 +567,20 @@ export default function BillingPage() {
             </p>
             {maxBranches && activeBranches.length >= maxBranches ? (
               <p className="mt-1 text-xs text-status-warning">
-                At plan limit — upgrade to add more
+                {t("workspace.billing.atPlanLimit")}
               </p>
             ) : (
               <p className="mt-1 text-xs text-text-muted">
                 {maxBranches
-                  ? `${maxBranches - activeBranches.length} slot${maxBranches - activeBranches.length !== 1 ? "s" : ""} remaining`
-                  : "Unlimited"}
+                  ? t("workspace.billing.slotsRemaining", { count: maxBranches - activeBranches.length })
+                  : t("workspace.billing.unlimited")}
               </p>
             )}
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Next billing
+              {t("workspace.billing.nextBilling")}
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {nextBillingDate ? formatDate(nextBillingDate) : "—"}
@@ -603,15 +591,15 @@ export default function BillingPage() {
                   const d = daysUntil(nextBillingDate.toISOString());
                   if (d === null) return null;
                   if (d <= 0)
-                    return <span className="text-status-warning">Due today</span>;
+                    return <span className="text-status-warning">{t("workspace.billing.dueToday")}</span>;
                   if (d <= 7)
                     return (
                       <span className="text-status-warning">
-                        in {d} day{d !== 1 ? "s" : ""}
+                        {t("workspace.billing.inDays", { count: d })}
                       </span>
                     );
                   return (
-                    <span className="text-text-muted">in {d} days</span>
+                    <span className="text-text-muted">{t("workspace.billing.inDays", { count: d })}</span>
                   );
                 })()}
               </p>
@@ -620,13 +608,12 @@ export default function BillingPage() {
         </div>
       </section>
 
-      {/* ══ Section 2: PrepIQ ROI ═════════════════════════════════════════════ */}
       <section className="mb-8 border-b border-surface-4/60 pb-8">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Brain className="h-4 w-4 text-brand-gold" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              PrepIQ return this month
+              {t("workspace.billing.roi.title")}
             </p>
           </div>
           {roiMultiplier && Number(roiMultiplier) > 0 && (
@@ -635,31 +622,30 @@ export default function BillingPage() {
                 {roiMultiplier}×
               </span>
               <span className="text-xs text-text-muted">
-                return on subscription
+                {t("workspace.billing.roi.returnOnSubscription")}
               </span>
             </div>
           )}
         </div>
 
-        {/* ROI vs cost callout */}
         {monthlyTotal > 0 && totalROI > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-muted">You pay</p>
+              <p className="text-xs text-text-muted">{t("workspace.billing.roi.youPay")}</p>
               <p className="mt-0.5 text-lg font-semibold text-text-primary">
                 {formatCurrency(monthlyTotal)}
                 <span className="ml-1 text-xs font-normal text-text-muted">
-                  /month
+                  {t("workspace.billing.roi.perMonth")}
                 </span>
               </p>
             </div>
             <div className="text-text-muted">→</div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-muted">PrepIQ returns</p>
+              <p className="text-xs text-text-muted">{t("workspace.billing.roi.prepIqReturns")}</p>
               <p className="mt-0.5 text-lg font-semibold text-brand-gold">
                 {formatCurrency(totalROI)}
                 <span className="ml-1 text-xs font-normal text-text-muted">
-                  /month
+                  {t("workspace.billing.roi.perMonth")}
                 </span>
               </p>
             </div>
@@ -678,13 +664,13 @@ export default function BillingPage() {
                 <Coins className="h-4 w-4 text-status-success" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Waste saved
+                {t("workspace.billing.roi.wasteSaved")}
               </p>
             </div>
             <p className="text-2xl font-semibold text-text-primary">
               {roiQuery.data?.summary?.total_waste_cost ?? "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">Food cost protected</p>
+            <p className="mt-1 text-xs text-text-muted">{t("workspace.billing.roi.foodCostProtected")}</p>
           </article>
 
           <article className="rounded-xl border border-brand-gold/20 bg-surface-2 px-5 py-5">
@@ -693,13 +679,13 @@ export default function BillingPage() {
                 <Brain className="h-4 w-4 text-brand-gold" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-gold/80">
-                Revenue protected
+                {t("workspace.billing.roi.revenueProtected")}
               </p>
             </div>
             <p className="text-2xl font-semibold text-brand-gold">
               {roiQuery.data?.summary?.total_money_protected_vs_baseline ?? "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">vs. baseline without AI</p>
+            <p className="mt-1 text-xs text-text-muted">{t("workspace.billing.roi.vsBaselineWithoutAi")}</p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
@@ -708,7 +694,7 @@ export default function BillingPage() {
                 <Sparks className="h-4 w-4 text-[#8FAFF5]" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Forecast accuracy
+                {t("workspace.billing.roi.forecastAccuracy")}
               </p>
             </div>
             <p className="text-2xl font-semibold text-text-primary">
@@ -716,7 +702,7 @@ export default function BillingPage() {
                 ? `${Math.round(roiQuery.data.summary.forecast_accuracy_avg_pct)}%`
                 : "—"}
             </p>
-            <p className="mt-1 text-xs text-text-muted">Mean performance</p>
+            <p className="mt-1 text-xs text-text-muted">{t("workspace.billing.roi.meanPerformance")}</p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-5">
@@ -725,41 +711,40 @@ export default function BillingPage() {
                 <CheckCircle className="h-4 w-4 text-text-muted" />
               </div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Model status
+                {t("workspace.billing.roi.modelStatus")}
               </p>
             </div>
             <p className="text-2xl font-semibold text-text-primary">
               {roiQuery.data?.summary?.margin_reliability?.is_reliable
-                ? "Reliable"
-                : "Learning"}
+                ? t("workspace.billing.roi.reliable")
+                : t("workspace.billing.roi.learning")}
             </p>
             <p className="mt-1 text-xs text-text-muted">
               {roiQuery.data?.summary?.margin_reliability?.warning ??
-                "Impact model stable"}
+                t("workspace.billing.roi.impactModelStable")}
             </p>
           </article>
         </div>
       </section>
 
-      {/* ══ Section 3: Location subscriptions ════════════════════════════════ */}
       <section className="mb-8 border-b border-surface-4/60 pb-8">
         <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          Location subscriptions
+          {t("workspace.billing.locationSubscriptions")}
         </p>
 
         {activeBranches.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-4 py-12 text-center">
             <p className="text-sm font-medium text-text-primary">
-              No active locations
+              {t("workspace.billing.noActiveLocations")}
             </p>
             <p className="mt-1 text-xs text-text-muted">
-              Add your first location to start a subscription.
+              {t("workspace.billing.addFirstLocation")}
             </p>
             <Link
               href="/workspace/branches/new"
               className="mt-4 inline-flex h-9 items-center rounded-full bg-brand-gold px-5 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E]"
             >
-              + Add Location
+              {t("workspace.billing.addLocation")}
             </Link>
           </div>
         ) : (
@@ -795,7 +780,7 @@ export default function BillingPage() {
                       </p>
                       {branch.is_primary && (
                         <span className="shrink-0 rounded-full border border-surface-4 px-2 py-0.5 text-[10px] font-medium text-text-muted">
-                          Primary
+                          {t("workspace.billing.primary")}
                         </span>
                       )}
                     </div>
@@ -815,7 +800,7 @@ export default function BillingPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center rounded-full border border-surface-4 bg-surface-3 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                          No subscription
+                          {t("workspace.billing.noSubscription")}
                         </span>
                       )}
                       {latestSub?.billing_cycle && (
@@ -830,7 +815,7 @@ export default function BillingPage() {
                           .toUpperCase()
                           .includes("TRIAL") && (
                           <span className="text-xs text-brand-gold">
-                            Trial ends {formatDate(latestSub.trial_ends_at as string | null | undefined)}
+                            {t("workspace.billing.trialEnds")} {formatDate(latestSub.trial_ends_at as string | null | undefined)}
                           </span>
                         )}
                     </div>
@@ -842,15 +827,15 @@ export default function BillingPage() {
                         <p className="text-sm font-semibold text-text-primary">
                           {formatCurrency(monthlyPrice)}
                           <span className="ml-1 text-xs font-normal text-text-muted">
-                            /mo
+                            {t("workspace.billing.perMonth")}
                           </span>
                         </p>
                         {daysLeft !== null && daysLeft >= 0 && daysLeft <= 14 ? (
                           <p
                             className={`text-[11px] ${daysLeft <= 3 ? "text-status-warning" : "text-text-muted"}`}
                           >
-                            Renews{" "}
-                            {daysLeft === 0 ? "today" : `in ${daysLeft}d`}
+                            {t("workspace.billing.renews")}{" "}
+                            {daysLeft === 0 ? t("workspace.billing.today") : t("workspace.billing.inDaysShort", { count: daysLeft })}
                           </p>
                         ) : latestSub?.next_billing_date ? (
                           <p className="text-[11px] text-text-muted">
@@ -863,7 +848,7 @@ export default function BillingPage() {
                       href={`/workspace/billing/upgrade?branchId=${branch.id}`}
                       className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
                     >
-                      Change Plan
+                      {t("workspace.billing.changePlan")}
                     </Link>
                   </div>
                 </div>
@@ -873,24 +858,23 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* ══ Section 4: Plan limits ════════════════════════════════════════════ */}
       {showLimits && (
         <section className="mb-8 border-b border-surface-4/60 pb-8">
           <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            Plan limits & usage
+            {t("workspace.billing.planLimits")}
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {maxBranches && (
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Locations
+                    {t("workspace.billing.locations")}
                   </p>
                   <p className="text-sm font-semibold text-text-primary">
                     {activeBranches.length}
                     <span className="font-normal text-text-muted">
                       {" "}
-                      / {limitLabel(maxBranches)}
+                      / {limitLabel(maxBranches, t)}
                     </span>
                   </p>
                 </div>
@@ -904,7 +888,7 @@ export default function BillingPage() {
                 </div>
                 {activeBranches.length >= maxBranches && (
                   <p className="mt-2 text-xs text-status-warning">
-                    At limit — upgrade to add more
+                    {t("workspace.billing.atLimitUpgrade")}
                   </p>
                 )}
               </article>
@@ -913,14 +897,14 @@ export default function BillingPage() {
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Staff / location
+                    {t("workspace.billing.staffPerLocation")}
                   </p>
                   <p className="text-sm font-semibold text-text-primary">
-                    {limitLabel(maxStaffPerBranch)}
+                    {limitLabel(maxStaffPerBranch, t)}
                   </p>
                 </div>
                 <p className="text-xs text-text-muted">
-                  Max staff per branch on this plan
+                  {t("workspace.billing.maxStaffPerBranch")}
                 </p>
               </article>
             )}
@@ -928,14 +912,14 @@ export default function BillingPage() {
               <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Total staff
+                    {t("workspace.billing.totalStaff")}
                   </p>
                   <p className="text-sm font-semibold text-text-primary">
-                    {limitLabel(maxTotalStaff)}
+                    {limitLabel(maxTotalStaff, t)}
                   </p>
                 </div>
                 <p className="text-xs text-text-muted">
-                  Org-wide staff allowance
+                  {t("workspace.billing.orgWideStaffAllowance")}
                 </p>
               </article>
             )}
@@ -943,15 +927,14 @@ export default function BillingPage() {
         </section>
       )}
 
-      {/* ══ Section 5: Billing history ════════════════════════════════════════ */}
       <section className="mb-8 border-b border-surface-4/60 pb-8">
         <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          Billing history
+          {t("workspace.billing.billingHistory")}
         </p>
         <div className="overflow-hidden rounded-xl border border-surface-4">
           {invoiceRows.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-text-muted">
-              No invoices yet.
+              {t("workspace.billing.noInvoices")}
             </div>
           ) : (
             <div className="divide-y divide-surface-4/60">
@@ -986,7 +969,7 @@ export default function BillingPage() {
                                     : "text-text-muted"
                                 }
                               >
-                                {invoice.is_paid ? "Paid" : invoice.payment_status}
+                                {invoice.is_paid ? t("workspace.billing.paid") : invoice.payment_status}
                               </span>
                             </>
                           )}
@@ -999,7 +982,7 @@ export default function BillingPage() {
                       </p>
                       <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-surface-4 px-2.5 text-[11px] font-medium text-text-muted group-hover:border-brand-gold/30 group-hover:text-brand-gold">
                         <Download className="h-3 w-3" />
-                        View
+                        {t("workspace.billing.view")}
                       </span>
                     </div>
                   </div>
@@ -1010,15 +993,14 @@ export default function BillingPage() {
         </div>
         {invoiceRows.length > 0 && (
           <p className="mt-2 text-center text-xs text-text-muted">
-            Click any row to view details and download PDF
+            {t("workspace.billing.clickToView")}
           </p>
         )}
       </section>
 
-      {/* ══ Section 6: Payment method ═════════════════════════════════════════ */}
       <section>
         <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          Payment method
+          {t("workspace.billing.paymentMethod")}
         </p>
         <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1029,12 +1011,12 @@ export default function BillingPage() {
                       .replace(/_/g, " ")
                       .toLowerCase()
                       .replace(/\b\w/g, (c) => c.toUpperCase())
-                  : "No payment method on file"}
+                  : t("workspace.billing.noPaymentMethod")}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-muted">
                 {latestPayment?.completed_at && (
                   <span>
-                    Last charge {formatDate(latestPayment.completed_at)}
+                    {t("workspace.billing.lastCharge")} {formatDate(latestPayment.completed_at)}
                   </span>
                 )}
                 {latestPayment?.branch_name && (
@@ -1050,7 +1032,7 @@ export default function BillingPage() {
               onClick={() => setShowPaymentModal(true)}
               className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary"
             >
-              Update Payment Method
+              {t("workspace.billing.updatePaymentMethod")}
             </button>
           </div>
         </div>

@@ -75,10 +75,10 @@ const TopNavComponent = memo(function DashboardTopNav() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Dashboard
+            {t("dashboard.overview.eyebrow")}
           </p>
           <h1 className="mt-1 font-display text-[30px] font-semibold leading-[38px] text-[#F5F5F7]">
-            Overview
+            {t("dashboard.overview.title")}
           </h1>
         </div>
 
@@ -126,7 +126,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
                 <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
                   {notificationsQuery.isLoading ? (
                     <p className="py-2 text-[12px] text-[#8E8E93]">
-                      Loading notifications...
+                      {t("common.loading")}
                     </p>
                   ) : notifications.length ? (
                     <>

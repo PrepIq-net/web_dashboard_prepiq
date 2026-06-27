@@ -11,6 +11,7 @@ import {
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCheckoutPayment,
@@ -41,6 +42,7 @@ function asStrings(v: unknown): string[] {
 }
 
 export default function WorkspaceCheckoutPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -87,15 +89,15 @@ export default function WorkspaceCheckoutPage() {
   function handlePay() {
     setSubmitError("");
     if (!planIdFromUrl) {
-      setSubmitError("No plan selected. Go back and select a plan.");
+      setSubmitError(t("setup.checkout.noPlanSelected"));
       return;
     }
     if (!branchIdFromUrl) {
-      setSubmitError("No location selected. Go back and select a location.");
+      setSubmitError(t("setup.checkout.noLocationSelected"));
       return;
     }
     if (!businessName.trim() || !billingEmail.trim() || !phoneNumber.trim()) {
-      setSubmitError("Business name, billing email, and phone number are all required.");
+      setSubmitError(t("setup.checkout.fieldsRequired"));
       return;
     }
 
@@ -121,7 +123,7 @@ export default function WorkspaceCheckoutPage() {
           const msg =
             err instanceof Error
               ? err.message
-              : "Checkout failed — please try again or contact support.";
+              : t("setup.checkout.checkoutFailed");
           setSubmitError(msg);
         },
       },
@@ -133,8 +135,8 @@ export default function WorkspaceCheckoutPage() {
   if (isLoading) {
     return (
       <WorkspaceShell
-        eyebrow="Billing"
-        title="Checkout"
+        eyebrow={t("setup.checkout.billing")}
+        title={t("setup.checkout.title")}
         description=""
         insight=""
       >
@@ -147,14 +149,18 @@ export default function WorkspaceCheckoutPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Billing"
-      title="Checkout"
+      eyebrow={t("setup.checkout.billing")}
+      title={t("setup.checkout.title")}
       description={
         selectedPlan && selectedBranch
-          ? `${selectedPlan.name} plan · ${selectedBranch.name} · ${cycleFromUrl === "MONTHLY" ? "Monthly" : "Yearly"} billing`
-          : "Complete your subscription purchase."
+          ? t("setup.checkout.descriptionWithDetails", {
+              plan: selectedPlan.name,
+              branch: selectedBranch.name,
+              cycle: t(cycleFromUrl === "MONTHLY" ? "setup.checkout.monthlyLabel" : "setup.checkout.yearlyLabel"),
+            })
+          : t("setup.checkout.completePurchase")
       }
-      insight="Your card is never stored on our servers. All payments are processed via a PCI-compliant gateway."
+      insight={t("setup.checkout.cardNotStored")}
     >
       <div className="pt-6">
         {/* Back */}
@@ -163,7 +169,7 @@ export default function WorkspaceCheckoutPage() {
           className="mb-8 flex items-center gap-1.5 text-[12px] font-medium text-text-muted transition-colors hover:text-text-primary"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to plans
+          {t("setup.checkout.backToPlans")}
         </button>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
@@ -173,27 +179,27 @@ export default function WorkspaceCheckoutPage() {
             {/* Billing details */}
             <section className="rounded-xl border border-surface-4 bg-surface-2 p-6">
               <h2 className="mb-5 text-[13px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Billing details
+                {t("setup.checkout.billingDetails")}
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input
-                  label="Business name"
+                  label={t("setup.checkout.businessNameLabel")}
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="Acme Restaurants"
+                  placeholder={t("setup.checkout.businessNamePlaceholder")}
                 />
                 <Input
-                  label="Billing email"
+                  label={t("setup.checkout.billingEmailLabel")}
                   type="email"
                   value={billingEmail}
                   onChange={(e) => setBillingEmail(e.target.value)}
-                  placeholder="billing@yourcompany.com"
+                  placeholder={t("setup.checkout.billingEmailPlaceholder")}
                 />
                 <Input
-                  label="Phone number"
+                  label={t("setup.checkout.phoneNumberLabel")}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+1 555 000 0000"
+                  placeholder={t("setup.checkout.phoneNumberPlaceholder")}
                 />
               </div>
             </section>
@@ -201,7 +207,7 @@ export default function WorkspaceCheckoutPage() {
             {/* Payment method */}
             <section className="rounded-xl border border-surface-4 bg-surface-2 p-6">
               <h2 className="mb-5 text-[13px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-                Payment method
+                {t("setup.checkout.paymentMethod")}
               </h2>
 
               {/* Single card option — selected by default */}
@@ -220,10 +226,10 @@ export default function WorkspaceCheckoutPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-[13px] font-semibold text-text-primary">
-                    Credit / Debit Card
+                    {t("setup.checkout.card")}
                   </p>
                   <p className="text-[11px] text-text-muted">
-                    Visa, Mastercard, and all major cards accepted
+                    {t("setup.checkout.cardAccepted")}
                   </p>
                 </div>
                 <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
@@ -231,7 +237,7 @@ export default function WorkspaceCheckoutPage() {
 
               <div className="mt-4 flex items-center gap-2 text-[11px] text-text-muted">
                 <ShieldCheck className="h-3.5 w-3.5 text-brand-gold" />
-                Secure, encrypted payment — you will be redirected to complete payment.
+                {t("setup.checkout.securePayment")}
               </div>
             </section>
 
@@ -249,7 +255,7 @@ export default function WorkspaceCheckoutPage() {
             <div className="sticky top-6 rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
               <div className="border-b border-surface-4 bg-surface-3/40 px-5 py-3.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Order summary
+                  {t("setup.checkout.orderSummary")}
                 </p>
               </div>
 
@@ -261,7 +267,7 @@ export default function WorkspaceCheckoutPage() {
                       {selectedPlan?.name ?? "—"}
                     </p>
                     <p className="text-[12px] text-text-muted">
-                      {cycleFromUrl === "MONTHLY" ? "Monthly" : "Yearly"} ·{" "}
+                      {t(cycleFromUrl === "MONTHLY" ? "setup.checkout.monthlyLabel" : "setup.checkout.yearlyLabel")} ·{" "}
                       {selectedBranch?.name ?? "—"}
                     </p>
                   </div>
@@ -286,14 +292,14 @@ export default function WorkspaceCheckoutPage() {
                 <div className="border-t border-surface-4 pt-4">
                   <div className="flex items-end justify-between">
                     <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">
-                      Total due today
+                      {t("setup.checkout.totalDueToday")}
                     </p>
                     <p className="text-[28px] font-semibold text-text-primary leading-none">
                       {fmtCurrency(price)}
                     </p>
                   </div>
                   <p className="mt-1 text-[11px] text-text-muted text-right">
-                    {cycleFromUrl === "MONTHLY" ? "billed monthly" : "billed yearly"}
+                    {t(cycleFromUrl === "MONTHLY" ? "setup.checkout.billedMonthly" : "setup.checkout.billedYearly")}
                   </p>
                 </div>
 
@@ -306,16 +312,15 @@ export default function WorkspaceCheckoutPage() {
                   {checkoutMutation.isPending ? (
                     <span className="flex items-center gap-2">
                       <Spinner size="sm" />
-                      Processing…
+                      {t("setup.checkout.processing")}
                     </span>
                   ) : (
-                    `Pay ${fmtCurrency(price)}`
+                    t("setup.checkout.pay", { amount: fmtCurrency(price) })
                   )}
                 </button>
 
                 <p className="text-center text-[10px] text-text-muted leading-relaxed">
-                  By continuing you agree to PrepIQ's Terms of Service.
-                  Subscription renews automatically. Cancel anytime.
+                  {t("setup.checkout.termsPrivacy")}
                 </p>
               </div>
             </div>

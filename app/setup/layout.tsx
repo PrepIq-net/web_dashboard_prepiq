@@ -1,17 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 const SETUP_STEPS = [
-  { label: "Branch", paths: ["/setup/branch"] },
-  { label: "Sales Data", paths: ["/setup/sales"] },
-  { label: "Menu Items", paths: ["/setup/items"] },
-  { label: "Forecast", paths: ["/setup/forecast"] },
-  { label: "Team", paths: ["/setup/staff"] },
-  { label: "Plan", paths: ["/setup/pricing", "/setup/checkout"] },
+  { labelKey: "setup.steps.branch", paths: ["/setup/branch"] },
+  { labelKey: "setup.steps.salesData", paths: ["/setup/sales"] },
+  { labelKey: "setup.steps.menuItems", paths: ["/setup/items"] },
+  { labelKey: "setup.steps.forecast", paths: ["/setup/forecast"] },
+  { labelKey: "setup.steps.team", paths: ["/setup/staff"] },
+  { labelKey: "setup.steps.plan", paths: ["/setup/pricing", "/setup/checkout"] },
 ];
 
 function SetupProgressBar() {
+  const { t } = useTranslation();
   const pathname = usePathname();
 
   const currentIndex = SETUP_STEPS.findIndex((step) =>
@@ -20,18 +23,23 @@ function SetupProgressBar() {
 
   if (currentIndex === -1) return null;
 
+  const stepLabels = useMemo(
+    () => SETUP_STEPS.map((s) => t(s.labelKey)),
+    [t],
+  );
+
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-[#141416]/95 backdrop-blur-sm border-b border-[#1C1C1F]">
       <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5A5A60] shrink-0">
-          Setup
+          {t("setup.steps.setup")}
         </span>
         <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {SETUP_STEPS.map((step, idx) => {
             const isComplete = idx < currentIndex;
             const isActive = idx === currentIndex;
             return (
-              <div key={step.label} className="flex items-center gap-1.5 shrink-0">
+              <div key={step.labelKey} className="flex items-center gap-1.5 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <span
                     className={`h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 transition-all duration-300 ${
@@ -53,7 +61,7 @@ function SetupProgressBar() {
                           : "text-[#3A3A40]"
                     }`}
                   >
-                    {step.label}
+                    {stepLabels[idx]}
                   </span>
                 </div>
                 {idx < SETUP_STEPS.length - 1 && (

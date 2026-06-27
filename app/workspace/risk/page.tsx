@@ -15,6 +15,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -89,6 +90,7 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
 }
 
 function RiskPageContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -191,7 +193,10 @@ function RiskPageContent() {
         key: `stockout-${s.item_id}`,
         title: s.item_title,
         risk: s.risk,
-        detail: `Stockout ${toPercent(s.probability_pct)}${s.reasons.length ? ` · ${s.reasons[0]}` : ""}`,
+        detail: t("workspace.risk.stockoutDetail", {
+          pct: toPercent(s.probability_pct),
+          reason: s.reasons.length ? ` · ${s.reasons[0]}` : "",
+        }),
         action: s.suggested_action,
       });
     }
@@ -201,26 +206,29 @@ function RiskPageContent() {
         key: `waste-${w.item_id}`,
         title: w.item_title,
         risk: w.risk,
-        detail: `Excess: ${w.projected_excess}${w.drivers.length ? ` · ${w.drivers[0]}` : ""}`,
+        detail: t("workspace.risk.excessDetail", {
+          count: w.projected_excess,
+          driver: w.drivers.length ? ` · ${w.drivers[0]}` : "",
+        }),
         action: w.suggested_action,
       });
     }
     const rank = (r: string) => (r === "HIGH" ? 0 : r === "MEDIUM" ? 1 : 2);
     return items.sort((a, b) => rank(a.risk) - rank(b.risk));
-  }, [risk]);
+  }, [risk, t]);
 
   return (
     <WorkspaceShell
-      eyebrow="Risk"
-      title="Operational Risk"
-      description="Early warning signals for service disruption, waste, and supply risk."
+      eyebrow={t("workspace.risk.eyebrow")}
+      title={t("workspace.risk.title")}
+      description={t("workspace.risk.description")}
       insight=""
     >
       {/* ── Context bar ── */}
       <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
         <div className="min-w-45 flex-1 max-w-xs">
           <Select
-            label="Branch"
+            label={t("workspace.risk.filterBranch")}
             options={branchOptions.map((b) => ({ value: b.id, label: b.name }))}
             value={selectedBranchId}
             onChange={setSelectedBranchId}
@@ -228,7 +236,7 @@ function RiskPageContent() {
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-            Date
+            {t("workspace.risk.filterDate")}
           </label>
           <input
             type="date"
@@ -286,7 +294,7 @@ function RiskPageContent() {
           {/* ── 2. Risk score strip ── */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Daily Risk Score
+              {t("workspace.risk.dailyRiskScore")}
             </p>
             <div className="mt-3 flex flex-wrap items-start gap-6">
               <div className="min-w-25">
@@ -296,15 +304,15 @@ function RiskPageContent() {
                   {risk?.risk_score.level ?? "—"}
                 </p>
                 <p className="mt-0.5 text-sm text-text-muted">
-                  {risk?.risk_score.score ?? 0} / 100
+                  {t("workspace.risk.scoreOutOf", { score: risk?.risk_score.score ?? 0 })}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 {[
-                  { label: "Demand volatility", value: breakdown?.demand_volatility ?? 0 },
-                  { label: "Stock risk", value: breakdown?.stock_risk ?? 0 },
-                  { label: "Waste risk", value: breakdown?.waste_risk ?? 0 },
-                  { label: "Supply risk", value: breakdown?.supply_risk ?? 0 },
+                  { label: t("workspace.risk.demandVolatility"), value: breakdown?.demand_volatility ?? 0 },
+                  { label: t("workspace.risk.stockRisk"), value: breakdown?.stock_risk ?? 0 },
+                  { label: t("workspace.risk.wasteRisk"), value: breakdown?.waste_risk ?? 0 },
+                  { label: t("workspace.risk.supplyRisk"), value: breakdown?.supply_risk ?? 0 },
                 ].map((m) => (
                   <div
                     key={m.label}
@@ -326,7 +334,7 @@ function RiskPageContent() {
           {(risk?.operational_alerts ?? []).length ? (
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Active Alerts
+                {t("workspace.risk.activeAlerts")}
               </p>
               <div className="space-y-2">
                 {risk!.operational_alerts.map((alert) => (
@@ -359,10 +367,10 @@ function RiskPageContent() {
           {/* ── 4. Item risks — stockout + waste merged ── */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Item Risks
+              {t("workspace.risk.itemRisks")}
             </p>
             <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-              Stockout & Waste Exposure
+              {t("workspace.risk.stockoutWasteExposure")}
             </h3>
             <div className="mt-3 space-y-2">
               {allItemRisks.length ? (
@@ -391,7 +399,7 @@ function RiskPageContent() {
                 ))
               ) : (
                 <p className="text-sm text-text-muted">
-                  No elevated item risks detected for this date.
+                  {t("workspace.risk.noItemRisks")}
                 </p>
               )}
             </div>
@@ -401,10 +409,10 @@ function RiskPageContent() {
           {isToday && (confidenceBreakdown ?? forecastConfidence !== undefined) ? (
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Forecast Health
+                {t("workspace.risk.forecastHealth")}
               </p>
               <h3 className="mt-1 font-display text-xl font-semibold text-text-primary">
-                How reliable is today's forecast?
+                {t("workspace.risk.forecastHealthDesc")}
               </h3>
               <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <div className="mb-5 flex items-baseline gap-2">
@@ -413,10 +421,10 @@ function RiskPageContent() {
                   >
                     {forecastConfidence !== undefined
                       ? forecastConfidence >= 0.75
-                        ? "High confidence"
+                        ? t("workspace.risk.highConfidence")
                         : forecastConfidence >= 0.5
-                          ? "Medium confidence"
-                          : "Low confidence"
+                          ? t("workspace.risk.mediumConfidence")
+                          : t("workspace.risk.lowConfidence")
                       : "—"}
                   </p>
                   {forecastConfidence !== undefined ? (
@@ -429,19 +437,19 @@ function RiskPageContent() {
                   <>
                     <div className="space-y-3">
                       <ConfidenceBar
-                        label="Data coverage"
+                        label={t("workspace.risk.dataCoverage")}
                         value={confidenceBreakdown.data_coverage}
                       />
                       <ConfidenceBar
-                        label="Recent accuracy"
+                        label={t("workspace.risk.recentAccuracy")}
                         value={confidenceBreakdown.recent_accuracy}
                       />
                       <ConfidenceBar
-                        label="Demand stability"
+                        label={t("workspace.risk.demandStability")}
                         value={confidenceBreakdown.demand_stability}
                       />
                       <ConfidenceBar
-                        label="Model agreement"
+                        label={t("workspace.risk.modelAgreement")}
                         value={confidenceBreakdown.model_agreement}
                       />
                     </div>
@@ -449,12 +457,12 @@ function RiskPageContent() {
                       {confidenceBreakdown.limiting_factor ===
                       "All signals are consistent" ? (
                         <span className="text-status-success">
-                          All signals are consistent.
+                          {t("workspace.risk.allSignalsConsistent")}
                         </span>
                       ) : (
                         <>
                           <span className="font-semibold text-status-warning">
-                            Limiting factor:{" "}
+                            {t("workspace.risk.limitingFactor")}{" "}
                           </span>
                           {confidenceBreakdown.limiting_factor}
                         </>
@@ -470,7 +478,7 @@ function RiskPageContent() {
           {trendSeries.scores.length > 1 ? (
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                Risk Trend
+                {t("workspace.risk.riskTrend")}
               </p>
               <div className="rounded-xl border border-surface-4 bg-surface-2 p-5">
                 <svg viewBox="0 0 520 80" className="h-20 w-full">
@@ -504,7 +512,7 @@ function RiskPageContent() {
           {!riskQuery.isLoading && !risk ? (
             <div className="rounded-xl border border-surface-4 bg-surface-2 p-10 text-center">
               <p className="text-sm text-text-muted">
-                No risk data for this branch and date yet.
+                {t("workspace.risk.noRiskData")}
               </p>
             </div>
           ) : null}
@@ -516,11 +524,12 @@ function RiskPageContent() {
 }
 
 export default function RiskPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading risk intelligence…
+          {t("workspace.risk.loadingFallback")}
         </div>
       }
     >
