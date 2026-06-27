@@ -1,6 +1,7 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useTranslation } from "@/lib/i18n";
 
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
@@ -52,12 +53,6 @@ function statusDotClass(status: BranchCard["status"]) {
   return "bg-status-critical animate-pulse";
 }
 
-function statusLabel(status: BranchCard["status"]) {
-  if (status === "HEALTHY") return "Healthy";
-  if (status === "AT_RISK") return "At Risk";
-  return "Underperforming";
-}
-
 function riskToneClass(score: number) {
   if (score >= 65) return "text-status-critical";
   if (score >= 35) return "text-status-warning";
@@ -65,6 +60,7 @@ function riskToneClass(score: number) {
 }
 
 export default function BranchesPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
@@ -108,7 +104,7 @@ export default function BranchesPage() {
             ? "AT_RISK"
             : "HEALTHY";
 
-      void marginEntry; // available if needed for future expansion
+      void marginEntry;
 
       return {
         id: branch.branch_id,
@@ -144,11 +140,17 @@ export default function BranchesPage() {
       .length,
   };
 
+  function statusLabel(status: BranchCard["status"]) {
+    if (status === "HEALTHY") return t("workspace.branches.status.healthy");
+    if (status === "AT_RISK") return t("workspace.branches.status.atRisk");
+    return t("workspace.branches.status.underperforming");
+  }
+
   return (
     <WorkspaceShell
-      eyebrow="Branches"
-      title="Branch Network"
-      description="Your kitchen locations at a glance. See performance, navigate to any branch, and manage setup."
+      eyebrow={t("workspace.branches.eyebrow")}
+      title={t("workspace.branches.title")}
+      description={t("workspace.branches.description")}
       insight=""
     >
       {/* ── Top bar: fleet summary + billing link ── */}
@@ -158,14 +160,14 @@ export default function BranchesPage() {
             <span className="font-semibold text-text-primary">
               {statusCounts.total}
             </span>{" "}
-            {statusCounts.total === 1 ? "location" : "locations"}
+            {statusCounts.total === 1 ? t("workspace.branches.location") : t("workspace.branches.locations")}
           </span>
           {statusCounts.healthy > 0 ? (
             <span className="text-text-muted">
               <span className="font-semibold text-status-success">
                 {statusCounts.healthy}
               </span>{" "}
-              healthy
+              {t("workspace.branches.fleetHealthy")}
             </span>
           ) : null}
           {statusCounts.atRisk > 0 ? (
@@ -173,7 +175,7 @@ export default function BranchesPage() {
               <span className="font-semibold text-status-warning">
                 {statusCounts.atRisk}
               </span>{" "}
-              at risk
+              {t("workspace.branches.fleetAtRisk")}
             </span>
           ) : null}
           {statusCounts.underperforming > 0 ? (
@@ -181,7 +183,7 @@ export default function BranchesPage() {
               <span className="font-semibold text-status-critical">
                 {statusCounts.underperforming}
               </span>{" "}
-              underperforming
+              {t("workspace.branches.fleetUnderperforming")}
             </span>
           ) : null}
         </div>
@@ -191,13 +193,13 @@ export default function BranchesPage() {
             href="/workspace/billing"
             className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
           >
-            Manage plan
+            {t("workspace.branches.managePlan")}
           </Link>
           <Link
             href="/workspace/branches/new"
             className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
           >
-            + Add Branch
+            {t("workspace.branches.addBranch")}
           </Link>
         </div>
       </div>
@@ -232,7 +234,7 @@ export default function BranchesPage() {
                 <div className="mt-4 grid grid-cols-3 divide-x divide-surface-4/60 border-y border-surface-4/60">
                   <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Revenue
+                      {t("workspace.branches.metric.revenue")}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-brand-gold">
                       {toCurrency(card.revenue)}
@@ -240,7 +242,7 @@ export default function BranchesPage() {
                   </div>
                   <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Waste
+                      {t("workspace.branches.metric.waste")}
                     </p>
                     <p
                       className={`mt-1 text-sm font-semibold ${
@@ -256,14 +258,14 @@ export default function BranchesPage() {
                   </div>
                   <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                      Risk
+                      {t("workspace.branches.metric.risk")}
                     </p>
                     <p
                       className={`mt-1 text-sm font-semibold ${riskToneClass(card.riskScore)}`}
                     >
                       {card.riskScore.toFixed(0)}
                       <span className="ml-0.5 text-[10px] font-normal text-text-muted">
-                        /100
+                        {t("workspace.branches.riskScale")}
                       </span>
                     </p>
                   </div>
@@ -271,7 +273,7 @@ export default function BranchesPage() {
               ) : (
                 <div className="mx-5 mt-4 rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3">
                   <p className="text-xs text-text-muted">
-                    Performance data will appear after the first service day.
+                    {t("workspace.branches.performancePlaceholder")}
                   </p>
                 </div>
               )}
@@ -282,25 +284,25 @@ export default function BranchesPage() {
                   href={`/workspace/today?branch_id=${card.id}`}
                   className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
                 >
-                  View Today →
+                  {t("workspace.branches.viewToday")}
                 </Link>
                 <Link
                   href={`/workspace/risk?branch=${card.id}`}
                   className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
                 >
-                  Risk
+                  {t("workspace.branches.link.risk")}
                 </Link>
                 <Link
                   href={`/workspace/settings?tab=integrations&branch=${card.id}`}
                   className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
                 >
-                  Integration
+                  {t("workspace.branches.link.integration")}
                 </Link>
                 <Link
                   href={`/workspace/settings?tab=branches&branch=${card.id}`}
                   className="ml-auto inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-secondary"
                 >
-                  Configure
+                  {t("workspace.branches.link.configure")}
                 </Link>
               </div>
             </article>
@@ -310,16 +312,16 @@ export default function BranchesPage() {
         /* Empty state */
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-4 py-20 text-center">
           <p className="text-base font-semibold text-text-primary">
-            No branches yet
+            {t("workspace.branches.empty.title")}
           </p>
           <p className="mt-1 text-sm text-text-muted">
-            Add your first branch to start using PrepIQ.
+            {t("workspace.branches.empty.description")}
           </p>
           <Link
             href="/workspace/branches/new"
             className="mt-5 inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
           >
-            + Add Branch
+            {t("workspace.branches.addBranch")}
           </Link>
         </div>
       )}

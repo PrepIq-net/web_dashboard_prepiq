@@ -23,6 +23,7 @@ import {
 import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useTranslation } from "@/lib/i18n";
 
 type StaffPerformanceRow = {
   id: string;
@@ -88,14 +89,6 @@ function percent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-function roleLabel(role: string) {
-  return role
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function hashNumber(input: string) {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
@@ -112,6 +105,7 @@ function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
 }
 
 export default function StaffPerformancePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
@@ -299,7 +293,7 @@ export default function StaffPerformancePage() {
   const handleRemoveMember = (row: StaffPerformanceRow) => {
     if (!canManageStaff) return;
     const removeStaffRole = STAFF_REMOVE_ROLES.has(normalizeRole(row.role));
-    const confirmation = window.confirm(`Remove ${row.staffName} from the organization?`);
+    const confirmation = window.confirm(t("workspace.staffPerformance.confirmRemove", { name: row.staffName }));
     if (!confirmation) return;
 
     if (removeStaffRole) {
@@ -312,54 +306,53 @@ export default function StaffPerformancePage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("staffName", {
-        header: "Staff",
+        header: t("workspace.staffPerformance.columnStaff"),
         cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
       columnHelper.accessor("role", {
-        header: "Role",
-        cell: (info) => <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">{info.getValue()}</span>,
+        header: t("workspace.staffPerformance.columnRole"),
+        cell: (info) => <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">{t(`roles.${info.getValue()}`)}</span>,
       }),
       columnHelper.accessor("branchName", {
-        header: "Branch",
+        header: t("workspace.staffPerformance.columnBranch"),
         cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
       }),
       columnHelper.accessor("productionEfficiency", {
-        header: "Production Efficiency",
+        header: t("workspace.staffPerformance.columnProductionEfficiency"),
         cell: (info) => (
           <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
         ),
       }),
       columnHelper.accessor("errorRate", {
-        header: "Error Rate",
+        header: t("workspace.staffPerformance.columnErrorRate"),
         cell: (info) => {
           const value = info.getValue();
           return <span className={`text-[12px] ${value >= 8 ? "text-[#C44949]" : value >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>{percent(value)}</span>;
         },
       }),
       columnHelper.accessor("wasteContribution", {
-        header: "Waste Contribution",
+        header: t("workspace.staffPerformance.columnWasteContribution"),
         cell: (info) => <span className="text-[12px] text-[#C48B2A]">{percent(info.getValue())}</span>,
       }),
       columnHelper.accessor("shiftReliability", {
-        header: "Shift Reliability",
+        header: t("workspace.staffPerformance.columnShiftReliability"),
         cell: (info) => (
           <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
         ),
       }),
       columnHelper.accessor("trendDelta", {
-        header: "Trend",
+        header: t("workspace.staffPerformance.columnTrend"),
         cell: (info) => {
           const value = info.getValue();
           return (
             <span className={`text-[12px] ${value > 0 ? "text-[#3F8F68]" : value < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
-              {value > 0 ? "+" : ""}
-              {value.toFixed(1)} pts
+              {t("workspace.staffPerformance.trendValue", { value: `${value > 0 ? "+" : ""}${value.toFixed(1)}` })}
             </span>
           );
         },
       }),
       columnHelper.accessor("coachingPriority", {
-        header: "Coaching",
+        header: t("workspace.staffPerformance.columnCoaching"),
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -370,7 +363,7 @@ export default function StaffPerformancePage() {
         },
       }),
     ],
-    [],
+    [t],
   );
 
   const table = useReactTable({
@@ -381,84 +374,84 @@ export default function StaffPerformancePage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Staff"
-      title="Performance Intelligence"
-      description="Team-level performance signals across production efficiency, errors, waste contribution, shift reliability, and trend direction."
-      insight="Coaching efficiency improves when high-risk operators are identified using reliability, error rate, and waste contribution together."
+      eyebrow={t("workspace.staffPerformance.eyebrow")}
+      title={t("workspace.staffPerformance.title")}
+      description={t("workspace.staffPerformance.description")}
+      insight={t("workspace.staffPerformance.insight")}
     >
       <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 md:grid-cols-4">
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Staff Tracked</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.staffTracked")}</p>
           <p className="font-display text-4xl font-semibold tracking-tight text-text-primary">{rows.length}</p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Active operators in current scope</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.activeOperators")}</p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Efficiency</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgEfficiency")}</p>
           <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgEfficiency)}`}>
             {percent(avgEfficiency)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Production completion quality</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.productionQuality")}</p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Avg Error Rate</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgErrorRate")}</p>
           <p
             className={`font-display text-4xl font-semibold tracking-tight ${avgErrorRate >= 8 ? "text-[#C44949]" : avgErrorRate >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
           >
             {percent(avgErrorRate)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">Execution mistakes per shift</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.executionMistakes")}</p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Coaching Queue</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.coachingQueue")}</p>
           <div className="flex items-baseline gap-2 text-text-primary">
             <span className="font-display text-3xl text-[#C44949]">{highCoachingCount}</span>
-            <span className="text-sm text-text-muted">high</span>
+            <span className="text-sm text-text-muted">{t("workspace.staffPerformance.high")}</span>
             <span className="ml-3 font-display text-2xl text-[#C48B2A]">{mediumCoachingCount}</span>
-            <span className="text-sm text-text-muted">medium</span>
+            <span className="text-sm text-text-muted">{t("workspace.staffPerformance.medium")}</span>
           </div>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className={`text-xs ${scoreTone(avgReliability)}`}>Reliability {percent(avgReliability)}</p>
+            <p className={`text-xs ${scoreTone(avgReliability)}`}>{t("workspace.staffPerformance.reliability")} {percent(avgReliability)}</p>
           </div>
         </article>
       </section>
 
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Scope</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.scope")}</p>
           <p className="mt-1 text-sm text-text-muted">
-            Filter by timeframe and branch to isolate staff performance patterns before taking coaching action.
+            {t("workspace.staffPerformance.scopeDescription")}
           </p>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Select
-            label="Timeframe"
+            label={t("workspace.staffPerformance.timeframe")}
             value={timeframe}
             onChange={setTimeframe}
             options={[
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
-              { value: "90d", label: "Last 90 days" },
+              { value: "7d", label: t("workspace.staffPerformance.last7Days") },
+              { value: "30d", label: t("workspace.staffPerformance.last30Days") },
+              { value: "90d", label: t("workspace.staffPerformance.last90Days") },
             ]}
           />
           <Select
-            label="Branch"
+            label={t("workspace.staffPerformance.branch")}
             value={branchFilter}
             onChange={setBranchFilter}
             options={[
-              { value: "ALL", label: "All branches" },
+              { value: "ALL", label: t("workspace.staffPerformance.allBranches") },
               ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
             ]}
           />
         </div>
         <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 px-4 py-3">
           <p className="text-xs text-text-muted">
-            This view updates all metrics and ranking logic for the selected scope.
+            {t("workspace.staffPerformance.scopeNote")}
           </p>
         </div>
       </section>
@@ -472,26 +465,29 @@ export default function StaffPerformancePage() {
       <section className="mt-10 border-b border-surface-4 pb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Performance Table</p>
-            <p className="mt-1 text-sm text-text-muted">Ranked signals per team member for coaching and staffing decisions.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.performanceTable")}</p>
+            <p className="mt-1 text-sm text-text-muted">{t("workspace.staffPerformance.performanceTableDesc")}</p>
           </div>
           <p className="text-xs text-text-muted">
-            {rows.length} total record{rows.length === 1 ? "" : "s"}
+            {rows.length === 1
+              ? t("workspace.staffPerformance.totalRecord", { count: rows.length })
+              : t("workspace.staffPerformance.totalRecords", { count: rows.length })
+            }
           </p>
         </div>
         <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
           {orgMembersQuery.isLoading || staffQuery.isLoading ? (
-            <p className="px-6 py-6 text-sm text-text-muted">Loading staff intelligence...</p>
+            <p className="px-6 py-6 text-sm text-text-muted">{t("workspace.staffPerformance.loadingStaff")}</p>
           ) : null}
           {!orgMembersQuery.isLoading && !staffQuery.isLoading && rows.length === 0 ? (
             <p className="px-6 py-6 text-sm text-text-muted">
-              No active staff records found for the selected branch filter.
+              {t("workspace.staffPerformance.noStaffRecords")}
             </p>
           ) : null}
           {rows.length > TABLE_PAGE_SIZE ? (
             <div className="flex items-center justify-between gap-3 border-b border-surface-4 px-6 py-4">
               <p className="text-xs text-text-muted">
-                Showing {Math.min(TABLE_PAGE_SIZE, rows.length)} of {rows.length} staff records per page.
+                {t("workspace.staffPerformance.showingRecords", { showing: Math.min(TABLE_PAGE_SIZE, rows.length), total: rows.length })}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -500,10 +496,10 @@ export default function StaffPerformancePage() {
                   onClick={() => setTablePage((prev) => Math.max(0, prev - 1))}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
-                  Previous
+                  {t("workspace.staffPerformance.previous")}
                 </button>
                 <span className="text-[11px] text-text-muted">
-                  Page {Math.min(tablePage + 1, totalPages)} / {totalPages}
+                  {t("workspace.staffPerformance.pageIndicator", { page: Math.min(tablePage + 1, totalPages), total: totalPages })}
                 </span>
                 <button
                   type="button"
@@ -511,7 +507,7 @@ export default function StaffPerformancePage() {
                   onClick={() => setTablePage((prev) => Math.min(totalPages - 1, prev + 1))}
                   className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
-                  Next
+                  {t("workspace.staffPerformance.next")}
                 </button>
               </div>
             </div>
@@ -532,40 +528,39 @@ export default function StaffPerformancePage() {
       <section className="mt-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Compare Staff</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.compareStaff")}</p>
             <p className="mt-1 text-sm text-text-muted">
-              Compare two operators to see who is currently driving stronger execution quality.
+              {t("workspace.staffPerformance.compareStaffDesc")}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <Select
-                label="Compare A"
+                label={t("workspace.staffPerformance.compareA")}
                 value={compareA}
                 onChange={setCompareA}
                 options={[
-                  { value: "", label: "Select staff A" },
+                  { value: "", label: t("workspace.staffPerformance.selectStaffA") },
                   ...rows.map((row) => ({ value: row.id, label: row.staffName })),
                 ]}
               />
               <Select
-                label="Compare B"
+                label={t("workspace.staffPerformance.compareB")}
                 value={compareB}
                 onChange={setCompareB}
                 options={[
-                  { value: "", label: "Select staff B" },
+                  { value: "", label: t("workspace.staffPerformance.selectStaffB") },
                   ...rows.map((row) => ({ value: row.id, label: row.staffName })),
                 ]}
               />
             </div>
             <p className={`mt-4 text-sm font-medium ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-text-muted"}`}>
-              Efficiency delta: {compareDelta > 0 ? "+" : ""}
-              {compareDelta.toFixed(1)} pts
+              {t("workspace.staffPerformance.efficiencyDelta", { delta: `${compareDelta > 0 ? "+" : ""}${compareDelta.toFixed(1)}` })}
             </p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Coaching Needs</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.coachingNeeds")}</p>
             <p className="mt-1 text-sm text-text-muted">
-              Highest-priority interventions sorted by reliability, efficiency, and shift error risk.
+              {t("workspace.staffPerformance.coachingNeedsDesc")}
             </p>
             <div className="mt-4 space-y-2.5">
               {coachingNeeds.length ? (
@@ -578,12 +573,12 @@ export default function StaffPerformancePage() {
                       </span>
                     </div>
                     <p className="text-[12px] text-[#8E8E93]">
-                      {row.branchName} · Efficiency {percent(row.productionEfficiency)} · Error {percent(row.errorRate)}
+                      {t("workspace.staffPerformance.coachingRowDetail", { branch: row.branchName, efficiency: percent(row.productionEfficiency), error: percent(row.errorRate) })}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-[12px] text-[#8E8E93]">No coaching interventions currently required.</p>
+                <p className="text-[12px] text-[#8E8E93]">{t("workspace.staffPerformance.noCoachingNeeded")}</p>
               )}
             </div>
           </article>
@@ -593,10 +588,10 @@ export default function StaffPerformancePage() {
       <section className="mt-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Staff Management</p>
-            <p className="mt-1 text-sm text-text-muted">Remove branch-level operators when assignments are no longer active.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.staffManagement")}</p>
+            <p className="mt-1 text-sm text-text-muted">{t("workspace.staffPerformance.staffManagementDesc")}</p>
           </div>
-          {canManageStaff ? <p className="text-xs text-text-muted">Admin controls enabled</p> : null}
+          {canManageStaff ? <p className="text-xs text-text-muted">{t("workspace.staffPerformance.adminControlsEnabled")}</p> : null}
         </div>
         <div className="divide-y divide-[#232327] rounded-xl border border-surface-4 bg-surface-2 px-6">
           {rows.length ? (
@@ -605,7 +600,7 @@ export default function StaffPerformancePage() {
                 <div>
                   <p className="text-[13px] text-text-primary">{row.staffName}</p>
                   <p className="text-[12px] text-text-muted">
-                    {roleLabel(row.role)} · {row.branchName}
+                    {t(`roles.${row.role}`)} · {row.branchName}
                   </p>
                 </div>
                 {canManageStaff ? (
@@ -615,13 +610,13 @@ export default function StaffPerformancePage() {
                     disabled={removeStaffMutation.isPending || removeOrgMemberMutation.isPending}
                     className="inline-flex h-8 items-center rounded-full border border-[#C44949]/45 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#C44949] transition-colors hover:bg-[#C44949]/10 disabled:opacity-50"
                   >
-                    Remove
+                    {t("workspace.staffPerformance.remove")}
                   </button>
                 ) : null}
               </div>
             ))
           ) : (
-            <p className="py-4 text-[12px] text-[#8E8E93]">No active members to manage.</p>
+            <p className="py-4 text-[12px] text-[#8E8E93]">{t("workspace.staffPerformance.noActiveMembers")}</p>
           )}
         </div>
       </section>

@@ -15,6 +15,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
 
@@ -65,6 +66,7 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
 }
 
 function SalesWasteItemContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading } = useCurrentUserProfile();
@@ -188,13 +190,13 @@ function SalesWasteItemContent() {
   if (!queryItemId) {
     return (
       <WorkspaceShell
-        eyebrow="Sales & Waste"
-        title="Item Detail"
-        description="Choose an item from the Sales & Waste table to view details."
+        eyebrow={t("workspace.salesWaste.item.eyebrow")}
+        title={t("workspace.salesWaste.item.title")}
+        description={t("workspace.salesWaste.item.description")}
         insight=""
       >
         <section className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-secondary">
-          Missing item id. Go back to Sales &amp; Waste and select an item.
+          {t("workspace.salesWaste.item.missingId")}
         </section>
       </WorkspaceShell>
     );
@@ -203,14 +205,13 @@ function SalesWasteItemContent() {
   if (report && !itemRow) {
     return (
       <WorkspaceShell
-        eyebrow="Sales & Waste"
-        title="Item Detail"
-        description="Item not found for the selected window."
+        eyebrow={t("workspace.salesWaste.item.eyebrow")}
+        title={t("workspace.salesWaste.item.title")}
+        description={t("workspace.salesWaste.item.descriptionNotFound")}
         insight=""
       >
         <section className="rounded-xl border border-surface-4 bg-surface-2 p-6 text-sm text-text-secondary">
-          We could not find this item in the current period. Try adjusting the period
-          or date window, or return to Sales &amp; Waste to choose another item.
+          {t("workspace.salesWaste.item.notFoundMessage")}
         </section>
       </WorkspaceShell>
     );
@@ -218,7 +219,7 @@ function SalesWasteItemContent() {
 
   if (selectedBranchId && !tierLoading && shouldBlockAccess) {
     return (
-      <WorkspaceShell eyebrow="Sales & Waste" title="Item Profit Detail" description="See how one menu item affects revenue, waste, and margin." insight="">
+      <WorkspaceShell eyebrow={t("workspace.salesWaste.item.eyebrow")} title={t("workspace.salesWaste.item.titleProfit")} description={t("workspace.salesWaste.item.descriptionProfit")} insight="">
         <SubscriptionRequiredState variant={gateVariant} compact />
       </WorkspaceShell>
     );
@@ -227,9 +228,9 @@ function SalesWasteItemContent() {
   if (!tierLoading && tier < 2) {
     return (
       <WorkspaceShell
-        eyebrow="Sales & Waste"
-        title="Item Profit Detail"
-        description="See how one menu item affects revenue, waste, and margin."
+        eyebrow={t("workspace.salesWaste.item.eyebrow")}
+        title={t("workspace.salesWaste.item.titleProfit")}
+        description={t("workspace.salesWaste.item.descriptionProfit")}
         insight=""
       >
         <SubscriptionRequiredState variant="intelligence_required" currentPlanType={planType} compact />
@@ -239,22 +240,22 @@ function SalesWasteItemContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Sales & Waste"
-      title="Item Profit Detail"
-      description="See how one menu item affects revenue, waste, and margin."
+      eyebrow={t("workspace.salesWaste.item.eyebrow")}
+      title={t("workspace.salesWaste.item.titleProfit")}
+      description={t("workspace.salesWaste.item.descriptionProfit")}
       insight=""
     >
       <section className="mb-6 rounded-xl border border-surface-4 bg-surface-2 p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-text-muted">
-              Item Drill-Down
+              {t("workspace.salesWaste.item.drillDown")}
             </p>
             <h2 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-              {itemRow?.item_title ?? "Unknown Item"}
+              {itemRow?.item_title ?? t("workspace.salesWaste.item.unknownItem")}
             </h2>
             <p className="mt-2 text-sm text-text-muted">
-              Unit: {itemRow?.unit ?? "PCS"} · Revenue share: {toPercent(revenueShare)}
+              {t("workspace.salesWaste.item.unitLabel", { unit: itemRow?.unit ?? "PCS", share: toPercent(revenueShare) })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -263,20 +264,20 @@ function SalesWasteItemContent() {
               onClick={handleDownloadCsv}
               className="inline-flex h-10 items-center rounded-lg border border-brand-gold/50 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold hover:text-brand-gold"
             >
-              Download Item Trend CSV
+              {t("workspace.salesWaste.item.downloadCsv")}
             </button>
             <Link
               href={`/workspace/sales-waste?branch=${selectedBranchId}&date=${anchorDate}&period=${period}`}
               className="inline-flex h-10 items-center rounded-lg border border-surface-4 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary hover:text-text-primary"
             >
-              Back to Sales &amp; Waste
+              {t("workspace.salesWaste.item.backToSalesWaste")}
             </Link>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4">
           <Select
-            label="Branch"
+            label={t("workspace.salesWaste.item.filterBranch")}
             options={branchOptions.map((branch) => ({
               value: branch.id,
               label: branch.name,
@@ -285,18 +286,18 @@ function SalesWasteItemContent() {
             onChange={setSelectedBranchId}
           />
           <Select
-            label="Period"
+            label={t("workspace.salesWaste.item.filterPeriod")}
             options={[
-              { value: "today", label: "Today" },
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
+              { value: "today", label: t("workspace.salesWaste.item.filterToday") },
+              { value: "7d", label: t("workspace.salesWaste.item.filterLast7Days") },
+              { value: "30d", label: t("workspace.salesWaste.item.filterLast30Days") },
             ]}
             value={period}
             onChange={setPeriod}
           />
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Anchor Date
+              {t("workspace.salesWaste.item.filterAnchorDate")}
             </label>
             <input
               type="date"
@@ -307,12 +308,12 @@ function SalesWasteItemContent() {
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
-              Selected Window
+              {t("workspace.salesWaste.item.filterSelectedWindow")}
             </label>
             <div className="h-12 w-full rounded-button border border-border-default bg-surface-3 px-4 flex items-center text-sm text-text-secondary">
               {report
                 ? `${report.period_start_date} → ${report.period_end_date}`
-                : "—"}
+                : t("workspace.salesWaste.item.windowPlaceholder")}
             </div>
           </div>
         </div>
@@ -322,46 +323,46 @@ function SalesWasteItemContent() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Revenue
+              {t("workspace.salesWaste.item.metricRevenue")}
             </p>
             <p className="mt-2 font-display text-2xl font-semibold text-status-success">
               {toCurrency(itemRow?.revenue ?? 0)}
             </p>
             <p className="mt-2 text-xs text-text-muted">
-              Sold: {formatQuantity(itemRow?.sold ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.metricSold", { qty: formatQuantity(itemRow?.sold ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
           </article>
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Waste Cost
+              {t("workspace.salesWaste.item.metricWasteCost")}
             </p>
             <p className="mt-2 font-display text-2xl font-semibold text-status-warning">
               {toCurrency(itemRow?.waste_cost ?? 0)}
             </p>
             <p className="mt-2 text-xs text-text-muted">
-              Waste: {formatQuantity(itemRow?.waste ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.metricWaste", { qty: formatQuantity(itemRow?.waste ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
           </article>
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Lost Revenue
+              {t("workspace.salesWaste.item.metricLostRevenue")}
             </p>
             <p className="mt-2 font-display text-2xl font-semibold text-status-critical">
               {toCurrency(itemRow?.lost_revenue ?? 0)}
             </p>
             <p className="mt-2 text-xs text-text-muted">
-              Under-prep: {formatQuantity(itemRow?.under_prep ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.metricUnderPrep", { qty: formatQuantity(itemRow?.under_prep ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
           </article>
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Margin %
+              {t("workspace.salesWaste.item.metricMarginPct")}
             </p>
             <p className="mt-2 font-display text-2xl font-semibold text-brand-gold">
               {toPercent(itemRow?.margin_pct ?? 0)}
             </p>
             <p className="mt-2 text-xs text-text-muted">
-              Margin impact: {toCurrency(itemRow?.margin_impact ?? 0)}
+              {t("workspace.salesWaste.item.metricMarginImpact", { value: toCurrency(itemRow?.margin_impact ?? 0) })}
             </p>
           </article>
         </div>
@@ -369,53 +370,53 @@ function SalesWasteItemContent() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Forecast vs Prep
+              {t("workspace.salesWaste.item.forecastVsPrep")}
             </p>
             <p className="mt-3 text-sm text-text-secondary">
-              Forecasted: {formatQuantity(itemRow?.forecasted ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.forecasted", { qty: formatQuantity(itemRow?.forecasted ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Produced: {formatQuantity(itemRow?.produced ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.produced", { qty: formatQuantity(itemRow?.produced ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
           </article>
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Over / Under Prep
+              {t("workspace.salesWaste.item.overUnderPrep")}
             </p>
             <p className="mt-3 text-sm text-text-secondary">
-              Over-prep: {formatQuantity(itemRow?.over_prep ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.overPrep", { qty: formatQuantity(itemRow?.over_prep ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Under-prep: {formatQuantity(itemRow?.under_prep ?? 0, itemRow?.unit ?? "PCS")}
+              {t("workspace.salesWaste.item.underPrep", { qty: formatQuantity(itemRow?.under_prep ?? 0, itemRow?.unit ?? "PCS") })}
             </p>
           </article>
           <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
             <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-              Food Cost
+              {t("workspace.salesWaste.item.foodCost")}
             </p>
             <p className="mt-3 text-sm text-text-secondary">
-              Food cost: {toCurrency(itemRow?.food_cost ?? 0)}
+              {t("workspace.salesWaste.item.foodCostLabel", { value: toCurrency(itemRow?.food_cost ?? 0) })}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Revenue share: {toPercent(revenueShare)}
+              {t("workspace.salesWaste.item.revenueShare", { share: toPercent(revenueShare) })}
             </p>
           </article>
         </div>
 
         <div className="rounded-xl border border-surface-4 bg-surface-2 p-6">
           <p className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
-            Operational Signals
+            {t("workspace.salesWaste.item.operationalSignals")}
           </p>
           <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-text-secondary md:grid-cols-2">
             <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
               {(itemRow?.over_prep ?? 0) > 0
-                ? `Over-prep detected. Consider slowing production to reduce waste.`
-                : "Over-prep is under control for this window."}
+                ? t("workspace.salesWaste.item.overPrepDetected")
+                : t("workspace.salesWaste.item.overPrepControlled")}
             </div>
             <div className="rounded-lg border border-surface-4 bg-surface-3 p-4">
               {(itemRow?.under_prep ?? 0) > 0
-                ? `Under-prep risk. Increase prep to protect revenue.`
-                : "No stockout risk detected from under-prep."}
+                ? t("workspace.salesWaste.item.underPrepRisk")
+                : t("workspace.salesWaste.item.underPrepControlled")}
             </div>
           </div>
         </div>
@@ -423,26 +424,26 @@ function SalesWasteItemContent() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {[
             {
-              label: "Revenue Trend",
+              label: t("workspace.salesWaste.item.revenueTrend"),
               color: "text-status-success",
               series: itemTrendSeries.revenue,
               format: "currency",
             },
             {
-              label: "Waste Rate Trend",
+              label: t("workspace.salesWaste.item.wasteRateTrend"),
               color: "text-status-critical",
               series: itemTrendSeries.wasteRate,
               suffix: "%",
               format: "percent",
             },
             {
-              label: "Units Sold Trend",
+              label: t("workspace.salesWaste.item.unitsSoldTrend"),
               color: "text-text-secondary",
               series: itemTrendSeries.sold,
               format: "number",
             },
             {
-              label: "Waste Units Trend",
+              label: t("workspace.salesWaste.item.wasteUnitsTrend"),
               color: "text-status-warning",
               series: itemTrendSeries.wasteUnits,
               format: "number",
@@ -486,7 +487,7 @@ function SalesWasteItemContent() {
                   </div>
                 ) : (
                   <p className="mt-4 text-sm text-text-muted">
-                    Not enough historical data yet.
+                    {t("workspace.salesWaste.item.trendNoData")}
                   </p>
                 )}
               </div>
@@ -499,11 +500,12 @@ function SalesWasteItemContent() {
 }
 
 export default function SalesWasteItemPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div className="px-6 py-8 text-sm text-text-muted">
-          Loading item performance…
+          {t("workspace.salesWaste.item.loadingFallback")}
         </div>
       }
     >

@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useTranslation } from "@/lib/i18n";
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC — Coordinated Universal Time" },
@@ -61,7 +62,22 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
 ];
 
 export default function NewBranchPage() {
+  const { t } = useTranslation();
   const router = useRouter();
+
+  function dayLabel(day: OperatingDay): string {
+    const map: Record<OperatingDay, string> = {
+      MONDAY: t("common.dayMon"),
+      TUESDAY: t("common.dayTue"),
+      WEDNESDAY: t("common.dayWed"),
+      THURSDAY: t("common.dayThu"),
+      FRIDAY: t("common.dayFri"),
+      SATURDAY: t("common.daySat"),
+      SUNDAY: t("common.daySun"),
+    };
+    return map[day];
+  }
+
   const {
     data: orgs,
     isLoading: isOrgsLoading,
@@ -102,22 +118,22 @@ export default function NewBranchPage() {
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = "Branch name is required.";
-    if (!address.trim()) e.address = "Address is required.";
+    if (!name.trim()) e.name = t("workspace.branches.new.branchNameRequired");
+    if (!address.trim()) e.address = t("workspace.branches.new.addressRequired");
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      e.email = "Please enter a valid email.";
+      e.email = t("workspace.branches.new.emailInvalid");
     }
     const openDays = schedule.filter((day) => day.isOpen);
     if (openDays.length === 0) {
-      e.operating_hours = "At least one operating day is required.";
+      e.operating_hours = t("workspace.branches.new.operatingDayRequired");
     }
     for (const day of openDays) {
       if (!day.opensAt || !day.closesAt) {
-        e[`day_${day.day}`] = `${day.label}: opening and closing times are required.`;
+        e[`day_${day.day}`] = t("workspace.branches.new.dayTimesRequired", { day: dayLabel(day.day) });
         continue;
       }
       if (day.opensAt >= day.closesAt) {
-        e[`day_${day.day}`] = `${day.label}: opening time must be earlier than closing time.`;
+        e[`day_${day.day}`] = t("workspace.branches.new.dayTimeOrderError", { day: dayLabel(day.day) });
       }
     }
     return e;
@@ -174,24 +190,24 @@ export default function NewBranchPage() {
     setSubmitted(true);
 
     if (!isValid) {
-      setSubmitError("Please fix the errors before continuing.");
+      setSubmitError(t("workspace.branches.new.fixErrors"));
       return;
     }
 
     if (isOrgsLoading) {
-      setSubmitError("Resolving organization context. Please try again.");
+      setSubmitError(t("workspace.branches.new.resolvingOrg"));
       return;
     }
 
     if (orgsError) {
       setSubmitError(
-        orgsError instanceof Error ? orgsError.message : "Failed to load organization context.",
+        orgsError instanceof Error ? orgsError.message : t("workspace.branches.new.loadOrgFailed"),
       );
       return;
     }
 
     if (!orgId) {
-      setSubmitError("No organization found for this account.");
+      setSubmitError(t("workspace.branches.new.noOrg"));
       return;
     }
 
@@ -215,7 +231,7 @@ export default function NewBranchPage() {
 
       await createBranch.mutateAsync(payload);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create branch.";
+      const message = err instanceof Error ? err.message : t("workspace.branches.new.createFailed");
       const isBranchLimitError =
         message.toLowerCase().includes("maximum of") &&
         message.toLowerCase().includes("branch");
@@ -227,21 +243,21 @@ export default function NewBranchPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Branches"
-      title="Add Branch"
-      description="Set up a new kitchen location. You can update operating hours and integrations after creation."
+      eyebrow={t("workspace.branches.new.eyebrow")}
+      title={t("workspace.branches.new.title")}
+      description={t("workspace.branches.new.description")}
       insight=""
     >
       {isOrgsLoading && (
         <div className="mb-6 rounded-xl border border-surface-4 bg-surface-2/60 px-4 py-3">
-          <p className="text-xs text-text-muted">Loading organization context…</p>
+          <p className="text-xs text-text-muted">{t("workspace.branches.new.loadingOrg")}</p>
         </div>
       )}
 
       {!isOrgsLoading && orgsError && (
         <div className="mb-6 rounded-xl border border-status-critical/20 bg-status-critical/8 px-4 py-3">
           <p className="text-xs text-status-critical">
-            {orgsError instanceof Error ? orgsError.message : "Failed to load organizations."}
+            {orgsError instanceof Error ? orgsError.message : t("workspace.branches.new.loadOrgsFailed")}
           </p>
         </div>
       )}
@@ -251,14 +267,14 @@ export default function NewBranchPage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Branch name
+              {t("workspace.branches.new.branchNameLabel")}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={() => markTouched("name")}
-              placeholder="e.g. Downtown Kitchen"
+              placeholder={t("workspace.branches.new.branchNamePlaceholder")}
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("name") && errors.name ? (
@@ -268,27 +284,27 @@ export default function NewBranchPage() {
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Branch code <span className="normal-case text-text-muted/50">optional</span>
+              {t("workspace.branches.new.branchCodeLabel")} <span className="normal-case text-text-muted/50">{t("common.optional")}</span>
             </label>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. DT-01"
+              placeholder={t("workspace.branches.new.branchCodePlaceholder")}
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
           </div>
 
           <div className="space-y-1.5 md:col-span-2">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Address
+              {t("workspace.branches.new.addressLabel")}
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               onBlur={() => markTouched("address")}
-              placeholder="Street address"
+              placeholder={t("workspace.branches.new.addressPlaceholder")}
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("address") && errors.address ? (
@@ -314,7 +330,7 @@ export default function NewBranchPage() {
 
           <div className="space-y-1.5">
             <PhoneInput
-              label="Phone (optional)"
+              label={`${t("workspace.branches.new.phoneLabel")} ${t("common.optional")}`}
               value={phone}
               onChange={setPhone}
             />
@@ -322,14 +338,14 @@ export default function NewBranchPage() {
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Email <span className="normal-case text-text-muted/50">optional</span>
+              {t("workspace.branches.new.emailLabel")} <span className="normal-case text-text-muted/50">{t("common.optional")}</span>
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => markTouched("email")}
-              placeholder="branch@example.com"
+              placeholder={t("workspace.branches.new.emailPlaceholder")}
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("email") && errors.email ? (
@@ -339,7 +355,7 @@ export default function NewBranchPage() {
 
           <div className="space-y-1.5 md:col-span-2">
             <Select
-              label="Timezone"
+              label={t("workspace.branches.new.timezoneLabel")}
               value={timezone}
               onChange={setTimezone}
               options={TIMEZONES}
@@ -353,12 +369,12 @@ export default function NewBranchPage() {
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Operating hours
-              </p>
-              <p className="mt-1 text-xs text-text-muted/60">
-                Set the days and hours this location is open.
-              </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("workspace.branches.new.operatingHours")}
+            </p>
+            <p className="mt-1 text-xs text-text-muted/60">
+              {t("workspace.branches.new.operatingHoursDescription")}
+            </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -366,31 +382,31 @@ export default function NewBranchPage() {
                 onClick={applyWeekdayTemplate}
                 className="h-8 rounded-[8px] border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
               >
-                Weekdays only
+                {t("workspace.branches.new.weekdaysOnly")}
               </button>
               <button
                 type="button"
                 onClick={() => setTimeForAllOpenDays("opensAt", "08:00")}
                 className="h-8 rounded-[8px] border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:text-text-primary"
               >
-                Open all at 08:00
+                {t("workspace.branches.new.openAllAt", { time: "08:00" })}
               </button>
               <button
                 type="button"
                 onClick={() => setTimeForAllOpenDays("closesAt", "18:00")}
                 className="h-8 rounded-[8px] border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:text-text-primary"
               >
-                Close all at 18:00
+                {t("workspace.branches.new.closeAllAt", { time: "18:00" })}
               </button>
             </div>
           </div>
 
           <div className="overflow-hidden rounded-xl border border-surface-4">
             <div className="hidden border-b border-surface-4/60 bg-surface-3/40 px-3 py-2 md:grid md:grid-cols-[120px_1fr_1fr_90px] md:gap-3">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">Day</p>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">Opens</p>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">Closes</p>
-              <p className="text-right text-[10px] uppercase tracking-[0.14em] text-text-muted">Status</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.branches.new.day")}</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.branches.new.opens")}</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.branches.new.closes")}</p>
+              <p className="text-right text-[10px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.branches.new.status")}</p>
             </div>
             {schedule.map((day) => {
               const dayError = errors[`day_${day.day}`];
@@ -408,12 +424,12 @@ export default function NewBranchPage() {
                         : "border-surface-4 text-text-muted hover:text-text-secondary"
                     }`}
                   >
-                    {day.label}
+                    {dayLabel(day.day)}
                   </button>
 
                   <div className="space-y-1 md:space-y-0">
                     <label className="text-[10px] uppercase tracking-[0.12em] text-text-muted md:hidden">
-                      Opens
+                      {t("workspace.branches.new.opens")}
                     </label>
                     <input
                       type="time"
@@ -432,7 +448,7 @@ export default function NewBranchPage() {
 
                   <div className="space-y-1 md:space-y-0">
                     <label className="text-[10px] uppercase tracking-[0.12em] text-text-muted md:hidden">
-                      Closes
+                      {t("workspace.branches.new.closes")}
                     </label>
                     <input
                       type="time"
@@ -451,7 +467,7 @@ export default function NewBranchPage() {
 
                   <div className="flex items-center justify-start md:justify-end">
                     <span className={`text-xs ${day.isOpen ? "text-status-success" : "text-text-muted"}`}>
-                      {day.isOpen ? "Open" : "Closed"}
+                      {day.isOpen ? t("workspace.branches.new.open") : t("workspace.branches.new.closed")}
                     </span>
                   </div>
 
@@ -477,7 +493,7 @@ export default function NewBranchPage() {
                 href="/workspace/billing"
                 className="mt-2 block text-xs text-brand-gold underline hover:text-brand-gold/80"
               >
-                Manage plan →
+                {t("workspace.branches.new.managePlan")}
               </Link>
             ) : null}
           </div>
@@ -486,7 +502,7 @@ export default function NewBranchPage() {
         {!isOrgsLoading && !orgsError && !orgId && (
           <div className="rounded-xl border border-status-warning/20 bg-status-warning/8 px-4 py-3">
             <p className="text-xs text-text-secondary">
-              This account is not linked to an organization. Branches can only be created inside an organization.
+              {t("workspace.branches.new.noOrgWarning")}
             </p>
           </div>
         )}
@@ -501,11 +517,11 @@ export default function NewBranchPage() {
             {createBranch.isPending ? (
               <>
                 <Spinner size="sm" color="#141416" />
-                Creating branch…
+                {t("workspace.branches.new.creating")}
               </>
             ) : (
               <>
-                Create Branch
+                {t("workspace.branches.new.submit")}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -514,7 +530,7 @@ export default function NewBranchPage() {
             href="/workspace/branches"
             className="inline-flex h-11 items-center rounded-full border border-surface-4 px-5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
-            Cancel
+            {t("common.cancel")}
           </Link>
         </div>
       </form>
