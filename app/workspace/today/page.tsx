@@ -74,10 +74,10 @@ function toPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
 
-function confidenceLabel(score: number) {
-  if (score >= 0.75) return "High";
-  if (score >= 0.5) return "Medium";
-  return "Low";
+function confidenceLabel(t: (k: string, vars?: Record<string, string | number>) => string, score: number) {
+  if (score >= 0.75) return t("today.confidence.high");
+  if (score >= 0.5) return t("today.confidence.medium");
+  return t("today.confidence.low");
 }
 
 function percent(value: number) {
@@ -85,37 +85,37 @@ function percent(value: number) {
   return `${(normalized * 100).toFixed(0)}%`;
 }
 
-function confidenceNarrative(score?: number | null) {
-  if (score == null) return "Insufficient history to score confidence.";
-  if (score >= 0.75) return "High confidence based on stable recent demand.";
-  if (score >= 0.5) return "Moderate confidence with some expected variance.";
-  return "Low confidence; demand is volatile or sparse.";
+function confidenceNarrative(t: (k: string, vars?: Record<string, string | number>) => string, score?: number | null) {
+  if (score == null) return t("today.confidenceNarrative.insufficient");
+  if (score >= 0.75) return t("today.confidenceNarrative.high");
+  if (score >= 0.5) return t("today.confidenceNarrative.moderate");
+  return t("today.confidenceNarrative.low");
 }
 
-function agreementNarrative(score?: number | null) {
-  if (score == null) return "Consensus not available for this forecast.";
-  if (score >= 0.75) return "Models align closely on expected demand.";
-  if (score >= 0.5) return "Models partially agree; signals are mixed.";
-  return "Models diverge; treat the forecast as less certain.";
+function agreementNarrative(t: (k: string, vars?: Record<string, string | number>) => string, score?: number | null) {
+  if (score == null) return t("today.agreementNarrative.notAvailable");
+  if (score >= 0.75) return t("today.agreementNarrative.high");
+  if (score >= 0.5) return t("today.agreementNarrative.partial");
+  return t("today.agreementNarrative.low");
 }
 
-function velocitySummary(comparison?: {
+function velocitySummary(t: (k: string, vars?: Record<string, string | number>) => string, comparison?: {
   status?: string;
   deviation_pct?: number;
 }) {
   if (!comparison || !comparison.status) {
-    return "No live pace check yet. Tap update to compare today’s sales pace to plan.";
+    return t("today.velocity.noPaceCheck");
   }
   const deviation = comparison.deviation_pct ?? 0;
   const absDeviation = Math.abs(deviation);
   const deviationLabel = `${absDeviation.toFixed(0)}%`;
   if (comparison.status === "HIGH_DEMAND") {
-    return `Selling faster than plan by ${deviationLabel}. Consider a quick batch cook to protect revenue.`;
+    return t("today.velocity.highDemand", { deviation: deviationLabel });
   }
   if (comparison.status === "LOW_DEMAND") {
-    return `Sales are ${deviationLabel} below plan. Slow prep to reduce waste.`;
+    return t("today.velocity.lowDemand", { deviation: deviationLabel });
   }
-  return "Sales pace matches the plan. Keep the current prep rhythm.";
+  return t("today.velocity.onTrack");
 }
 
 function velocityStatusTone(status?: string) {
@@ -124,40 +124,42 @@ function velocityStatusTone(status?: string) {
   return "text-status-success";
 }
 
-const REACTION_MESSAGES: Record<string, string[]> = {
-  FIRED_UP: [
-    "That energy runs the whole team. Great shift.",
-    "This is the kind of day that builds momentum.",
-    "The kitchen felt it. Good work.",
-    "You showed up and it showed.",
-    "Days like this are what it is all for.",
-    "That was a real service. Well done.",
-  ],
-  GOOD: [
-    "Solid. Rest up, you earned it.",
-    "Not every day needs to be epic. This one worked.",
-    "Consistent work. The best kind.",
-    "Good work. Go rest.",
-    "A good day is a good day. Take that.",
-    "Steady and solid. Nice work.",
-  ],
-  MEH: [
-    "Not every service hits. Tomorrow is fresh.",
-    "Steady counts too. You were there.",
-    "Some days just drift through. That is fine.",
-    "You ran the shift. That is what matters.",
-    "Even flat days teach the model something.",
-    "Not everything needs to be great. You showed up.",
-  ],
-  ROUGH: [
-    "Rough ones pass. You got through it.",
-    "Hard services are the ones that build you.",
-    "Take care of yourself tonight.",
-    "You showed up on a hard day. That is not nothing.",
-    "Some days push back. You kept going.",
-    "It was a tough shift. Rest now.",
-  ],
-};
+function getReactionMessages(t: (k: string, vars?: Record<string, string | number>) => string): Record<string, string[]> {
+  return {
+    FIRED_UP: [
+      t("today.reaction.firedUp.0"),
+      t("today.reaction.firedUp.1"),
+      t("today.reaction.firedUp.2"),
+      t("today.reaction.firedUp.3"),
+      t("today.reaction.firedUp.4"),
+      t("today.reaction.firedUp.5"),
+    ],
+    GOOD: [
+      t("today.reaction.good.0"),
+      t("today.reaction.good.1"),
+      t("today.reaction.good.2"),
+      t("today.reaction.good.3"),
+      t("today.reaction.good.4"),
+      t("today.reaction.good.5"),
+    ],
+    MEH: [
+      t("today.reaction.meh.0"),
+      t("today.reaction.meh.1"),
+      t("today.reaction.meh.2"),
+      t("today.reaction.meh.3"),
+      t("today.reaction.meh.4"),
+      t("today.reaction.meh.5"),
+    ],
+    ROUGH: [
+      t("today.reaction.rough.0"),
+      t("today.reaction.rough.1"),
+      t("today.reaction.rough.2"),
+      t("today.reaction.rough.3"),
+      t("today.reaction.rough.4"),
+      t("today.reaction.rough.5"),
+    ],
+  };
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -173,6 +175,7 @@ function formatSignedCurrency(value: number) {
 }
 
 function overrideImpactLine(
+  t: (k: string, vars?: Record<string, string | number>) => string,
   impact: ImpactPreview | undefined,
   variance: number | null,
   suggestedQty: number,
@@ -180,13 +183,13 @@ function overrideImpactLine(
   if (!impact || variance == null || Math.abs(variance) < suggestedQty * 0.06) return null;
   if (variance > 0 && impact.food_cost_at_risk && impact.food_cost_at_risk > 0) {
     return {
-      text: `~${formatCurrency(impact.food_cost_at_risk)} food at risk if demand falls short`,
+      text: t("today.override.foodAtRisk", { amount: formatCurrency(impact.food_cost_at_risk) }),
       tone: "warning",
     };
   }
   if (variance < 0 && impact.shortfall_margin_risk && impact.shortfall_margin_risk > 0) {
     return {
-      text: `~${formatCurrency(impact.shortfall_margin_risk)} margin at risk if demand holds`,
+      text: t("today.override.marginAtRisk", { amount: formatCurrency(impact.shortfall_margin_risk) }),
       tone: "critical",
     };
   }
@@ -234,10 +237,10 @@ function riskTone(value: number) {
   return "text-status-success";
 }
 
-function riskLabel(value: number) {
-  if (value >= 0.45) return "High";
-  if (value >= 0.25) return "Medium";
-  return "Low";
+function riskLabel(t: (k: string, vars?: Record<string, string | number>) => string, value: number) {
+  if (value >= 0.45) return t("today.riskLabel.high");
+  if (value >= 0.25) return t("today.riskLabel.medium");
+  return t("today.riskLabel.low");
 }
 
 function signalToneClasses(
@@ -256,10 +259,10 @@ function signalToneClasses(
   return "text-status-warning border-status-warning/35 bg-status-warning/10";
 }
 
-function popularityLabel(rank: number) {
-  if (rank <= 3) return "Top 3 projected seller";
-  if (rank <= 5) return "High-demand item";
-  return `Projected rank #${rank}`;
+function popularityLabel(t: (k: string, vars?: Record<string, string | number>) => string, rank: number) {
+  if (rank <= 3) return t("today.popularity.top3");
+  if (rank <= 5) return t("today.popularity.highDemand");
+  return t("today.popularity.rank", { rank });
 }
 
 function isDiscreteUnit(unit: string) {
@@ -283,54 +286,57 @@ function signedQuantity(value: number, unit: string) {
   return `${prefix}${value.toFixed(2)} ${unit}`;
 }
 
-function signalLabel(key: string): string {
+function signalLabel(t: (k: string, vars?: Record<string, string | number>) => string, key: string): string {
   const map: Record<string, string> = {
-    reservation: "Reservations",
-    event: "Event",
-    weather: "Weather",
-    staffing: "Staffing",
-    kitchen_capacity: "Kitchen capacity",
-    delivery_mix: "Delivery mix",
-    traffic: "Traffic",
-    similar_day: "Similar days",
-    local_event: "Local event",
+    reservation: t("today.signalLabel.reservation"),
+    event: t("today.signalLabel.event"),
+    weather: t("today.signalLabel.weather"),
+    staffing: t("today.signalLabel.staffing"),
+    kitchen_capacity: t("today.signalLabel.kitchenCapacity"),
+    delivery_mix: t("today.signalLabel.deliveryMix"),
+    traffic: t("today.signalLabel.traffic"),
+    similar_day: t("today.signalLabel.similarDay"),
+    local_event: t("today.signalLabel.localEvent"),
   };
   return map[key] ?? key;
 }
 
-const FALLBACK_DEMAND_SIGNALS = [
-  {
-    key: "similar_day",
-    label: "Similar days",
-    value_pct: 0,
-    direction: "neutral" as const,
-    explanation: "Similar weekday baseline signal.",
-  },
-  {
-    key: "reservation",
-    label: "Reservation volume",
-    value_pct: 0,
-    direction: "neutral" as const,
-    explanation: "Reservation-linked demand adjustment.",
-  },
-  {
-    key: "weather",
-    label: "Weather",
-    value_pct: 0,
-    direction: "neutral" as const,
-    explanation: "Weather and temperature demand effect.",
-  },
-  {
-    key: "local_event",
-    label: "Local event",
-    value_pct: 0,
-    direction: "neutral" as const,
-    explanation: "Local event and special activity effect.",
-  },
-];
+function getFallbackDemandSignals(t: (k: string, vars?: Record<string, string | number>) => string) {
+  return [
+    {
+      key: "similar_day",
+      label: t("today.fallbackSignal.similarDay.label"),
+      value_pct: 0,
+      direction: "neutral" as const,
+      explanation: t("today.fallbackSignal.similarDay.explanation"),
+    },
+    {
+      key: "reservation",
+      label: t("today.fallbackSignal.reservation.label"),
+      value_pct: 0,
+      direction: "neutral" as const,
+      explanation: t("today.fallbackSignal.reservation.explanation"),
+    },
+    {
+      key: "weather",
+      label: t("today.fallbackSignal.weather.label"),
+      value_pct: 0,
+      direction: "neutral" as const,
+      explanation: t("today.fallbackSignal.weather.explanation"),
+    },
+    {
+      key: "local_event",
+      label: t("today.fallbackSignal.localEvent.label"),
+      value_pct: 0,
+      direction: "neutral" as const,
+      explanation: t("today.fallbackSignal.localEvent.explanation"),
+    },
+  ];
+}
 
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
+  const reactionMessages = useMemo(() => getReactionMessages(t), [t]);
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
@@ -687,8 +693,8 @@ function TodayWorkspacePageContent() {
     const wastePattern =
       branchDay?.kitchen_intelligence_network?.network_aggregation
         ?.cross_location_patterns?.[0];
-    if (!wastePattern) return "No high-confidence network action right now.";
-    return `Reduce ${wastePattern.item_name} prep exposure for the next run and monitor sell-through before close.`;
+    if (!wastePattern) return t("today.network.noAction");
+    return t("today.network.reduceExposure", { itemName: wastePattern.item_name });
   }, [branchDay?.kitchen_intelligence_network]);
   const selectedPrepItem = useMemo(() => {
     if (!branchDay?.prep_plan_items) return null;
@@ -863,7 +869,7 @@ function TodayWorkspacePageContent() {
         onError: () =>
           setActionErrorByItem((prev) => ({
             ...prev,
-            [prepPlanItemId]: "Could not accept suggestion. Try again.",
+            [prepPlanItemId]: t("today.error.acceptSuggestion"),
           })),
       },
     );
@@ -900,7 +906,7 @@ function TodayWorkspacePageContent() {
         onError: () =>
           setActionErrorByItem((prev) => ({
             ...prev,
-            [prepPlanItemId]: "Could not keep chef plan. Try again.",
+            [prepPlanItemId]: t("today.error.keepPlan"),
           })),
       },
     );
@@ -913,13 +919,13 @@ function TodayWorkspacePageContent() {
     if (item.decision === "ACCEPTED_AI" || item.accepted_suggestion) {
       return {
         tone: "success" as const,
-        message: "Accepted suggestion. Plan aligned with forecast.",
+        message: t("today.feedback.accepted"),
       };
     }
     if (item.decision === "CHEF_OVERRIDE") {
       return {
         tone: "warning" as const,
-        message: "Kept chef plan. Override recorded.",
+        message: t("today.feedback.overridden"),
       };
     }
     return null;
@@ -1151,7 +1157,7 @@ function TodayWorkspacePageContent() {
     const normalizedQty = isDiscreteUnit(liveItem.unit)
       ? Math.max(1, Math.round(rawQty))
       : Math.max(0.1, rawQty);
-    logProduction(liveItem.id, normalizedQty, "Demand spike");
+    logProduction(liveItem.id, normalizedQty, t("today.reason.demandSpike"));
     ignoreLiveAlert(alert.id, {
       prep_plan_item_id: alert.prep_plan_item_id,
       type: "STOCKOUT_RISK",
@@ -1168,24 +1174,24 @@ function TodayWorkspacePageContent() {
     resetCsvUploadState();
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      setCsvUploadError("Please upload a .csv file.");
+      setCsvUploadError(t("today.csv.invalidExtension"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setCsvUploadError("CSV must be 5MB or smaller.");
+      setCsvUploadError(t("today.csv.tooLarge"));
       return;
     }
     try {
       const parsed = await parseCSVFile(file);
       if (!parsed.headers.length) {
-        setCsvUploadError("CSV file is missing a header row.");
+        setCsvUploadError(t("today.csv.noHeader"));
         return;
       }
       setCsvUploadFile(file);
       setCsvUploadHeaders(parsed.headers);
-      setCsvUploadStatus(`Detected ${parsed.headers.length} columns.`);
+      setCsvUploadStatus(t("today.csv.columnsDetected", { count: parsed.headers.length }));
     } catch {
-      setCsvUploadError("Unable to read this CSV file.");
+      setCsvUploadError(t("today.csv.unreadable"));
     }
   };
 
@@ -1197,7 +1203,7 @@ function TodayWorkspacePageContent() {
         productionIntelligenceEndpoints.posCSVTemplate(),
       );
       if (!response.ok) {
-        setCsvUploadError("Unable to download template. Please try again.");
+        setCsvUploadError(t("today.csv.downloadError"));
         return;
       }
       const blob = await response.blob();
@@ -1207,15 +1213,15 @@ function TodayWorkspacePageContent() {
       anchor.download = "prepIQ_pos_sales_import_template.csv";
       anchor.click();
       window.URL.revokeObjectURL(url);
-      setCsvUploadStatus("Template downloaded.");
+      setCsvUploadStatus(t("today.csv.downloadSuccess"));
     } catch {
-      setCsvUploadError("Unable to download template. Please try again.");
+      setCsvUploadError(t("today.csv.downloadError"));
     }
   };
 
   const proceedToCsvMapping = () => {
     if (!csvUploadFile || !branchId) {
-      setCsvUploadError("Select a CSV file before continuing.");
+      setCsvUploadError(t("today.csv.selectFile"));
       return;
     }
     const returnPath = `/workspace/today?branch_id=${branchId}&date=${targetDate}&csv_import=1`;
@@ -1256,18 +1262,18 @@ function TodayWorkspacePageContent() {
     initializeMutation.isPending;
   const noBranchContext = !loading && !branchOptions.length;
   const statusLabel = loading
-    ? "Loading..."
+    ? t("today.status.loading")
     : noBranchContext
-      ? "No branch assigned"
+      ? t("today.status.noBranch")
       : branchDay?.status === "MORNING"
-        ? "Planning mode"
+        ? t("today.status.planning")
         : branchDay?.status === "LIVE"
-          ? "Service is live"
+          ? t("today.status.live")
           : branchDay?.status === "CLOSED"
-            ? "Day closed"
+            ? t("today.status.closed")
             : branchId
-              ? "Setting up..."
-              : "Select a branch";
+              ? t("today.status.settingUp")
+              : t("today.status.selectBranch");
   const todayQueryErrorMessage = useMemo(() => {
     if (!todayQuery.isError) return "";
     const err = todayQuery.error as {
@@ -1275,14 +1281,14 @@ function TodayWorkspacePageContent() {
       details?: unknown;
       status?: number;
     } | null;
-    if (!err) return "Unable to load day data.";
+    if (!err) return t("today.error.loadDayData");
     if (typeof err.message === "string" && err.message.length)
       return err.message;
     const details = (err as any)?.details;
     if (typeof details?.message === "string") return details.message;
     if (typeof details?.detail === "string") return details.detail;
     if (typeof details?.error === "string") return details.error;
-    return "Unable to load day data.";
+    return t("today.error.loadDayData");
   }, [todayQuery.isError, todayQuery.error]);
   const canInitializeDay = useMemo(() => {
     if (!todayQuery.isError) return false;
@@ -1378,11 +1384,11 @@ function TodayWorkspacePageContent() {
     [branchDay],
   );
   const demandSignals = useMemo(() => {
-    if (!branchDay) return FALLBACK_DEMAND_SIGNALS;
+    if (!branchDay) return getFallbackDemandSignals(t);
     return branchDay.demand_signal.signals?.length
       ? branchDay.demand_signal.signals
-      : FALLBACK_DEMAND_SIGNALS;
-  }, [branchDay]);
+      : getFallbackDemandSignals(t);
+  }, [branchDay, t]);
   const prepConfidenceGauge = useMemo(() => {
     if (!rows.length || !branchDay) return 0;
     const avgItemConfidence =
@@ -1398,11 +1404,16 @@ function TodayWorkspacePageContent() {
       (1 - avgRisk) * 0.15;
     return Math.max(0, Math.min(1, base));
   }, [rows, branchDay]);
-  const prepConfidenceRiskLabel = useMemo(() => {
-    if (prepConfidenceGauge >= 0.75) return "Low";
-    if (prepConfidenceGauge >= 0.55) return "Medium";
-    return "High";
+  const prepConfidenceRiskLevel = useMemo(() => {
+    if (prepConfidenceGauge >= 0.75) return "low";
+    if (prepConfidenceGauge >= 0.55) return "medium";
+    return "high";
   }, [prepConfidenceGauge]);
+  const prepConfidenceRiskLabel = useMemo(() => {
+    if (prepConfidenceRiskLevel === "low") return t("today.prepRisk.low");
+    if (prepConfidenceRiskLevel === "medium") return t("today.prepRisk.medium");
+    return t("today.prepRisk.high");
+  }, [prepConfidenceRiskLevel, t]);
   const decisionSummary = useMemo(() => {
     const reviewed = rows.filter((row) => row.planned != null).length;
     const accepted = rows.filter(
@@ -1447,6 +1458,7 @@ function TodayWorkspacePageContent() {
       .slice(0, 3);
     return candidates.map(({ item, riskScore, impact, planned, variance }) => {
       const confidence = confidenceLabel(
+        t,
         item.forecast_context.confidence_score,
       );
       const stockoutRiskPct = item.forecast_context.risk_of_stockout * 100;
@@ -1473,26 +1485,26 @@ function TodayWorkspacePageContent() {
             ? "MEDIUM"
             : "WATCH";
       const drivers: string[] = [
-        `Your current plan is ${formatQuantity(plannedQty, item.unit)} vs suggested ${formatQuantity(item.suggested_quantity, item.unit)}.`,
-        `Expected orders: ${Math.round(item.forecast_context.predicted_orders)}. Forecast confidence: ${confidence} (${percent(item.forecast_context.confidence_score)}).`,
+        t("today.riskAlert.driver.planVsSuggested", { planned: formatQuantity(plannedQty, item.unit), suggested: formatQuantity(item.suggested_quantity, item.unit) }),
+        t("today.riskAlert.driver.expectedOrders", { orders: Math.round(item.forecast_context.predicted_orders), confidence, pct: percent(item.forecast_context.confidence_score) }),
       ];
       if (primaryRiskType === "STOCKOUT") {
         drivers.push(
           shortfallQty > 0
-            ? `At this plan, you are ${formatQuantity(shortfallQty, item.unit)} below baseline, increasing stockout exposure.`
-            : "Demand pressure is high for this item; consider a protective buffer.",
+            ? t("today.riskAlert.driver.stockoutBelow", { quantity: formatQuantity(shortfallQty, item.unit) })
+            : t("today.riskAlert.driver.stockoutPressure"),
         );
       }
       if (primaryRiskType === "WASTE") {
         drivers.push(
           overprepQty > 0
-            ? `At this plan, you are ${formatQuantity(overprepQty, item.unit)} above baseline, increasing waste exposure.`
-            : "Sell-through signal is weaker than usual for this item.",
+            ? t("today.riskAlert.driver.wasteAbove", { quantity: formatQuantity(overprepQty, item.unit) })
+            : t("today.riskAlert.driver.wasteSignal"),
         );
       }
       if (primaryRiskType === "MARGIN" && impact) {
         drivers.push(
-          `Current deviation can shift estimated margin by ${formatSignedCurrency(impact.margin_impact_estimate)}.`,
+          t("today.riskAlert.driver.marginShift", { amount: formatSignedCurrency(impact.margin_impact_estimate) }),
         );
       }
       const suggestedFixQty =
@@ -1527,8 +1539,8 @@ function TodayWorkspacePageContent() {
         unit: item.unit,
         riskType: primaryRiskType,
         severity: primaryRiskSeverity,
-        title: `${primaryRiskType} RISK`,
-        detail: `Risk of ${primaryRiskType === "STOCKOUT" ? "running out" : primaryRiskType === "WASTE" ? "overproduction waste" : "margin loss"} is ${primaryRiskSeverity.toLowerCase()} right now based on your current plan input.`,
+        title: t("today.riskAlert.title", { riskType: primaryRiskType }),
+        detail: t("today.riskAlert.detail", { riskType: primaryRiskType.toLowerCase(), severity: primaryRiskSeverity.toLowerCase() }),
         riskMetrics: {
           stockoutRiskPct,
           wasteRiskPct,
@@ -1568,13 +1580,19 @@ function TodayWorkspacePageContent() {
     const priorityItems = topRiskItems.length ? topRiskItems : topDemandItems;
     if (directionWord === "steady") {
       return priorityItems.length
-        ? `Maintain baseline prep. Watch ${priorityItems.join(" and ")} — they carry the highest risk today.`
-        : "Maintain baseline prep across all items. No elevated signals.";
+        ? t("today.outlook.maintainBaselineWatch", { items: priorityItems.join(t("today.outlook.and")) })
+        : t("today.outlook.maintainBaselineAll");
     }
-    const planAction = deltaPlan ? `Plan ${deltaPlan} across all items.` : "";
+    const planAction = deltaPlan
+      ? t("today.outlook.planAcrossAll", { delta: deltaPlan })
+      : "";
+    const suffix =
+      directionWord === "up"
+        ? t("today.outlook.sensitiveSuffix")
+        : t("today.outlook.wasteSuffix");
     return priorityItems.length
-      ? `${planAction} Prioritize ${priorityItems.join(" and ")} — ${directionWord === "up" ? "most sensitive to demand surges" : "most exposed to waste risk"}.`
-      : `${planAction} Review high-demand items before locking plan.`;
+      ? `${planAction} ${t("today.outlook.prioritize", { items: priorityItems.join(t("today.outlook.and")), suffix })}`
+      : `${planAction} ${t("today.outlook.reviewHighDemand")}`;
   }, [branchDay, rows, demandDeltaPct, forecastRowsByDemand]);
 
   const demandMeterPosition = useMemo(() => {
@@ -1605,16 +1623,16 @@ function TodayWorkspacePageContent() {
 
   return (
     <WorkspaceShell
-      eyebrow="Today"
-      title="Today's Kitchen"
-      description="Review your forecast, confirm production targets, and execute with precision."
-      insight="Each decision — accepted or overridden — sharpens the forecast. The system learns from every shift."
+      eyebrow={t("today.eyebrow")}
+      title={t("today.title")}
+      description={t("today.description")}
+      insight={t("today.insight")}
     >
       {/* Slim context bar — no heavy card */}
       <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
         <div className="flex-1 min-w-[180px] max-w-xs">
           <Select
-            label="Branch"
+            label={t("today.branch.label")}
             leadingIcon={<Shop className="h-4 w-4" />}
             options={branchOptions.map((branch) => ({
               value: branch.id,
@@ -1624,14 +1642,14 @@ function TodayWorkspacePageContent() {
             onChange={setBranchId}
             disabled={noBranchContext}
             placeholder={
-              noBranchContext ? "No branches available" : "Select branch"
+              noBranchContext ? t("today.branch.noBranches") : t("today.branch.selectBranch")
             }
           />
         </div>
 
         <div className="flex-1 min-w-[160px] max-w-xs">
           <OperationalCalendar
-            label="Date"
+            label={t("today.date.label")}
             value={targetDate}
             onChange={setTargetDate}
           />
@@ -1668,11 +1686,11 @@ function TodayWorkspacePageContent() {
           {initializeMutation.isPending ? (
             <div className="flex items-center gap-2">
               <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin shrink-0" />
-              <p className="font-semibold">Setting up your day&hellip;</p>
+              <p className="font-semibold">{t("today.error.settingUp")}</p>
             </div>
           ) : (
             <>
-              <p className="font-semibold">Day data not available.</p>
+              <p className="font-semibold">{t("today.error.dayDataNotAvailable")}</p>
               <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
               {canInitializeDay && safeBranchId ? (
                 <button
@@ -1686,7 +1704,7 @@ function TodayWorkspacePageContent() {
                   }
                   className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Initialize Day
+                  {t("today.error.initializeDay")}
                 </button>
               ) : null}
             </>
@@ -1700,8 +1718,7 @@ function TodayWorkspacePageContent() {
             <Shop className="h-6 w-6 text-status-warning" />
           </div>
           <p className="text-sm text-text-secondary max-w-md mx-auto">
-            No branch context is available for this account yet. Assign this
-            user to at least one active branch, then refresh this page.
+            {t("today.error.noBranchContext")}
           </p>
         </div>
       ) : null}
@@ -1714,7 +1731,7 @@ function TodayWorkspacePageContent() {
               {/* Demand KPI + meter */}
               <div className="shrink-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Expected demand
+                  {t("today.expectedDemand")}
                 </p>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span
@@ -1730,10 +1747,10 @@ function TodayWorkspacePageContent() {
                   </span>
                   <span className="text-sm text-text-muted">
                     {demandDeltaPct <= -2
-                      ? "quieter than usual"
+                      ? t("today.demand.quieter")
                       : demandDeltaPct >= 2
-                        ? "busier than usual"
-                        : "about normal"}
+                        ? t("today.demand.busier")
+                        : t("today.demand.normal")}
                   </span>
                 </div>
                 <div className="mt-3 relative h-[3px] w-40 rounded-full bg-surface-4">
@@ -1743,9 +1760,9 @@ function TodayWorkspacePageContent() {
                   />
                 </div>
                 <div className="mt-1 flex w-40 justify-between text-[9px] text-text-muted/60">
-                  <span>Quiet</span>
-                  <span>Normal</span>
-                  <span>Busy</span>
+                  <span>{t("today.demand.quiet")}</span>
+                  <span>{t("today.demand.normalShort")}</span>
+                  <span>{t("today.demand.busy")}</span>
                 </div>
               </div>
 
@@ -1755,7 +1772,7 @@ function TodayWorkspacePageContent() {
               {/* Signal chips + action sentence */}
               <div className="flex-1 min-w-[180px]">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Demand signals
+                  {t("today.demandSignals")}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {(() => {
@@ -1763,7 +1780,7 @@ function TodayWorkspacePageContent() {
                     if (activeSignals.length === 0) {
                       return (
                         <span className="text-[11px] italic text-text-muted">
-                          No strong signals today
+                          {t("today.demandSignals.noStrong")}
                         </span>
                       );
                     }
@@ -1792,7 +1809,7 @@ function TodayWorkspacePageContent() {
               {/* Plan reliability */}
               <div className="shrink-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Plan reliability
+                  {t("today.planReliability")}
                 </p>
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="font-display text-4xl font-semibold tracking-[-0.5px] text-text-primary">
@@ -1800,26 +1817,26 @@ function TodayWorkspacePageContent() {
                   </span>
                   <span
                     className={`text-sm font-medium ${
-                      prepConfidenceRiskLabel === "Low"
+                      prepConfidenceRiskLevel === "low"
                         ? "text-status-success"
-                        : prepConfidenceRiskLabel === "Medium"
+                        : prepConfidenceRiskLevel === "medium"
                           ? "text-status-warning"
                           : "text-status-critical"
                     }`}
                   >
-                    {prepConfidenceRiskLabel === "Low"
-                      ? "Good shape"
-                      : prepConfidenceRiskLabel === "Medium"
-                        ? "Review items"
-                        : "Check alerts"}
+                    {prepConfidenceRiskLevel === "low"
+                      ? t("today.prepRiskLabel.goodShape")
+                      : prepConfidenceRiskLevel === "medium"
+                        ? t("today.prepRiskLabel.reviewItems")
+                        : t("today.prepRiskLabel.checkAlerts")}
                   </span>
                 </div>
                 <div className="mt-2 h-[3px] w-40 overflow-hidden rounded-full bg-surface-4">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      prepConfidenceRiskLabel === "Low"
+                      prepConfidenceRiskLevel === "low"
                         ? "bg-status-success"
-                        : prepConfidenceRiskLabel === "Medium"
+                        : prepConfidenceRiskLevel === "medium"
                           ? "bg-status-warning"
                           : "bg-status-critical"
                     }`}
@@ -1828,13 +1845,13 @@ function TodayWorkspacePageContent() {
                 </div>
                 <div className="mt-2 flex gap-6 text-[11px]">
                   <div>
-                    <p className="text-text-muted">Needs attention</p>
+                    <p className="text-text-muted">{t("today.needsAttention")}</p>
                     <p className="font-semibold text-text-primary">
                       {branchDay.morning_overview?.high_risk_items ?? branchDay.demand_signal.high_risk_items ?? 0}
                     </p>
                   </div>
                   <div>
-                    <p className="text-text-muted">Tracked</p>
+                    <p className="text-text-muted">{t("today.tracked")}</p>
                     <p className="font-semibold text-text-primary">
                       {branchDay.demand_signal.tracked_items ?? rows.length}
                     </p>
@@ -1843,7 +1860,7 @@ function TodayWorkspacePageContent() {
                 {branchDay.demand_signal.confidence_breakdown &&
                   branchDay.demand_signal.forecast_confidence < 0.75 ? (
                   <p className="mt-2 max-w-[180px] text-[10px] leading-snug text-text-muted">
-                    <span className="font-semibold text-status-warning">Why: </span>
+                    <span className="font-semibold text-status-warning">{t("today.why")}: </span>
                     {branchDay.demand_signal.confidence_breakdown.limiting_factor}.
                   </p>
                 ) : null}
@@ -1866,20 +1883,20 @@ function TodayWorkspacePageContent() {
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${alert.severity === "HIGH" ? "text-status-critical" : "text-status-warning"}`}>
                       {alert.itemName} ·{" "}
-                      {alert.riskType === "STOCKOUT" ? "May run out" : alert.riskType === "WASTE" ? "Risk of waste" : "Margin at risk"}
+                      {alert.riskType === "STOCKOUT" ? t("today.alert.mayRunOut") : alert.riskType === "WASTE" ? t("today.alert.riskOfWaste") : t("today.alert.marginAtRisk")}
                     </p>
                     <p className="mt-0.5 text-sm text-text-secondary">
                       {alert.riskType === "STOCKOUT"
                         ? alert.financials.lostMarginIfStockout != null && alert.financials.lostMarginIfStockout > 0
-                          ? `Stockout risk. At this plan, ~${formatCurrency(alert.financials.lostMarginIfStockout)} in margin is at risk if demand holds.`
-                          : "Stockout risk. Your current plan falls short of projected demand."
+                          ? t("today.alert.stockoutRiskWithMargin", { amount: formatCurrency(alert.financials.lostMarginIfStockout) })
+                          : t("today.alert.stockoutRisk")
                         : alert.riskType === "WASTE"
                           ? alert.financials.wasteIfAll != null && alert.financials.wasteIfAll > 0
-                            ? `Waste exposure. At this plan, ~${formatCurrency(alert.financials.wasteIfAll)} in food cost is at risk if demand stays flat.`
-                            : "Waste exposure detected. Demand signal is weaker than your current prep."
+                            ? t("today.alert.wasteRiskWithCost", { amount: formatCurrency(alert.financials.wasteIfAll) })
+                            : t("today.alert.wasteRisk")
                           : alert.riskMetrics.marginImpact !== 0
-                            ? `Margin variance. Estimated margin shift: ${formatSignedCurrency(alert.riskMetrics.marginImpact)}.`
-                            : "Margin variance. Deviation from forecast affects estimated contribution."}
+                            ? t("today.alert.marginRiskWithImpact", { amount: formatSignedCurrency(alert.riskMetrics.marginImpact) })
+                            : t("today.alert.marginRisk")}
                     </p>
                   </div>
                   <button
@@ -1907,20 +1924,20 @@ function TodayWorkspacePageContent() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Prep Plan
+                  {t("today.prepPlan.title")}
                 </p>
                 <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
-                  What to cook today
+                  {t("today.prepPlan.subtitle")}
                 </h3>
                 {/* Inline stats — no cards */}
                 <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-secondary">
                   <span>
                     <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
-                    {" "}of {forecastRowsByDemand.length} reviewed
+                    {" "}{t("today.prepPlan.ofCount", { total: forecastRowsByDemand.length })}
                   </span>
                   {(branchDay.morning_overview?.projected_margin_total ?? 0) > 0 ? (
                     <span>
-                      Projected margin:{" "}
+                      {t("today.prepPlan.projectedMargin")}{" "}
                       <span className="font-semibold text-status-success">
                         {formatCurrency(branchDay.morning_overview?.projected_margin_total ?? 0)}
                       </span>
@@ -1928,7 +1945,7 @@ function TodayWorkspacePageContent() {
                   ) : null}
                   {branchDay.morning_overview?.chef_accuracy_score?.available ? (
                     <span>
-                      Your accuracy:{" "}
+                      {t("today.prepPlan.yourAccuracy")}{" "}
                       <span className="font-semibold text-text-primary">
                         {branchDay.morning_overview.chef_accuracy_score.chef_forecast_accuracy_pct.toFixed(1)}%
                       </span>
@@ -1943,7 +1960,7 @@ function TodayWorkspacePageContent() {
                   onClick={() => setImportantItemsOnly((prev) => !prev)}
                   className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
                 >
-                  {importantItemsOnly ? "Priority items" : "All items"}
+                  {importantItemsOnly ? t("today.prepPlan.priorityItems") : t("today.prepPlan.allItems")}
                 </button>
                 <button
                   type="button"
@@ -1951,7 +1968,7 @@ function TodayWorkspacePageContent() {
                   disabled={isPlanLocked || lockPlanMutation.isPending}
                   className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-status-success/60 hover:text-status-success active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isPlanLocked ? "Plan locked ✓" : lockPlanMutation.isPending ? "Locking..." : "Lock plan"}
+                  {isPlanLocked ? t("today.prepPlan.planLocked") : lockPlanMutation.isPending ? t("today.prepPlan.locking") : t("today.prepPlan.lockPlan")}
                 </button>
                 <button
                   type="button"
@@ -1959,17 +1976,22 @@ function TodayWorkspacePageContent() {
                   disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
                   className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {updateBranchDayStatusMutation.isPending ? "Starting..." : "Start service →"}
+                  {updateBranchDayStatusMutation.isPending ? t("today.prepPlan.starting") : t("today.prepPlan.startService")}
                 </button>
               </div>
             </div>
             {!isPlanLocked ? (
-              <p className="mb-4 text-xs text-text-muted">Lock the plan first, then start service.</p>
+              <p className="mb-4 text-xs text-text-muted">{t("today.prepPlan.lockFirst")}</p>
             ) : branchDay?.plan_lock?.locked_at ? (
               <p className="mb-4 text-xs text-status-success">
-                Locked at{" "}
-                {new Date(branchDay.plan_lock.locked_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                {branchDay.plan_lock.locked_by?.name ? ` by ${branchDay.plan_lock.locked_by.name}` : ""}.
+                {branchDay.plan_lock.locked_by?.name
+                  ? t("today.prepPlan.lockedAtBy", {
+                      time: new Date(branchDay.plan_lock.locked_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+                      user: branchDay.plan_lock.locked_by.name,
+                    })
+                  : t("today.prepPlan.lockedAtTime", {
+                      time: new Date(branchDay.plan_lock.locked_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+                    })}
               </p>
             ) : null}
 
@@ -2026,12 +2048,12 @@ function TodayWorkspacePageContent() {
                             {item.product_title}
                           </p>
                           <p className="mt-0.5 text-xs text-text-muted">
-                            {popularityLabel(forecastRankById[item.id] ?? 999)}
+                            {popularityLabel(t, forecastRankById[item.id] ?? 999)}
                           </p>
                         </div>
                       </div>
                       <span className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskTone(riskScore)}`}>
-                        {riskLabel(riskScore)}
+                        {riskLabel(t, riskScore)}
                       </span>
                     </div>
 
@@ -2039,19 +2061,18 @@ function TodayWorkspacePageContent() {
                     <div className="mt-3 grid grid-cols-2 divide-x divide-surface-4/60 border-y border-surface-4/60">
                       <div className="px-4 py-2.5">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          AI suggests
+                          {t("today.table.aiSuggests")}
                         </p>
                         <p className="mt-1 font-display text-lg font-semibold text-text-primary">
                           {formatQuantity(item.suggested_quantity, item.unit)}
                         </p>
                         <p className="mt-0.5 text-[11px] text-text-muted">
-                          ~{Math.round(item.forecast_context.predicted_orders)} orders ·{" "}
-                          {confidenceLabel(item.forecast_context.confidence_score)}
+                          {t("today.table.ordersAndConfidence", { orders: Math.round(item.forecast_context.predicted_orders), confidence: confidenceLabel(t, item.forecast_context.confidence_score) })}
                         </p>
                       </div>
                       <div className="px-4 py-2.5">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                          Your plan
+                          {t("today.table.yourPlan")}
                         </p>
                         <div className="mt-1 flex items-center gap-1.5">
                           <input
@@ -2066,13 +2087,13 @@ function TodayWorkspacePageContent() {
                         </div>
                         <p className="mt-0.5 text-[11px] text-text-muted">
                           {variance == null || variance === 0
-                            ? "Matches suggestion"
+                            ? t("today.table.matchesSuggestion")
                             : variance > 0
-                              ? `${signedQuantity(variance, item.unit)} above`
-                              : `${signedQuantity(variance, item.unit)} below`}
+                              ? `${signedQuantity(variance, item.unit)} ${t("today.table.above")}`
+                              : `${signedQuantity(variance, item.unit)} ${t("today.table.below")}`}
                         </p>
                         {(() => {
-                          const line = overrideImpactLine(impact, variance, item.suggested_quantity);
+                          const line = overrideImpactLine(t, impact, variance, item.suggested_quantity);
                           return line ? (
                             <p className={`mt-0.5 text-[11px] font-medium ${line.tone === "warning" ? "text-status-warning" : "text-status-critical"}`}>
                               {line.text}
@@ -2091,7 +2112,7 @@ function TodayWorkspacePageContent() {
                           disabled={isPlanLocked}
                           className="inline-flex h-8 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                         >
-                          ✓ Accept
+                          {t("today.table.accept")}
                         </button>
                         <button
                           type="button"
@@ -2099,7 +2120,7 @@ function TodayWorkspacePageContent() {
                           disabled={isPlanLocked}
                           className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                         >
-                          Keep mine
+                          {t("today.table.keepMine")}
                         </button>
                       </div>
                       <div className="flex items-center gap-3">
@@ -2108,19 +2129,19 @@ function TodayWorkspacePageContent() {
                           onClick={() => toggleItemExpand(item.id)}
                           className="text-[11px] font-semibold text-brand-gold hover:text-brand-gold/80 transition-colors"
                         >
-                          {isExpanded ? "Hide ↑" : "Why? ↓"}
+                          {isExpanded ? t("today.table.hide") : t("today.table.why")}
                         </button>
                         <Link
                           href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
                           className="text-[11px] font-medium text-brand-gold/70 hover:text-brand-gold transition-colors"
                         >
-                          Deep dive ↗
+                          {t("today.table.deepDive")}
                         </Link>
                         <Link
                           href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
                           className="text-[11px] font-medium text-text-muted hover:text-brand-gold transition-colors"
                         >
-                          Track record ↗
+                          {t("today.table.trackRecord")}
                         </Link>
                       </div>
                     </div>
@@ -2161,7 +2182,7 @@ function TodayWorkspacePageContent() {
                                 if (Math.abs(modifier) < 0.005) return null;
                                 return (
                                   <div key={key} className="flex items-center justify-between">
-                                    <span className="text-text-secondary">{signalLabel(key)}</span>
+                                    <span className="text-text-secondary">{signalLabel(t, key)}</span>
                                     <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
                                       {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
                                     </span>
@@ -2177,7 +2198,7 @@ function TodayWorkspacePageContent() {
                               impact.narrative
                             ) : (
                               <>
-                                Margin impact:{" "}
+                                {t("today.table.marginImpact")}:{" "}
                                 <span className={`font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
                                   {formatSignedCurrency(impact.margin_impact_estimate)}
                                 </span>
@@ -2189,25 +2210,19 @@ function TodayWorkspacePageContent() {
                           <div className="space-y-0.5 border-t border-surface-4/40 pt-2">
                             {financials.revenueIfSold != null && (
                               <p>
-                                If sold out:{" "}
-                                <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
-                                revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                                {financials.marginIfSold != null
+                                  ? t("today.table.ifSoldOutWithMargin", { revenue: formatCurrency(financials.revenueIfSold), margin: formatCurrency(financials.marginIfSold) })
+                                  : t("today.table.ifSoldOut", { revenue: formatCurrency(financials.revenueIfSold) })}
                               </p>
                             )}
                             {financials.wasteIfAll != null && (
                               <p>
-                                If wasted:{" "}
-                                <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
-                                in food cost.
+                                {t("today.table.ifWasted", { cost: formatCurrency(financials.wasteIfAll) })}
                               </p>
                             )}
                             {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
                               <p>
-                                If you stock out by{" "}
-                                <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>,{" "}
-                                you could lose{" "}
-                                <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
-                                margin.
+                                {t("today.table.stockoutWarning", { quantity: formatQuantity(financials.shortfallQty, financials.unit), margin: formatCurrency(financials.lostMarginIfStockout) })}
                               </p>
                             )}
                           </div>
@@ -2229,16 +2244,16 @@ function TodayWorkspacePageContent() {
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
                     <th className="w-[200px] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Item
+                      {t("today.table.item")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      AI Suggests
+                      {t("today.table.aiSuggests")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Confidence
+                      {t("today.table.confidence")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
-                      Your Plan
+                      {t("today.table.yourPlan")}
                     </th>
                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
                       {/* actions */}
@@ -2298,7 +2313,7 @@ function TodayWorkspacePageContent() {
                                   {item.product_title}
                                 </p>
                                 <p className="mt-0.5 text-[11px] text-text-muted">
-                                  {popularityLabel(forecastRankById[item.id] ?? 999)}
+                                  {popularityLabel(t, forecastRankById[item.id] ?? 999)}
                                 </p>
                               </div>
                             </div>
@@ -2310,7 +2325,7 @@ function TodayWorkspacePageContent() {
                               {formatQuantity(item.suggested_quantity, item.unit)}
                             </p>
                             <p className="mt-0.5 text-xs text-text-muted">
-                              ~{Math.round(item.forecast_context.predicted_orders)} orders
+                              {t("today.table.expectedOrders", { orders: Math.round(item.forecast_context.predicted_orders) })}
                             </p>
                           </td>
 
@@ -2320,10 +2335,10 @@ function TodayWorkspacePageContent() {
                               {percent(item.forecast_context.confidence_score)}
                             </p>
                             <p className="mt-0.5 text-[11px] text-text-muted">
-                              {confidenceLabel(item.forecast_context.confidence_score)}
+                              {confidenceLabel(t, item.forecast_context.confidence_score)}
                             </p>
                             <span className={`mt-1.5 inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}>
-                              {riskLabel(riskScore)} risk
+                              {riskLabel(t, riskScore)} {t("today.table.risk")}
                             </span>
                           </td>
 
@@ -2342,13 +2357,13 @@ function TodayWorkspacePageContent() {
                             </div>
                             <p className="mt-1 text-[11px] text-text-muted">
                               {variance == null || variance === 0
-                                ? "Matches suggestion"
+                                ? t("today.table.matchesSuggestion")
                                 : variance > 0
-                                  ? `${signedQuantity(variance, item.unit)} above`
-                                  : `${signedQuantity(variance, item.unit)} below`}
+                                  ? `${signedQuantity(variance, item.unit)} ${t("today.table.above")}`
+                                  : `${signedQuantity(variance, item.unit)} ${t("today.table.below")}`}
                             </p>
                             {(() => {
-                              const line = overrideImpactLine(impact, variance, item.suggested_quantity);
+                              const line = overrideImpactLine(t, impact, variance, item.suggested_quantity);
                               return line ? (
                                 <p className={`mt-0.5 text-[11px] font-medium ${line.tone === "warning" ? "text-status-warning" : "text-status-critical"}`}>
                                   {line.text}
@@ -2381,7 +2396,7 @@ function TodayWorkspacePageContent() {
                                 disabled={isPlanLocked}
                                 className="inline-flex h-7 items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30"
                               >
-                                ✓ Accept
+                                {t("today.table.accept")}
                               </button>
                               <button
                                 type="button"
@@ -2389,7 +2404,7 @@ function TodayWorkspacePageContent() {
                                 disabled={isPlanLocked}
                                 className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20"
                               >
-                                Keep mine
+                                {t("today.table.keepMine")}
                               </button>
                             </div>
                             <div className="mt-1.5 flex items-center gap-3">
@@ -2398,19 +2413,19 @@ function TodayWorkspacePageContent() {
                                 onClick={() => toggleItemExpand(item.id)}
                                 className="text-[11px] font-semibold text-brand-gold transition-colors hover:text-brand-gold/80"
                               >
-                                {isExpanded ? "Hide ↑" : "Why this number? ↓"}
+                                {isExpanded ? t("today.table.hide") : t("today.table.whyDesktop")}
                               </button>
                               <Link
                                 href={`/workspace/today/item/${item.id}?branch=${safeBranchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${user?.organization_id ?? ""}`}
                                 className="text-[11px] font-medium text-brand-gold/70 transition-colors hover:text-brand-gold"
                               >
-                                Deep dive ↗
+                                {t("today.table.deepDive")}
                               </Link>
                               <Link
                                 href={`/workspace/items/${item.product_id}?branch=${safeBranchId}`}
                                 className="text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
                               >
-                                Track record ↗
+                                {t("today.table.trackRecord")}
                               </Link>
                             </div>
                           </td>
@@ -2427,7 +2442,7 @@ function TodayWorkspacePageContent() {
                                 {/* Reasoning */}
                                 <div>
                                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                                    Why this quantity
+                                    {t("today.table.whyThisQuantity")}
                                   </p>
                                   <div className="space-y-0.5">
                                     {item.forecast_context.reasoning.map((line) => (
@@ -2440,7 +2455,7 @@ function TodayWorkspacePageContent() {
                                 {item.forecast_context.applied_signals ? (
                                   <div>
                                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                                      Signal adjustments
+                              {t("today.table.signalAdjustments")}
                                     </p>
                                     <div className="space-y-1">
                                       {Object.entries(item.forecast_context.applied_signals).map(([key, signal]: [string, any]) => {
@@ -2448,7 +2463,7 @@ function TodayWorkspacePageContent() {
                                         if (Math.abs(modifier) < 0.005) return null;
                                         return (
                                           <div key={key} className="flex items-center justify-between">
-                                            <span className="text-text-secondary">{signalLabel(key)}</span>
+                                            <span className="text-text-secondary">{signalLabel(t, key)}</span>
                                             <span className={`font-semibold ${modifier > 0 ? "text-status-success" : "text-status-warning"}`}>
                                               {modifier > 0 ? "↑" : "↓"} {(Math.abs(modifier) * 100).toFixed(1)}%
                                             </span>
@@ -2464,7 +2479,7 @@ function TodayWorkspacePageContent() {
                                   {impact?.narrative ? (
                                     <div className="mb-3">
                                       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                                        Override impact
+                                        {t("today.table.overrideImpact")}
                                       </p>
                                       <p className={`text-sm font-medium ${impact.delta_quantity > 0 ? "text-status-warning" : "text-status-critical"}`}>
                                         {impact.narrative}
@@ -2473,7 +2488,7 @@ function TodayWorkspacePageContent() {
                                   ) : impact ? (
                                     <div className="mb-3">
                                       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                                        Margin impact
+                                        {t("today.table.marginImpact")}
                                       </p>
                                       <p className={`text-sm font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}>
                                         {formatSignedCurrency(impact.margin_impact_estimate)}
@@ -2483,35 +2498,29 @@ function TodayWorkspacePageContent() {
                                   {hasPricing ? (
                                     <div className="space-y-0.5">
                                       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                                        Financial scenarios
+                                        {t("today.table.financialScenarios")}
                                       </p>
                                       {financials.revenueIfSold != null && (
                                         <p>
-                                          If sold out:{" "}
-                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.revenueIfSold)}</span>{" "}
-                                          revenue{financials.marginIfSold != null ? ` · ${formatCurrency(financials.marginIfSold)} margin` : ""}
+                                          {financials.marginIfSold != null
+                                            ? t("today.table.ifSoldOutWithMargin", { revenue: formatCurrency(financials.revenueIfSold), margin: formatCurrency(financials.marginIfSold) })
+                                            : t("today.table.ifSoldOut", { revenue: formatCurrency(financials.revenueIfSold) })}
                                         </p>
                                       )}
                                       {financials.wasteIfAll != null && (
                                         <p>
-                                          If wasted:{" "}
-                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.wasteIfAll)}</span>{" "}
-                                          food cost.
+                                          {t("today.table.ifWasted", { cost: formatCurrency(financials.wasteIfAll) })}
                                         </p>
                                       )}
                                       {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
                                         <p>
-                                          Stockout by{" "}
-                                          <span className="font-semibold text-text-primary">{formatQuantity(financials.shortfallQty, financials.unit)}</span>{" "}
-                                          → lose{" "}
-                                          <span className="font-semibold text-text-primary">{formatCurrency(financials.lostMarginIfStockout)}</span>{" "}
-                                          margin.
+                                          {t("today.table.stockoutWarning", { quantity: formatQuantity(financials.shortfallQty, financials.unit), margin: formatCurrency(financials.lostMarginIfStockout) })}
                                         </p>
                                       )}
                                     </div>
                                   ) : (
                                     <p className="text-text-muted">
-                                      Add selling price and cost to unlock financial scenarios.
+                            {t("today.table.missingPricing")}
                                     </p>
                                   )}
                                 </div>
@@ -2530,16 +2539,16 @@ function TodayWorkspacePageContent() {
             <div className="mt-6 flex flex-col gap-3 border-t border-surface-4/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-text-secondary">
                 <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span>
-                {" "}of {forecastRowsByDemand.length} reviewed
+                {" "}{t("today.prepPlan.ofCount", { total: forecastRowsByDemand.length })}
                 {decisionSummary.reviewed < forecastRowsByDemand.length ? (
                   <span className="ml-2 text-text-muted">
-                    · {forecastRowsByDemand.length - decisionSummary.reviewed} pending
+                    · {forecastRowsByDemand.length - decisionSummary.reviewed} {t("today.prepPlan.pending")}
                   </span>
                 ) : (
-                  <span className="ml-2 text-status-success">· All reviewed</span>
+                  <span className="ml-2 text-status-success">· {t("today.table.allReviewed")}</span>
                 )}
                 {!isPlanLocked && (
-                  <span className="ml-3 text-xs text-text-muted">Lock the plan to start service.</span>
+                  <span className="ml-3 text-xs text-text-muted">{t("today.prepPlan.lockToStart")}</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -2549,7 +2558,7 @@ function TodayWorkspacePageContent() {
                   disabled={isPlanLocked || lockPlanMutation.isPending}
                   className="inline-flex h-10 items-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-primary transition-all duration-200 hover:border-status-success/60 hover:text-status-success active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isPlanLocked ? "Plan locked ✓" : lockPlanMutation.isPending ? "Locking..." : "Lock plan"}
+                  {isPlanLocked ? t("today.prepPlan.planLocked") : lockPlanMutation.isPending ? t("today.prepPlan.locking") : t("today.prepPlan.lockPlan")}
                 </button>
                 <button
                   type="button"
@@ -2557,7 +2566,7 @@ function TodayWorkspacePageContent() {
                   disabled={updateBranchDayStatusMutation.isPending || !isPlanLocked}
                   className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all duration-200 hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {updateBranchDayStatusMutation.isPending ? "Starting..." : "Start service →"}
+                  {updateBranchDayStatusMutation.isPending ? t("today.prepPlan.starting") : t("today.prepPlan.startService")}
                 </button>
               </div>
             </div>
@@ -2575,14 +2584,14 @@ function TodayWorkspacePageContent() {
           {/* ── Collapsed footer: network intelligence + decision summary ── */}
           <details className="mt-8 mb-4">
             <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.14em] text-text-muted hover:text-text-secondary transition-colors">
-              Network signals & decision summary
+              {t("today.morning.moreContext")}
             </summary>
 
             <div className="mt-4 space-y-6">
               {/* Network intelligence */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-                  What other kitchens are seeing
+                  {t("today.morning.otherKitchens")}
                 </p>
                 {networkLearnings.length ? (
                   <div className="space-y-2">
@@ -2595,18 +2604,18 @@ function TodayWorkspacePageContent() {
                           <p className="text-sm font-medium text-text-primary">{learning.label}</p>
                           <p className="mt-0.5 text-xs text-text-secondary">
                             {learning.detail}
-                            {typeof learning.confidence === "number" ? ` Reliability: ${percent(learning.confidence)}.` : ""}
+                            {typeof learning.confidence === "number" ? ` ${t("today.morning.reliability", { pct: percent(learning.confidence) })}` : ""}
                           </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-text-muted">Nothing notable from other branches this morning.</p>
+                  <p className="text-sm text-text-muted">{t("today.morning.nothingNotable")}</p>
                 )}
                 {networkSuggestedAction ? (
                   <p className="mt-3 text-sm text-text-secondary">
-                    <span className="font-medium text-text-primary">Suggested: </span>
+                    <span className="font-medium text-text-primary">{t("today.morning.suggested")}: </span>
                     {networkSuggestedAction}
                   </p>
                 ) : null}
@@ -2615,15 +2624,15 @@ function TodayWorkspacePageContent() {
               {/* Decision summary */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted mb-3">
-                  Your decisions so far
+                  {t("today.morning.decisionSummary")}
                 </p>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-secondary">
-                  <span>Reviewed: <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span></span>
-                  <span>Used suggestion: <span className="font-semibold text-status-success">{decisionSummary.accepted}</span></span>
-                  <span>Your own number: <span className="font-semibold text-status-warning">{decisionSummary.overridden}</span></span>
-                  <span>Waste exposure: <span className="font-semibold text-text-primary">{decisionSummary.projectedWaste.toFixed(1)}%</span></span>
+                  <span>{t("today.morning.reviewed")}: <span className="font-semibold text-text-primary">{decisionSummary.reviewed}</span></span>
+                  <span>{t("today.morning.usedSuggestion")}: <span className="font-semibold text-status-success">{decisionSummary.accepted}</span></span>
+                  <span>{t("today.morning.ownNumber")}: <span className="font-semibold text-status-warning">{decisionSummary.overridden}</span></span>
+                  <span>{t("today.morning.wasteExposure")}: <span className="font-semibold text-text-primary">{decisionSummary.projectedWaste.toFixed(1)}%</span></span>
                   <span>
-                    Forecast impact:{" "}
+                    {t("today.morning.forecastImpact")}:{" "}
                     <span className={`font-semibold ${decisionSummary.accuracyImpact >= 0 ? "text-status-success" : "text-status-critical"}`}>
                       {decisionSummary.accuracyImpact >= 0 ? "+" : ""}{decisionSummary.accuracyImpact.toFixed(1)}%
                     </span>
@@ -2643,10 +2652,10 @@ function TodayWorkspacePageContent() {
               <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-status-success animate-pulse" />
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-status-success">
-                  Service is live
+                  {t("today.live.status")}
                 </p>
                 <h3 className="font-display text-2xl font-semibold text-text-primary">
-                  Kitchen monitor
+                  {t("today.live.monitor")}
                 </h3>
               </div>
             </div>
@@ -2656,7 +2665,7 @@ function TodayWorkspacePageContent() {
                 onClick={() => setCsvModalOpen(true)}
                 className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
               >
-                CSV Import
+                {t("today.live.csvImport")}
               </button>
               <button
                 type="button"
@@ -2664,7 +2673,7 @@ function TodayWorkspacePageContent() {
                 disabled={updateBranchDayStatusMutation.isPending}
                 className="inline-flex h-9 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {updateBranchDayStatusMutation.isPending ? "Closing…" : "Close day"}
+                {updateBranchDayStatusMutation.isPending ? t("today.live.closing") : t("today.live.closeDay")}
               </button>
             </div>
           </div>
@@ -2672,11 +2681,10 @@ function TodayWorkspacePageContent() {
             <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success">
-                  CSV Import Complete
+                  {t("today.live.csvImportComplete")}
                 </p>
                 <p className="mt-1 text-sm text-text-primary">
-                  Sales data is updated from your CSV. Live totals now include
-                  the imported rows.
+                  {t("today.live.csvImportDescription")}
                 </p>
               </div>
               <button
@@ -2692,7 +2700,7 @@ function TodayWorkspacePageContent() {
                 }}
                 className="text-xs font-semibold text-status-success hover:text-status-success/80"
               >
-                Dismiss
+                {t("today.live.dismiss")}
               </button>
             </div>
           ) : null}
@@ -2702,8 +2710,8 @@ function TodayWorkspacePageContent() {
               setCsvModalOpen(false);
               resetCsvUploadState();
             }}
-            title="CSV Sales Import"
-            description="Upload a POS export when live sales are offline. We will validate the file, then let you map columns before importing."
+            title={t("today.csv.modalTitle")}
+            description={t("today.csv.modalDescription")}
             maxWidthClassName="max-w-xl"
             footer={
               <>
@@ -2715,7 +2723,7 @@ function TodayWorkspacePageContent() {
                   }}
                   className="inline-flex h-10 items-center rounded-full border border-surface-4 px-4 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-3"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -2723,7 +2731,7 @@ function TodayWorkspacePageContent() {
                   disabled={!csvUploadFile}
                   className="inline-flex h-10 items-center rounded-full border border-brand-gold/45 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Continue to Mapping
+                  {t("today.csv.continueToMapping")}
                 </button>
               </>
             }
@@ -2731,31 +2739,30 @@ function TodayWorkspacePageContent() {
             <div className="space-y-4">
               <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Template
+                  {t("today.csv.template")}
                 </p>
                 <p className="mt-2 text-sm text-text-secondary">
-                  Download a clean template if you need it.
+                  {t("today.csv.templateDescription")}
                 </p>
                 <button
                   type="button"
                   onClick={handleCsvDownload}
                   className="mt-3 inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-semibold text-text-primary hover:bg-surface-3"
                 >
-                  Download CSV Template
+                  {t("today.csv.downloadTemplate")}
                 </button>
               </div>
 
               <div className="rounded-lg border border-surface-4 bg-surface-3/35 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                  Upload
+                  {t("today.csv.upload")}
                 </p>
                 <p className="mt-2 text-sm text-text-secondary">
-                  If you upload the same file twice, PrepIQ will not
-                  double-count sales.
+                  {t("today.csv.uploadDescription")}
                 </p>
                 <label className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-full border border-surface-4 bg-surface-2 px-4 py-2 text-sm text-text-secondary hover:border-brand-gold">
                   <span>
-                    {csvUploadFile ? csvUploadFile.name : "Choose CSV file"}
+                    {csvUploadFile ? csvUploadFile.name : t("today.csv.chooseFile")}
                   </span>
                   <input
                     type="file"
@@ -2766,7 +2773,7 @@ function TodayWorkspacePageContent() {
                     className="hidden"
                   />
                   <span className="text-xs font-semibold text-brand-gold">
-                    Browse
+                    {t("today.csv.browse")}
                   </span>
                 </label>
                 {csvUploadStatus ? (
@@ -2776,7 +2783,7 @@ function TodayWorkspacePageContent() {
                 ) : null}
                 {csvUploadHeaders.length ? (
                   <p className="mt-2 text-xs text-text-muted">
-                    Columns detected: {csvUploadHeaders.join(", ")}
+                    {t("today.csv.columnsDetectedList", { columns: csvUploadHeaders.join(", ") })}
                   </p>
                 ) : null}
                 {csvUploadError ? (
@@ -2822,7 +2829,7 @@ function TodayWorkspacePageContent() {
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-status-critical animate-pulse" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-critical">
-                  Needs action · {criticalRows.length}
+                  {t("today.live.needsAction")} · {criticalRows.length}
                 </p>
               </div>
               <div className="space-y-3">
@@ -2849,8 +2856,8 @@ function TodayWorkspacePageContent() {
                             {item.product_title}
                           </p>
                           <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-0.5 text-sm text-text-muted">
-                            <span>{formatQuantity(sold, item.unit)} sold</span>
-                            <span>{formatQuantity(totalPrepared, item.unit)} prepared</span>
+                            <span>{t("today.live.sold", { quantity: formatQuantity(sold, item.unit) })}</span>
+                            <span>{t("today.live.prepared", { quantity: formatQuantity(totalPrepared, item.unit) })}</span>
                           </div>
                         </div>
                         {runoutMin !== null && (
@@ -2859,7 +2866,7 @@ function TodayWorkspacePageContent() {
                               {runoutMin}
                             </p>
                             <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-status-critical/70">
-                              min left
+                              {t("today.live.minLeft")}
                             </p>
                           </div>
                         )}
@@ -2869,7 +2876,7 @@ function TodayWorkspacePageContent() {
                       <div className="mt-4 space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-text-muted">
-                            {formatQuantity(remaining, item.unit)} remaining
+                            {t("today.live.remaining", { quantity: formatQuantity(remaining, item.unit) })}
                           </span>
                           <span className="font-semibold text-status-critical">
                             {pctRemaining}% left
@@ -2887,10 +2894,10 @@ function TodayWorkspacePageContent() {
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-status-critical">
                           {startBatchNow && runoutMin !== null
-                            ? `Start a batch now — runs out in ${runoutMin} min, prep takes ${prepTimeMin} min`
+                            ? t("today.live.startBatchNow", { runoutMin, prepTimeMin })
                             : runoutMin !== null
-                              ? `Cook more — demand at this rate runs stock out in ${runoutMin} min`
-                              : "Demand is outpacing stock — cook more now"}
+                              ? t("today.live.cookMoreRunout", { runoutMin })
+                              : t("today.live.cookMoreNow")}
                         </p>
                         <div className="flex items-center gap-2">
                           {suggestedAdditional > 0 ? (
@@ -2902,20 +2909,20 @@ function TodayWorkspacePageContent() {
                                   Math.max(1, isDiscreteUnit(item.unit)
                                     ? Math.round(suggestedAdditional)
                                     : suggestedAdditional),
-                                  "Demand spike",
+                                  t("today.reason.demandSpike"),
                                 )
                               }
                               className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
                             >
-                              + Prepare {formatQuantity(Math.max(1, suggestedAdditional), item.unit)}
+                              {t("today.live.prepare", { quantity: formatQuantity(Math.max(1, suggestedAdditional), item.unit) })}
                             </button>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => logProduction(item.id, 1, "Demand spike")}
+                              onClick={() => logProduction(item.id, 1, t("today.reason.demandSpike"))}
                               className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
                             >
-                              + Cook more
+                              {t("today.live.cookMore")}
                             </button>
                           )}
                           <button
@@ -2923,7 +2930,7 @@ function TodayWorkspacePageContent() {
                             onClick={() => quickTapSale(item.id, item, 1)}
                             className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
                           >
-                            +1 sold
+                            {t("today.live.plusOneSold")}
                           </button>
                         </div>
                       </div>
@@ -2940,7 +2947,7 @@ function TodayWorkspacePageContent() {
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-status-warning" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-warning">
-                  Keep an eye on · {watchRows.length}
+                  {t("today.live.keepEye")} · {watchRows.length}
                 </p>
               </div>
               <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4">
@@ -2951,10 +2958,10 @@ function TodayWorkspacePageContent() {
                   const runoutMin = typeof monitor?.risk_engine?.runout_minutes === "number"
                     ? Math.round(monitor.risk_engine.runout_minutes) : null;
                   const note = wasteRisk === "HIGH"
-                    ? "Slow sales — hold off on more batches"
+                    ? t("today.live.slowSales")
                     : runoutMin !== null && runoutMin < 45
-                      ? `May need more in ~${runoutMin} min`
-                      : "Running steady";
+                      ? t("today.live.mayNeedMore", { runoutMin })
+                      : t("today.live.runningSteady");
 
                   return (
                     <div
@@ -2974,7 +2981,7 @@ function TodayWorkspacePageContent() {
                             />
                           </div>
                           <span className="text-xs text-text-muted">
-                            {formatQuantity(remaining, item.unit)} left
+                            {t("today.live.left", { quantity: formatQuantity(remaining, item.unit) })}
                           </span>
                         </div>
                       </div>
@@ -2991,14 +2998,14 @@ function TodayWorkspacePageContent() {
                           onClick={() => quickTapSale(item.id, item, 1)}
                           className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3 active:scale-[0.97]"
                         >
-                          +1 sold
+                          {t("today.live.plusOneSold")}
                         </button>
                         <button
                           type="button"
                           onClick={() => logProduction(item.id, 1)}
                           className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10 active:scale-[0.97]"
                         >
-                          + batch
+                          {t("today.live.plusBatch")}
                         </button>
                       </div>
                     </div>
@@ -3019,11 +3026,11 @@ function TodayWorkspacePageContent() {
                 <div className="flex items-center gap-2.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-status-success" />
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    On track · {okRows.length} items
+                    {t("today.live.onTrack")} · {okRows.length} {t("today.live.items")}
                   </span>
                 </div>
                 <span className="text-xs text-text-muted">
-                  {showOkRows ? "Hide" : "Show all ↓"}
+                  {showOkRows ? t("today.live.hide") : t("today.live.showAll")}
                 </span>
               </button>
 
@@ -3057,14 +3064,14 @@ function TodayWorkspacePageContent() {
                             onClick={() => quickTapSale(item.id, item, 1)}
                             className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
                           >
-                            +1
+                            {t("today.live.plusOne")}
                           </button>
                           <button
                             type="button"
                             onClick={() => logProduction(item.id, 1)}
                             className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
                           >
-                            +batch
+                            {t("today.live.plusBatch")}
                           </button>
                         </div>
                       </div>
@@ -3080,7 +3087,7 @@ function TodayWorkspacePageContent() {
             <div className="mb-7 flex items-center gap-3 rounded-xl border border-status-success/30 bg-status-success/5 px-5 py-4">
               <span className="h-2 w-2 shrink-0 rounded-full bg-status-success" />
               <p className="text-sm text-status-success">
-                All clear — every item is running to plan.
+                {t("today.live.allClear")}
               </p>
             </div>
           )}
@@ -3099,23 +3106,28 @@ function TodayWorkspacePageContent() {
             const accDelta = rp.daily_outcome.metrics.forecast_accuracy.comparison;
 
             const grade =
-              accuracy >= 85 && stockouts === 0 ? "Great day"
-              : accuracy >= 75 && stockouts <= 1 ? "Good day"
-              : accuracy >= 60 ? "Solid day"
-              : "Tough one";
+              accuracy >= 85 && stockouts === 0 ? "great"
+              : accuracy >= 75 && stockouts <= 1 ? "good"
+              : accuracy >= 60 ? "solid"
+              : "tough";
+            const gradeLabel = grade === "great" ? t("today.closed.great")
+              : grade === "good" ? t("today.closed.good")
+              : grade === "solid" ? t("today.closed.solid")
+              : t("today.closed.tough");
             const gradeClass =
-              grade === "Great day" ? "text-status-success"
-              : grade === "Good day" ? "text-status-success"
-              : grade === "Solid day" ? "text-status-warning"
+              grade === "great" || grade === "good" ? "text-status-success"
+              : grade === "solid" ? "text-status-warning"
               : "text-status-critical";
             const gradeSub =
-              grade === "Great day"
-                ? `${accuracy.toFixed(0)}% accuracy and no stockouts. Clean service.`
-                : grade === "Good day"
-                  ? `${accuracy.toFixed(0)}% accuracy. ${stockouts === 0 ? "No stockouts." : `${stockouts} stockout${stockouts > 1 ? "s" : ""}.`}`
-                  : grade === "Solid day"
-                    ? `${accuracy.toFixed(0)}% accuracy. Room to improve on a few items.`
-                    : `Service can be unpredictable. Here's what to learn from it.`;
+              grade === "great"
+                ? t("today.closed.greatSub", { accuracy: accuracy.toFixed(0) })
+                : grade === "good"
+                  ? stockouts === 0
+                    ? t("today.closed.goodSubNoStockouts", { accuracy: accuracy.toFixed(0) })
+                    : t("today.closed.goodSubStockouts", { accuracy: accuracy.toFixed(0), stockouts })
+                  : grade === "solid"
+                    ? t("today.closed.solidSub", { accuracy: accuracy.toFixed(0) })
+                    : t("today.closed.toughSub");
 
             // Override items — from training_rows where chef_adjustment is meaningful
             const overrideItems = rp.learning_signals.training_rows.filter(
@@ -3128,10 +3140,10 @@ function TodayWorkspacePageContent() {
               <div className="flex flex-col gap-3 border-b border-surface-4/60 pb-8 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    Day closed · {new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                    {t("today.closed.dayClosed")} · {new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                   </p>
                   <h3 className={`mt-1 font-display text-4xl font-semibold ${gradeClass}`}>
-                    {grade}
+                    {gradeLabel}
                   </h3>
                   <p className="mt-1.5 text-sm text-text-secondary">{gradeSub}</p>
                   {rp.key_insights?.insights?.length ? (
@@ -3146,31 +3158,31 @@ function TodayWorkspacePageContent() {
               <div className="grid grid-cols-2 gap-px bg-surface-4/40 rounded-xl overflow-hidden sm:grid-cols-4">
                 {[
                   {
-                    label: "AI accuracy",
+                    label: t("today.closed.aiAccuracy"),
                     value: `${accuracy.toFixed(0)}%`,
                     sub: accDelta
-                      ? `${accDelta.direction === "up" ? "↑" : accDelta.direction === "down" ? "↓" : "→"} ${Math.abs(accDelta.delta_pct).toFixed(0)}% vs last ${new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}`
-                      : "vs last same day",
+                      ? t("today.closed.accuracyDelta", { arrow: accDelta.direction === "up" ? "↑" : accDelta.direction === "down" ? "↓" : "→", pct: Math.abs(accDelta.delta_pct).toFixed(0), day: new Date(branchDay.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }) })
+                      : t("today.closed.vsLastSameDay"),
                     tone: accuracy >= 80 ? "text-status-success" : accuracy >= 65 ? "text-status-warning" : "text-status-critical",
                   },
                   {
-                    label: "Waste cost",
+                    label: t("today.closed.wasteCost"),
                     value: formatCurrency(wasteCost),
                     sub: wasteDelta
-                      ? `${wasteDelta.direction === "up" ? "↑ worse" : wasteDelta.direction === "down" ? "↓ better" : "→ same"} vs last same day`
+                      ? t("today.closed.wasteDelta", { direction: wasteDelta.direction })
                       : null,
                     tone: wasteCost === 0 ? "text-status-success" : wasteDelta?.direction === "down" ? "text-status-success" : "text-status-warning",
                   },
                   {
-                    label: "Revenue protected",
+                    label: t("today.closed.revenueProtected"),
                     value: formatCurrency(revenueProtected),
-                    sub: "from avoiding stockouts",
+                    sub: t("today.closed.fromAvoidingStockouts"),
                     tone: revenueProtected > 0 ? "text-status-success" : "text-text-muted",
                   },
                   {
-                    label: "Stockouts",
-                    value: stockouts === 0 ? "None" : `${stockouts}`,
-                    sub: stockouts === 0 ? "Clean service today" : `${stockouts} item${stockouts > 1 ? "s" : ""} ran out`,
+                    label: t("today.closed.stockouts"),
+                    value: stockouts === 0 ? t("today.closed.none") : `${stockouts}`,
+                    sub: stockouts === 0 ? t("today.closed.cleanService") : t("today.closed.itemsRanOut", { count: stockouts }),
                     tone: stockouts === 0 ? "text-status-success" : "text-status-critical",
                   },
                 ].map((kpi) => (
@@ -3186,7 +3198,7 @@ function TodayWorkspacePageContent() {
               {rp.item_performance?.rows?.length ? (
                 <section>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                    How each item did
+                    {t("today.closed.howEachItemDid")}
                   </p>
                   <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
                     {rp.item_performance.rows.map((row) => {
@@ -3194,10 +3206,10 @@ function TodayWorkspacePageContent() {
                       const wasteRatio = row.prepared > 0 ? row.waste / row.prepared : 0;
                       const hasWaste = !isStockout && wasteRatio > 0.08;
                       const outcome = isStockout
-                        ? { icon: "⚡", label: "Ran short", cls: "text-status-critical", sub: row.lost_revenue_estimate > 0 ? `~${formatCurrency(row.lost_revenue_estimate)} missed revenue` : null }
+                        ? { icon: "⚡", label: t("today.closed.ranShort"), cls: "text-status-critical", sub: row.lost_revenue_estimate > 0 ? t("today.closed.missedRevenue", { amount: formatCurrency(row.lost_revenue_estimate) }) : null }
                         : hasWaste
-                          ? { icon: "○", label: "Had waste", cls: "text-status-warning", sub: `${formatQuantity(row.waste, row.unit)} leftover` }
-                          : { icon: "✓", label: "Sold clean", cls: "text-status-success", sub: null };
+                          ? { icon: "○", label: t("today.closed.hadWaste"), cls: "text-status-warning", sub: t("today.closed.leftover", { quantity: formatQuantity(row.waste, row.unit) }) }
+                          : { icon: "✓", label: t("today.closed.soldClean"), cls: "text-status-success", sub: null };
                       return (
                         <div key={row.item_id} className="flex items-center gap-4 px-5 py-3.5">
                           <span className={`shrink-0 w-5 text-center text-base ${outcome.cls}`}>{outcome.icon}</span>
@@ -3209,11 +3221,11 @@ function TodayWorkspacePageContent() {
                           </div>
                           <div className="shrink-0 text-right">
                             <p className="text-xs text-text-muted">
-                              {formatQuantity(row.sold, row.unit)} sold
+                              {t("today.closed.soldQuantity", { quantity: formatQuantity(row.sold, row.unit) })}
                             </p>
                             {row.prepared > 0 && (
                               <p className="text-xs text-text-muted">
-                                of {formatQuantity(row.prepared, row.unit)} prepped
+                                {t("today.closed.ofPrepped", { quantity: formatQuantity(row.prepared, row.unit) })}
                               </p>
                             )}
                           </div>
@@ -3228,13 +3240,11 @@ function TodayWorkspacePageContent() {
               {overrideItems.length > 0 ? (
                 <section>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                    Where you diverged from the AI
+                    {t("today.closed.whereYouDiverged")}
                   </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    {overrideItems.length === 1
-                      ? "1 item where you changed the plan."
-                      : `${overrideItems.length} items where you changed the plan.`}{" "}
-                    Here's how it played out.
+                    {t("today.closed.changedPlan", { count: overrideItems.length })}{" "}
+                    {t("today.closed.howItPlayed")}
                   </p>
                   <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
                     {overrideItems.map((row) => {
@@ -3243,19 +3253,19 @@ function TodayWorkspacePageContent() {
                       const wasteCost = snapshot ? parseFloat(snapshot.waste_cost) : 0;
                       const missedRevenue = snapshot ? parseFloat(snapshot.lost_revenue_estimate) : 0;
                       const costLine = wasteCost > 1
-                        ? `Waste: ~${formatCurrency(wasteCost)}`
+                        ? t("today.closed.wasteLine", { amount: formatCurrency(wasteCost) })
                         : missedRevenue > 1
-                          ? `Missed: ~${formatCurrency(missedRevenue)}`
+                          ? t("today.closed.missedLine", { amount: formatCurrency(missedRevenue) })
                           : null;
                       return (
                         <div key={row.item_id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3.5">
                           <p className="min-w-[140px] text-sm font-medium text-text-primary">{row.item_title}</p>
                           <div className="flex items-center gap-2 text-xs text-text-muted">
-                            <span>AI: <span className="font-medium text-text-secondary">{formatQuantity(row.forecast_qty, row.unit)}</span></span>
+                            <span>{t("today.closed.ai")}: <span className="font-medium text-text-secondary">{formatQuantity(row.forecast_qty, row.unit)}</span></span>
                             <span className="text-text-muted">→</span>
-                            <span>You: <span className="font-medium text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</span></span>
+                            <span>{t("today.closed.you")}: <span className="font-medium text-text-secondary">{formatQuantity(row.chef_planned_qty, row.unit)}</span></span>
                             <span className="text-text-muted">→</span>
-                            <span>Sold: <span className="font-semibold text-text-primary">{formatQuantity(row.actual_sales, row.unit)}</span></span>
+                            <span>{t("today.closed.sold")}: <span className="font-semibold text-text-primary">{formatQuantity(row.actual_sales, row.unit)}</span></span>
                             {costLine && (
                               <span className={won ? "text-status-success" : "text-status-warning"}>
                                 · {costLine}
@@ -3263,7 +3273,7 @@ function TodayWorkspacePageContent() {
                             )}
                           </div>
                           <span className={`ml-auto shrink-0 text-xs font-semibold ${won ? "text-status-success" : "text-status-warning"}`}>
-                            {won ? "✓ Your call paid off" : "AI was closer"}
+                            {won ? t("today.closed.yourCallPaidOff") : t("today.closed.aiWasCloser")}
                           </span>
                         </div>
                       );
@@ -3271,9 +3281,7 @@ function TodayWorkspacePageContent() {
                   </div>
                   {(rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 0 && (
                     <p className="mt-3 text-xs text-status-success">
-                      Your overrides improved outcomes on{" "}
-                      <span className="font-semibold">{rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows}</span>{" "}
-                      item{(rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0) > 1 ? "s" : ""} — those signals are weighted into tomorrow's model.
+                      {t("today.closed.overridesImproved", { count: rp.learning_signals.ml_learning_signals?.chef_outperformed_forecast_rows ?? 0 })}
                     </p>
                   )}
                 </section>
@@ -3282,29 +3290,29 @@ function TodayWorkspacePageContent() {
               {/* ── 5. WHAT THE MODEL LEARNED ── */}
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  What the model learned today
+                  {t("today.closed.whatModelLearned")}
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-0 rounded-xl border border-surface-4 bg-surface-2 overflow-hidden sm:grid-cols-4 divide-x divide-surface-4/60">
                   {[
                     {
                       value: rp.learning_signals.ml_learning_signals?.rows ?? rp.learning_signals.training_rows.length,
-                      label: "Training signals",
-                      sub: "items tracked",
+                      label: t("today.closed.trainingSignals"),
+                      sub: t("today.closed.itemsTracked"),
                     },
                     {
                       value: rp.learning_signals.ml_learning_signals?.chef_override_rows ?? overrideItems.length,
-                      label: "Your overrides",
-                      sub: "plan changes",
+                      label: t("today.closed.yourOverrides"),
+                      sub: t("today.closed.planChanges"),
                     },
                     {
                       value: rp.learning_signals.ml_learning_signals?.waste_rows ?? 0,
-                      label: "Waste events",
-                      sub: "items with leftover",
+                      label: t("today.closed.wasteEvents"),
+                      sub: t("today.closed.itemsWithLeftover"),
                     },
                     {
                       value: rp.learning_signals.ml_learning_signals?.stockout_rows ?? stockouts,
-                      label: "Stockouts",
-                      sub: "items that ran out",
+                      label: t("today.closed.stockouts"),
+                      sub: t("today.closed.itemsThatRanOut"),
                     },
                   ].map((s) => (
                     <div key={s.label} className="px-5 py-4">
@@ -3315,26 +3323,26 @@ function TodayWorkspacePageContent() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-text-muted">
-                  Today's data is feeding into tomorrow's forecast. The model improves with every service.
+                  {t("today.closed.modelImproves")}
                 </p>
               </section>
 
               {/* ── 6. TOMORROW ── */}
               <section className="rounded-xl border border-brand-gold/30 bg-brand-gold/5 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                  Before you come in tomorrow
+                  {t("today.closed.beforeTomorrow")}
                 </p>
                 <p className="mt-2 text-sm font-medium text-text-primary">
                   {rp.tomorrow_early_signal.message}
                 </p>
                 {rp.tomorrow_early_signal.expected_demand_change_pct !== 0 && (
                   <p className="mt-1 text-xs text-text-muted">
-                    Demand expected to be{" "}
+                    {t("today.closed.demandExpectedToBe")}{" "}
                     <span className={`font-semibold ${rp.tomorrow_early_signal.expected_demand_change_pct > 0 ? "text-status-success" : "text-status-warning"}`}>
                       {rp.tomorrow_early_signal.expected_demand_change_pct > 0 ? "+" : ""}{rp.tomorrow_early_signal.expected_demand_change_pct.toFixed(0)}%
                     </span>{" "}
-                    {rp.tomorrow_early_signal.weekday ? `vs a typical ${rp.tomorrow_early_signal.weekday}` : "vs baseline"}
-                    {rp.tomorrow_early_signal.sample_size ? ` · based on ${rp.tomorrow_early_signal.sample_size} similar days` : ""}
+                    {rp.tomorrow_early_signal.weekday ? t("today.closed.vsTypical", { day: rp.tomorrow_early_signal.weekday }) : t("today.closed.vsBaseline")}
+                    {rp.tomorrow_early_signal.sample_size ? t("today.closed.basedOn", { count: rp.tomorrow_early_signal.sample_size }) : ""}
                   </p>
                 )}
                 {rp.learning_signals.tomorrow_actions?.length ? (
@@ -3351,7 +3359,7 @@ function TodayWorkspacePageContent() {
                   href={`/workspace/today?branch_id=${branchDay.branch_id}&date=${rp.tomorrow_early_signal.target_date}`}
                   className="mt-4 inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15"
                 >
-                  Preview tomorrow's plan →
+                  {t("today.closed.previewTomorrow")}
                 </Link>
               </section>
 
@@ -3365,18 +3373,18 @@ function TodayWorkspacePageContent() {
                     emoji: string;
                     label: string;
                   }[] = [
-                    { value: "FIRED_UP", emoji: "🔥", label: "Fired up" },
-                    { value: "GOOD",     emoji: "😊", label: "Good" },
-                    { value: "MEH",      emoji: "😐", label: "Meh" },
-                    { value: "ROUGH",    emoji: "😮‍💨", label: "Rough one" },
+                    { value: "FIRED_UP", emoji: "🔥", label: t("today.closed.firedUp") },
+                    { value: "GOOD",     emoji: "😊", label: t("today.closed.good") },
+                    { value: "MEH",      emoji: "😐", label: t("today.closed.meh") },
+                    { value: "ROUGH",    emoji: "😮‍💨", label: t("today.closed.rough") },
                   ];
                   return (
                     <div>
                       <p className="text-sm font-semibold text-text-primary">
-                        How are you leaving today?
+                        {t("today.closed.howLeaving")}
                       </p>
                       <p className="mt-0.5 text-xs text-text-muted">
-                        Not what happened — how <em>you</em> feel right now.
+                        {t("today.closed.feelRightNow")}
                       </p>
                       <div className="mt-3 flex gap-3">
                         {reactions.map((r) => {
@@ -3397,7 +3405,7 @@ function TodayWorkspacePageContent() {
                                   reaction: next,
                                 });
                                 if (next) {
-                                  const pool = REACTION_MESSAGES[next] ?? [];
+                                    const pool = reactionMessages[next] ?? [];
                                   const msg = pool[Math.floor(Math.random() * pool.length)] ?? "";
                                   setAckPending(true);
                                   setTimeout(() => {
@@ -3442,24 +3450,24 @@ function TodayWorkspacePageContent() {
                 {/* Note */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                    Anything worth noting?
+                    {t("today.closed.anythingWorthNoting")}
                   </p>
                   <p className="mt-1 text-xs text-text-muted">
-                    Special event, staffing issue, unexpected rush — context here makes tomorrow's forecast sharper.
+                    {t("today.closed.contextMakesSharper")}
                   </p>
                   {noteSaved ? (
-                    <p className="mt-4 text-sm text-status-success">✓ Saved — the model will factor this in.</p>
+                    <p className="mt-4 text-sm text-status-success">{t("today.closed.saved")}</p>
                   ) : (
                     <div className="mt-3">
                       <textarea
                         rows={3}
-                        placeholder="e.g. Birthday party for 40 guests, short-staffed, local event nearby..."
+                        placeholder={t("today.closed.notePlaceholder")}
                         value={dayNote || branchDay.session_notes || ""}
                         onChange={(e) => setDayNote(e.target.value)}
                         className="w-full resize-none rounded-xl border border-surface-4 bg-surface-3 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                       />
                       <div className="mt-2 flex items-center justify-between">
-                        <p className="text-[11px] text-text-muted">Not shared externally — goes into your training data.</p>
+                        <p className="text-[11px] text-text-muted">{t("today.closed.notShared")}</p>
                         <button
                           type="button"
                           disabled={!dayNote.trim() || updateBranchDayNotesMutation.isPending}
@@ -3472,7 +3480,7 @@ function TodayWorkspacePageContent() {
                           }}
                           className="inline-flex h-9 items-center rounded-full border border-brand-gold/40 px-4 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {updateBranchDayNotesMutation.isPending ? "Saving…" : "Save note"}
+                          {updateBranchDayNotesMutation.isPending ? t("today.closed.saving") : t("today.closed.saveNote")}
                         </button>
                       </div>
                     </div>
@@ -3486,8 +3494,8 @@ function TodayWorkspacePageContent() {
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/20 mb-3">
                 <div className="h-5 w-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
               </div>
-              <p className="text-sm text-text-muted">Preparing your day summary…</p>
-              <p className="mt-1 text-xs text-text-muted">This takes a few seconds.</p>
+              <p className="text-sm text-text-muted">{t("today.closed.preparingSummary")}</p>
+              <p className="mt-1 text-xs text-text-muted">{t("today.closed.takesAFewSeconds")}</p>
             </div>
           )}
         </section>
@@ -3500,7 +3508,7 @@ function TodayWorkspacePageContent() {
         <div className="mt-8 py-12 text-center">
           <Calendar className="mx-auto h-8 w-8 text-text-muted mb-3" />
           <p className="text-sm text-text-secondary">
-            Status is{" "}
+            {t("today.statusIs")}{" "}
             <span className="font-semibold text-text-primary">{branchDay.status}</span>.
           </p>
         </div>
@@ -3513,16 +3521,16 @@ function TodayWorkspacePageContent() {
         <div className="mt-8 py-12 text-center">
           <Calendar className="mx-auto h-8 w-8 text-status-warning mb-3" />
           <p className="text-sm text-text-secondary">
-            Morning mode is initialized, but there are no active prep items for this branch yet.
+            {t("today.noActivePrepItems")}
           </p>
         </div>
       ) : null}
 
       <ConfirmActionModal
         open={confirmAction === "START_LIVE"}
-        title="Start Service?"
-        description="Service begins. Live monitoring activates and production logs open."
-        confirmLabel="Start Service"
+        title={t("today.modal.startServiceTitle")}
+        description={t("today.modal.startServiceDescription")}
+        confirmLabel={t("today.modal.startServiceConfirm")}
         isConfirming={updateBranchDayStatusMutation.isPending}
         onClose={() => setConfirmAction(null)}
         onConfirm={startLiveService}
@@ -3530,9 +3538,9 @@ function TodayWorkspacePageContent() {
 
       <ConfirmActionModal
         open={confirmAction === "CLOSE_DAY"}
-        title="Close Day?"
-        description="End-of-day summary will be generated. Today closes and cannot be re-opened."
-        confirmLabel="Close Day"
+        title={t("today.modal.closeDayTitle")}
+        description={t("today.modal.closeDayDescription")}
+        confirmLabel={t("today.modal.closeDayConfirm")}
         tone="critical"
         isConfirming={updateBranchDayStatusMutation.isPending}
         onClose={() => setConfirmAction(null)}
