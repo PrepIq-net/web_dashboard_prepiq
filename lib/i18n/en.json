@@ -905,6 +905,233 @@
       "workspace": "Workspace"
     }
   },
+  "settings": {
+    "organization": {
+      "title": "Organization Settings",
+      "description": "Manage global business identity and operational defaults.",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "general": "General",
+      "branding": "Branding",
+      "operationalDefaults": "Operational Defaults",
+      "language": "Language",
+      "orgName": "Organization Name",
+      "orgNamePlaceholder": "e.g. PrepIQ Kitchen",
+      "businessType": "Business Type",
+      "timezone": "Timezone",
+      "defaultCurrency": "Default Currency",
+      "orgLogo": "Organization Logo",
+      "updateLogo": "Update Logo",
+      "logoHint": "SVG, PNG or JPG (max 2MB)",
+      "uploadNew": "Upload New",
+      "brandColor": "Brand Color",
+      "receiptName": "Receipt Name",
+      "receiptNamePlaceholder": "e.g. PREPIQ KITCHEN LTD",
+      "defaultPrepBuffer": "Default Prep Buffer (Minutes)",
+      "forecastHorizon": "Forecast Horizon (Days)",
+      "businessTypeOptions": {
+        "restaurant": "Restaurant",
+        "hotel": "Hotel",
+        "bakery": "Bakery",
+        "cloudKitchen": "Cloud Kitchen",
+        "catering": "Catering",
+        "institutional": "Institutional"
+      },
+      "timezoneOptions": {
+        "utc": "UTC",
+        "eastern": "Eastern Time (ET)",
+        "pacific": "Pacific Time (PT)",
+        "london": "London (GMT)",
+        "eastAfrica": "East Africa (EAT)"
+      },
+      "currencyOptions": {
+        "usd": "USD ($)",
+        "eur": "EUR (€)",
+        "gbp": "GBP (£)",
+        "kes": "KES (KSh)"
+      },
+      "languageDescription": "Interface language for this organization's workspace.",
+      "updated": "Organization settings updated"
+    },
+    "branch": {
+      "title": "Branch Settings",
+      "description": "Configure kitchen capacity, schedules, and local demand signals.",
+      "selectBranchPlaceholder": "Select Branch",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "noBranchSelected": "Select a branch to configure its settings.",
+      "general": "General",
+      "kitchenConfiguration": "Kitchen Configuration",
+      "demandContext": "Demand Context",
+      "inventoryRules": "Inventory Rules",
+      "branchName": "Branch Name",
+      "address": "Address",
+      "timezone": "Timezone",
+      "kitchenCapacity": "Kitchen Capacity (Units)",
+      "avgPrepTime": "Average Prep Time (Minutes)",
+      "serviceStartTime": "Service Start Time",
+      "serviceEndTime": "Service End Time",
+      "seasonalityProfile": "Seasonality Profile",
+      "seasonalityPlaceholder": "e.g. Campus-Heavy, Tourist",
+      "minStockBuffer": "Min Stock Buffer (%)",
+      "wasteThreshold": "Waste Threshold (%)",
+      "reorderBuffer": "Reorder Buffer",
+      "demandContextBefore": "Advanced demand patterns (nearby venues, events) are currently managed via the",
+      "intelligenceEngine": "PrepIQ Intelligence Engine",
+      "demandContextAfter": "automatically.",
+      "updated": "Branch settings updated"
+    },
+    "tabs": {
+      "organization": "Organization",
+      "branches": "Branches",
+      "usersRoles": "Users & Roles",
+      "integrations": "Integrations",
+      "notifications": "Notifications",
+      "security": "Security",
+      "dataAI": "Data & AI Preferences",
+      "support": "Support"
+    },
+    "shell": {
+      "eyebrow": "System",
+      "title": "Settings",
+      "description": "Workspace configuration, access controls, and platform preferences.",
+      "insight": "Enable branch-level default context to reduce navigation friction for operators."
+    },
+    "underDevelopment": "This section is currently under development.",
+    "integrations": {
+      "title": "Integrations",
+      "description": "Connect your POS and accounting systems to PrepIQ — per branch.",
+      "branchesConnected": "{count} of {total} branches connected",
+      "syncHealth": "{pct}% sync health",
+      "integrationFor": "Integration for",
+      "loadingBranches": "Loading branches…",
+      "selectBranch": "Select branch",
+      "posConnected": "POS connected",
+      "noPosConnected": "No POS connected",
+      "lastSync": "Last sync:",
+      "active": "Active",
+      "noIntegrationData": "No integration data for {name} yet.",
+      "posIssueTitle": "POS issue detected for {name}",
+      "posIssueDescription": "Sales data isn't syncing for this branch. Connect a POS system below.",
+      "sectionPos": "POS Systems",
+      "sectionAccounting": "Accounting & Reservations",
+      "isConnectedSuffix": "{name} is connected",
+      "connectFor": "Connect for {name}",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "connect": "Connect",
+      "privateBeta": "QuickBooks, Xero, and OpenTable integrations are currently in private beta. Contact support to join the waitlist.",
+      "connectionNotImplemented": "{posId} connection not implemented yet.",
+      "posSystems": {
+        "square": "Square",
+        "toast": "Toast",
+        "clover": "Clover",
+        "loyverse": "Loyverse",
+        "lightspeed": "Lightspeed"
+      }
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "description": "Control how and when you receive operational alerts.",
+      "tableHeader": {
+        "type": "Notification Type",
+        "inApp": "In-App",
+        "email": "Email",
+        "push": "Push"
+      },
+      "types": {
+        "production": "Production & Prep",
+        "productionDesc": "Prep plan updates and completion alerts",
+        "inventory": "Inventory & Waste",
+        "inventoryDesc": "Stockout risks and high-waste threshold alerts",
+        "supplier": "Supplier & Purchasing",
+        "supplierDesc": "Order reminders and delivery status",
+        "staff": "Staff & Performance",
+        "staffDesc": "Shift assignments and daily summaries"
+      },
+      "escalationTitle": "Operational Escalation",
+      "escalationDescription": "Critical system alerts (like server downtime or major inventory discrepancies) bypass these settings and are always sent via all available channels to ensure operational continuity."
+    },
+    "roles": {
+      "title": "Custom Roles",
+      "description": "Create and manage custom roles with specific permissions.",
+      "newRole": "New Role",
+      "table": {
+        "name": "Name",
+        "description": "Description",
+        "permissions": "Permissions",
+        "actions": "Actions",
+        "more": "+{n} more"
+      },
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "empty": {
+        "title": "No custom roles yet.",
+        "description": "Create your first custom role to get started."
+      },
+      "createModal": {
+        "title": "Create Custom Role",
+        "description": "Define a new custom role and assign permissions."
+      },
+      "editModal": {
+        "title": "Edit Custom Role",
+        "description": "Update the custom role and its permissions."
+      },
+      "modal": {
+        "roleNameLabel": "Role Name",
+        "roleNamePlaceholder": "e.g., Branch Manager",
+        "descriptionLabel": "Description (optional)",
+        "descriptionPlaceholder": "e.g., Manages branch operations",
+        "permissionsLabel": "Permissions",
+        "selected": "{n} of {m} selected",
+        "nameError": "Role name is required.",
+        "cancel": "Cancel",
+        "create": "Create Role",
+        "creating": "Creating...",
+        "update": "Update Role",
+        "updating": "Updating..."
+      },
+      "deleteModal": {
+        "title": "Delete role \"{name}\"?",
+        "titleDefault": "Delete role",
+        "description": "Deleting \"{name}\" cannot be undone. Members assigned to this role will need a new role.",
+        "descriptionDefault": "This action cannot be undone.",
+        "confirmLabel": "Delete role"
+      },
+      "noPermissions": "No permissions available."
+    },
+    "users": {
+      "title": "Team Members",
+      "description": "Manage team access and role assignments.",
+      "addMember": "Add Member",
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "assignedRole": "Assigned Role",
+        "branch": "Branch",
+        "actions": "Actions",
+        "allBranches": "All Branches"
+      },
+      "removeMember": "Remove Member",
+      "addMemberModal": {
+        "title": "Add Organization Member",
+        "description": "Invite a registered user. They'll receive the selected role.",
+        "emailLabel": "User Email",
+        "emailPlaceholder": "colleague@example.com",
+        "roleLabel": "Assign Role",
+        "cancel": "Cancel",
+        "add": "Add Member",
+        "adding": "Adding..."
+      },
+      "removeModal": {
+        "title": "Remove {label}?",
+        "titleDefault": "Remove member",
+        "description": "This will remove {label} from the organization and revoke access immediately.",
+        "descriptionDefault": "This action will remove the member from the organization.",
+        "confirmLabel": "Remove member"
+      }
+    }
+  },
   "roles": {
     "ORG_OWNER": "Organization Owner",
     "OPS_DIRECTOR": "Operations Director",

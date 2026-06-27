@@ -905,6 +905,233 @@
       "workspace": "Espace de travail"
     }
   },
+  "settings": {
+    "organization": {
+      "title": "Paramètres de l'organisation",
+      "description": "Gérez l'identité commerciale et les valeurs par défaut opérationnelles.",
+      "saving": "Enregistrement...",
+      "saveChanges": "Enregistrer les modifications",
+      "general": "Général",
+      "branding": "Marque",
+      "operationalDefaults": "Valeurs par défaut opérationnelles",
+      "language": "Langue",
+      "orgName": "Nom de l'organisation",
+      "orgNamePlaceholder": "ex. Cuisine PrepIQ",
+      "businessType": "Type d'entreprise",
+      "timezone": "Fuseau horaire",
+      "defaultCurrency": "Devise par défaut",
+      "orgLogo": "Logo de l'organisation",
+      "updateLogo": "Mettre à jour le logo",
+      "logoHint": "SVG, PNG ou JPG (max 2 Mo)",
+      "uploadNew": "Télécharger",
+      "brandColor": "Couleur de la marque",
+      "receiptName": "Nom sur le reçu",
+      "receiptNamePlaceholder": "ex. PREPIQ KITCHEN LTD",
+      "defaultPrepBuffer": "Tampon de préparation par défaut (minutes)",
+      "forecastHorizon": "Horizon de prévision (jours)",
+      "businessTypeOptions": {
+        "restaurant": "Restaurant",
+        "hotel": "Hôtel",
+        "bakery": "Boulangerie",
+        "cloudKitchen": "Cuisine virtuelle",
+        "catering": "Traiteur",
+        "institutional": "Institutionnel"
+      },
+      "timezoneOptions": {
+        "utc": "UTC",
+        "eastern": "Heure de l'Est (ET)",
+        "pacific": "Heure du Pacifique (PT)",
+        "london": "Londres (GMT)",
+        "eastAfrica": "Afrique de l'Est (EAT)"
+      },
+      "currencyOptions": {
+        "usd": "USD ($)",
+        "eur": "EUR (€)",
+        "gbp": "GBP (£)",
+        "kes": "KES (KSh)"
+      },
+      "languageDescription": "Langue de l'interface pour l'espace de travail de cette organisation.",
+      "updated": "Paramètres de l'organisation mis à jour"
+    },
+    "branch": {
+      "title": "Paramètres de la succursale",
+      "description": "Configurez la capacité de la cuisine, les horaires et les signaux de demande locaux.",
+      "selectBranchPlaceholder": "Sélectionner une succursale",
+      "saving": "Enregistrement...",
+      "saveChanges": "Enregistrer les modifications",
+      "noBranchSelected": "Sélectionnez une succursale pour configurer ses paramètres.",
+      "general": "Général",
+      "kitchenConfiguration": "Configuration de la cuisine",
+      "demandContext": "Contexte de la demande",
+      "inventoryRules": "Règles d'inventaire",
+      "branchName": "Nom de la succursale",
+      "address": "Adresse",
+      "timezone": "Fuseau horaire",
+      "kitchenCapacity": "Capacité de la cuisine (unités)",
+      "avgPrepTime": "Temps de préparation moyen (minutes)",
+      "serviceStartTime": "Heure de début du service",
+      "serviceEndTime": "Heure de fin du service",
+      "seasonalityProfile": "Profil de saisonnalité",
+      "seasonalityPlaceholder": "ex. Campus, Touristique",
+      "minStockBuffer": "Tampon de stock minimum (%)",
+      "wasteThreshold": "Seuil de gaspillage (%)",
+      "reorderBuffer": "Tampon de réapprovisionnement",
+      "demandContextBefore": "Les modèles de demande avancés (lieux à proximité, événements) sont actuellement gérés par",
+      "intelligenceEngine": "Moteur d'intelligence PrepIQ",
+      "demandContextAfter": "automatiquement.",
+      "updated": "Paramètres de la succursale mis à jour"
+    },
+    "tabs": {
+      "organization": "Organisation",
+      "branches": "Succursales",
+      "usersRoles": "Utilisateurs et rôles",
+      "integrations": "Intégrations",
+      "notifications": "Notifications",
+      "security": "Sécurité",
+      "dataAI": "Données et IA",
+      "support": "Support"
+    },
+    "shell": {
+      "eyebrow": "Système",
+      "title": "Paramètres",
+      "description": "Configuration de l'espace de travail, contrôles d'accès et préférences de la plateforme.",
+      "insight": "Activez le contexte par défaut au niveau de la succursale pour réduire la friction de navigation des opérateurs."
+    },
+    "underDevelopment": "Cette section est actuellement en développement.",
+    "integrations": {
+      "title": "Intégrations",
+      "description": "Connectez vos systèmes de caisse et de comptabilité à PrepIQ — par succursale.",
+      "branchesConnected": "{count} succursale(s) sur {total} connectée(s)",
+      "syncHealth": "Santé de synchronisation : {pct}%",
+      "integrationFor": "Intégration pour",
+      "loadingBranches": "Chargement des succursales…",
+      "selectBranch": "Sélectionner une succursale",
+      "posConnected": "POS connecté",
+      "noPosConnected": "Aucun POS connecté",
+      "lastSync": "Dernière synchro :",
+      "active": "Actif",
+      "noIntegrationData": "Aucune donnée d'intégration pour {name} pour le moment.",
+      "posIssueTitle": "Problème POS détecté pour {name}",
+      "posIssueDescription": "Les données de vente ne se synchronisent pas pour cette succursale. Connectez un système de caisse ci-dessous.",
+      "sectionPos": "Systèmes POS",
+      "sectionAccounting": "Comptabilité et réservations",
+      "isConnectedSuffix": "{name} est connecté",
+      "connectFor": "Connecter pour {name}",
+      "connected": "Connecté",
+      "notConnected": "Non connecté",
+      "connect": "Connecter",
+      "privateBeta": "Les intégrations QuickBooks, Xero et OpenTable sont actuellement en version bêta privée. Contactez le support pour rejoindre la liste d'attente.",
+      "connectionNotImplemented": "La connexion {posId} n'est pas encore implémentée.",
+      "posSystems": {
+        "square": "Square",
+        "toast": "Toast",
+        "clover": "Clover",
+        "loyverse": "Loyverse",
+        "lightspeed": "Lightspeed"
+      }
+    },
+    "notifications": {
+      "title": "Paramètres de notification",
+      "description": "Contrôlez comment et quand vous recevez les alertes opérationnelles.",
+      "tableHeader": {
+        "type": "Type de notification",
+        "inApp": "In-App",
+        "email": "E-mail",
+        "push": "Push"
+      },
+      "types": {
+        "production": "Production et préparation",
+        "productionDesc": "Mises à jour du plan de préparation et alertes d'achèvement",
+        "inventory": "Inventaire et gaspillage",
+        "inventoryDesc": "Risques de rupture et alertes de seuil de gaspillage élevé",
+        "supplier": "Fournisseur et achats",
+        "supplierDesc": "Rappels de commandes et statut de livraison",
+        "staff": "Personnel et performance",
+        "staffDesc": "Affectations des quarts et résumés quotidiens"
+      },
+      "escalationTitle": "Escalade opérationnelle",
+      "escalationDescription": "Les alertes système critiques (comme les temps d'arrêt du serveur ou les écarts d'inventaire majeurs) contournent ces paramètres et sont toujours envoyées via tous les canaux disponibles pour assurer la continuité opérationnelle."
+    },
+    "roles": {
+      "title": "Rôles personnalisés",
+      "description": "Créez et gérez des rôles personnalisés avec des permissions spécifiques.",
+      "newRole": "Nouveau rôle",
+      "table": {
+        "name": "Nom",
+        "description": "Description",
+        "permissions": "Permissions",
+        "actions": "Actions",
+        "more": "+{n} de plus"
+      },
+      "editRole": "Modifier le rôle",
+      "deleteRole": "Supprimer le rôle",
+      "empty": {
+        "title": "Aucun rôle personnalisé pour l'instant.",
+        "description": "Créez votre premier rôle personnalisé pour commencer."
+      },
+      "createModal": {
+        "title": "Créer un rôle personnalisé",
+        "description": "Définissez un nouveau rôle personnalisé et attribuez des permissions."
+      },
+      "editModal": {
+        "title": "Modifier le rôle personnalisé",
+        "description": "Mettez à jour le rôle personnalisé et ses permissions."
+      },
+      "modal": {
+        "roleNameLabel": "Nom du rôle",
+        "roleNamePlaceholder": "p. ex., Gestionnaire de succursale",
+        "descriptionLabel": "Description (facultative)",
+        "descriptionPlaceholder": "p. ex., Gère les opérations de la succursale",
+        "permissionsLabel": "Permissions",
+        "selected": "{n} sur {m} sélectionné(s)",
+        "nameError": "Le nom du rôle est requis.",
+        "cancel": "Annuler",
+        "create": "Créer le rôle",
+        "creating": "Création en cours...",
+        "update": "Mettre à jour le rôle",
+        "updating": "Mise à jour en cours..."
+      },
+      "deleteModal": {
+        "title": "Supprimer le rôle \"{name}\" ?",
+        "titleDefault": "Supprimer le rôle",
+        "description": "La suppression de \"{name}\" est irréversible. Les membres attribués à ce rôle devront recevoir un nouveau rôle.",
+        "descriptionDefault": "Cette action est irréversible.",
+        "confirmLabel": "Supprimer le rôle"
+      },
+      "noPermissions": "Aucune permission disponible."
+    },
+    "users": {
+      "title": "Membres de l'équipe",
+      "description": "Gérez l'accès de l'équipe et les attributions de rôles.",
+      "addMember": "Ajouter un membre",
+      "table": {
+        "user": "Utilisateur",
+        "role": "Rôle",
+        "assignedRole": "Rôle attribué",
+        "branch": "Succursale",
+        "actions": "Actions",
+        "allBranches": "Toutes les succursales"
+      },
+      "removeMember": "Supprimer le membre",
+      "addMemberModal": {
+        "title": "Ajouter un membre à l'organisation",
+        "description": "Invitez un utilisateur enregistré. Il recevra le rôle sélectionné.",
+        "emailLabel": "Email de l'utilisateur",
+        "emailPlaceholder": "collegue@exemple.com",
+        "roleLabel": "Attribuer un rôle",
+        "cancel": "Annuler",
+        "add": "Ajouter un membre",
+        "adding": "Ajout en cours..."
+      },
+      "removeModal": {
+        "title": "Supprimer {label} ?",
+        "titleDefault": "Supprimer le membre",
+        "description": "Cela supprimera {label} de l’organisation et révoquera immédiatement l’accès.",
+        "descriptionDefault": "Cette action supprimera le membre de l’organisation.",
+        "confirmLabel": "Supprimer le membre"
+      }
+    }
+  },
   "roles": {
     "ORG_OWNER": "Propriétaire de l'organisation",
     "OPS_DIRECTOR": "Directeur des opérations",
