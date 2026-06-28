@@ -569,7 +569,7 @@ function IntegrationsSettings({
   const baseColumns = generateColumns<ConnectorList>(
     // @ts-expect-error - type
     orgConnectors ?? [],
-  ).filter((col) => col.key !== "id");
+  ).filter((col) => col.key !== "id" && col.key!=="machine_id");
 
   const columns = baseColumns.map((col) => {
     if (col.key === "is_online") {
