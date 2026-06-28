@@ -10,11 +10,12 @@ type Column<T> = {
 
 type TableProps<T> = {
   columns: Column<T>[];
-  data: T[];
+  data: T[]|undefined; 
   rowKey: (row: T) => string;
 };
 
 export function Table<T>({ columns, data, rowKey }: TableProps<T>) {
+
   return (
     <div className="rounded-2xl border border-[#1C1C1F] overflow-hidden">
       <table className="w-full text-left border-collapse">
@@ -23,7 +24,9 @@ export function Table<T>({ columns, data, rowKey }: TableProps<T>) {
             {columns.map((column) => (
               <th
                 key={column.key}
-                className={`px-6 py-4 text-sm font-semibold uppercase tracking-wider text-text-muted ${column.headerClassName ?? ""}`}
+                className={`px-6 py-4 text-sm font-semibold uppercase tracking-wider text-text-muted ${
+                  column.headerClassName ?? ""
+                }`}
               >
                 {column.header}
               </th>
@@ -32,7 +35,7 @@ export function Table<T>({ columns, data, rowKey }: TableProps<T>) {
         </thead>
 
         <tbody className="divide-y divide-[#1C1C1F]/50">
-          {data.map((row) => (
+          {data?.map((row) => (
             <tr
               key={rowKey(row)}
               className="hover:bg-[#1C1C1F]/20 transition-colors"

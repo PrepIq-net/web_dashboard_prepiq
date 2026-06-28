@@ -83,8 +83,7 @@ import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   ConnectorData,
-  ConnectorList,
-  connectorsDummy,
+  ConnectorList
 } from "@/services/connector/types";
 import { Table } from "@/components/ui/table";
 
@@ -567,15 +566,9 @@ function IntegrationsSettings({
   const branches = branchesQuery.data ?? [];
 
   const { data: orgConnectors } = usePrepConectors(orgId ?? "");
-
-  // const baseColumns = generateColumns<ConnectorList>(
-  //   // @ts-expect-error - type
-  //   orgConnectors?.data ?? [],
-  // ).filter((col) => col.key !== "id");
-
   const baseColumns = generateColumns<ConnectorList>(
     // @ts-expect-error - type
-    connectorsDummy,
+    orgConnectors ?? [],
   ).filter((col) => col.key !== "id");
 
   const columns = baseColumns.map((col) => {
@@ -920,7 +913,7 @@ function IntegrationsSettings({
         </div>
         <Table
           columns={columns}
-          data={connectorsDummy}
+          data={orgConnectors}
           rowKey={(row) => row.id}
         />
       </section>
