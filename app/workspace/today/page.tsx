@@ -44,6 +44,8 @@ import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
+import type { PendingAction } from "@/services/assistant/types";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -417,6 +419,7 @@ function TodayWorkspacePageContent() {
   }>(null);
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
   const [ignoredLiveAlertIds, setIgnoredLiveAlertIds] = useState<string[]>([]);
+  const [explainRequest, setExplainRequest] = useState<{ topic: string; nonce: number } | null>(null);
   const [quietMode, setQuietMode] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvUploadFile, setCsvUploadFile] = useState<File | null>(null);
@@ -537,6 +540,42 @@ function TodayWorkspacePageContent() {
     null,
   );
   const branchDay = initializeMutation.data ?? todayQuery.data;
+
+  // Applies a confirm-gated PrepIQ Assistant action through existing mutations.
+  const handleAssistantAction = async (
+    action: PendingAction,
+  ): Promise<{ applied: boolean; summary: string }> => {
+    const target = (branchDay?.prep_plan_items ?? []).find(
+      (item) => item.product_id === action.item_id,
+    );
+    if (!target) return { applied: false, summary: action.summary };
+    try {
+      if (action.type === "set_planned_quantity" && action.quantity != null) {
+        await updatePrepPlanMutation.mutateAsync({
+          prepPlanItemId: target.id,
+          payload: { planned_quantity: action.quantity },
+        });
+        return {
+          applied: true,
+          summary: `Set ${target.product_title} planned prep to ${action.quantity}.`,
+        };
+      }
+      if (action.type === "prepare_extra" && action.quantity != null) {
+        await createProductionLogMutation.mutateAsync({
+          prep_plan_item_id: target.id,
+          quantity_produced: action.quantity,
+        });
+        return {
+          applied: true,
+          summary: `Logged ${action.quantity} extra ${target.product_title}.`,
+        };
+      }
+    } catch {
+      return { applied: false, summary: action.summary };
+    }
+    // mark_unavailable is applied via the dedicated modal flow; record only.
+    return { applied: false, summary: action.summary };
+  };
 
   useEffect(() => {
     if (!advancedModalOpen || !safeBranchId || !selectedItemId) return;
@@ -1902,6 +1941,18 @@ function TodayWorkspacePageContent() {
                             : t("today.alert.marginRisk")}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExplainRequest({
+                        topic: `${alert.itemName} ${alert.riskType.toLowerCase()} risk`,
+                        nonce: Date.now(),
+                      })
+                    }
+                    className="shrink-0 inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-secondary transition-colors hover:border-brand-gold hover:text-text-primary"
+                  >
+                    Why?
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -3652,6 +3703,14 @@ function TodayWorkspacePageContent() {
       />
         </>
       )}
+      {safeBranchId ? (
+        <AssistantLauncher
+          branchId={safeBranchId}
+          date={targetDate}
+          onApplyAction={handleAssistantAction}
+          explainRequest={explainRequest}
+        />
+      ) : null}
     </WorkspaceShell>
   );
 }
