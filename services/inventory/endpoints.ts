@@ -62,4 +62,35 @@ export const inventoryEndpoints = {
     autoGenerate: (menuItemId: string) =>
       `/api/inventory/menu-items/${menuItemId}/auto-generate-recipe/`,
   },
+
+  // Phase 4 — On-hand stock
+  onHand: {
+    list:   (branchId: string) => `/api/inventory/branches/${branchId}/on-hand/`,
+    create: (branchId: string) => `/api/inventory/branches/${branchId}/on-hand/`,
+  },
+
+  // Phase 4 — Ingredient suppliers
+  ingredientSuppliers: {
+    list:   (branchId: string) => `/api/inventory/branches/${branchId}/ingredient-suppliers/`,
+    create: (branchId: string) => `/api/inventory/branches/${branchId}/ingredient-suppliers/`,
+  },
+
+  // Phase 4 — Purchase forecast
+  purchaseForecast: {
+    get: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-forecast/`,
+  },
+
+  // Phase 5 — Batch rules (catalog-scoped)
+  batchRule: {
+    get:    (itemId: string) => `/api/catalog/items/${itemId}/batch-rule/`,
+    update: (itemId: string) => `/api/catalog/items/${itemId}/batch-rule/`,
+  },
+
+  // Phase 6 — Availability overrides (catalog-scoped)
+  availabilityOverrides: {
+    list:   (branchId: string) => `/api/catalog/branches/${branchId}/availability-overrides/`,
+    create: (branchId: string) => `/api/catalog/branches/${branchId}/availability-overrides/`,
+    detail: (branchId: string, overrideId: string) =>
+      `/api/catalog/branches/${branchId}/availability-overrides/${overrideId}/`,
+  },
 } as const;

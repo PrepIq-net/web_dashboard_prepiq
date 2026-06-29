@@ -15,8 +15,22 @@ import {
   updateIngredient,
   calculateIngredientDemand,
   autoGenerateRecipe,
+  getOnHand,
+  logOnHand,
+  getIngredientSuppliers,
+  createIngredientSupplier,
+  getPurchaseForecast,
+  getBatchRule,
+  upsertBatchRule,
+  getAvailabilityOverrides,
+  createAvailabilityOverride,
+  deactivateAvailabilityOverride,
   type IngredientPayload,
   type MenuItemPayload,
+  type OnHandPayload,
+  type IngredientSupplierPayload,
+  type BatchRulePayload,
+  type AvailabilityOverridePayload,
 } from "./service";
 // ============================================================================
 // QUERY KEYS
@@ -40,6 +54,16 @@ export const inventoryQueryKeys = {
     [...inventoryQueryKeys.all, "prepBatches", branchId] as const,
   ingredientDemand: (branchId: string, date: string) =>
     [...inventoryQueryKeys.all, "ingredientDemand", branchId, date] as const,
+  onHand: (branchId: string) =>
+    [...inventoryQueryKeys.all, "onHand", branchId] as const,
+  ingredientSuppliers: (branchId: string) =>
+    [...inventoryQueryKeys.all, "ingredientSuppliers", branchId] as const,
+  purchaseForecast: (branchId: string, from: string, to: string) =>
+    [...inventoryQueryKeys.all, "purchaseForecast", branchId, from, to] as const,
+  batchRule: (itemId: string) =>
+    [...inventoryQueryKeys.all, "batchRule", itemId] as const,
+  availabilityOverrides: (branchId: string) =>
+    [...inventoryQueryKeys.all, "availabilityOverrides", branchId] as const,
 };
 
 // ============================================================================
@@ -218,5 +242,123 @@ export function usePrepBatches(branchId: string, enabled = true) {
 export function useIngredientDemand(branchId: string, date: string, productId?: string) {
   return useMutation({
     mutationFn: () => calculateIngredientDemand(branchId, date, productId),
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 4: ON-HAND STOCK
+// ============================================================================
+
+export function useOnHand(branchId: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.onHand(branchId),
+    queryFn: () => getOnHand(branchId),
+    enabled: enabled && Boolean(branchId),
+    select: (data) => data.results,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useLogOnHand(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: OnHandPayload) => logOnHand(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.onHand(branchId) });
+    },
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 4: INGREDIENT SUPPLIERS
+// ============================================================================
+
+export function useIngredientSuppliers(branchId: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.ingredientSuppliers(branchId),
+    queryFn: () => getIngredientSuppliers(branchId),
+    enabled: enabled && Boolean(branchId),
+    select: (data) => data.results,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateIngredientSupplier(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: IngredientSupplierPayload) => createIngredientSupplier(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.ingredientSuppliers(branchId) });
+    },
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 4: PURCHASE FORECAST
+// ============================================================================
+
+export function usePurchaseForecast(branchId: string, from: string, to: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.purchaseForecast(branchId, from, to),
+    queryFn: () => getPurchaseForecast(branchId, from, to),
+    enabled: enabled && Boolean(branchId) && Boolean(from) && Boolean(to),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 5: BATCH RULES
+// ============================================================================
+
+export function useBatchRule(itemId: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.batchRule(itemId),
+    queryFn: () => getBatchRule(itemId),
+    enabled: enabled && Boolean(itemId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpsertBatchRule(itemId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BatchRulePayload) => upsertBatchRule(itemId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.batchRule(itemId) });
+    },
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 6: AVAILABILITY OVERRIDES
+// ============================================================================
+
+export function useAvailabilityOverrides(branchId: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.availabilityOverrides(branchId),
+    queryFn: () => getAvailabilityOverrides(branchId),
+    enabled: enabled && Boolean(branchId),
+    select: (data) => data.results,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateAvailabilityOverride(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: AvailabilityOverridePayload) => createAvailabilityOverride(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.availabilityOverrides(branchId) });
+    },
+  });
+}
+
+export function useDeactivateAvailabilityOverride(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (overrideId: string) => deactivateAvailabilityOverride(branchId, overrideId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.availabilityOverrides(branchId) });
+    },
   });
 }

@@ -42,6 +42,8 @@ import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv
 import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
+import { inventoryQueryKeys } from "@/services/inventory/hooks";
 
 type ImpactPreview = {
   delta_quantity: number;
@@ -430,6 +432,7 @@ function TodayWorkspacePageContent() {
   const [ackMessage, setAckMessage] = useState("");
   const [ackVisible, setAckVisible] = useState(false);
   const [ackPending, setAckPending] = useState(false);
+  const [markUnavailableItem, setMarkUnavailableItem] = useState<{ id: string; title: string } | null>(null);
 
   const toggleItemExpand = (id: string) => {
     setExpandedItemIds((prev) => {
@@ -2063,9 +2066,22 @@ function TodayWorkspacePageContent() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                           {t("today.table.aiSuggests")}
                         </p>
-                        <p className="mt-1 font-display text-lg font-semibold text-text-primary">
-                          {formatQuantity(item.suggested_quantity, item.unit)}
-                        </p>
+                        {(() => {
+                          const avail = (item.suggestion_reason_json as any)?.availability;
+                          const isSupplyConstrained = avail?.available === false && avail?.suppressed_demand === false;
+                          return isSupplyConstrained ? (
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <span className="inline-flex h-6 items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-status-warning">
+                                Supply Constrained
+                              </span>
+                              <span className="text-sm font-semibold text-status-warning">0 {item.unit}</span>
+                            </div>
+                          ) : (
+                            <p className="mt-1 font-display text-lg font-semibold text-text-primary">
+                              {formatQuantity(item.suggested_quantity, item.unit)}
+                            </p>
+                          );
+                        })()}
                         <p className="mt-0.5 text-[11px] text-text-muted">
                           {t("today.table.ordersAndConfidence", { orders: Math.round(item.forecast_context.predicted_orders), confidence: confidenceLabel(t, item.forecast_context.confidence_score) })}
                         </p>
@@ -2143,6 +2159,15 @@ function TodayWorkspacePageContent() {
                         >
                           {t("today.table.trackRecord")}
                         </Link>
+                        {isMorning && (
+                          <button
+                            type="button"
+                            onClick={() => setMarkUnavailableItem({ id: item.product_id, title: item.product_title })}
+                            className="text-[11px] font-medium text-text-muted hover:text-status-warning transition-colors"
+                          >
+                            Mark Unavailable
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -2166,6 +2191,21 @@ function TodayWorkspacePageContent() {
                     {/* Why this quantity — toggleable, full-width */}
                     {isExpanded ? (
                       <div className="space-y-2.5 border-t border-surface-4/60 bg-surface-3/20 px-4 py-3 text-[11px] text-text-secondary">
+                        {/* Batch constraint annotation */}
+                        {(() => {
+                          const constraints = (item.suggestion_reason_json as any)?.constraints as any[] | undefined;
+                          if (!constraints?.length) return null;
+                          return (
+                            <div className="border-b border-surface-4/40 pb-2 space-y-0.5">
+                              {constraints.map((c: any, i: number) => (
+                                <p key={i} className="text-text-muted">
+                                  Batch rule: {c.raw_qty} → {c.rounded_qty}
+                                  {c.batch_size != null ? ` (batch size ${c.batch_size})` : ""}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         <div className="space-y-0.5">
                           {item.forecast_context.reasoning.map((line) => (
                             <p key={`mobile-r-${item.id}-${line}`}>{line}</p>
@@ -2321,9 +2361,22 @@ function TodayWorkspacePageContent() {
 
                           {/* AI Suggests */}
                           <td className="px-4 py-4">
-                            <p className="font-display text-lg font-semibold text-text-primary">
-                              {formatQuantity(item.suggested_quantity, item.unit)}
-                            </p>
+                            {(() => {
+                              const avail = (item.suggestion_reason_json as any)?.availability;
+                              const isSupplyConstrained = avail?.available === false && avail?.suppressed_demand === false;
+                              return isSupplyConstrained ? (
+                                <div className="flex flex-col gap-1">
+                                  <span className="inline-flex h-6 w-fit items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-status-warning">
+                                    Supply Constrained
+                                  </span>
+                                  <span className="text-sm font-semibold text-status-warning">0 {item.unit}</span>
+                                </div>
+                              ) : (
+                                <p className="font-display text-lg font-semibold text-text-primary">
+                                  {formatQuantity(item.suggested_quantity, item.unit)}
+                                </p>
+                              );
+                            })()}
                             <p className="mt-0.5 text-xs text-text-muted">
                               {t("today.table.expectedOrders", { orders: Math.round(item.forecast_context.predicted_orders) })}
                             </p>
@@ -2427,6 +2480,15 @@ function TodayWorkspacePageContent() {
                               >
                                 {t("today.table.trackRecord")}
                               </Link>
+                              {isMorning && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMarkUnavailableItem({ id: item.product_id, title: item.product_title })}
+                                  className="text-[11px] font-medium text-text-muted transition-colors hover:text-status-warning"
+                                >
+                                  Mark Unavailable
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2449,6 +2511,21 @@ function TodayWorkspacePageContent() {
                                       <p key={`r-${item.id}-${line}`}>{line}</p>
                                     ))}
                                   </div>
+                                  {/* Batch constraint annotation */}
+                                  {(() => {
+                                    const constraints = (item.suggestion_reason_json as any)?.constraints as any[] | undefined;
+                                    if (!constraints?.length) return null;
+                                    return (
+                                      <div className="mt-2 space-y-0.5 border-t border-surface-4/40 pt-2">
+                                        {constraints.map((c: any, i: number) => (
+                                          <p key={i} className="text-text-muted">
+                                            Batch rule: {c.raw_qty} → {c.rounded_qty}
+                                            {c.batch_size != null ? ` (batch size ${c.batch_size})` : ""}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
 
                                 {/* Signals */}
@@ -3556,6 +3633,21 @@ function TodayWorkspacePageContent() {
         onSubmit={(wasteQuantity) => {
           if (!wasteItem) return;
           logWaste(wasteItem.id, wasteQuantity);
+        }}
+      />
+
+      <MarkUnavailableModal
+        open={Boolean(markUnavailableItem)}
+        onClose={() => setMarkUnavailableItem(null)}
+        branchId={safeBranchId}
+        item={markUnavailableItem}
+        onSuccess={() => {
+          queryClient.invalidateQueries({
+            queryKey: productionIntelligenceQueryKeys.branchDayToday({ branch_id: safeBranchId, date: targetDate }),
+          });
+          queryClient.invalidateQueries({
+            queryKey: inventoryQueryKeys.availabilityOverrides(safeBranchId),
+          });
         }}
       />
         </>

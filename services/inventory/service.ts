@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { inventoryEndpoints } from "./endpoints";
 import {
@@ -13,6 +14,11 @@ import {
   prepBatchesResponseSchema,
   ingredientDemandSchema,
   autoGenerateRecipeResponseSchema,
+  ingredientOnHandSchema,
+  ingredientSupplierSchema,
+  purchaseForecastSchema,
+  itemBatchRuleSchema,
+  itemAvailabilityOverrideSchema,
 } from "./types";
 
 export type IngredientPayload = {
@@ -199,5 +205,139 @@ export async function calculateIngredientDemand(branchId: string, date: string, 
     inventoryEndpoints.demand.calculate,
     ingredientDemandSchema,
     { method: "POST", body: { branch_id: branchId, date, ...(productId ? { product_id: productId } : {}) } }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 4: ON-HAND STOCK
+// ============================================================================
+
+export async function getOnHand(branchId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.onHand.list(branchId),
+    z.object({ count: z.number(), results: z.array(ingredientOnHandSchema) }),
+    { method: "GET" }
+  );
+}
+
+export type OnHandPayload = {
+  ingredient: string;
+  quantity: number;
+  unit: string;
+  as_of_date: string;
+  notes?: string;
+};
+
+export async function logOnHand(branchId: string, data: OnHandPayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.onHand.create(branchId),
+    ingredientOnHandSchema,
+    { method: "POST", body: data }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 4: INGREDIENT SUPPLIERS
+// ============================================================================
+
+export async function getIngredientSuppliers(branchId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredientSuppliers.list(branchId),
+    z.object({ count: z.number(), results: z.array(ingredientSupplierSchema) }),
+    { method: "GET" }
+  );
+}
+
+export type IngredientSupplierPayload = {
+  ingredient: string;
+  supplier_name: string;
+  pack_size?: number | null;
+  pack_unit?: string;
+  cost_per_pack?: number | null;
+  lead_time_days?: number;
+  is_primary?: boolean;
+};
+
+export async function createIngredientSupplier(branchId: string, data: IngredientSupplierPayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredientSuppliers.create(branchId),
+    ingredientSupplierSchema,
+    { method: "POST", body: data }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 4: PURCHASE FORECAST
+// ============================================================================
+
+export async function getPurchaseForecast(branchId: string, from: string, to: string) {
+  const url = `${inventoryEndpoints.purchaseForecast.get(branchId)}?from=${from}&to=${to}`;
+  return apiClientWithSchema(url, purchaseForecastSchema, { method: "GET" });
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 5: BATCH RULES
+// ============================================================================
+
+export async function getBatchRule(itemId: string) {
+  try {
+    return await apiClientWithSchema(
+      inventoryEndpoints.batchRule.get(itemId),
+      itemBatchRuleSchema,
+      { method: "GET" }
+    );
+  } catch {
+    return null;
+  }
+}
+
+export type BatchRulePayload = {
+  batch_size?: number | null;
+  min_prep?: number | null;
+  max_prep?: number | null;
+  notes?: string;
+};
+
+export async function upsertBatchRule(itemId: string, data: BatchRulePayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.batchRule.update(itemId),
+    itemBatchRuleSchema,
+    { method: "PUT", body: { item: itemId, ...data } }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 6: AVAILABILITY OVERRIDES
+// ============================================================================
+
+export async function getAvailabilityOverrides(branchId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.availabilityOverrides.list(branchId),
+    z.object({ count: z.number(), results: z.array(itemAvailabilityOverrideSchema) }),
+    { method: "GET" }
+  );
+}
+
+export type AvailabilityOverridePayload = {
+  item: string;
+  start_date: string;
+  end_date?: string | null;
+  reason?: string;
+  suppressed_demand?: boolean;
+};
+
+export async function createAvailabilityOverride(branchId: string, data: AvailabilityOverridePayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.availabilityOverrides.create(branchId),
+    itemAvailabilityOverrideSchema,
+    { method: "POST", body: data }
+  );
+}
+
+export async function deactivateAvailabilityOverride(branchId: string, overrideId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.availabilityOverrides.detail(branchId, overrideId),
+    itemAvailabilityOverrideSchema,
+    { method: "PATCH", body: { is_active: false } }
   );
 }

@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, WarningTriangle, CoinsSwap } from 'iconoir-react';
+import { Download, WarningTriangle, CoinsSwap, Shop } from 'iconoir-react';
 import { WorkspaceShell } from '@/components/dashboard/workspace-shell';
 import { Select } from '@/components/ui/select';
-import { useBranches, useCurrentUserProfile } from '@/services';
+import { useBranches, useCurrentUserProfile, useProductionIntelligenceAccessScope } from '@/services';
 import { useTranslation } from "@/lib/i18n";
 import {
   useExecutiveControlTower,
@@ -15,8 +15,10 @@ import { useSubscriptionTier } from '@/services/payment/hooks';
 import { SubscriptionRequiredState } from '@/components/dashboard/empty-states/subscription-required-state';
 import { resolvePermissions } from '@/lib/permissions';
 import { PERMISSIONS } from '@/services/organizations/types';
+import { usePurchaseForecast } from '@/services/inventory/hooks';
+import type { PurchaseForecastLine } from '@/services/inventory/types';
 
-type PurchasingTab = 'SUPPLIERS' | 'TRENDS' | 'VARIANCE' | 'EFFICIENCY';
+type PurchasingTab = 'SUPPLIERS' | 'TRENDS' | 'VARIANCE' | 'EFFICIENCY' | 'FORECAST';
 
 function toCurrency(value: number) {
   return new Intl.NumberFormat('en-US', {
@@ -45,10 +47,18 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 
 const EMPTY_LIST: never[] = [];
 
+function defaultFrom() { return new Date().toISOString().slice(0, 10); }
+function defaultTo() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function PurchasingPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: user } = useCurrentUserProfile();
+  const { data: accessScope } = useProductionIntelligenceAccessScope();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_INVENTORY);
   const isReadOnlyBranchManager = !permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
@@ -68,6 +78,25 @@ export default function PurchasingPage() {
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
   const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
+
+  // Branch selector for FORECAST tab
+  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
+  const branchOptions = useMemo(() => {
+    const ids = new Set(accessibleBranches.map((b) => b.id));
+    const filtered = ids.size ? branches.filter((b) => ids.has(b.id)) : branches;
+    return filtered.map((b) => ({ value: b.id, label: b.name }));
+  }, [branches, accessibleBranches]);
+  const defaultBranch =
+    branches.find((b) => b.id === accessScope?.default_branch_id) ??
+    branches.find((b) => b.is_primary) ??
+    branches[0] ?? null;
+  const [forecastBranchId, setForecastBranchId] = useState('');
+  const [forecastFrom, setForecastFrom] = useState(defaultFrom);
+  const [forecastTo, setForecastTo] = useState(defaultTo);
+
+  useEffect(() => {
+    if (!forecastBranchId && defaultBranch?.id) setForecastBranchId(defaultBranch.id);
+  }, [forecastBranchId, defaultBranch?.id]);
 
   const supplierRows = useMemo(() => {
     const revenueBase = Math.max(1, branchGrid.reduce((s, b) => s + Number(b.revenue ?? 0), 0));
@@ -138,6 +167,13 @@ export default function PurchasingPage() {
   const [supplierB, setSupplierB] = useState('');
   const [activeTab, setActiveTab] = useState<PurchasingTab>('SUPPLIERS');
 
+  const forecastQuery = usePurchaseForecast(
+    forecastBranchId,
+    forecastFrom,
+    forecastTo,
+    Boolean(forecastBranchId) && activeTab === 'FORECAST',
+  );
+
   const supplierMap = useMemo(() => new Map(supplierRows.map((r) => [r.id, r])), [supplierRows]);
   const supplierDelta = supplierA && supplierB && supplierA !== supplierB
     ? Math.abs((supplierMap.get(supplierA)?.totalSpend ?? 0) - (supplierMap.get(supplierB)?.totalSpend ?? 0))
@@ -156,6 +192,7 @@ export default function PurchasingPage() {
     { id: 'TRENDS', label: t('workspace.purchasing.tabItemTrends') },
     { id: 'VARIANCE', label: t('workspace.purchasing.tabVarianceDetection') },
     { id: 'EFFICIENCY', label: t('workspace.purchasing.tabOrderEfficiency') },
+    { id: 'FORECAST', label: 'Purchase Forecast' },
   ];
 
   const exportAll = () => {
@@ -422,6 +459,154 @@ export default function PurchasingPage() {
                 <CoinsSwap className='h-4 w-4' /> {t('workspace.purchasing.compareButton')}
               </button>
             </article>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'FORECAST' && (
+        <section className='mt-8'>
+          {/* Branch + date range controls */}
+          <div className='mb-6 flex flex-wrap items-end gap-4'>
+            <div className='min-w-[180px] max-w-xs flex-1'>
+              <p className='mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-text-muted'>
+                Branch
+              </p>
+              <Select
+                options={branchOptions}
+                value={forecastBranchId}
+                onChange={setForecastBranchId}
+                placeholder='Select branch'
+                leadingIcon={<Shop className='h-4 w-4' />}
+              />
+            </div>
+            <div className='flex items-end gap-2'>
+              <div>
+                <p className='mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-text-muted'>From</p>
+                <input
+                  type='date'
+                  value={forecastFrom}
+                  onChange={(e) => setForecastFrom(e.target.value)}
+                  className='h-10 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30'
+                />
+              </div>
+              <div>
+                <p className='mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-text-muted'>To</p>
+                <input
+                  type='date'
+                  value={forecastTo}
+                  onChange={(e) => setForecastTo(e.target.value)}
+                  className='h-10 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30'
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Total cost KPI */}
+          {forecastQuery.data && forecastQuery.data.total_estimated_cost != null && (
+            <div className='mb-6 inline-flex items-baseline gap-3 rounded-xl border border-surface-4 bg-surface-2 px-5 py-3'>
+              <p className='text-xs font-semibold uppercase tracking-[0.12em] text-text-muted'>
+                Total Estimated Cost
+              </p>
+              <p className='font-display text-2xl font-semibold text-brand-gold'>
+                {toCurrency(forecastQuery.data.total_estimated_cost)}
+              </p>
+            </div>
+          )}
+
+          {/* Header + export */}
+          <div className='mb-4 flex items-center justify-between'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>
+                Purchase Forecast
+              </p>
+              <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>
+                Ingredient Purchase Recommendations
+              </h3>
+              <p className='mt-1 text-sm text-text-secondary'>
+                Based on predicted usage over the selected period, netted against on-hand stock.
+              </p>
+            </div>
+            {forecastQuery.data?.lines.length ? (
+              <button
+                type='button'
+                disabled={isReadOnlyBranchManager}
+                onClick={() =>
+                  downloadCsv(
+                    'purchase-forecast.csv',
+                    ['Ingredient', 'Unit', 'Predicted Use', 'On Hand', 'Net Need', 'Pack Size', 'Purchase Qty', 'Est. Cost'],
+                    (forecastQuery.data?.lines ?? []).map((r: PurchaseForecastLine) => [
+                      r.ingredient_name,
+                      r.unit,
+                      r.predicted_usage.toFixed(2),
+                      r.on_hand_qty.toFixed(2),
+                      r.net_need.toFixed(2),
+                      r.pack_size != null ? r.pack_size.toFixed(2) + ' ' + r.pack_unit : '—',
+                      r.purchase_qty.toFixed(2),
+                      r.estimated_cost != null ? r.estimated_cost.toFixed(2) : '—',
+                    ]),
+                  )
+                }
+                className='inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 px-2.5 text-sm text-text-primary transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-50'
+              >
+                <Download className='h-3.5 w-3.5' /> Export
+              </button>
+            ) : null}
+          </div>
+
+          {/* Table */}
+          <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            {forecastQuery.isLoading ? (
+              <div className='flex items-center justify-center py-16'>
+                <div className='h-5 w-5 animate-spin rounded-full border-2 border-brand-gold border-t-transparent' />
+                <span className='ml-3 text-sm text-text-muted'>Calculating forecast…</span>
+              </div>
+            ) : forecastQuery.isError ? (
+              <div className='py-12 text-center'>
+                <p className='text-sm text-status-critical'>Failed to load forecast. Check that this branch has ingredient usage data.</p>
+              </div>
+            ) : !forecastQuery.data?.lines.length ? (
+              <div className='py-16 text-center'>
+                <p className='text-sm font-semibold text-text-secondary'>No purchase recommendations</p>
+                <p className='mt-1 text-xs text-text-muted max-w-sm mx-auto'>
+                  No ingredient usage data exists for this period. Run a prep plan to generate ingredient demand forecasts.
+                </p>
+              </div>
+            ) : (
+              <table className='w-full min-w-[900px]'>
+                <thead className='border-b border-surface-4/80 bg-surface-3/40'>
+                  <tr>
+                    {['Ingredient', 'Predicted Use', 'On Hand', 'Net Need', 'Pack Size', 'Purchase Qty', 'Est. Cost'].map((h) => (
+                      <th key={h} className='px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted'>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-surface-4/50'>
+                  {forecastQuery.data.lines.map((row: PurchaseForecastLine) => (
+                    <tr key={row.ingredient_id} className='transition-colors hover:bg-surface-3/20'>
+                      <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.ingredient_name}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>
+                        {row.predicted_usage.toFixed(2)} <span className='text-[11px] uppercase text-text-muted'>{row.unit}</span>
+                      </td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>
+                        {row.on_hand_qty.toFixed(2)} <span className='text-[11px] uppercase text-text-muted'>{row.unit}</span>
+                      </td>
+                      <td className={`px-4 py-3 text-sm font-semibold ${row.net_need > 0 ? 'text-status-warning' : 'text-status-success'}`}>
+                        {row.net_need.toFixed(2)} <span className='text-[11px] font-normal uppercase text-text-muted'>{row.unit}</span>
+                      </td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>
+                        {row.pack_size != null ? `${row.pack_size} ${row.pack_unit}` : '—'}
+                      </td>
+                      <td className='px-4 py-3 text-sm font-semibold text-brand-gold'>
+                        {row.purchase_qty.toFixed(2)} <span className='text-[11px] font-normal uppercase text-text-muted'>{row.pack_unit || row.unit}</span>
+                      </td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>
+                        {row.estimated_cost != null ? toCurrency(row.estimated_cost) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
       )}

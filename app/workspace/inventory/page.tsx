@@ -25,22 +25,33 @@ import {
   useWasteAnalytics,
   usePrepBatches,
   useRecipes,
+  useOnHand,
+  useLogOnHand,
+  useIngredientSuppliers,
+  useCreateIngredientSupplier,
+  useBatchRule,
+  useUpsertBatchRule,
+  useAvailabilityOverrides,
+  useDeactivateAvailabilityOverride,
 } from "@/services/inventory/hooks";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
-import type { Ingredient, MenuItem, PrepBatch } from "@/services/inventory/types";
+import { SupplierModal } from "@/components/dashboard/inventory/supplier-modal";
+import { OnHandModal } from "@/components/dashboard/inventory/on-hand-modal";
+import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
+import type { Ingredient, MenuItem, PrepBatch, ItemAvailabilityOverride } from "@/services/inventory/types";
 import type { ItemTimeSeriesRow } from "@/services/production-intelligence/types";
 import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
 
-type TabId = "ingredients" | "recipes" | "waste" | "signals";
+type TabId = "ingredients" | "stock" | "recipes" | "waste" | "signals";
 
-const TAB_IDS: TabId[] = ["ingredients", "recipes", "waste", "signals"];
+const TAB_IDS: TabId[] = ["ingredients", "stock", "recipes", "waste", "signals"];
 
 const ingredientColumnHelper = createColumnHelper<Ingredient>();
 const prepBatchColumnHelper = createColumnHelper<PrepBatch>();
@@ -187,7 +198,7 @@ function InventoryPageContent() {
                 : "text-text-muted hover:text-text-secondary"
             }`}
           >
-            {t(`workspace.inventory.tab.${id}`)}
+            {id === "stock" ? "Stock" : t(`workspace.inventory.tab.${id}`)}
           </button>
         ))}
       </div>
@@ -198,6 +209,14 @@ function InventoryPageContent() {
           ingredients={ingredients}
           isLoading={ingredientsQuery.isLoading}
           organizationId={user?.organization_id ?? ""}
+          branchId={branchId}
+        />
+      )}
+      {activeTab === "stock" && (
+        <StockTab
+          branchId={branchId}
+          ingredients={ingredients}
+          isLoading={canLoadData ? false : false}
         />
       )}
       {activeTab === "recipes" && (
@@ -229,14 +248,21 @@ function IngredientsTab({
   ingredients,
   isLoading,
   organizationId,
+  branchId,
 }: {
   ingredients: Ingredient[];
   isLoading: boolean;
   organizationId: string;
+  branchId: string;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Ingredient | null>(null);
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const { t } = useTranslation();
+
+  const overridesQuery = useAvailabilityOverrides(branchId, Boolean(branchId));
+  const activeOverrides = (overridesQuery.data ?? []).filter((ov) => ov.is_active);
+  const deactivateMutation = useDeactivateAvailabilityOverride(branchId);
 
   function openCreate() {
     setEditTarget(null);
@@ -380,7 +406,243 @@ function IngredientsTab({
         organizationId={organizationId}
         ingredient={editTarget}
       />
+
+      {/* Active availability overrides strip */}
+      {branchId && (
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                Availability Overrides
+              </p>
+              <h3 className="mt-0.5 font-display text-lg font-semibold text-text-primary">
+                Active Item Restrictions
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOverrideModalOpen(true)}
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Override
+            </button>
+          </div>
+
+          {activeOverrides.length === 0 ? (
+            <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-6 text-center">
+              <p className="text-sm text-text-muted">No items marked unavailable.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/50">
+              {activeOverrides.map((ov) => (
+                <div key={ov.id} className="flex items-center gap-4 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text-primary truncate">
+                      {ov.item_title ?? ov.item}
+                    </p>
+                    {ov.reason && (
+                      <p className="mt-0.5 text-xs text-text-muted truncate">{ov.reason}</p>
+                    )}
+                  </div>
+                  <span
+                    className={`inline-flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                      ov.suppressed_demand
+                        ? "border-brand-gold/30 bg-brand-gold/10 text-brand-gold"
+                        : "border-status-warning/30 bg-status-warning/10 text-status-warning"
+                    }`}
+                  >
+                    {ov.suppressed_demand ? "Demand Suppressed" : "Supply Constrained"}
+                  </span>
+                  <span className="text-xs text-text-muted shrink-0">
+                    {ov.end_date ? `Until ${ov.end_date}` : "Open-ended"}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={deactivateMutation.isPending}
+                    onClick={() => deactivateMutation.mutate(ov.id)}
+                    className="shrink-0 text-xs text-text-muted transition-colors hover:text-status-critical disabled:opacity-50"
+                  >
+                    Deactivate
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <MarkUnavailableModal
+        open={overrideModalOpen}
+        onClose={() => setOverrideModalOpen(false)}
+        branchId={branchId}
+        item={null}
+      />
     </>
+  );
+}
+
+// ============================================================================
+// TAB 1b: STOCK (on-hand + suppliers)
+// ============================================================================
+
+function StockTab({
+  branchId,
+  ingredients,
+}: {
+  branchId: string;
+  ingredients: Ingredient[];
+  isLoading: boolean;
+}) {
+  const [onHandModalOpen, setOnHandModalOpen] = useState(false);
+  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
+
+  const onHandQuery = useOnHand(branchId, Boolean(branchId));
+  const suppliersQuery = useIngredientSuppliers(branchId, Boolean(branchId));
+  const onHandRows = onHandQuery.data ?? EMPTY_LIST;
+  const supplierRows = suppliersQuery.data ?? EMPTY_LIST;
+
+  return (
+    <div className="grid grid-cols-2 gap-6">
+      {/* Left — On-Hand Log */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">On-Hand Stock</p>
+            <h3 className="mt-0.5 font-display text-lg font-semibold text-text-primary">Current Stock Levels</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOnHandModalOpen(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+          >
+            <Plus className="h-3.5 w-3.5" /> Log Stock
+          </button>
+        </div>
+
+        {onHandQuery.isLoading ? (
+          <LoadingState label="Loading stock levels…" />
+        ) : onHandRows.length === 0 ? (
+          <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-10 text-center">
+            <p className="text-sm font-semibold text-text-secondary">No stock entries yet</p>
+            <p className="mt-1 text-xs text-text-muted">
+              Log on-hand quantities so the purchase forecast can calculate net need.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOnHandModalOpen(true)}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Log First Entry
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
+            <table className="w-full">
+              <thead className="border-b border-surface-4/80 bg-surface-3/40">
+                <tr>
+                  {["Ingredient", "Qty", "Unit", "As-of Date", "Notes"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-4/50">
+                {onHandRows.map((row) => (
+                  <tr key={row.id} className="hover:bg-surface-3/20 transition-colors">
+                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient}</td>
+                    <td className="px-4 py-3 text-sm text-brand-gold font-semibold">{Number(row.quantity).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-xs uppercase text-text-muted">{row.unit}</td>
+                    <td className="px-4 py-3 text-sm text-text-secondary">{row.as_of_date}</td>
+                    <td className="px-4 py-3 text-xs text-text-muted">{row.notes ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Right — Ingredient Suppliers */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Suppliers</p>
+            <h3 className="mt-0.5 font-display text-lg font-semibold text-text-primary">Ingredient Suppliers</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSupplierModalOpen(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Supplier
+          </button>
+        </div>
+
+        {suppliersQuery.isLoading ? (
+          <LoadingState label="Loading suppliers…" />
+        ) : supplierRows.length === 0 ? (
+          <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-10 text-center">
+            <p className="text-sm font-semibold text-text-secondary">No suppliers configured</p>
+            <p className="mt-1 text-xs text-text-muted">
+              Add suppliers with pack size and cost so the purchase forecast can suggest order quantities.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSupplierModalOpen(true)}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add First Supplier
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
+            <table className="w-full">
+              <thead className="border-b border-surface-4/80 bg-surface-3/40">
+                <tr>
+                  {["Ingredient", "Supplier", "Pack Size", "Cost/Pack", "Lead Time", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-4/50">
+                {supplierRows.map((row) => (
+                  <tr key={row.id} className="hover:bg-surface-3/20 transition-colors">
+                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient}</td>
+                    <td className="px-4 py-3 text-sm text-text-secondary">{row.supplier_name}</td>
+                    <td className="px-4 py-3 text-sm text-text-secondary">
+                      {row.pack_size != null ? `${row.pack_size} ${row.pack_unit}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-text-secondary">
+                      {row.cost_per_pack != null ? `$${Number(row.cost_per_pack).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-text-secondary">{row.lead_time_days}d</td>
+                    <td className="px-4 py-3">
+                      {row.is_primary && (
+                        <span className="inline-flex h-5 items-center rounded-full border border-brand-gold/30 bg-brand-gold/10 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-brand-gold">
+                          Primary
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <OnHandModal
+        open={onHandModalOpen}
+        onClose={() => setOnHandModalOpen(false)}
+        branchId={branchId}
+        ingredients={ingredients}
+      />
+      <SupplierModal
+        open={supplierModalOpen}
+        onClose={() => setSupplierModalOpen(false)}
+        branchId={branchId}
+        ingredients={ingredients}
+      />
+    </div>
   );
 }
 
@@ -832,6 +1094,154 @@ function ItemDetailPanel({
           </div>
         )}
       </div>
+
+      {/* ── Batch Rules ── */}
+      <BatchRuleCard menuItem={menuItem} />
+    </div>
+  );
+}
+
+function BatchRuleCard({ menuItem }: { menuItem: MenuItem }) {
+  const itemId = (menuItem as { catalog_item?: string }).catalog_item ?? menuItem.id;
+  const batchQuery = useBatchRule(itemId, Boolean(itemId));
+  const upsertMutation = useUpsertBatchRule(itemId);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ batch_size: "", min_prep: "", max_prep: "", notes: "" });
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const rule = batchQuery.data ?? null;
+
+  function startEdit() {
+    setForm({
+      batch_size: rule?.batch_size != null ? String(rule.batch_size) : "",
+      min_prep: rule?.min_prep != null ? String(rule.min_prep) : "",
+      max_prep: rule?.max_prep != null ? String(rule.max_prep) : "",
+      notes: rule?.notes ?? "",
+    });
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaveError(null);
+    try {
+      await upsertMutation.mutateAsync({
+        batch_size: form.batch_size ? parseFloat(form.batch_size) : null,
+        min_prep: form.min_prep ? parseFloat(form.min_prep) : null,
+        max_prep: form.max_prep ? parseFloat(form.max_prep) : null,
+        notes: form.notes.trim(),
+      });
+      setEditing(false);
+    } catch {
+      setSaveError("Failed to save. Please try again.");
+    }
+  }
+
+  const fieldClass =
+    "w-full h-9 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors";
+
+  return (
+    <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
+      <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Batch Rules
+        </p>
+        {!editing && (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-surface-4 px-2.5 text-xs text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+          >
+            <EditPencil className="h-3 w-3" /> Edit
+          </button>
+        )}
+      </div>
+
+      {batchQuery.isLoading ? (
+        <div className="px-4 py-5 text-center">
+          <p className="text-xs text-text-muted">Loading…</p>
+        </div>
+      ) : editing ? (
+        <div className="px-4 py-4 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: "batch_size", label: "Batch Size" },
+              { key: "min_prep", label: "Min Prep" },
+              { key: "max_prep", label: "Max Prep" },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted mb-1">
+                  {label}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={form[key as keyof typeof form]}
+                  onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                  placeholder="—"
+                  className={fieldClass}
+                />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted mb-1">
+              Notes
+            </label>
+            <input
+              type="text"
+              value={form.notes}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="Optional note"
+              className={fieldClass}
+            />
+          </div>
+          {saveError && (
+            <p className="text-xs text-status-critical">{saveError}</p>
+          )}
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              disabled={upsertMutation.isPending}
+              className="h-8 rounded-lg border border-surface-4 px-3 text-xs text-text-secondary hover:text-text-primary disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={upsertMutation.isPending}
+              className="h-8 rounded-lg bg-brand-gold px-4 text-xs font-semibold text-[#141416] hover:opacity-90 disabled:opacity-50"
+            >
+              {upsertMutation.isPending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : rule == null ? (
+        <div className="px-4 py-5 text-center">
+          <p className="text-sm text-text-muted">No batch rule — suggested quantities are used as-is.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 divide-x divide-surface-4/50">
+          {[
+            { label: "Batch Size", value: rule.batch_size },
+            { label: "Min Prep", value: rule.min_prep },
+            { label: "Max Prep", value: rule.max_prep },
+          ].map(({ label, value }) => (
+            <div key={label} className="px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">{label}</p>
+              <p className="mt-1 text-sm font-semibold text-text-primary">{value != null ? value : "—"}</p>
+            </div>
+          ))}
+          {rule.notes && (
+            <div className="col-span-3 border-t border-surface-4/50 px-4 py-2.5">
+              <p className="text-xs text-text-muted">{rule.notes}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
