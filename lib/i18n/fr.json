@@ -2587,6 +2587,13 @@
       }
     },
     "inventory": {
+      "tab": {
+        "ingredients": "Ingrédients",
+        "stock": "Stock",
+        "recipes": "Recettes",
+        "waste": "Gaspillage",
+        "signals": "Signaux"
+      },
       "recipes": {
         "quantityError": "Erreur de quantité",
         "saveFailed": "Échec de l'enregistrement",
