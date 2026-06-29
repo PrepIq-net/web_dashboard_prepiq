@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslation } from "@/lib/i18n";
 import {
   useNotifications,
   useMarkNotificationsAsRead,
@@ -16,26 +17,27 @@ import {
 } from "iconoir-react";
 import { format, isToday, isYesterday, startOfDay } from "date-fns";
 
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "today", label: "Today" },
-  { id: "risks", label: "Risks" },
-  { id: "demand", label: "Demand" },
-  { id: "waste", label: "Waste" },
-  { id: "insights", label: "Insights" },
-  { id: "system", label: "System" },
+const TAB_KEYS = [
+  { id: "all", labelKey: "common.all" },
+  { id: "today", labelKey: "common.today" },
+  { id: "risks", labelKey: "workspace.notifications.tab.risks" },
+  { id: "demand", labelKey: "workspace.notifications.tab.demand" },
+  { id: "waste", labelKey: "workspace.notifications.tab.waste" },
+  { id: "insights", labelKey: "workspace.notifications.tab.insights" },
+  { id: "system", labelKey: "workspace.notifications.tab.system" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof TAB_KEYS)[number]["id"];
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>("all");
 
   const queryParams = useMemo(() => {
     const params: any = {};
     if (activeTab === "today") params.is_today = true;
     if (activeTab === "risks") params.urgency = "CRITICAL";
-    if (activeTab === "demand") params.domain = "PRODUCTION"; // Simplified mapping
+    if (activeTab === "demand") params.domain = "PRODUCTION";
     if (activeTab === "waste") params.domain = "PRODUCTION";
     if (activeTab === "insights") params.domain = "SYSTEM";
     if (activeTab === "system") params.domain = "SYSTEM";
@@ -62,8 +64,8 @@ export default function NotificationsPage() {
 
   const formatDateHeader = (dateStr: string) => {
     const date = new Date(dateStr);
-    if (isToday(date)) return "Today";
-    if (isYesterday(date)) return "Yesterday";
+    if (isToday(date)) return t("common.today");
+    if (isYesterday(date)) return t("common.yesterday");
     return format(date, "MMMM d, yyyy");
   };
 
@@ -97,10 +99,10 @@ export default function NotificationsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            Intelligence Hub
+            {t("workspace.notifications.eyebrow")}
           </p>
           <h1 className="mt-1 font-display text-[32px] font-semibold text-[#F5F5F7]">
-            Decision Queue
+            {t("workspace.notifications.title")}
           </h1>
         </div>
         <button
@@ -108,13 +110,13 @@ export default function NotificationsPage() {
           className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#2E2E33] bg-transparent px-4 text-[13px] font-medium text-[#F5F5F7] transition-colors hover:bg-[#232327]"
         >
           <Check className="h-4 w-4" />
-          Mark all as read
+          {t("workspace.notifications.markAllRead")}
         </button>
       </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-[#2A2A2E]">
-        {TABS.map((tab) => (
+        {TAB_KEYS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -124,7 +126,7 @@ export default function NotificationsPage() {
                 : "text-[#8E8E93] hover:text-[#C7C7CC]"
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
             {activeTab === tab.id && (
               <div className="absolute bottom-0 left-0 h-0.5 w-full bg-[#A8821F]" />
             )}
@@ -136,7 +138,7 @@ export default function NotificationsPage() {
         {notificationsQuery.isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <p className="text-[14px] text-[#8E8E93] animate-pulse">
-              Synchronizing intelligence feed...
+              {t("workspace.notifications.loading")}
             </p>
           </div>
         ) : notifications.length === 0 ? (
@@ -144,10 +146,10 @@ export default function NotificationsPage() {
             <CheckCircle className="h-10 w-10 text-[#2A2A2E]" />
             <div>
               <p className="text-[15px] font-medium text-[#F5F5F7]">
-                Intelligence Log Clear
+                {t("workspace.notifications.empty.title")}
               </p>
               <p className="mt-1 text-[13px] text-[#8E8E93]">
-                No active operational patterns detected.
+                {t("workspace.notifications.empty.description")}
               </p>
             </div>
           </div>
@@ -196,7 +198,7 @@ export default function NotificationsPage() {
                           <div className="mt-4 flex flex-wrap items-center gap-4">
                             <div className="flex items-center gap-1.5 rounded-full bg-[#141416] px-2.5 py-1 text-[11px] font-medium text-[#A8821F]">
                               <Menu className="h-3 w-3" />
-                              {notification.domain || "SYSTEM"}
+                              {notification.domain || t("workspace.notifications.domainSystem")}
                             </div>
 
                             {notification.recommended_action && (
@@ -217,7 +219,7 @@ export default function NotificationsPage() {
                                 })
                               }
                               className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#3F8F68]"
-                              title="Mark as read"
+                              title={t("workspace.notifications.markAsRead")}
                             >
                               <Check className="h-4 w-4" />
                             </button>
@@ -229,7 +231,7 @@ export default function NotificationsPage() {
                               })
                             }
                             className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#3F8F68]"
-                            title="Resolve"
+                            title={t("workspace.notifications.resolve")}
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>

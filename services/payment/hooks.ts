@@ -12,6 +12,8 @@ import {
   createSubscriptionQuoteRequest,
   detachSubscriptionAddOn,
   downloadInvoice,
+  downloadInvoicePDF,
+  downloadBillingReport,
   failPayment,
   getAvailableSubscriptionAddOns,
   getCurrentSubscription,
@@ -389,5 +391,17 @@ export function useInvoiceDetail(invoiceId: string) {
 export function useDownloadInvoice() {
   return useMutation({
     mutationFn: (invoiceId: string) => downloadInvoice(invoiceId),
+  });
+}
+
+export function useDownloadInvoicePDF() {
+  return useMutation({
+    mutationFn: (invoiceId: string) => downloadInvoicePDF(invoiceId),
+  });
+}
+
+export function useDownloadBillingReport() {
+  return useMutation({
+    mutationFn: () => downloadBillingReport(),
   });
 }

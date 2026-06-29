@@ -1,40 +1,29 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useTranslation } from "@/lib/i18n";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  useReactTable,
-  NativeTable,
-} from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { Select } from "@/components/ui/select";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
-  useForecastMetrics,
-  useDataQualityReport,
 } from "@/services/production-intelligence/hooks";
 
-type BranchControlRow = {
+type BranchCard = {
   id: string;
-  branch: string;
+  name: string;
   revenue: number;
-  marginPct: number;
-  riskScore: number;
   wastePct: number;
+  riskScore: number;
   efficiencyScore: number;
   status: "HEALTHY" | "AT_RISK" | "UNDERPERFORMING";
 };
 
 const EMPTY_LIST: never[] = [];
-const branchColumnHelper = createColumnHelper<BranchControlRow>();
-const CORE_ROW_MODEL = getCoreRowModel();
 
 function toCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -44,7 +33,34 @@ function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+function statusBadgeClasses(status: BranchCard["status"]) {
+  if (status === "HEALTHY")
+    return "border-status-success/30 bg-status-success/10 text-status-success";
+  if (status === "AT_RISK")
+    return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+  return "border-status-critical/30 bg-status-critical/10 text-status-critical";
+}
+
+function statusBorderClass(status: BranchCard["status"]) {
+  if (status === "HEALTHY") return "border-l-status-success/60";
+  if (status === "AT_RISK") return "border-l-status-warning/60";
+  return "border-l-status-critical/60";
+}
+
+function statusDotClass(status: BranchCard["status"]) {
+  if (status === "HEALTHY") return "bg-status-success";
+  if (status === "AT_RISK") return "bg-status-warning animate-pulse";
+  return "bg-status-critical animate-pulse";
+}
+
+function riskToneClass(score: number) {
+  if (score >= 65) return "text-status-critical";
+  if (score >= 35) return "text-status-warning";
+  return "text-status-success";
+}
+
 export default function BranchesPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
@@ -60,420 +76,268 @@ export default function BranchesPage() {
     canAccess && Boolean(user?.organization_id),
   );
 
-  const [compareA, setCompareA] = useState("");
-  const [compareB, setCompareB] = useState("");
-  const [targetAdjustments, setTargetAdjustments] = useState<
-    Record<string, number>
-  >({});
-
-  const compareMetricsA = useForecastMetrics(
-    compareA ? { branch_id: compareA, lookback_days: 60 } : undefined,
-    Boolean(compareA),
-  );
-  const compareMetricsB = useForecastMetrics(
-    compareB ? { branch_id: compareB, lookback_days: 60 } : undefined,
-    Boolean(compareB),
-  );
-  const compareQualityA = useDataQualityReport(
-    compareA ? { branch_id: compareA, days_window: 30 } : undefined,
-    Boolean(compareA),
-  );
-  const compareQualityB = useDataQualityReport(
-    compareB ? { branch_id: compareB, days_window: 30 } : undefined,
-    Boolean(compareB),
-  );
-
   useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
+    if (!isLoading && !canAccess) router.replace("/");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canAccess]);
 
-  const branches = branchesQuery.data ?? EMPTY_LIST;
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
   const marginBranches = marginReportQuery.data?.branches ?? EMPTY_LIST;
 
-  const rows = useMemo<BranchControlRow[]>(() => {
+  const cards = useMemo<BranchCard[]>(() => {
     return branchGrid.map((branch) => {
       const wastePct = Number(branch.waste_pct ?? 0);
       const surplusPct = Number(branch.surplus_pct ?? 0);
       const revenue = Number(branch.revenue ?? 0);
       const marginEntry = marginBranches.find(
-        (item) => item.branch_id === branch.branch_id,
+        (m) => m.branch_id === branch.branch_id,
       );
-      const marginPct =
-        Number(marginEntry?.forecast_accuracy_summary ?? 0) > 0
-          ? Number(marginEntry?.forecast_accuracy_summary ?? 0)
-          : Math.max(0, 68 - wastePct * 0.7 - surplusPct * 0.3);
-
       const efficiencyScore = Math.max(0, 100 - wastePct - surplusPct * 0.6);
       const riskScore = Math.max(
         0,
         Math.min(100, wastePct * 10 + surplusPct * 7),
       );
-
-      const status: BranchControlRow["status"] =
+      const status: BranchCard["status"] =
         wastePct >= 6 || riskScore >= 65
           ? "UNDERPERFORMING"
           : wastePct >= 3 || riskScore >= 35
             ? "AT_RISK"
             : "HEALTHY";
 
+      void marginEntry;
+
       return {
         id: branch.branch_id,
-        branch: branch.branch_name,
+        name: branch.branch_name,
         revenue,
-        marginPct,
-        riskScore,
         wastePct,
+        riskScore,
         efficiencyScore,
         status,
       };
     });
   }, [branchGrid, marginBranches]);
 
+  // When the control tower hasn't loaded yet, fall back to the flat branch list
+  const branches = branchesQuery.data ?? EMPTY_LIST;
+  const displayCards: BranchCard[] = cards.length
+    ? cards
+    : branches.map((b) => ({
+        id: b.id,
+        name: b.name,
+        revenue: 0,
+        wastePct: 0,
+        riskScore: 0,
+        efficiencyScore: 0,
+        status: "HEALTHY" as const,
+      }));
+
   const statusCounts = {
-    healthy: rows.filter((row) => row.status === "HEALTHY").length,
-    atRisk: rows.filter((row) => row.status === "AT_RISK").length,
-    underperforming: rows.filter((row) => row.status === "UNDERPERFORMING")
+    total: displayCards.length,
+    healthy: displayCards.filter((c) => c.status === "HEALTHY").length,
+    atRisk: displayCards.filter((c) => c.status === "AT_RISK").length,
+    underperforming: displayCards.filter((c) => c.status === "UNDERPERFORMING")
       .length,
   };
 
-  const compareMap = useMemo(
-    () => new Map(rows.map((row) => [row.id, row])),
-    [rows],
-  );
-  const compareDelta =
-    compareA && compareB && compareA !== compareB
-      ? (compareMap.get(compareA)?.efficiencyScore ?? 0) -
-        (compareMap.get(compareB)?.efficiencyScore ?? 0)
-      : 0;
-
-  const columns = useMemo(
-    () => [
-      branchColumnHelper.accessor("branch", {
-        header: "Branch",
-        cell: (info) => (
-          <span className="text-sm font-semibold text-text-primary">
-            {info.getValue()}
-          </span>
-        ),
-      }),
-      branchColumnHelper.accessor("revenue", {
-        header: "Revenue",
-        cell: (info) => (
-          <div className="inline-flex items-baseline gap-1">
-            <span className="text-sm font-bold text-brand-gold tracking-tight">
-              {toCurrency(info.getValue())}
-            </span>
-            <span className="text-xs text-text-muted font-medium">USD</span>
-          </div>
-        ),
-      }),
-      branchColumnHelper.accessor("marginPct", {
-        header: "Margin",
-        cell: (info) => (
-          <span className="text-sm font-semibold text-status-success">
-            {toPercent(info.getValue())}
-          </span>
-        ),
-      }),
-      branchColumnHelper.accessor("riskScore", {
-        header: "Risk Score",
-        cell: (info) => {
-          const value = info.getValue();
-          const colorClass =
-            value >= 65
-              ? "text-status-critical"
-              : value >= 35
-                ? "text-status-warning"
-                : "text-status-success";
-          return (
-            <span className={`text-sm font-bold ${colorClass}`}>
-              {value.toFixed(0)}
-            </span>
-          );
-        },
-      }),
-      branchColumnHelper.accessor("wastePct", {
-        header: "Waste %",
-        cell: (info) => (
-          <span className="text-sm font-semibold text-status-warning">
-            {toPercent(info.getValue())}
-          </span>
-        ),
-      }),
-      branchColumnHelper.accessor("efficiencyScore", {
-        header: "Efficiency",
-        cell: (info) => (
-          <span className="text-sm font-medium text-text-secondary">
-            {info.getValue().toFixed(1)}
-          </span>
-        ),
-      }),
-      branchColumnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => {
-          const status = info.getValue();
-          const colorClass =
-            status === "HEALTHY"
-              ? "text-status-success bg-status-success/10 border-status-success/20"
-              : status === "AT_RISK"
-                ? "text-status-warning bg-status-warning/10 border-status-warning/20"
-                : "text-status-critical bg-status-critical/10 border-status-critical/20";
-          return (
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${colorClass}`}
-            >
-              {status.replace("_", " ")}
-            </span>
-          );
-        },
-      }),
-      branchColumnHelper.display({
-        id: "actions",
-        header: "Actions",
-        cell: (info) => {
-          const row = info.row.original;
-          const target = targetAdjustments[row.id] ?? 0;
-          return (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => router.push(`/?branch=${row.id}`)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-gold/40 bg-surface-3 px-3 text-xs font-medium text-brand-gold transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold-hover active:scale-[0.98]"
-              >
-                Open
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTargetAdjustments((prev) => ({
-                    ...prev,
-                    [row.id]: target + 5,
-                  }))
-                }
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-primary active:scale-[0.98]"
-              >
-                +5 Target
-              </button>
-              <Link
-                href={`/workspace/settings?branch=${row.id}`}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-muted transition-all duration-200 hover:border-surface-4 hover:bg-surface-2 hover:text-text-secondary active:scale-[0.98]"
-              >
-                Settings
-              </Link>
-            </div>
-          );
-        },
-      }),
-    ],
-    [router, targetAdjustments],
-  );
-
-  const table = useReactTable({
-    data: rows,
-    columns,
-    getCoreRowModel: CORE_ROW_MODEL,
-  });
+  function statusLabel(status: BranchCard["status"]) {
+    if (status === "HEALTHY") return t("workspace.branches.status.healthy");
+    if (status === "AT_RISK") return t("workspace.branches.status.atRisk");
+    return t("workspace.branches.status.underperforming");
+  }
 
   return (
     <WorkspaceShell
-      eyebrow="Branches"
-      title="Branch Control"
-      description="Multi-branch performance control surface for revenue, margin, risk, and operational efficiency."
-      insight="Executive leverage improves when branch performance is ranked by margin and risk, then reviewed against explicit targets."
+      eyebrow={t("workspace.branches.eyebrow")}
+      title={t("workspace.branches.title")}
+      description={t("workspace.branches.description")}
+      insight=""
     >
-      <section className="grid grid-cols-1 gap-8 border-b border-surface-4 pb-12 mb-12 md:grid-cols-4">
-        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Total Branches
-          </p>
-          <p className="font-display text-4xl font-semibold text-text-primary tracking-tight">
-            {rows.length}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Active locations</p>
-          </div>
-        </article>
-
-        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Healthy
-          </p>
-          <p className="font-display text-4xl font-semibold text-status-success tracking-tight">
-            {statusCounts.healthy}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Performing well</p>
-          </div>
-        </article>
-
-        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            At Risk
-          </p>
-          <p className="font-display text-4xl font-semibold text-status-warning tracking-tight">
-            {statusCounts.atRisk}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Needs attention</p>
-          </div>
-        </article>
-
-        <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">
-            Underperforming
-          </p>
-          <p className="font-display text-4xl font-semibold text-status-critical tracking-tight">
-            {statusCounts.underperforming}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">Critical status</p>
-          </div>
-        </article>
-      </section>
-
-      <section className="mt-12">
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-            Branch Performance
-          </p>
-          <h3 className="mt-2 font-display text-2xl font-semibold text-text-primary">
-            Branch Control Table
-          </h3>
+      {/* ── Top bar: fleet summary + billing link ── */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-surface-4/60 pb-6">
+        <div className="flex flex-wrap items-center gap-6 text-sm">
+          <span className="text-text-muted">
+            <span className="font-semibold text-text-primary">
+              {statusCounts.total}
+            </span>{" "}
+            {statusCounts.total === 1 ? t("workspace.branches.location") : t("workspace.branches.locations")}
+          </span>
+          {statusCounts.healthy > 0 ? (
+            <span className="text-text-muted">
+              <span className="font-semibold text-status-success">
+                {statusCounts.healthy}
+              </span>{" "}
+              {t("workspace.branches.fleetHealthy")}
+            </span>
+          ) : null}
+          {statusCounts.atRisk > 0 ? (
+            <span className="text-text-muted">
+              <span className="font-semibold text-status-warning">
+                {statusCounts.atRisk}
+              </span>{" "}
+              {t("workspace.branches.fleetAtRisk")}
+            </span>
+          ) : null}
+          {statusCounts.underperforming > 0 ? (
+            <span className="text-text-muted">
+              <span className="font-semibold text-status-critical">
+                {statusCounts.underperforming}
+              </span>{" "}
+              {t("workspace.branches.fleetUnderperforming")}
+            </span>
+          ) : null}
         </div>
 
-        <div className="bg-surface-2 rounded-xl border border-surface-4 overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <NativeTable
-              table={table}
-              tableClassName="w-full min-w-[1220px]"
-              headerClassName="bg-gradient-to-br from-surface-3 to-surface-2 border-b border-surface-4"
-              headerCellClassName="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"
-              bodyRowClassName="align-top transition-all duration-200 hover:bg-surface-3/50"
-              cellClassName="px-6 py-6"
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/workspace/billing"
+            className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+          >
+            {t("workspace.branches.managePlan")}
+          </Link>
+          <Link
+            href="/workspace/branches/new"
+            className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
+          >
+            {t("workspace.branches.addBranch")}
+          </Link>
         </div>
-      </section>
+      </div>
 
-      <section className="mt-12">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <article className="lg:col-span-2 bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-              Branch Drill-in
-            </p>
-            <div className="space-y-3">
-              {rows.slice(0, 5).map((row) => (
-                <div
-                  key={`drill-${row.id}`}
-                  className="flex items-center justify-between pb-3 border-b border-surface-4 last:border-b-0 last:pb-0"
-                >
-                  <p className="text-sm font-semibold text-text-primary">
-                    {row.branch}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    Revenue {toCurrency(row.revenue)} · Margin{" "}
-                    {toPercent(row.marginPct)} · Risk {row.riskScore.toFixed(0)}
+      {/* ── Branch cards ── */}
+      {displayCards.length ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {displayCards.map((card) => (
+            <article
+              key={card.id}
+              className={`overflow-hidden rounded-xl border border-l-[3px] bg-surface-2 border-surface-4 ${statusBorderClass(card.status)}`}
+            >
+              {/* Card header */}
+              <div className="flex items-start justify-between gap-3 px-5 pt-5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${statusDotClass(card.status)}`}
+                  />
+                  <p className="truncate text-base font-semibold text-text-primary">
+                    {card.name}
                   </p>
                 </div>
-              ))}
-              {!rows.length ? (
-                <p className="text-sm text-text-muted">
-                  No branches found for current organization context.
-                </p>
-              ) : null}
-            </div>
-          </article>
-
-          <article className="bg-surface-2 rounded-xl p-6 border border-surface-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
-              Compare Branches
-            </p>
-            <div className="space-y-3">
-              <Select
-                options={[
-                  { value: "", label: "Branch A" },
-                  ...rows.map((row) => ({
-                    value: row.id,
-                    label: row.branch,
-                  })),
-                ]}
-                value={compareA}
-                onChange={(value) => setCompareA(value)}
-                placeholder="Select branch A"
-              />
-              <Select
-                options={[
-                  { value: "", label: "Branch B" },
-                  ...rows.map((row) => ({
-                    value: row.id,
-                    label: row.branch,
-                  })),
-                ]}
-                value={compareB}
-                onChange={(value) => setCompareB(value)}
-                placeholder="Select branch B"
-              />
-              <div className="pt-3 mt-3 border-t border-surface-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-2">
-                  Efficiency Delta
-                </p>
-                <p
-                  className={`font-display text-3xl font-bold tracking-tight ${compareDelta >= 0 ? "text-status-success" : "text-status-critical"}`}
+                <span
+                  className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${statusBadgeClasses(card.status)}`}
                 >
-                  {compareDelta >= 0 ? "+" : ""}
-                  {compareDelta.toFixed(1)}
-                </p>
+                  {statusLabel(card.status)}
+                </span>
               </div>
-              {compareA || compareB ? (
-                <div className="pt-4 mt-4 border-t border-surface-4 space-y-3 text-xs text-text-secondary">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                        Branch A Accuracy
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-text-primary">
-                        {compareMetricsA.data?.forecast_accuracy != null
-                          ? `${compareMetricsA.data.forecast_accuracy.toFixed(1)}%`
-                          : "—"}
-                      </p>
-                      <p className="text-[11px] text-text-muted">
-                        Quality{" "}
-                        {compareQualityA.data?.overall_quality_score != null
-                          ? `${compareQualityA.data.overall_quality_score.toFixed(0)}%`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted">
-                        Branch B Accuracy
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-text-primary">
-                        {compareMetricsB.data?.forecast_accuracy != null
-                          ? `${compareMetricsB.data.forecast_accuracy.toFixed(1)}%`
-                          : "—"}
-                      </p>
-                      <p className="text-[11px] text-text-muted">
-                        Quality{" "}
-                        {compareQualityB.data?.overall_quality_score != null
-                          ? `${compareQualityB.data.overall_quality_score.toFixed(0)}%`
-                          : "—"}
-                      </p>
-                    </div>
+
+              {/* Metrics */}
+              {cards.length > 0 ? (
+                <div className="mt-4 grid grid-cols-3 divide-x divide-surface-4/60 border-y border-surface-4/60">
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {t("workspace.branches.metric.revenue")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-brand-gold">
+                      {toCurrency(card.revenue)}
+                    </p>
                   </div>
-                  <p>
-                    Forecast accuracy reflects recent learning signals; data
-                    quality highlights ingestion reliability.
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {t("workspace.branches.metric.waste")}
+                    </p>
+                    <p
+                      className={`mt-1 text-sm font-semibold ${
+                        card.wastePct >= 6
+                          ? "text-status-critical"
+                          : card.wastePct >= 3
+                            ? "text-status-warning"
+                            : "text-status-success"
+                      }`}
+                    >
+                      {toPercent(card.wastePct)}
+                    </p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {t("workspace.branches.metric.risk")}
+                    </p>
+                    <p
+                      className={`mt-1 text-sm font-semibold ${riskToneClass(card.riskScore)}`}
+                    >
+                      {card.riskScore.toFixed(0)}
+                      <span className="ml-0.5 text-[10px] font-normal text-text-muted">
+                        {t("workspace.branches.riskScale")}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mx-5 mt-4 rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3">
+                  <p className="text-xs text-text-muted">
+                    {t("workspace.branches.performancePlaceholder")}
                   </p>
                 </div>
-              ) : null}
-            </div>
-          </article>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2 px-5 py-4">
+                <Link
+                  href={`/workspace/today?branch_id=${card.id}`}
+                  className="inline-flex h-8 items-center rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
+                >
+                  {t("workspace.branches.viewToday")}
+                </Link>
+                <Link
+                  href={`/workspace/risk?branch=${card.id}`}
+                  className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
+                >
+                  {t("workspace.branches.link.risk")}
+                </Link>
+                <Link
+                  href={`/workspace/settings?tab=integrations&branch=${card.id}`}
+                  className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-surface-4 hover:text-text-primary"
+                >
+                  {t("workspace.branches.link.integration")}
+                </Link>
+                <Link
+                  href={`/workspace/settings?tab=branches&branch=${card.id}`}
+                  className="ml-auto inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-secondary"
+                >
+                  {t("workspace.branches.link.configure")}
+                </Link>
+              </div>
+            </article>
+          ))}
         </div>
-      </section>
+      ) : (
+        /* Empty state */
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-4 py-20 text-center">
+          <p className="text-base font-semibold text-text-primary">
+            {t("workspace.branches.empty.title")}
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            {t("workspace.branches.empty.description")}
+          </p>
+          <Link
+            href="/workspace/branches/new"
+            className="mt-5 inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
+          >
+            {t("workspace.branches.addBranch")}
+          </Link>
+        </div>
+      )}
+
+      {/* Loading skeleton when no data yet */}
+      {(controlTowerQuery.isLoading || branchesQuery.isLoading) &&
+      !displayCards.length ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className="h-44 animate-pulse rounded-xl border border-surface-4 bg-surface-2"
+            />
+          ))}
+        </div>
+      ) : null}
     </WorkspaceShell>
   );
 }

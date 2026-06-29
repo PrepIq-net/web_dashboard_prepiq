@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { ChatThreadList } from "@/components/chat/chat-thread-list";
 import { ChatMessageArea } from "@/components/chat/chat-message-area";
 import { ChatEmptyState } from "@/components/chat/chat-empty-state";
@@ -8,6 +9,7 @@ import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { useCurrentUserProfile, useChatThreads } from "@/services";
 
 export default function ChatPage() {
+  const { t } = useTranslation();
   const { data: user, isLoading } = useCurrentUserProfile();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const threadsQuery = useChatThreads();
@@ -15,10 +17,10 @@ export default function ChatPage() {
   if (isLoading) {
     return (
       <WorkspaceShell
-        eyebrow="Communication"
-        title="Chat"
-        description="Internal team communication and collaboration."
-        insight="Structured communication improves team coordination and reduces information silos."
+        eyebrow={t("workspace.chat.eyebrow")}
+        title={t("workspace.chat.title")}
+        description={t("workspace.chat.description")}
+        insight={t("workspace.chat.insight")}
       >
         <div className="flex h-[calc(100vh-200px)] bg-surface-2 rounded-xl border border-surface-4">
           <div className="w-80 border-r border-surface-4 p-4">
@@ -38,10 +40,10 @@ export default function ChatPage() {
 
   return (
     <WorkspaceShell
-      eyebrow="Communication"
-      title="Chat"
-      description="Internal team communication and collaboration."
-      insight="Structured communication improves team coordination and reduces information silos."
+      eyebrow={t("workspace.chat.eyebrow")}
+      title={t("workspace.chat.title")}
+      description={t("workspace.chat.description")}
+      insight={t("workspace.chat.insight")}
     >
       <div className="flex h-[calc(100vh-200px)] bg-surface-2 rounded-xl border border-surface-4 shadow-lg overflow-hidden">
         {/* Thread List Sidebar */}

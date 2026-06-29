@@ -33,5 +33,6 @@ export const paymentEndpoints = {
   invoices: () => `${BASE}/invoices/`,
   invoiceDetail: (invoiceId: string) => `${BASE}/invoices/${invoiceId}/`,
   invoiceDownload: (invoiceId: string) => `${BASE}/invoices/${invoiceId}/download/`,
+  invoiceBillingReport: () => `${BASE}/invoices/billing-report/`,
 } as const;
 

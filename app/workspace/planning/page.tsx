@@ -29,6 +29,9 @@ import {
 } from "@/services/planning/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useAvailabilityOverrides } from "@/services/inventory/hooks";
+import type { ItemAvailabilityOverride } from "@/services/inventory/types";
+import Link from "next/link";
 import type {
   CalendarEventList,
   CreateCalendarEventPayload,
@@ -40,6 +43,7 @@ import {
   EVENT_TYPE_DOT,
   eventTypeEnum,
 } from "@/services/planning/types";
+import { useTranslation } from "@/lib/i18n";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -48,11 +52,23 @@ import {
 const EMPTY_LIST: never[] = [];
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+
+function getWeekdays(t: (k: string) => string): string[] {
+  return [
+    t("planning.mon"), t("planning.tue"), t("planning.wed"),
+    t("planning.thu"), t("planning.fri"), t("planning.sat"),
+    t("planning.sun"),
+  ];
+}
+
+function getMonths(t: (k: string) => string): string[] {
+  return [
+    t("planning.january"), t("planning.february"), t("planning.march"),
+    t("planning.april"), t("planning.may"), t("planning.june"),
+    t("planning.july"), t("planning.august"), t("planning.september"),
+    t("planning.october"), t("planning.november"), t("planning.december"),
+  ];
+}
 
 function toIso(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -106,6 +122,15 @@ function impactTone(impact: number): string {
   return "text-text-muted";
 }
 
+function getStatusLabels(t: (k: string) => string): Record<string, string> {
+  return {
+    ACTIVE: t("planning.status_active"),
+    DRAFT: t("planning.status_draft"),
+    CANCELLED: t("planning.status_cancelled"),
+    COMPLETED: t("planning.status_completed"),
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Create event modal
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +178,7 @@ function ItemPicker({
   selected: string[];
   onChange: (ids: string[]) => void;
 }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const { data: items = [], isLoading } = useCatalogItems(orgId, !!orgId);
 
@@ -169,15 +195,15 @@ function ItemPicker({
   return (
     <div>
       <label className={LABEL_CLS}>
-        Affected menu items
+        {t("planning.affected_menu_items")}
         {selected.length > 0 ? (
           <span className="ml-1.5 rounded-full bg-status-success/20 px-1.5 py-0.5 text-[9px] font-bold text-status-success">
-            {selected.length} selected
+            {selected.length} {t("planning.selected")}
           </span>
         ) : null}
       </label>
       <p className="mb-2 text-[11px] text-text-muted">
-        The forecast engine will boost predicted demand for these items when this promotion is active.
+        {t("planning.forecast_boost_explanation")}
       </p>
 
       {/* Search */}
@@ -187,7 +213,7 @@ function ItemPicker({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search items..."
+          placeholder={t("planning.search_items")}
           className="w-full rounded-xl border border-surface-4 bg-surface-2 py-2 pl-8 pr-3 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
         />
       </div>
@@ -200,7 +226,7 @@ function ItemPicker({
           </div>
         ) : filtered.length === 0 ? (
           <p className="py-4 text-center text-xs text-text-muted">
-            {items.length === 0 ? "No items in catalog yet." : "No items match."}
+            {items.length === 0 ? t("planning.no_items_in_catalog") : t("planning.no_items_match")}
           </p>
         ) : (
           filtered.map((item) => {
@@ -247,6 +273,7 @@ function CreateEventModal({
   orgId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const createMutation = useCreatePlanningEvent();
 
   const [form, setForm] = useState({
@@ -326,15 +353,15 @@ function CreateEventModal({
 
   const handleSubmit = () => {
     if (!form.title.trim()) {
-      setError("Title is required.");
+      setError(t("planning.title_required"));
       return;
     }
     if (form.event_type === "RESERVATION" && !form.guest_count) {
-      setError("Guest count is required for reservations.");
+      setError(t("planning.guest_count_required"));
       return;
     }
     if (form.event_type === "DELIVERY" && !form.supplier_name.trim()) {
-      setError("Supplier name is required for deliveries.");
+      setError(t("planning.supplier_name_required"));
       return;
     }
     setError("");
@@ -370,10 +397,10 @@ function CreateEventModal({
         <div className="flex items-center justify-between border-b border-surface-4 px-6 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              New Event
+              {t("planning.new_event")}
             </p>
             <h2 className="font-display text-lg font-semibold text-text-primary">
-              Add to planning calendar
+              {t("planning.add_to_planning_calendar")}
             </h2>
           </div>
           <button
@@ -396,19 +423,19 @@ function CreateEventModal({
 
             {/* Title */}
             <div>
-              <label className={LABEL_CLS}>Title</label>
+              <label className={LABEL_CLS}>{t("planning.title")}</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
-                placeholder="e.g. Wedding Reception — 80 guests"
+                placeholder={t("planning.placeholder_wedding")}
                 className={INPUT_CLS}
               />
             </div>
 
             {/* Event type */}
             <div>
-              <label className={LABEL_CLS}>Type</label>
+              <label className={LABEL_CLS}>{t("planning.type")}</label>
               <select
                 value={form.event_type}
                 onChange={(e) => {
@@ -430,13 +457,13 @@ function CreateEventModal({
               <div className="flex items-start gap-2 rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-2">
                 <WarningTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning" />
                 <p className="text-[11px] text-status-warning">
-                  This date is in the past. The event will be logged but won&apos;t affect future forecasts.
+                  {t("planning.past_date_warning")}
                 </p>
               </div>
             ) : null}
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={LABEL_CLS}>Date</label>
+                <label className={LABEL_CLS}>{t("planning.date")}</label>
                 <input
                   type="date"
                   value={form.start_date}
@@ -445,7 +472,7 @@ function CreateEventModal({
                 />
               </div>
               <div>
-                <label className={LABEL_CLS}>Start</label>
+                <label className={LABEL_CLS}>{t("planning.start")}</label>
                 <input
                   type="time"
                   value={form.start_time}
@@ -454,7 +481,7 @@ function CreateEventModal({
                 />
               </div>
               <div>
-                <label className={LABEL_CLS}>End</label>
+                <label className={LABEL_CLS}>{t("planning.end")}</label>
                 <input
                   type="time"
                   value={form.end_time}
@@ -469,22 +496,22 @@ function CreateEventModal({
             {form.event_type === "PROMOTION" ? (
               <div className="space-y-4 rounded-xl border border-status-success/20 bg-status-success/5 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-status-success">
-                  Promotion details
+                  {t("planning.promotion_details")}
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL_CLS}>Promotion name</label>
+                    <label className={LABEL_CLS}>{t("planning.promotion_name")}</label>
                     <input
                       type="text"
                       value={form.promotion_name}
                       onChange={(e) => set("promotion_name", e.target.value)}
-                      placeholder="e.g. Happy Hour"
+                      placeholder={t("planning.placeholder_happy_hour")}
                       className={INPUT_CLS}
                     />
                   </div>
                   <div>
-                    <label className={LABEL_CLS}>Expected uplift (%)</label>
+                    <label className={LABEL_CLS}>{t("planning.expected_uplift")}</label>
                     <input
                       type="number"
                       step="1"
@@ -492,7 +519,7 @@ function CreateEventModal({
                       max="100"
                       value={form.expected_uplift}
                       onChange={(e) => set("expected_uplift", e.target.value)}
-                      placeholder="e.g. 20"
+                      placeholder={t("planning.placeholder_uplift")}
                       className={INPUT_CLS}
                     />
                   </div>
@@ -500,29 +527,29 @@ function CreateEventModal({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL_CLS}>Discount type</label>
+                    <label className={LABEL_CLS}>{t("planning.discount_type")}</label>
                     <select
                       value={form.discount_type}
                       onChange={(e) => set("discount_type", e.target.value)}
                       className={INPUT_CLS}
                     >
-                      <option value="PERCENTAGE">Percentage</option>
-                      <option value="FIXED">Fixed amount</option>
-                      <option value="BOGO">Buy one get one</option>
-                      <option value="FREE_ITEM">Free item</option>
+                      <option value="PERCENTAGE">{t("planning.percentage")}</option>
+                      <option value="FIXED">{t("planning.fixed_amount")}</option>
+                      <option value="BOGO">{t("planning.buy_one_get_one")}</option>
+                      <option value="FREE_ITEM">{t("planning.free_item")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={LABEL_CLS}>Channel</label>
+                    <label className={LABEL_CLS}>{t("planning.channel")}</label>
                     <select
                       value={form.promotion_channel}
                       onChange={(e) => set("promotion_channel", e.target.value)}
                       className={INPUT_CLS}
                     >
-                      <option value="IN_STORE">In-store</option>
-                      <option value="ONLINE">Online</option>
-                      <option value="SOCIAL_MEDIA">Social media</option>
-                      <option value="ALL">All channels</option>
+                      <option value="IN_STORE">{t("planning.in_store")}</option>
+                      <option value="ONLINE">{t("planning.online")}</option>
+                      <option value="SOCIAL_MEDIA">{t("planning.social_media")}</option>
+                      <option value="ALL">{t("planning.all_channels")}</option>
                     </select>
                   </div>
                 </div>
@@ -538,40 +565,40 @@ function CreateEventModal({
             {form.event_type === "RESERVATION" ? (
               <div className="space-y-4 rounded-xl border border-brand-gold/20 bg-brand-gold/5 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-gold">
-                  Reservation details
+                  {t("planning.reservation_details")}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL_CLS}>Guest count</label>
+                    <label className={LABEL_CLS}>{t("planning.guest_count")}</label>
                     <input
                       type="number"
                       min="1"
                       value={form.guest_count}
                       onChange={(e) => set("guest_count", e.target.value)}
-                      placeholder="e.g. 40"
+                      placeholder={t("planning.placeholder_guest_count")}
                       className={INPUT_CLS}
                     />
                   </div>
                   <div>
-                    <label className={LABEL_CLS}>Type</label>
+                    <label className={LABEL_CLS}>{t("planning.type")}</label>
                     <select
                       value={form.reservation_type}
                       onChange={(e) => set("reservation_type", e.target.value)}
                       className={INPUT_CLS}
                     >
-                      <option value="WEDDING">Wedding</option>
-                      <option value="CORPORATE">Corporate</option>
-                      <option value="BIRTHDAY">Birthday</option>
-                      <option value="CONFERENCE">Conference</option>
-                      <option value="PRIVATE_DINING">Private dining</option>
-                      <option value="OTHER">Other</option>
+                      <option value="WEDDING">{t("planning.wedding")}</option>
+                      <option value="CORPORATE">{t("planning.corporate")}</option>
+                      <option value="BIRTHDAY">{t("planning.birthday")}</option>
+                      <option value="CONFERENCE">{t("planning.conference")}</option>
+                      <option value="PRIVATE_DINING">{t("planning.private_dining")}</option>
+                      <option value="OTHER">{t("planning.other")}</option>
                     </select>
                   </div>
                 </div>
                 <Toggle
                   checked={form.confirmed}
                   onChange={(v) => set("confirmed", v)}
-                  label="Reservation confirmed"
+                  label={t("planning.reservation_confirmed")}
                 />
               </div>
             ) : null}
@@ -579,22 +606,22 @@ function CreateEventModal({
             {form.event_type === "CLOSURE" ? (
               <div className="space-y-4 rounded-xl border border-status-critical/20 bg-status-critical/5 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-status-critical">
-                  Closure details
+                  {t("planning.closure_details")}
                 </p>
                 <div>
-                  <label className={LABEL_CLS}>Reason</label>
+                  <label className={LABEL_CLS}>{t("planning.reason")}</label>
                   <input
                     type="text"
                     value={form.closure_reason}
                     onChange={(e) => set("closure_reason", e.target.value)}
-                    placeholder="e.g. Public holiday, maintenance..."
+                    placeholder={t("planning.placeholder_reason")}
                     className={INPUT_CLS}
                   />
                 </div>
                 <Toggle
                   checked={form.full_day}
                   onChange={(v) => set("full_day", v)}
-                  label="Full-day closure"
+                  label={t("planning.full_day_closure")}
                 />
               </div>
             ) : null}
@@ -602,15 +629,15 @@ function CreateEventModal({
             {form.event_type === "DELIVERY" ? (
               <div className="space-y-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-400">
-                  Delivery details
+                  {t("planning.delivery_details")}
                 </p>
                 <div>
-                  <label className={LABEL_CLS}>Supplier name</label>
+                  <label className={LABEL_CLS}>{t("planning.supplier_name")}</label>
                   <input
                     type="text"
                     value={form.supplier_name}
                     onChange={(e) => set("supplier_name", e.target.value)}
-                    placeholder="e.g. Metro Foods"
+                    placeholder={t("planning.placeholder_supplier")}
                     className={INPUT_CLS}
                   />
                 </div>
@@ -620,15 +647,15 @@ function CreateEventModal({
             {form.event_type === "OPERATIONAL_NOTE" ? (
               <div className="space-y-4 rounded-xl border border-surface-4 bg-surface-2 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
-                  Note details
+                  {t("planning.note_details")}
                 </p>
                 <div>
-                  <label className={LABEL_CLS}>Note content</label>
+                  <label className={LABEL_CLS}>{t("planning.note_content")}</label>
                   <textarea
                     rows={3}
                     value={form.note_content}
                     onChange={(e) => set("note_content", e.target.value)}
-                    placeholder="Enter operational note..."
+                    placeholder={t("planning.placeholder_note")}
                     className="w-full resize-none rounded-xl border border-surface-4 bg-surface-1 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
                   />
                 </div>
@@ -637,25 +664,25 @@ function CreateEventModal({
 
             {/* Demand impact */}
             <div>
-              <label className={LABEL_CLS}>Expected demand impact (%)</label>
+              <label className={LABEL_CLS}>{t("planning.expected_demand_impact")}</label>
               <input
                 type="number"
                 step="1"
                 value={form.expected_demand_impact}
                 onChange={(e) => set("expected_demand_impact", e.target.value)}
-                placeholder="e.g. 25 for +25%, −40 for −40%"
+                placeholder={t("planning.placeholder_demand_impact")}
                 className={INPUT_CLS}
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className={LABEL_CLS}>Notes (optional)</label>
+              <label className={LABEL_CLS}>{t("planning.notes_optional")}</label>
               <textarea
                 rows={2}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                placeholder="Any context the forecast engine should know..."
+                placeholder={t("planning.placeholder_context")}
                 className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
               />
             </div>
@@ -664,7 +691,7 @@ function CreateEventModal({
             <Toggle
               checked={form.all_branches}
               onChange={(v) => set("all_branches", v)}
-              label="Apply to all branches"
+              label={t("planning.apply_to_all_branches")}
             />
           </div>
         </div>
@@ -676,7 +703,7 @@ function CreateEventModal({
             onClick={onClose}
             className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
-            Cancel
+            {t("planning.cancel")}
           </button>
           <button
             type="button"
@@ -684,7 +711,7 @@ function CreateEventModal({
             disabled={createMutation.isPending}
             className="inline-flex h-9 items-center rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {createMutation.isPending ? "Saving..." : "Add event"}
+            {createMutation.isPending ? t("planning.saving") : t("planning.add_event")}
           </button>
         </div>
       </div>
@@ -696,13 +723,6 @@ function CreateEventModal({
 // Edit event modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Active",
-  DRAFT: "Draft",
-  CANCELLED: "Cancelled",
-  COMPLETED: "Completed",
-};
-
 function EditEventModal({
   eventId,
   onClose,
@@ -710,6 +730,7 @@ function EditEventModal({
   eventId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: event, isLoading } = usePlanningEvent(eventId);
   const updateMutation = useUpdatePlanningEvent();
 
@@ -746,6 +767,8 @@ function EditEventModal({
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const statusLabels = getStatusLabels(t);
+
   const handleSubmit = () => {
     const startDt = `${form.start_date}T${form.start_time}:00`;
     const endDt = `${form.start_date}T${form.end_time}:00`;
@@ -774,10 +797,10 @@ function EditEventModal({
         <div className="flex items-center justify-between border-b border-surface-4 px-6 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              Edit Event
+              {t("planning.edit_event")}
             </p>
             <h2 className="font-display text-lg font-semibold text-text-primary">
-              Update details
+              {t("planning.update_details")}
             </h2>
           </div>
           <button
@@ -797,7 +820,7 @@ function EditEventModal({
           ) : (
             <>
               <div>
-                <label className={LABEL_CLS}>Title</label>
+                <label className={LABEL_CLS}>{t("planning.title")}</label>
                 <input
                   type="text"
                   value={form.title}
@@ -807,26 +830,26 @@ function EditEventModal({
               </div>
 
               <div>
-                <label className={LABEL_CLS}>Status</label>
+                <label className={LABEL_CLS}>{t("planning.status")}</label>
                 <select
                   value={form.status}
                   onChange={(e) => set("status", e.target.value)}
                   className={INPUT_CLS}
                 >
-                  {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                  {Object.entries(statusLabels).map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
                   ))}
                 </select>
                 {form.status === "CANCELLED" ? (
                   <p className="mt-1 text-[11px] text-status-critical">
-                    Cancelled events are hidden from the forecast engine.
+                    {t("planning.cancelled_hidden_from_forecast")}
                   </p>
                 ) : null}
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={LABEL_CLS}>Date</label>
+                  <label className={LABEL_CLS}>{t("planning.date")}</label>
                   <input
                     type="date"
                     value={form.start_date}
@@ -835,7 +858,7 @@ function EditEventModal({
                   />
                 </div>
                 <div>
-                  <label className={LABEL_CLS}>Start</label>
+                  <label className={LABEL_CLS}>{t("planning.start")}</label>
                   <input
                     type="time"
                     value={form.start_time}
@@ -844,7 +867,7 @@ function EditEventModal({
                   />
                 </div>
                 <div>
-                  <label className={LABEL_CLS}>End</label>
+                  <label className={LABEL_CLS}>{t("planning.end")}</label>
                   <input
                     type="time"
                     value={form.end_time}
@@ -855,24 +878,24 @@ function EditEventModal({
               </div>
 
               <div>
-                <label className={LABEL_CLS}>Demand impact (%)</label>
+                <label className={LABEL_CLS}>{t("planning.demand_impact")}</label>
                 <input
                   type="number"
                   step="1"
                   value={form.expected_demand_impact}
                   onChange={(e) => set("expected_demand_impact", e.target.value)}
-                  placeholder="e.g. 25 for +25%"
+                  placeholder={t("planning.placeholder_demand_impact_edit")}
                   className={INPUT_CLS}
                 />
               </div>
 
               <div>
-                <label className={LABEL_CLS}>Update note (optional)</label>
+                <label className={LABEL_CLS}>{t("planning.update_note")}</label>
                 <textarea
                   rows={2}
                   value={form.description}
                   onChange={(e) => set("description", e.target.value)}
-                  placeholder="Reason for change..."
+                  placeholder={t("planning.placeholder_reason_change")}
                   className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-brand-gold/50 focus:outline-none"
                 />
               </div>
@@ -886,7 +909,7 @@ function EditEventModal({
             onClick={onClose}
             className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-sm text-text-secondary hover:text-text-primary transition-colors"
           >
-            Cancel
+            {t("planning.cancel")}
           </button>
           <button
             type="button"
@@ -894,7 +917,7 @@ function EditEventModal({
             disabled={updateMutation.isPending || isLoading}
             className="inline-flex h-9 items-center rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {updateMutation.isPending ? "Saving..." : "Save changes"}
+            {updateMutation.isPending ? t("planning.saving") : t("planning.save_changes")}
           </button>
         </div>
       </div>
@@ -910,15 +933,18 @@ function DayPanel({
   date,
   events,
   branchId,
+  dayOverrides,
   onCreateClick,
   onEditClick,
 }: {
   date: string;
   events: CalendarEventList[];
   branchId: string;
+  dayOverrides: ItemAvailabilityOverride[];
   onCreateClick: () => void;
   onEditClick: (eventId: string) => void;
 }) {
+  const { t } = useTranslation();
   const deleteMutation = useDeletePlanningEvent();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const forecastQuery = usePlanningForecastContext(
@@ -949,7 +975,7 @@ function DayPanel({
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold transition-colors"
         >
           <Plus className="h-3 w-3" />
-          Add
+          {t("planning.add")}
         </button>
       </div>
 
@@ -957,11 +983,11 @@ function DayPanel({
       {fc && fc.total_events > 0 ? (
         <div className="mt-4 rounded-xl border border-surface-4 bg-surface-2 p-3">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-brand-gold mb-2">
-            Forecast impact
+            {t("planning.forecast_impact")}
           </p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
             <div>
-              <span className="text-text-muted">Composite impact</span>
+              <span className="text-text-muted">{t("planning.composite_impact")}</span>
               <span
                 className={`ml-1.5 font-semibold ${impactTone(fc.composite_demand_impact)}`}
               >
@@ -970,15 +996,15 @@ function DayPanel({
             </div>
             {fc.reservation_total_guests > 0 ? (
               <div>
-                <span className="text-text-muted">Reservations</span>
+                <span className="text-text-muted">{t("planning.reservations")}</span>
                 <span className="ml-1.5 font-semibold text-text-primary">
-                  {fc.reservation_total_guests} guests
+                  {fc.reservation_total_guests} {t("planning.guests")}
                 </span>
               </div>
             ) : null}
             {fc.local_event_max_attendance > 0 ? (
               <div>
-                <span className="text-text-muted">Nearby crowd</span>
+                <span className="text-text-muted">{t("planning.nearby_crowd")}</span>
                 <span className="ml-1.5 font-semibold text-text-primary">
                   {fc.local_event_max_attendance.toLocaleString()}
                 </span>
@@ -987,7 +1013,7 @@ function DayPanel({
             {fc.has_closure ? (
               <div className="col-span-2">
                 <span className="font-semibold text-status-critical">
-                  {fc.closure_is_full_day ? "Full-day closure" : "Partial closure"}
+                  {fc.closure_is_full_day ? t("planning.full_day_closure") : t("planning.partial_closure")}
                 </span>
               </div>
             ) : null}
@@ -999,13 +1025,13 @@ function DayPanel({
       <div className="mt-4 flex-1 overflow-y-auto space-y-2">
         {events.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-sm text-text-muted">No events on this day.</p>
+            <p className="text-sm text-text-muted">{t("planning.no_events_on_this_day")}</p>
             <button
               type="button"
               onClick={onCreateClick}
               className="mt-3 text-xs text-brand-gold hover:underline"
             >
-              Add an event →
+              {t("planning.add_event_arrow")}
             </button>
           </div>
         ) : (
@@ -1031,7 +1057,7 @@ function DayPanel({
                     ) : null}
                     {event.status === "CANCELLED" ? (
                       <span className="text-[9px] font-semibold text-text-muted line-through">
-                        cancelled
+                        {t("planning.cancelled")}
                       </span>
                     ) : null}
                   </div>
@@ -1048,7 +1074,7 @@ function DayPanel({
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                    {event.branch_name ? ` · ${event.branch_name}` : " · All branches"}
+                    {event.branch_name ? ` · ${event.branch_name}` : ` · ${t("planning.all_branches")}`}
                   </p>
                 </div>
                 {/* Actions */}
@@ -1057,7 +1083,7 @@ function DayPanel({
                     type="button"
                     onClick={() => onEditClick(event.id)}
                     className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
-                    title="Edit event"
+                    title={t("planning.edit_event")}
                   >
                     <EditPencil className="h-3 w-3" />
                   </button>
@@ -1072,14 +1098,14 @@ function DayPanel({
                         disabled={deleteMutation.isPending}
                         className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
                       >
-                        Delete
+                        {t("planning.delete")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
                         className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
                       >
-                        No
+                        {t("planning.no")}
                       </button>
                     </div>
                   ) : (
@@ -1087,7 +1113,7 @@ function DayPanel({
                       type="button"
                       onClick={() => setConfirmDeleteId(event.id)}
                       className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
-                      title="Delete event"
+                      title={t("planning.delete_event")}
                     >
                       <Xmark className="h-3 w-3" />
                     </button>
@@ -1096,6 +1122,51 @@ function DayPanel({
               </div>
             </div>
           ))
+        )}
+      </div>
+
+      {/* Menu Availability strip */}
+      <div className="mt-4 border-t border-surface-4/60 pt-4">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Menu Availability
+          </p>
+          {branchId && (
+            <Link
+              href={`/workspace/inventory?tab=ingredients&branch=${branchId}`}
+              className="text-[10px] text-text-muted transition-colors hover:text-brand-gold"
+            >
+              Manage →
+            </Link>
+          )}
+        </div>
+
+        {dayOverrides.length === 0 ? (
+          <p className="text-[11px] text-text-muted">No items marked unavailable for this day.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {dayOverrides.map((ov) => (
+              <div key={ov.id} className="flex items-start gap-2">
+                <span
+                  className={`mt-0.5 inline-flex h-4 shrink-0 items-center rounded-sm border px-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] ${
+                    ov.suppressed_demand
+                      ? "border-brand-gold/30 bg-brand-gold/10 text-brand-gold"
+                      : "border-status-warning/30 bg-status-warning/10 text-status-warning"
+                  }`}
+                >
+                  {ov.suppressed_demand ? "Off Menu" : "Supply"}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-text-primary truncate">
+                    {ov.item_title ?? ov.item_id}
+                  </p>
+                  {ov.reason && (
+                    <p className="text-[10px] text-text-muted truncate">{ov.reason}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -1107,6 +1178,7 @@ function DayPanel({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PlanningPageContent() {
+  const { t } = useTranslation();
   const today = toIso(new Date());
   const [month, setMonth] = useState(() => monthStart(new Date()));
   const [selectedDate, setSelectedDate] = useState(today);
@@ -1155,25 +1227,36 @@ function PlanningPageContent() {
   const selectedDayEvents: CalendarEventList[] =
     calendarData[selectedDate] ?? EMPTY_LIST;
 
+  const overridesQuery = useAvailabilityOverrides(safeBranchId, Boolean(safeBranchId));
+  const allOverrides: ItemAvailabilityOverride[] = overridesQuery.data ?? EMPTY_LIST;
+  const dayOverrides = selectedDate
+    ? allOverrides.filter(
+        (ov) =>
+          ov.is_active &&
+          ov.start_date <= selectedDate &&
+          (ov.end_date == null || ov.end_date >= selectedDate),
+      )
+    : [];
+
   const isCurrentMonth = (d: Date) => d.getMonth() === month.getMonth();
 
   return (
     <WorkspaceShell
-      eyebrow="Planning"
-      title="Planning Calendar"
-      description="Every event you enter becomes a forecast signal. Reservations, promotions, closures — all feed the prediction engine."
-      insight="The calendar is not for dates. It is for future operational intelligence."
+      eyebrow={t("planning.shell_eyebrow")}
+      title={t("planning.shell_title")}
+      description={t("planning.shell_description")}
+      insight={t("planning.shell_insight")}
     >
       {/* ── Context bar ── */}
       <div className="mb-6 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-5">
         <div className="flex-1 min-w-[180px] max-w-xs">
           <Select
-            label="Branch"
+            label={t("planning.branch_label")}
             leadingIcon={<Shop className="h-4 w-4" />}
             options={branchOptions.map((b) => ({ value: b.id, label: b.name }))}
             value={branchId}
             onChange={setBranchId}
-            placeholder="All branches"
+            placeholder={t("planning.all_branches_placeholder")}
           />
         </div>
         <div className="flex-1" />
@@ -1183,7 +1266,7 @@ function PlanningPageContent() {
           className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
-          New event
+          {t("planning.new_event_button")}
         </button>
       </div>
 
@@ -1205,7 +1288,7 @@ function PlanningPageContent() {
               <NavArrowLeft className="h-4 w-4" />
             </button>
             <h2 className="font-display text-lg font-semibold text-text-primary">
-              {MONTHS[month.getMonth()]} {month.getFullYear()}
+              {getMonths(t)[month.getMonth()]} {month.getFullYear()}
             </h2>
             <button
               type="button"
@@ -1218,7 +1301,7 @@ function PlanningPageContent() {
 
           {/* Weekday headers */}
           <div className="mb-1 grid grid-cols-7 text-center">
-            {WEEKDAYS.map((d) => (
+            {getWeekdays(t).map((d) => (
               <div
                 key={d}
                 className="py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted/60"
@@ -1322,6 +1405,7 @@ function PlanningPageContent() {
               date={selectedDate}
               events={selectedDayEvents}
               branchId={safeBranchId}
+              dayOverrides={dayOverrides}
               onCreateClick={() => setCreateModalOpen(true)}
               onEditClick={(id) => setEditingEventId(id)}
             />
