@@ -540,7 +540,7 @@ export default function PurchasingPage() {
                       r.predicted_usage.toFixed(2),
                       r.on_hand_qty.toFixed(2),
                       r.net_need.toFixed(2),
-                      r.pack_size != null ? r.pack_size.toFixed(2) + ' ' + r.pack_unit : '—',
+                      r.pack_size != null ? r.pack_size.toFixed(2) + ' ' + (r.pack_unit ?? r.unit) : '—',
                       r.purchase_qty.toFixed(2),
                       r.estimated_cost != null ? r.estimated_cost.toFixed(2) : '—',
                     ]),
@@ -594,7 +594,7 @@ export default function PurchasingPage() {
                         {row.net_need.toFixed(2)} <span className='text-[11px] font-normal uppercase text-text-muted'>{row.unit}</span>
                       </td>
                       <td className='px-4 py-3 text-sm text-text-secondary'>
-                        {row.pack_size != null ? `${row.pack_size} ${row.pack_unit}` : '—'}
+                        {row.pack_size != null ? `${row.pack_size} ${row.pack_unit ?? row.unit}` : '—'}
                       </td>
                       <td className='px-4 py-3 text-sm font-semibold text-brand-gold'>
                         {row.purchase_qty.toFixed(2)} <span className='text-[11px] font-normal uppercase text-text-muted'>{row.pack_unit || row.unit}</span>

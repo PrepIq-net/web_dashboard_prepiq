@@ -438,7 +438,7 @@ function IngredientsTab({
                 <div key={ov.id} className="flex items-center gap-4 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-text-primary truncate">
-                      {ov.item_title ?? ov.item}
+                      {ov.item_title ?? ov.item_id}
                     </p>
                     {ov.reason && (
                       <p className="mt-0.5 text-xs text-text-muted truncate">{ov.reason}</p>
@@ -548,7 +548,7 @@ function StockTab({
               <tbody className="divide-y divide-surface-4/50">
                 {onHandRows.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-3/20 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient_id}</td>
                     <td className="px-4 py-3 text-sm text-brand-gold font-semibold">{Number(row.quantity).toFixed(2)}</td>
                     <td className="px-4 py-3 text-xs uppercase text-text-muted">{row.unit}</td>
                     <td className="px-4 py-3 text-sm text-text-secondary">{row.as_of_date}</td>
@@ -606,7 +606,7 @@ function StockTab({
               <tbody className="divide-y divide-surface-4/50">
                 {supplierRows.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-3/20 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-text-primary">{row.ingredient_name ?? row.ingredient_id}</td>
                     <td className="px-4 py-3 text-sm text-text-secondary">{row.supplier_name}</td>
                     <td className="px-4 py-3 text-sm text-text-secondary">
                       {row.pack_size != null ? `${row.pack_size} ${row.pack_unit}` : "—"}

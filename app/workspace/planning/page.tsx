@@ -1158,7 +1158,7 @@ function DayPanel({
                 </span>
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold text-text-primary truncate">
-                    {ov.item_title ?? ov.item}
+                    {ov.item_title ?? ov.item_id}
                   </p>
                   {ov.reason && (
                     <p className="text-[10px] text-text-muted truncate">{ov.reason}</p>

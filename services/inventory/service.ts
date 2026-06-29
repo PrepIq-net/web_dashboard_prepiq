@@ -213,15 +213,16 @@ export async function calculateIngredientDemand(branchId: string, date: string, 
 // ============================================================================
 
 export async function getOnHand(branchId: string) {
-  return apiClientWithSchema(
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.onHand.list(branchId),
-    z.object({ count: z.number(), results: z.array(ingredientOnHandSchema) }),
+    z.object({ branch_id: z.string(), records: z.array(ingredientOnHandSchema) }),
     { method: "GET" }
   );
+  return { results: parsed.records };
 }
 
 export type OnHandPayload = {
-  ingredient: string;
+  ingredient_id: string;
   quantity: number;
   unit: string;
   as_of_date: string;
@@ -231,7 +232,7 @@ export type OnHandPayload = {
 export async function logOnHand(branchId: string, data: OnHandPayload) {
   return apiClientWithSchema(
     inventoryEndpoints.onHand.create(branchId),
-    ingredientOnHandSchema,
+    z.object({ id: z.string(), created: z.boolean() }),
     { method: "POST", body: data }
   );
 }
@@ -241,15 +242,16 @@ export async function logOnHand(branchId: string, data: OnHandPayload) {
 // ============================================================================
 
 export async function getIngredientSuppliers(branchId: string) {
-  return apiClientWithSchema(
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.ingredientSuppliers.list(branchId),
-    z.object({ count: z.number(), results: z.array(ingredientSupplierSchema) }),
+    z.object({ branch_id: z.string(), suppliers: z.array(ingredientSupplierSchema) }),
     { method: "GET" }
   );
+  return { results: parsed.suppliers };
 }
 
 export type IngredientSupplierPayload = {
-  ingredient: string;
+  ingredient_id: string;
   supplier_name: string;
   pack_size?: number | null;
   pack_unit?: string;
@@ -261,7 +263,7 @@ export type IngredientSupplierPayload = {
 export async function createIngredientSupplier(branchId: string, data: IngredientSupplierPayload) {
   return apiClientWithSchema(
     inventoryEndpoints.ingredientSuppliers.create(branchId),
-    ingredientSupplierSchema,
+    z.object({ id: z.string() }),
     { method: "POST", body: data }
   );
 }
@@ -281,11 +283,18 @@ export async function getPurchaseForecast(branchId: string, from: string, to: st
 
 export async function getBatchRule(itemId: string) {
   try {
-    return await apiClientWithSchema(
+    const parsed = await apiClientWithSchema(
       inventoryEndpoints.batchRule.get(itemId),
-      itemBatchRuleSchema,
+      z.object({
+        success: z.boolean().optional(),
+        data: z.object({
+          item_id: z.string(),
+          rule: itemBatchRuleSchema.nullable(),
+        }),
+      }),
       { method: "GET" }
     );
+    return parsed.data.rule;
   } catch {
     return null;
   }
@@ -299,11 +308,16 @@ export type BatchRulePayload = {
 };
 
 export async function upsertBatchRule(itemId: string, data: BatchRulePayload) {
-  return apiClientWithSchema(
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.batchRule.update(itemId),
-    itemBatchRuleSchema,
-    { method: "PUT", body: { item: itemId, ...data } }
+    z.object({
+      item_id: z.string(),
+      rule: itemBatchRuleSchema,
+      created: z.boolean(),
+    }),
+    { method: "PUT", body: data }
   );
+  return parsed.rule;
 }
 
 // ============================================================================
@@ -311,11 +325,18 @@ export async function upsertBatchRule(itemId: string, data: BatchRulePayload) {
 // ============================================================================
 
 export async function getAvailabilityOverrides(branchId: string) {
-  return apiClientWithSchema(
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.availabilityOverrides.list(branchId),
-    z.object({ count: z.number(), results: z.array(itemAvailabilityOverrideSchema) }),
+    z.object({
+      success: z.boolean().optional(),
+      data: z.object({
+        branch_id: z.string(),
+        overrides: z.array(itemAvailabilityOverrideSchema),
+      }),
+    }),
     { method: "GET" }
   );
+  return { results: parsed.data.overrides };
 }
 
 export type AvailabilityOverridePayload = {
@@ -327,17 +348,23 @@ export type AvailabilityOverridePayload = {
 };
 
 export async function createAvailabilityOverride(branchId: string, data: AvailabilityOverridePayload) {
-  return apiClientWithSchema(
+  const { item, ...rest } = data;
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.availabilityOverrides.create(branchId),
-    itemAvailabilityOverrideSchema,
-    { method: "POST", body: data }
+    z.object({ override: itemAvailabilityOverrideSchema }),
+    { method: "POST", body: { item_id: item, ...rest } }
   );
+  return parsed.override;
 }
 
 export async function deactivateAvailabilityOverride(branchId: string, overrideId: string) {
-  return apiClientWithSchema(
+  const parsed = await apiClientWithSchema(
     inventoryEndpoints.availabilityOverrides.detail(branchId, overrideId),
-    itemAvailabilityOverrideSchema,
+    z.object({
+      success: z.boolean().optional(),
+      data: z.object({ override: itemAvailabilityOverrideSchema }),
+    }),
     { method: "PATCH", body: { is_active: false } }
   );
+  return parsed.data.override;
 }

@@ -73,7 +73,7 @@ export function OnHandModal({ open, onClose, branchId, ingredients, prefilledIng
 
     try {
       await logMutation.mutateAsync({
-        ingredient: form.ingredient,
+        ingredient_id: form.ingredient,
         quantity: qty,
         unit: form.unit.trim(),
         as_of_date: form.as_of_date,

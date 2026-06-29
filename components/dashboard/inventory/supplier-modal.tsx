@@ -62,7 +62,7 @@ export function SupplierModal({ open, onClose, branchId, ingredients }: Props) {
 
     try {
       await createMutation.mutateAsync({
-        ingredient: form.ingredient,
+        ingredient_id: form.ingredient,
         supplier_name: supplierName,
         pack_size: form.pack_size ? parseFloat(form.pack_size) : null,
         pack_unit: form.pack_unit,
