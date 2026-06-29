@@ -29,6 +29,9 @@ import {
 } from "@/services/planning/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { useAvailabilityOverrides } from "@/services/inventory/hooks";
+import type { ItemAvailabilityOverride } from "@/services/inventory/types";
+import Link from "next/link";
 import type {
   CalendarEventList,
   CreateCalendarEventPayload,
@@ -930,12 +933,14 @@ function DayPanel({
   date,
   events,
   branchId,
+  dayOverrides,
   onCreateClick,
   onEditClick,
 }: {
   date: string;
   events: CalendarEventList[];
   branchId: string;
+  dayOverrides: ItemAvailabilityOverride[];
   onCreateClick: () => void;
   onEditClick: (eventId: string) => void;
 }) {
@@ -1119,6 +1124,51 @@ function DayPanel({
           ))
         )}
       </div>
+
+      {/* Menu Availability strip */}
+      <div className="mt-4 border-t border-surface-4/60 pt-4">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            Menu Availability
+          </p>
+          {branchId && (
+            <Link
+              href={`/workspace/inventory?tab=ingredients&branch=${branchId}`}
+              className="text-[10px] text-text-muted transition-colors hover:text-brand-gold"
+            >
+              Manage →
+            </Link>
+          )}
+        </div>
+
+        {dayOverrides.length === 0 ? (
+          <p className="text-[11px] text-text-muted">No items marked unavailable for this day.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {dayOverrides.map((ov) => (
+              <div key={ov.id} className="flex items-start gap-2">
+                <span
+                  className={`mt-0.5 inline-flex h-4 shrink-0 items-center rounded-sm border px-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] ${
+                    ov.suppressed_demand
+                      ? "border-brand-gold/30 bg-brand-gold/10 text-brand-gold"
+                      : "border-status-warning/30 bg-status-warning/10 text-status-warning"
+                  }`}
+                >
+                  {ov.suppressed_demand ? "Off Menu" : "Supply"}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-text-primary truncate">
+                    {ov.item_title ?? ov.item_id}
+                  </p>
+                  {ov.reason && (
+                    <p className="text-[10px] text-text-muted truncate">{ov.reason}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1176,6 +1226,17 @@ function PlanningPageContent() {
 
   const selectedDayEvents: CalendarEventList[] =
     calendarData[selectedDate] ?? EMPTY_LIST;
+
+  const overridesQuery = useAvailabilityOverrides(safeBranchId, Boolean(safeBranchId));
+  const allOverrides: ItemAvailabilityOverride[] = overridesQuery.data ?? EMPTY_LIST;
+  const dayOverrides = selectedDate
+    ? allOverrides.filter(
+        (ov) =>
+          ov.is_active &&
+          ov.start_date <= selectedDate &&
+          (ov.end_date == null || ov.end_date >= selectedDate),
+      )
+    : [];
 
   const isCurrentMonth = (d: Date) => d.getMonth() === month.getMonth();
 
@@ -1344,6 +1405,7 @@ function PlanningPageContent() {
               date={selectedDate}
               events={selectedDayEvents}
               branchId={safeBranchId}
+              dayOverrides={dayOverrides}
               onCreateClick={() => setCreateModalOpen(true)}
               onEditClick={(id) => setEditingEventId(id)}
             />

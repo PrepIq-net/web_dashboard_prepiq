@@ -198,3 +198,90 @@ export const ingredientDemandSchema = z.object({
   items_with_no_recipe: z.array(z.string()).optional(),
 });
 export type IngredientDemand = z.infer<typeof ingredientDemandSchema>;
+
+// ============================================================================
+// PHASE 4 — PURCHASE FORECAST TYPES
+// ============================================================================
+
+export const ingredientOnHandSchema = z.object({
+  id: z.string(),
+  ingredient_id: z.string(),
+  ingredient_name: z.string().optional(),
+  quantity: z.coerce.number(),
+  unit: z.string(),
+  as_of_date: z.string(),
+  recorded_by: z.string().nullable().optional(),
+  notes: z.string().optional(),
+});
+export type IngredientOnHand = z.infer<typeof ingredientOnHandSchema>;
+
+export const ingredientSupplierSchema = z.object({
+  id: z.string(),
+  ingredient_id: z.string(),
+  ingredient_name: z.string().optional(),
+  supplier_name: z.string(),
+  pack_size: z.coerce.number().nullable(),
+  pack_unit: z.string(),
+  cost_per_pack: z.coerce.number().nullable(),
+  lead_time_days: z.number(),
+  is_primary: z.boolean(),
+  is_active: z.boolean(),
+});
+export type IngredientSupplier = z.infer<typeof ingredientSupplierSchema>;
+
+export const purchaseForecastLineSchema = z.object({
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  unit: z.string(),
+  predicted_usage: z.coerce.number(),
+  on_hand_qty: z.coerce.number(),
+  on_hand_date: z.string().nullable().optional(),
+  net_need: z.coerce.number(),
+  pack_size: z.coerce.number().nullable(),
+  pack_unit: z.string().optional(),
+  packs_needed: z.number().nullable(),
+  purchase_qty: z.coerce.number(),
+  cost_per_pack: z.coerce.number().nullable().optional(),
+  estimated_cost: z.coerce.number().nullable(),
+  lead_time_days: z.number().optional(),
+  supplier_name: z.string().optional(),
+});
+export const purchaseForecastSchema = z.object({
+  branch_id: z.string(),
+  horizon_start: z.string(),
+  horizon_end: z.string(),
+  lines: z.array(purchaseForecastLineSchema),
+  total_estimated_cost: z.coerce.number().nullable(),
+});
+export type PurchaseForecast = z.infer<typeof purchaseForecastSchema>;
+export type PurchaseForecastLine = z.infer<typeof purchaseForecastLineSchema>;
+
+// ============================================================================
+// PHASE 5 — BATCH RULES
+// ============================================================================
+
+export const itemBatchRuleSchema = z.object({
+  id: z.string().optional(),
+  batch_size: z.coerce.number().nullable(),
+  min_prep: z.coerce.number().nullable(),
+  max_prep: z.coerce.number().nullable(),
+  notes: z.string().optional(),
+  is_active: z.boolean().optional(),
+});
+export type ItemBatchRule = z.infer<typeof itemBatchRuleSchema>;
+
+// ============================================================================
+// PHASE 6 — AVAILABILITY OVERRIDES
+// ============================================================================
+
+export const itemAvailabilityOverrideSchema = z.object({
+  id: z.string(),
+  item_id: z.string(),
+  item_title: z.string().nullable().optional(),
+  start_date: z.string(),
+  end_date: z.string().nullable(),
+  reason: z.string(),
+  suppressed_demand: z.boolean(),
+  is_active: z.boolean(),
+});
+export type ItemAvailabilityOverride = z.infer<typeof itemAvailabilityOverrideSchema>;
