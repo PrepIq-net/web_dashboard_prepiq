@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Xmark } from "iconoir-react";
 
 import {
   useExplainAlert,
@@ -26,9 +25,7 @@ export type ApplyActionResult = { applied: boolean; summary: string };
 export type AssistantLauncherProps = {
   branchId?: string;
   date: string;
-  /** Optional executor that applies a confirmed action via existing mutations. */
   onApplyAction?: (action: PendingAction) => Promise<ApplyActionResult>;
-  /** Set by the parent to open the drawer seeded with an explanation. */
   explainRequest?: { topic: string; nonce: number } | null;
 };
 
@@ -42,10 +39,10 @@ export function AssistantLauncher({
   explainRequest,
 }: AssistantLauncherProps) {
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+  const [animatingMsgId, setAnimatingMsgId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const suggested = useSuggestedQuestions(branchId, date);
@@ -63,7 +60,7 @@ export function AssistantLauncher({
     }
   }, [messages, open]);
 
-  // Open + seed an explanation when the parent requests it (notification "Explain").
+  // Open + seed an explanation when the parent requests it.
   useEffect(() => {
     if (!explainRequest || !branchId) return;
     setOpen(true);
@@ -81,6 +78,7 @@ export function AssistantLauncher({
         onSuccess: (reply) => {
           setConversationId(reply.conversation.id);
           setMessages((prev) => [...prev, reply.message]);
+          setAnimatingMsgId(reply.message.id);
         },
         onError: () => toast.error("Couldn't load that explanation."),
       },
@@ -91,6 +89,7 @@ export function AssistantLauncher({
   const appendReply = (reply: AssistantReply) => {
     setConversationId(reply.conversation.id);
     setMessages((prev) => [...prev, reply.message]);
+    setAnimatingMsgId(reply.message.id);
   };
 
   const handleSend = (text: string) => {
@@ -154,7 +153,10 @@ export function AssistantLauncher({
     sendMessage.reset();
     import("@/services/assistant/service").then(({ confirmAssistantAction }) => {
       confirmAssistantAction(conversationId, { applied, summary })
-        .then((ack) => setMessages((prev) => [...prev, ack]))
+        .then((ack) => {
+          setMessages((prev) => [...prev, ack]);
+          setAnimatingMsgId(ack.id);
+        })
         .catch(() => undefined);
     });
   };
@@ -187,19 +189,15 @@ export function AssistantLauncher({
 
   return (
     <>
-      {!open && !dismissed ? (
+      {/* Floating launcher — always visible when the drawer is closed */}
+      {!open ? (
         <div className="fixed bottom-6 right-6 z-9990 w-80 max-w-[calc(100vw-3rem)]">
           <div className="rounded-xl border border-surface-4 bg-surface-2 p-4 shadow-2xl">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
+                IQ
+              </div>
               <p className="text-sm font-semibold text-text-primary">PrepIQ Assistant</p>
-              <button
-                type="button"
-                onClick={() => setDismissed(true)}
-                aria-label="Dismiss"
-                className="text-text-muted transition-colors hover:text-text-primary"
-              >
-                <Xmark className="h-4 w-4" />
-              </button>
             </div>
             <p className="mt-2 text-sm text-text-secondary">{greeting}</p>
             <button
@@ -219,13 +217,21 @@ export function AssistantLauncher({
         title="PrepIQ Assistant"
         subtitle={subtitle}
       >
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {messages.length === 0 ? (
-            <p className="text-sm text-text-secondary">{greeting}</p>
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
+                IQ
+              </div>
+              <p className="text-sm text-text-secondary">{greeting}</p>
+            </div>
           ) : (
             messages.map((message) => (
               <div key={message.id} className="space-y-2">
-                <AssistantMessageBubble message={message} />
+                <AssistantMessageBubble
+                  message={message}
+                  animateIn={message.id === animatingMsgId && message.role === "assistant"}
+                />
                 {message.pending_action ? (
                   <PendingActionConfirm
                     action={message.pending_action}
@@ -238,12 +244,31 @@ export function AssistantLauncher({
             ))
           )}
           {sending ? (
-            <p className="px-1 text-xs text-text-muted">PrepIQ is thinking…</p>
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
+                IQ
+              </div>
+              <span className="text-xs text-text-muted">Thinking…</span>
+              <span className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-1.5 w-1.5 rounded-full bg-text-muted"
+                    style={{ animation: `thinking-dot 1.2s ease-in-out ${i * 0.2}s infinite` }}
+                  />
+                ))}
+              </span>
+            </div>
           ) : null}
         </div>
 
         <SuggestedQuestions questions={questions} onPick={handleSend} disabled={sending} />
         <AssistantInput onSend={handleSend} disabled={sending} />
+
+        {/* Disclaimer */}
+        <p className="border-t border-surface-4 px-4 py-2 text-center text-[11px] text-text-disabled">
+          AI can make mistakes · The more you use PrepIQ, the smarter it learns your kitchen
+        </p>
       </AssistantDrawer>
     </>
   );
