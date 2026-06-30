@@ -491,7 +491,8 @@ function TodayWorkspacePageContent() {
   }, [isLoading, canAccess]);
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
-  const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
+  const { tier: subscriptionTier, isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
+  const canUseAssistant = !subLoading && !shouldBlockAccess && subscriptionTier >= 2;
   const canFetchData = Boolean(safeBranchId) && !subLoading && !shouldBlockAccess;
 
   const todayQuery = useBranchDayToday(
@@ -1941,18 +1942,20 @@ function TodayWorkspacePageContent() {
                             : t("today.alert.marginRisk")}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExplainRequest({
-                        topic: `${alert.itemName} ${alert.riskType.toLowerCase()} risk`,
-                        nonce: Date.now(),
-                      })
-                    }
-                    className="shrink-0 inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-secondary transition-colors hover:border-brand-gold hover:text-text-primary"
-                  >
-                    Why?
-                  </button>
+                  {canUseAssistant ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExplainRequest({
+                          topic: `${alert.itemName} ${alert.riskType.toLowerCase()} risk`,
+                          nonce: Date.now(),
+                        })
+                      }
+                      className="shrink-0 inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-semibold text-text-secondary transition-colors hover:border-brand-gold hover:text-text-primary"
+                    >
+                      Why?
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {
@@ -3703,7 +3706,7 @@ function TodayWorkspacePageContent() {
       />
         </>
       )}
-      {safeBranchId ? (
+      {safeBranchId && canUseAssistant ? (
         <AssistantLauncher
           branchId={safeBranchId}
           date={targetDate}
