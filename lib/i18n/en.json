@@ -1229,14 +1229,16 @@
         "push": "Push"
       },
       "types": {
-        "production": "Production & Prep",
-        "productionDesc": "Prep plan updates and completion alerts",
-        "inventory": "Inventory & Waste",
-        "inventoryDesc": "Stockout risks and high-waste threshold alerts",
-        "supplier": "Supplier & Purchasing",
-        "supplierDesc": "Order reminders and delivery status",
-        "staff": "Staff & Performance",
-        "staffDesc": "Shift assignments and daily summaries"
+        "operational": "Operational",
+        "operationalDesc": "System events: connectors, imports, invoices, backups",
+        "planning": "Planning",
+        "planningDesc": "Pre-service alerts: forecasts, inventory checks, events",
+        "liveService": "Live Service",
+        "liveServiceDesc": "In-service alerts: stockouts, demand spikes, production risk",
+        "learning": "Learning",
+        "learningDesc": "End-of-day insights: forecast accuracy, waste trends",
+        "executive": "Executive",
+        "executiveDesc": "Owner summaries: revenue trends, branch ranking, cost anomalies"
       },
       "escalationTitle": "Operational Escalation",
       "escalationDescription": "Critical system alerts (like server downtime or major inventory discrepancies) bypass these settings and are always sent via all available channels to ensure operational continuity."
@@ -1862,7 +1864,16 @@
       },
       "domainSystem": "System",
       "markAsRead": "Mark As Read",
-      "resolve": "Resolve"
+      "resolve": "Resolve",
+      "tab": {
+        "operational": "Operational",
+        "planning": "Planning",
+        "liveService": "Live Service",
+        "learning": "Learning",
+        "executive": "Executive"
+      },
+      "explain": "Explain",
+      "explainLoading": "Thinking..."
     },
     "branches": {
       "status": {

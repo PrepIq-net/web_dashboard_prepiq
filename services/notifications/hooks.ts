@@ -20,6 +20,7 @@ export const notificationQueryKeys = {
   list: (params?: {
     status?: string;
     domain?: string;
+    category?: string;
     urgency?: string;
     escalation?: string;
     is_today?: boolean;
@@ -30,6 +31,7 @@ export const notificationQueryKeys = {
       "list",
       params?.status ?? "",
       params?.domain ?? "",
+      params?.category ?? "",
       params?.urgency ?? "",
       params?.escalation ?? "",
       params?.is_today ? "today" : "",
@@ -40,6 +42,7 @@ export const notificationQueryKeys = {
 export function useNotifications(params?: {
   status?: string;
   domain?: string;
+  category?: string;
   urgency?: string;
   escalation?: string;
   is_today?: boolean;
