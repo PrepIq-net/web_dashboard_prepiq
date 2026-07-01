@@ -773,9 +773,11 @@ function NotificationsSettings() {
     }
   }, [preferences]);
 
-  const handleToggle = (domain: string, channel: string, enabled: boolean) => {
+  const handleToggle = (notificationCategory: string, channel: string, enabled: boolean) => {
     const updated = localPrefs.map((p) =>
-      p.domain === domain ? { ...p, [`${channel}_enabled`]: enabled } : p,
+      p.notification_category === notificationCategory
+        ? { ...p, [`${channel}_enabled`]: enabled }
+        : p,
     );
     setLocalPrefs(updated);
     updatePreferences.mutate(updated);
@@ -791,24 +793,29 @@ function NotificationsSettings() {
 
   const notificationTypes = [
     {
-      domain: "PRODUCTION",
-      label: t("settings.notifications.types.production"),
-      description: t("settings.notifications.types.productionDesc"),
+      notification_category: "OPERATIONAL",
+      label: t("settings.notifications.types.operational"),
+      description: t("settings.notifications.types.operationalDesc"),
     },
     {
-      domain: "INVENTORY",
-      label: t("settings.notifications.types.inventory"),
-      description: t("settings.notifications.types.inventoryDesc"),
+      notification_category: "PLANNING",
+      label: t("settings.notifications.types.planning"),
+      description: t("settings.notifications.types.planningDesc"),
     },
     {
-      domain: "PROCUREMENT",
-      label: t("settings.notifications.types.supplier"),
-      description: t("settings.notifications.types.supplierDesc"),
+      notification_category: "LIVE_SERVICE",
+      label: t("settings.notifications.types.liveService"),
+      description: t("settings.notifications.types.liveServiceDesc"),
     },
     {
-      domain: "STAFF",
-      label: t("settings.notifications.types.staff"),
-      description: t("settings.notifications.types.staffDesc"),
+      notification_category: "LEARNING",
+      label: t("settings.notifications.types.learning"),
+      description: t("settings.notifications.types.learningDesc"),
+    },
+    {
+      notification_category: "EXECUTIVE",
+      label: t("settings.notifications.types.executive"),
+      description: t("settings.notifications.types.executiveDesc"),
     },
   ];
 
@@ -843,8 +850,10 @@ function NotificationsSettings() {
           </thead>
           <tbody className="divide-y divide-[#1C1C1F]/50">
             {notificationTypes.map((type) => {
-              const pref = localPrefs.find((p) => p.domain === type.domain) || {
-                domain: type.domain,
+              const pref = localPrefs.find(
+                (p) => p.notification_category === type.notification_category,
+              ) || {
+                notification_category: type.notification_category,
                 in_app_enabled: true,
                 email_enabled: true,
                 push_enabled: true,
@@ -852,7 +861,7 @@ function NotificationsSettings() {
 
               return (
                 <tr
-                  key={type.domain}
+                  key={type.notification_category}
                   className="hover:bg-[#1C1C1F]/20 transition-colors"
                 >
                   <td className="px-6 py-5">
@@ -867,7 +876,7 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.in_app_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "in_app", val)
+                        handleToggle(type.notification_category, "in_app", val)
                       }
                     />
                   </td>
@@ -875,7 +884,7 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.email_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "email", val)
+                        handleToggle(type.notification_category, "email", val)
                       }
                     />
                   </td>
@@ -883,7 +892,7 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.push_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "push", val)
+                        handleToggle(type.notification_category, "push", val)
                       }
                     />
                   </td>

@@ -1229,14 +1229,16 @@
         "push": "Push"
       },
       "types": {
-        "production": "Production et préparation",
-        "productionDesc": "Mises à jour du plan de préparation et alertes d'achèvement",
-        "inventory": "Inventaire et gaspillage",
-        "inventoryDesc": "Risques de rupture et alertes de seuil de gaspillage élevé",
-        "supplier": "Fournisseur et achats",
-        "supplierDesc": "Rappels de commandes et statut de livraison",
-        "staff": "Personnel et performance",
-        "staffDesc": "Affectations des quarts et résumés quotidiens"
+        "operational": "Opérationnel",
+        "operationalDesc": "Événements système : connecteurs, imports, factures, sauvegardes",
+        "planning": "Planification",
+        "planningDesc": "Alertes avant service : prévisions, inventaire, événements",
+        "liveService": "Service en direct",
+        "liveServiceDesc": "Alertes en service : ruptures, pics de demande, risques de production",
+        "learning": "Apprentissage",
+        "learningDesc": "Enseignements de fin de journée : précision des prévisions, tendances de gaspillage",
+        "executive": "Direction",
+        "executiveDesc": "Résumés propriétaires : tendances de revenus, classement des succursales, anomalies de coûts"
       },
       "escalationTitle": "Escalade opérationnelle",
       "escalationDescription": "Les alertes système critiques (comme les temps d'arrêt du serveur ou les écarts d'inventaire majeurs) contournent ces paramètres et sont toujours envoyées via tous les canaux disponibles pour assurer la continuité opérationnelle."
@@ -1862,7 +1864,16 @@
       },
       "domainSystem": "Système de domaine",
       "markAsRead": "Marquer comme lu",
-      "resolve": "Résoudre"
+      "resolve": "Résoudre",
+      "tab": {
+        "operational": "Opérationnel",
+        "planning": "Planification",
+        "liveService": "Service en direct",
+        "learning": "Apprentissage",
+        "executive": "Direction"
+      },
+      "explain": "Expliquer",
+      "explainLoading": "Réflexion en cours..."
     },
     "branches": {
       "status": {

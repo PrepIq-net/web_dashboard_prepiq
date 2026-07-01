@@ -255,6 +255,21 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     <Settings className="h-4 w-4 shrink-0 text-[#8E8E93]" />
                     <span>{t("dashboard.topNav.workspaceSettings")}</span>
                   </Link>
+                  <Link
+                    href="/workspace/notifications"
+                    onClick={() => setAvatarMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-[#C7C7CC] hover:bg-[#232327] hover:text-[#F5F5F7] transition-colors"
+                  >
+                    <Bell className="h-4 w-4 shrink-0 text-[#8E8E93]" />
+                    <span>{t("dashboard.topNav.notifications")}</span>
+                    {unreadNotifications.length ? (
+                      <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#A8821F] px-1 text-[10px] font-semibold text-[#141416]">
+                        {unreadNotifications.length > 9
+                          ? "9+"
+                          : unreadNotifications.length}
+                      </span>
+                    ) : null}
+                  </Link>
                 </div>
 
                 {/* Sign out — separated */}
