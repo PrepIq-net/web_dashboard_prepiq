@@ -567,15 +567,15 @@
       "previewTomorrow": "Aperçu de demain",
       "preparingSummary": "Le résumé est en cours de préparation...",
       "howItPlayed": "Voici comment la journée s'est déroulée.",
-      "demandExpectedToBe": "Demande attendue à {demand}",
-      "vsTypical": "{pct}% vs typique",
+      "demandExpectedToBe": "Demande attendue",
+      "vsTypical": "vs typique {day}",
       "vsBaseline": "{pct}% vs référence",
       "sold": "Vendu",
-      "ofPrepped": "sur {total} préparés",
+      "ofPrepped": "sur {quantity} préparés",
       "wasteCost": "Coût du gaspillage",
-      "wasteLine": "{pct}% taux de gaspillage",
+      "wasteLine": "{amount} de gaspillage",
       "revenueProtected": "Revenu protégé",
-      "missedRevenue": "Revenu manqué",
+      "missedRevenue": "{amount} de revenu manqué",
       "stockouts": "Ruptures",
       "itemsRanOut": "articles en rupture",
       "ranShort": "Nous avons manqué de {count} articles",
@@ -587,7 +587,7 @@
       "saved": "Économisé",
       "fromAvoidingStockouts": "en évitant les ruptures",
       "aiAccuracy": "Précision IA",
-      "accuracyDelta": "Écart de précision",
+      "accuracyDelta": "{arrow} {pct}% vs {day} dernier",
       "aiWasCloser": "L'IA était plus proche sur {count} articles",
       "you": "Vous",
       "ai": "IA",
@@ -600,14 +600,14 @@
       "toughSub": "La variance était plus élevée que d'habitude. Le modèle en tirera des leçons.",
       "goodSubNoStockouts": "Aucune rupture. Gaspillage minimal.",
       "goodSubStockouts": "Quelques ruptures, mais l'exécution globale était solide.",
-      "missedLine": "Objectif de revenu manqué de {pct}%",
+      "missedLine": "{amount} de revenu manqué",
       "leftover": "Restant",
       "basedOn": "Basé sur {count} articles suivis",
       "contextMakesSharper": "Plus de contexte rend demain plus précis.",
       "modelImproves": "Chaque service entraîne le modèle.",
       "wasteEvents": "Événements de gaspillage",
-      "wasteDelta": "{pct}% gaspillage, {pct2}% vs prévisions",
-      "soldQuantity": "Vendu {qty} sur {total}",
+      "wasteDelta": "Tendance {direction} vs habituel",
+      "soldQuantity": "Vendu {quantity}",
       "none": "Aucun",
       "anythingWorthNoting": "Quelque chose à noter sur aujourd'hui ?",
       "notePlaceholder": "ex. Manque de personnel au déjeuner, rupture de saumon...",
@@ -1003,6 +1003,108 @@
         "daysTracked": "Jours suivis"
       },
       "viewFullHistory": "Voir tout l'historique"
+    },
+    "init": {
+      "eyebrow": "PrepIQ réfléchit",
+      "title": "Préparation du plan du jour",
+      "stage": {
+        "read": "Lecture de votre historique de ventes…",
+        "clean": "Mise à l'écart des journées inhabituelles…",
+        "signals": "Vérification météo, jours fériés et événements locaux…",
+        "blend": "Fusion des modèles de prévision…",
+        "targets": "Définition des objectifs de préparation selon votre équilibre gaspillage/rupture…"
+      },
+      "recap": {
+        "done": "Terminé",
+        "historyDays": "{days} jours d'historique chargés",
+        "excludedDays": "{count} journée(s) inhabituelle(s) mise(s) à l'écart",
+        "noExclusions": "Aucune journée inhabituelle détectée",
+        "rain": "Pluie attendue",
+        "event": "Événement à proximité",
+        "holiday": "Jour férié",
+        "noSignals": "Aucun signal inhabituel aujourd'hui",
+        "models": "{count} modèles fusionnés",
+        "items": "Objectifs définis pour {count} articles"
+      },
+      "skip": "Passer la présentation",
+      "showPlan": "Voir mon plan",
+      "failedTitle": "Impossible de terminer la préparation du plan",
+      "retry": "Réessayer"
+    },
+    "brief": {
+      "eyebrow": "Brief du matin",
+      "signalsEyebrow": "Signaux du jour",
+      "signal": {
+        "rain": "Pluie attendue",
+        "holiday": "Jour férié",
+        "event": "Événement à proximité",
+        "traffic": "Trafic {pct}"
+      },
+      "showMore": "Voir plus",
+      "showLess": "Voir moins",
+      "provenanceCta": "Comment ce plan a été construit",
+      "llmBadge": "Rédigé par PrepIQ à partir des chiffres audités du pipeline",
+      "templateBadge": "Résumé généré automatiquement à partir des chiffres du pipeline"
+    },
+    "provenance": {
+      "eyebrow": "Derrière le plan",
+      "title": "Comment ce plan a été construit",
+      "close": "Fermer",
+      "unavailable": "Les détails de provenance ne sont pas encore disponibles pour ce plan.",
+      "askWhy": "Demander pourquoi à PrepIQ",
+      "model": {
+        "prophet": "Tendances saisonnières",
+        "xgb": "Apprentissage automatique",
+        "seasonalNaive": "Même jour la semaine dernière",
+        "movingAverage": "Moyenne récente"
+      },
+      "step": {
+        "read": {
+          "title": "Lecture de votre historique de ventes",
+          "body": "Chaque prévision part de vos propres données de caisse — jour par jour, article par article."
+        },
+        "clean": {
+          "title": "Mise à l'écart des journées inhabituelles",
+          "body": "Fermetures, pannes, ruptures et pics ponctuels sont détectés pour ne pas fausser la prévision.",
+          "fact": "{count} journée(s) écartée(s) sur {items} article(s)"
+        },
+        "signals": {
+          "title": "Vérification des signaux extérieurs",
+          "body": "Météo, jours fériés et événements à proximité sont pondérés selon la réponse passée de votre cuisine."
+        },
+        "blend": {
+          "title": "Fusion des modèles de prévision",
+          "body": "Plusieurs modèles prévoient indépendamment ; la fusion favorise le plus précis récemment ici."
+        },
+        "targets": {
+          "title": "Définition des objectifs de préparation",
+          "body": "Les quantités équilibrent le coût d'une rupture contre le coût du gaspillage pour chaque article.",
+          "fact": "Niveau de service : {pct}%"
+        }
+      }
+    },
+    "prepSheet": {
+      "eyebrow": "Ingrédients",
+      "title": "Fiche de préparation · {count} ingrédients",
+      "perishable": "Périssable"
+    },
+    "pace": {
+      "headline": "À {time}, vous êtes à {actualPct} du plan du jour — une journée typique est à {expectedPct}.",
+      "typicalTick": "typique",
+      "projectedClose": "Projection à la fermeture : {projected} sur {planned} prévus ({gap}).",
+      "onPace": "Dans le rythme",
+      "surge": "Rythme élevé",
+      "slowdown": "Rythme lent",
+      "tooEarly": "Le suivi du rythme démarre une fois la journée bien engagée.",
+      "itemSurge": "Rythme {pct} vs typique — projection {projected} à la fermeture",
+      "itemSlowdown": "Rythme {pct} vs typique — projection {projected} à la fermeture"
+    },
+    "learned": {
+      "rainResponse": "Journée pluvieuse — la prévision de demain intègre désormais la réponse de votre cuisine à la pluie.",
+      "eventResponse": "Un événement à proximité a eu lieu aujourd'hui — son impact réel sur vos ventes alimente le modèle d'événements.",
+      "overrides": "{count} modification(s) enregistrée(s) ; {won} ont battu la prévision — le modèle ajuste sa confiance sur ces articles.",
+      "wasteRows": "{count} événement(s) de gaspillage alimentent le calcul du tampon de demain.",
+      "stockoutRows": "{count} rupture(s) marquée(s) comme demande censurée — estimée à partir du rythme avant la rupture, pas ignorée."
     }
   },
   "profile": {

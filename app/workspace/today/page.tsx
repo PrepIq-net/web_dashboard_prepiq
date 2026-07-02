@@ -21,6 +21,8 @@ import {
 } from "@/services";
 import {
   useBranchDayToday,
+  useMorningBrief,
+  useBranchPaceSummary,
   useCreateProductionLog,
   useEvaluatePrepPlan,
   useIgnoreBranchDayLiveAlert,
@@ -45,6 +47,15 @@ import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/s
 import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
+import { InitializationWalkthrough } from "@/components/dashboard/today/initialization-walkthrough";
+import { Spinner } from "@/components/ui/spinner";
+import { MorningBriefPanel } from "@/components/dashboard/today/morning-brief-panel";
+import {
+  PlanProvenanceDrawer,
+  derivePipelineProvenance,
+} from "@/components/dashboard/today/plan-provenance-drawer";
+import { PrepSheetSection } from "@/components/dashboard/today/prep-sheet-section";
+import { LivePaceBanner } from "@/components/dashboard/today/live-pace-banner";
 import type { PendingAction } from "@/services/assistant/types";
 
 type ImpactPreview = {
@@ -541,6 +552,52 @@ function TodayWorkspacePageContent() {
     null,
   );
   const branchDay = initializeMutation.data ?? todayQuery.data;
+  const pipelineStats = initializeMutation.data?.meta?.pipeline_stats ?? null;
+
+  // The initialization walkthrough replaces the spinner while the pipeline
+  // runs, and holds briefly for a truthful recap once it resolves.
+  const [walkthroughDismissed, setWalkthroughDismissed] = useState(true);
+  useEffect(() => {
+    if (initializeMutation.isPending) setWalkthroughDismissed(false);
+  }, [initializeMutation.isPending]);
+  const walkthroughActive =
+    !walkthroughDismissed &&
+    (initializeMutation.isPending ||
+      initializeMutation.isSuccess ||
+      initializeMutation.isError);
+
+  // Morning brief + plan provenance ("How this plan was made").
+  const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const morningBriefQuery = useMorningBrief(
+    { branch_id: safeBranchId, date: targetDate },
+    canFetchData && branchDay?.status === "MORNING",
+  );
+  const morningBrief = morningBriefQuery.data ?? null;
+  const provenanceStats = useMemo(
+    () =>
+      pipelineStats ?? derivePipelineProvenance(branchDay?.prep_plan_items),
+    [pipelineStats, branchDay?.prep_plan_items],
+  );
+
+  // Live "pace vs plan": batch cumulative-position summary, refreshed on its
+  // own 3-minute interval (decoupled from the 20s branch-day poll).
+  const paceQuery = useBranchPaceSummary(
+    { branch_id: safeBranchId, date: targetDate },
+    canFetchData && branchDay?.status === "LIVE",
+  );
+  const paceSummary = paceQuery.data ?? null;
+  const paceAlertByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      NonNullable<typeof paceSummary>["items"][number]
+    >();
+    for (const paceItem of paceSummary?.items ?? []) {
+      if (paceItem.should_alert && paceItem.cumulative_position) {
+        map.set(paceItem.item_id, paceItem);
+      }
+    }
+    return map;
+  }, [paceSummary]);
 
   // Applies a confirm-gated PrepIQ Assistant action through existing mutations.
   const handleAssistantAction = async (
@@ -1720,38 +1777,42 @@ function TodayWorkspacePageContent() {
         <SubscriptionRequiredState variant={gateVariant} compact />
       ) : (
         <>
-      {todayQuery.isError ? (
-        <div className={`mb-6 rounded-r-lg border-l-4 px-4 py-3 text-xs transition-colors ${
-          initializeMutation.isPending
-            ? "border-l-brand-gold bg-brand-gold/8 text-brand-gold"
-            : "border-l-status-warning bg-status-warning/8 text-status-warning"
-        }`}>
-          {initializeMutation.isPending ? (
-            <div className="flex items-center gap-2">
-              <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin shrink-0" />
-              <p className="font-semibold">{t("today.error.settingUp")}</p>
-            </div>
-          ) : (
-            <>
-              <p className="font-semibold">{t("today.error.dayDataNotAvailable")}</p>
-              <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
-              {canInitializeDay && safeBranchId ? (
-                <button
-                  type="button"
-                  disabled={initializeMutation.isPending}
-                  onClick={() =>
-                    initializeMutation.mutate({
-                      branch_id: safeBranchId,
-                      date: targetDate,
-                    })
-                  }
-                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t("today.error.initializeDay")}
-                </button>
-              ) : null}
-            </>
-          )}
+      {walkthroughActive ? (
+        <InitializationWalkthrough
+          isPending={initializeMutation.isPending}
+          isError={initializeMutation.isError}
+          errorMessage={todayQueryErrorMessage}
+          stats={pipelineStats}
+          onRetry={
+            safeBranchId
+              ? () =>
+                  initializeMutation.mutate({
+                    branch_id: safeBranchId,
+                    date: targetDate,
+                  })
+              : undefined
+          }
+          onDone={() => setWalkthroughDismissed(true)}
+        />
+      ) : todayQuery.isError && !initializeMutation.isSuccess ? (
+        <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
+          <p className="font-semibold">{t("today.error.dayDataNotAvailable")}</p>
+          <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+          {canInitializeDay && safeBranchId ? (
+            <button
+              type="button"
+              disabled={initializeMutation.isPending}
+              onClick={() =>
+                initializeMutation.mutate({
+                  branch_id: safeBranchId,
+                  date: targetDate,
+                })
+              }
+              className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t("today.error.initializeDay")}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -1766,9 +1827,16 @@ function TodayWorkspacePageContent() {
         </div>
       ) : null}
 
-      {isMorning && branchDay ? (
+      {!walkthroughActive && isMorning && branchDay ? (
         <>
-          {/* ── Morning Brief — always visible, no click required ── */}
+          {morningBrief ? (
+            <MorningBriefPanel
+              brief={morningBrief}
+              onOpenProvenance={() => setProvenanceOpen(true)}
+            />
+          ) : null}
+
+          {/* ── Morning outlook — always visible, no click required ── */}
           <div className="mb-8 pb-8 border-b border-surface-4/50">
             <div className="flex flex-wrap items-start gap-8">
               {/* Demand KPI + meter */}
@@ -1819,6 +1887,9 @@ function TodayWorkspacePageContent() {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {(() => {
+                    // The morning brief's audited signals take precedence —
+                    // avoid two competing signal rows.
+                    if (morningBrief) return null;
                     const activeSignals = demandSignals.filter((s) => s.direction !== "neutral");
                     if (activeSignals.length === 0) {
                       return (
@@ -2703,6 +2774,10 @@ function TodayWorkspacePageContent() {
             </div>
           </section>
 
+          {morningBrief?.prep_sheet?.length ? (
+            <PrepSheetSection prepSheet={morningBrief.prep_sheet} />
+          ) : null}
+
           {/* ── Ingredient Requirements — on-demand calculation ── */}
           <section className="mt-8 mb-4">
             <IngredientRequirements
@@ -2775,7 +2850,7 @@ function TodayWorkspacePageContent() {
         </>
       ) : null}
 
-      {isLive && branchDay ? (
+      {!walkthroughActive && isLive && branchDay ? (
         <section className="mt-8">
           {/* Live header */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -2808,6 +2883,8 @@ function TodayWorkspacePageContent() {
               </button>
             </div>
           </div>
+          <LivePaceBanner pace={paceSummary} />
+
           {showCsvImportBanner ? (
             <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
               <div>
@@ -2990,6 +3067,34 @@ function TodayWorkspacePageContent() {
                             <span>{t("today.live.sold", { quantity: formatQuantity(sold, item.unit) })}</span>
                             <span>{t("today.live.prepared", { quantity: formatQuantity(totalPrepared, item.unit) })}</span>
                           </div>
+                          {(() => {
+                            const paceItem = paceAlertByProductId.get(item.product_id);
+                            const pos = paceItem?.cumulative_position;
+                            if (!pos) return null;
+                            const pctVsTypical = Math.round((pos.cumulative_ratio - 1) * 100);
+                            return (
+                              <p
+                                className={`mt-1.5 text-xs font-medium ${
+                                  pos.status === "SURGE"
+                                    ? pos.alert_level === "CRITICAL"
+                                      ? "text-status-critical"
+                                      : "text-status-warning"
+                                    : "text-status-info"
+                                }`}
+                                title={paceItem?.alert_reason}
+                              >
+                                {pos.status === "SURGE"
+                                  ? t("today.pace.itemSurge", {
+                                      pct: `+${pctVsTypical}%`,
+                                      projected: Math.round(pos.projected_total_at_close),
+                                    })
+                                  : t("today.pace.itemSlowdown", {
+                                      pct: `${pctVsTypical}%`,
+                                      projected: Math.round(pos.projected_total_at_close),
+                                    })}
+                              </p>
+                            );
+                          })()}
                         </div>
                         {runoutMin !== null && (
                           <div className="shrink-0 rounded-xl border border-status-critical/40 bg-status-critical/10 px-4 py-2.5 text-center">
@@ -3115,6 +3220,31 @@ function TodayWorkspacePageContent() {
                             {t("today.live.left", { quantity: formatQuantity(remaining, item.unit) })}
                           </span>
                         </div>
+                        {(() => {
+                          if (quietMode) return null;
+                          const paceItem = paceAlertByProductId.get(item.product_id);
+                          const pos = paceItem?.cumulative_position;
+                          if (!pos) return null;
+                          const pctVsTypical = Math.round((pos.cumulative_ratio - 1) * 100);
+                          return (
+                            <p
+                              className={`mt-1.5 text-xs font-medium ${
+                                pos.status === "SURGE" ? "text-status-warning" : "text-status-info"
+                              }`}
+                              title={paceItem?.alert_reason}
+                            >
+                              {pos.status === "SURGE"
+                                ? t("today.pace.itemSurge", {
+                                    pct: `+${pctVsTypical}%`,
+                                    projected: Math.round(pos.projected_total_at_close),
+                                  })
+                                : t("today.pace.itemSlowdown", {
+                                    pct: `${pctVsTypical}%`,
+                                    projected: Math.round(pos.projected_total_at_close),
+                                  })}
+                            </p>
+                          );
+                        })()}
                       </div>
 
                       {/* Note */}
@@ -3225,7 +3355,7 @@ function TodayWorkspacePageContent() {
         </section>
       ) : null}
 
-      {isClosed && branchDay ? (
+      {!walkthroughActive && isClosed && branchDay ? (
         <section className="mt-8">
           {branchDay.review_phase ? (() => {
             const rp = branchDay.review_phase!;
@@ -3423,6 +3553,50 @@ function TodayWorkspacePageContent() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                   {t("today.closed.whatModelLearned")}
                 </p>
+                {(() => {
+                  // Narrative learning loop — each line appears only when the
+                  // underlying signal actually fired today.
+                  const ml = rp.learning_signals.ml_learning_signals;
+                  const daySignals = provenanceStats?.weather_event_signals;
+                  const learnedLines: string[] = [];
+                  if (daySignals?.is_rain) {
+                    learnedLines.push(t("today.learned.rainResponse"));
+                  }
+                  if (daySignals?.special_event) {
+                    learnedLines.push(t("today.learned.eventResponse"));
+                  }
+                  const overrideCount = ml?.chef_override_rows ?? overrideItems.length;
+                  const overridesWon = ml?.chef_outperformed_forecast_rows ?? 0;
+                  if (overrideCount > 0) {
+                    learnedLines.push(
+                      t("today.learned.overrides", {
+                        count: overrideCount,
+                        won: overridesWon,
+                      }),
+                    );
+                  }
+                  if ((ml?.waste_rows ?? 0) > 0) {
+                    learnedLines.push(
+                      t("today.learned.wasteRows", { count: ml?.waste_rows ?? 0 }),
+                    );
+                  }
+                  const stockoutCount = ml?.stockout_rows ?? stockouts;
+                  if (stockoutCount > 0) {
+                    learnedLines.push(
+                      t("today.learned.stockoutRows", { count: stockoutCount }),
+                    );
+                  }
+                  if (!learnedLines.length) return null;
+                  return (
+                    <ul className="mt-3 space-y-2 border-l-2 border-brand-gold/30 pl-4">
+                      {learnedLines.map((line) => (
+                        <li key={line} className="text-sm text-text-secondary">
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
                 <div className="mt-3 grid grid-cols-2 gap-0 rounded-xl border border-surface-4 bg-surface-2 overflow-hidden sm:grid-cols-4 divide-x divide-surface-4/60">
                   {[
                     {
@@ -3622,8 +3796,8 @@ function TodayWorkspacePageContent() {
             );
           })() : (
             <div className="py-16 text-center">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/20 mb-3">
-                <div className="h-5 w-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+              <div className="mb-3 inline-flex items-center justify-center">
+                <Spinner size="lg" />
               </div>
               <p className="text-sm text-text-muted">{t("today.closed.preparingSummary")}</p>
               <p className="mt-1 text-xs text-text-muted">{t("today.closed.takesAFewSeconds")}</p>
@@ -3706,6 +3880,19 @@ function TodayWorkspacePageContent() {
       />
         </>
       )}
+      <PlanProvenanceDrawer
+        open={provenanceOpen}
+        onClose={() => setProvenanceOpen(false)}
+        stats={provenanceStats}
+        canAskAssistant={canUseAssistant}
+        onAskAssistant={() =>
+          setExplainRequest({
+            topic: "how today's prep plan was made",
+            nonce: Date.now(),
+          })
+        }
+      />
+
       {safeBranchId && canUseAssistant ? (
         <AssistantLauncher
           branchId={safeBranchId}

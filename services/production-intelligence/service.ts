@@ -55,6 +55,8 @@ import {
   chefSkillScoreResponseSchema,
   dataQualityReportSchema,
   velocityUpdateResponseSchema,
+  branchPaceSummarySchema,
+  morningBriefSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
   type SalesWasteReport,
@@ -371,6 +373,36 @@ export async function updateRealTimeVelocity(payload: VelocityUpdatePayload) {
       method: "POST",
       body,
     },
+  );
+}
+
+export async function getBranchPaceSummary(params: {
+  branch_id: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(
+      productionIntelligenceEndpoints.branchPaceSummary(safeBranchId),
+      { date: params.date },
+    ),
+    branchPaceSummarySchema,
+    { method: "GET" },
+  );
+}
+
+export async function getMorningBrief(params: {
+  branch_id?: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id);
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.morningBrief(), {
+      branch_id: safeBranchId,
+      date: params.date,
+    }),
+    morningBriefSchema,
+    { method: "GET" },
   );
 }
 

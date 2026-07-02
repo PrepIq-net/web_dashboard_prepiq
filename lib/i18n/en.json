@@ -567,15 +567,15 @@
       "previewTomorrow": "Preview tomorrow",
       "preparingSummary": "Review summary is being prepared...",
       "howItPlayed": "Here is how today played out.",
-      "demandExpectedToBe": "Demand expected to be {demand}",
-      "vsTypical": "{pct}% vs typical",
+      "demandExpectedToBe": "Demand expected to be",
+      "vsTypical": "vs typical {day}",
       "vsBaseline": "{pct}% vs baseline",
       "sold": "Sold",
-      "ofPrepped": "of {total} prepped",
+      "ofPrepped": "of {quantity} prepped",
       "wasteCost": "Waste cost",
-      "wasteLine": "{pct}% waste rate",
+      "wasteLine": "{amount} waste",
       "revenueProtected": "Revenue protected",
-      "missedRevenue": "Missed revenue",
+      "missedRevenue": "{amount} missed revenue",
       "stockouts": "Stockouts",
       "itemsRanOut": "items ran out",
       "ranShort": "We ran short on {count} items",
@@ -587,7 +587,7 @@
       "saved": "Saved",
       "fromAvoidingStockouts": "from avoiding stockouts",
       "aiAccuracy": "AI accuracy",
-      "accuracyDelta": "Accuracy delta",
+      "accuracyDelta": "{arrow} {pct}% vs last {day}",
       "aiWasCloser": "AI was closer on {count} items",
       "you": "You",
       "ai": "AI",
@@ -600,14 +600,14 @@
       "toughSub": "Variance was higher than usual. The model will learn from this.",
       "goodSubNoStockouts": "No stockouts. Waste was minimal.",
       "goodSubStockouts": "A few stockouts, but overall execution was solid.",
-      "missedLine": "Missed revenue line by {pct}%",
+      "missedLine": "{amount} missed revenue",
       "leftover": "Leftover",
       "basedOn": "Based on {count} items tracked",
       "contextMakesSharper": "More context makes tomorrow sharper.",
       "modelImproves": "Every shift trains the model.",
       "wasteEvents": "Waste events",
-      "wasteDelta": "{pct}% waste, {pct2}% vs forecast",
-      "soldQuantity": "Sold {qty} of {total}",
+      "wasteDelta": "Trending {direction} vs typical",
+      "soldQuantity": "Sold {quantity}",
       "none": "None",
       "anythingWorthNoting": "Anything worth noting about today?",
       "notePlaceholder": "e.g. Short-staffed at lunch, ran out of salmon...",
@@ -1003,6 +1003,108 @@
         "daysTracked": "Days Tracked"
       },
       "viewFullHistory": "View Full History"
+    },
+    "init": {
+      "eyebrow": "PrepIQ is thinking",
+      "title": "Building today's plan",
+      "stage": {
+        "read": "Reading your sales history…",
+        "clean": "Setting aside unusual days…",
+        "signals": "Checking weather, holidays & local events…",
+        "blend": "Blending forecasting models…",
+        "targets": "Setting prep targets with your waste-vs-stockout balance…"
+      },
+      "recap": {
+        "done": "Done",
+        "historyDays": "{days} days of history loaded",
+        "excludedDays": "{count} unusual day(s) set aside",
+        "noExclusions": "No unusual days found",
+        "rain": "Rain expected",
+        "event": "Nearby event",
+        "holiday": "Public holiday",
+        "noSignals": "No unusual signals today",
+        "models": "{count} models blended",
+        "items": "Targets set for {count} items"
+      },
+      "skip": "Skip the walkthrough",
+      "showPlan": "Show my plan",
+      "failedTitle": "We couldn't finish building the plan",
+      "retry": "Try again"
+    },
+    "brief": {
+      "eyebrow": "Morning brief",
+      "signalsEyebrow": "Today's signals",
+      "signal": {
+        "rain": "Rain expected",
+        "holiday": "Public holiday",
+        "event": "Nearby event",
+        "traffic": "Traffic {pct}"
+      },
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "provenanceCta": "How this plan was made",
+      "llmBadge": "Written by PrepIQ from audited pipeline numbers",
+      "templateBadge": "Auto-generated summary from pipeline numbers"
+    },
+    "provenance": {
+      "eyebrow": "Behind the plan",
+      "title": "How this plan was made",
+      "close": "Close",
+      "unavailable": "Provenance details are not available for this plan yet.",
+      "askWhy": "Ask PrepIQ why",
+      "model": {
+        "prophet": "Seasonal trends",
+        "xgb": "Machine learning",
+        "seasonalNaive": "Same day last week",
+        "movingAverage": "Recent average"
+      },
+      "step": {
+        "read": {
+          "title": "Read your sales history",
+          "body": "Every forecast starts from your own POS records — day by day, item by item."
+        },
+        "clean": {
+          "title": "Set aside unusual days",
+          "body": "Closures, outages, sellouts and one-off spikes are detected and kept from distorting the forecast.",
+          "fact": "{count} day(s) set aside across {items} item(s)"
+        },
+        "signals": {
+          "title": "Checked outside signals",
+          "body": "Weather, public holidays and nearby events are weighed against how your kitchen responded to them before."
+        },
+        "blend": {
+          "title": "Blended forecasting models",
+          "body": "Several models forecast independently; the blend favors whichever has been most accurate here recently."
+        },
+        "targets": {
+          "title": "Set prep targets",
+          "body": "Quantities balance the cost of running out against the cost of waste for each item.",
+          "fact": "Service level: {pct}%"
+        }
+      }
+    },
+    "prepSheet": {
+      "eyebrow": "Ingredients",
+      "title": "Ingredient prep sheet · {count} ingredients",
+      "perishable": "Perishable"
+    },
+    "pace": {
+      "headline": "By {time} you're at {actualPct} of today's plan — a typical day like this is at {expectedPct}.",
+      "typicalTick": "typical",
+      "projectedClose": "Projected close: {projected} of {planned} planned ({gap}).",
+      "onPace": "On pace",
+      "surge": "Running hot",
+      "slowdown": "Running slow",
+      "tooEarly": "Pace tracking starts once the day's rhythm is established.",
+      "itemSurge": "Pacing {pct} vs typical — projected {projected} by close",
+      "itemSlowdown": "Pacing {pct} vs typical — projected {projected} by close"
+    },
+    "learned": {
+      "rainResponse": "Today was a rainy day — tomorrow's forecast now weighs how your kitchen responded to rain.",
+      "eventResponse": "A nearby event ran today — its real impact on your sales feeds the event model.",
+      "overrides": "{count} override(s) recorded; {won} beat the forecast — the model shifts its trust on those items.",
+      "wasteRows": "{count} waste event(s) feed tomorrow's buffer calculation.",
+      "stockoutRows": "{count} sellout(s) marked as censored demand — estimated from pace before selling out, not ignored."
     }
   },
   "profile": {
