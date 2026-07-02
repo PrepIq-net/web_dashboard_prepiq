@@ -40,7 +40,7 @@ export function AssistantDrawer({
         role="presentation"
       />
       <div
-        className="assistant-drawer-panel flex h-full w-[460px] max-w-[88vw] flex-col border-l border-surface-4 bg-surface-1 shadow-2xl"
+        className="assistant-drawer-panel flex h-full w-160 max-w-[92vw] flex-col border-l border-surface-4 bg-surface-1 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-label={title}
