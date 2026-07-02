@@ -3,16 +3,25 @@ export type AssistantPhase = "MORNING" | "LIVE" | "CLOSED";
 export type AssistantActionType =
   | "set_planned_quantity"
   | "mark_unavailable"
-  | "prepare_extra";
+  | "prepare_extra"
+  | "log_waste"
+  | "record_sale"
+  | "lock_plan"
+  | "start_service"
+  | "close_day"
+  | "update_day_notes";
 
 export type PendingAction = {
   type: AssistantActionType;
   branch_id: string;
   date: string;
-  item_id: string;
-  item_title: string;
+  item_id: string | null;
+  item_title: string | null;
   quantity: number | null;
   summary: string;
+  destructive?: boolean;
+  waste_reason?: string | null;
+  notes?: string;
 };
 
 export type AssistantRole = "user" | "assistant" | "tool" | "system";
@@ -55,7 +64,15 @@ export type ExplainPayload = {
 
 export type ConfirmActionPayload = {
   applied: boolean;
+  message_id?: string;
+};
+
+// Confirmed actions are executed server-side; this reports what happened.
+export type ConfirmActionResponse = {
+  applied: boolean;
+  status: "APPLIED" | "DECLINED" | "FAILED" | "NOT_FOUND";
   summary: string;
+  message: AssistantMessage;
 };
 
 export type AssistantReply = {

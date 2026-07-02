@@ -503,7 +503,8 @@ function TodayWorkspacePageContent() {
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
   const { tier: subscriptionTier, isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
-  const canUseAssistant = !subLoading && !shouldBlockAccess && subscriptionTier >= 2;
+  // Any active subscription (Core and up) includes the assistant.
+  const canUseAssistant = !subLoading && !shouldBlockAccess && subscriptionTier >= 1;
   const canFetchData = Boolean(safeBranchId) && !subLoading && !shouldBlockAccess;
 
   const todayQuery = useBranchDayToday(
@@ -599,40 +600,12 @@ function TodayWorkspacePageContent() {
     return map;
   }, [paceSummary]);
 
-  // Applies a confirm-gated PrepIQ Assistant action through existing mutations.
-  const handleAssistantAction = async (
-    action: PendingAction,
-  ): Promise<{ applied: boolean; summary: string }> => {
-    const target = (branchDay?.prep_plan_items ?? []).find(
-      (item) => item.product_id === action.item_id,
-    );
-    if (!target) return { applied: false, summary: action.summary };
-    try {
-      if (action.type === "set_planned_quantity" && action.quantity != null) {
-        await updatePrepPlanMutation.mutateAsync({
-          prepPlanItemId: target.id,
-          payload: { planned_quantity: action.quantity },
-        });
-        return {
-          applied: true,
-          summary: `Set ${target.product_title} planned prep to ${action.quantity}.`,
-        };
-      }
-      if (action.type === "prepare_extra" && action.quantity != null) {
-        await createProductionLogMutation.mutateAsync({
-          prep_plan_item_id: target.id,
-          quantity_produced: action.quantity,
-        });
-        return {
-          applied: true,
-          summary: `Logged ${action.quantity} extra ${target.product_title}.`,
-        };
-      }
-    } catch {
-      return { applied: false, summary: action.summary };
-    }
-    // mark_unavailable is applied via the dedicated modal flow; record only.
-    return { applied: false, summary: action.summary };
+  // Assistant actions are executed server-side on confirm — just refresh the
+  // data the action may have changed.
+  const handleAssistantActionApplied = (_action: PendingAction) => {
+    todayQuery.refetch();
+    morningBriefQuery.refetch();
+    paceQuery.refetch();
   };
 
   useEffect(() => {
@@ -3897,7 +3870,7 @@ function TodayWorkspacePageContent() {
         <AssistantLauncher
           branchId={safeBranchId}
           date={targetDate}
-          onApplyAction={handleAssistantAction}
+          onActionApplied={handleAssistantActionApplied}
           explainRequest={explainRequest}
         />
       ) : null}

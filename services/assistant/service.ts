@@ -4,6 +4,7 @@ import type {
   AssistantMessage,
   AssistantReply,
   ConfirmActionPayload,
+  ConfirmActionResponse,
   ConversationDetail,
   EmptyConversationReply,
   ExplainPayload,
@@ -46,8 +47,8 @@ export async function sendAssistantMessage(
 export async function confirmAssistantAction(
   conversationId: string,
   payload: ConfirmActionPayload,
-): Promise<AssistantMessage> {
-  return apiClient<AssistantMessage>(
+): Promise<ConfirmActionResponse> {
+  return apiClient<ConfirmActionResponse>(
     `${BASE}/conversations/${conversationId}/actions/confirm/`,
     { method: "POST", body: payload },
   );

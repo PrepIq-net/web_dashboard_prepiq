@@ -20,12 +20,12 @@ import { AssistantMessageBubble } from "./assistant-message";
 import { PendingActionConfirm } from "./pending-action-confirm";
 import { SuggestedQuestions } from "./suggested-questions";
 
-export type ApplyActionResult = { applied: boolean; summary: string };
-
 export type AssistantLauncherProps = {
   branchId?: string;
   date: string;
-  onApplyAction?: (action: PendingAction) => Promise<ApplyActionResult>;
+  // Confirmed actions are executed server-side; this fires afterwards so the
+  // host page can refetch the data the action changed.
+  onActionApplied?: (action: PendingAction) => void;
   explainRequest?: { topic: string; nonce: number } | null;
 };
 
@@ -35,7 +35,7 @@ const tempId = () => `temp-${TEMP_ID++}`;
 export function AssistantLauncher({
   branchId,
   date,
-  onApplyAction,
+  onActionApplied,
   explainRequest,
 }: AssistantLauncherProps) {
   const [open, setOpen] = useState(false);
@@ -136,49 +136,37 @@ export function AssistantLauncher({
     );
   };
 
-  const resolveOutcome = async (action: PendingAction): Promise<ApplyActionResult> => {
-    if (onApplyAction) {
-      try {
-        return await onApplyAction(action);
-      } catch {
-        return { applied: false, summary: action.summary };
-      }
-    }
-    return { applied: false, summary: action.summary };
-  };
-
-  const finishAction = (messageId: string, applied: boolean, summary: string) => {
-    clearPendingAction(messageId);
-    if (!conversationId) return;
-    sendMessage.reset();
-    import("@/services/assistant/service").then(({ confirmAssistantAction }) => {
-      confirmAssistantAction(conversationId, { applied, summary })
-        .then((ack) => {
-          setMessages((prev) => [...prev, ack]);
-          setAnimatingMsgId(ack.id);
-        })
-        .catch(() => undefined);
-    });
-  };
-
-  const handleConfirm = async (message: AssistantMessage) => {
+  // Confirm/decline resolves server-side: the backend executes the action and
+  // replies with the outcome message for the transcript.
+  const resolveAction = async (message: AssistantMessage, applied: boolean) => {
     const action = message.pending_action;
-    if (!action) return;
+    if (!action || !conversationId) return;
     setActionBusyId(message.id);
-    const outcome = await resolveOutcome(action);
-    setActionBusyId(null);
-    if (outcome.applied) {
-      toast.success(outcome.summary);
-    } else {
-      toast("Recorded — apply it from the prep plan when ready.");
+    try {
+      const { confirmAssistantAction } = await import("@/services/assistant/service");
+      const result = await confirmAssistantAction(conversationId, {
+        applied,
+        message_id: message.id,
+      });
+      clearPendingAction(message.id);
+      setMessages((prev) => [...prev, result.message]);
+      setAnimatingMsgId(result.message.id);
+      if (result.applied) {
+        toast.success(result.summary || action.summary);
+        onActionApplied?.(action);
+      } else if (applied) {
+        toast.error(result.summary || "That change couldn't be applied.");
+      }
+    } catch {
+      toast.error("Couldn't resolve that action. Try again.");
+    } finally {
+      setActionBusyId(null);
     }
-    finishAction(message.id, outcome.applied, outcome.summary);
   };
 
-  const handleDismiss = (message: AssistantMessage) => {
-    const action = message.pending_action;
-    finishAction(message.id, false, action?.summary ?? "the proposed change");
-  };
+  const handleConfirm = (message: AssistantMessage) => resolveAction(message, true);
+
+  const handleDismiss = (message: AssistantMessage) => resolveAction(message, false);
 
   const subtitle =
     suggested.data?.phase === "LIVE"

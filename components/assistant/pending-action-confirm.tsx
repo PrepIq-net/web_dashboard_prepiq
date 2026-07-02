@@ -13,10 +13,19 @@ export function PendingActionConfirm({
   onConfirm: () => void;
   onDismiss: () => void;
 }) {
+  const destructive = Boolean(action.destructive);
   return (
-    <div className="ml-1 max-w-[85%] rounded-xl border border-brand-gold/40 bg-surface-3 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-gold">
-        Proposed action
+    <div
+      className={`ml-1 max-w-[85%] rounded-xl border p-3 ${
+        destructive ? "border-status-critical/40 bg-status-critical/5" : "border-brand-gold/40 bg-surface-3"
+      }`}
+    >
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${
+          destructive ? "text-status-critical" : "text-brand-gold"
+        }`}
+      >
+        {destructive ? "Proposed action · confirm carefully" : "Proposed action"}
       </p>
       <p className="mt-1 text-sm text-text-primary">{action.summary}</p>
       <div className="mt-3 flex gap-2">
