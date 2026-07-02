@@ -47,6 +47,10 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branches/${branchId}/data-quality/`,
   velocityUpdate: (branchId: string) =>
     `${BASE}/production-intelligence/branches/${branchId}/velocity-update/`,
+  branchPaceSummary: (branchId: string) =>
+    `${BASE}/production-intelligence/branches/${branchId}/pace-summary/`,
+  morningBrief: () =>
+    `${BASE}/production-intelligence/branch-day/morning-brief/`,
 
   // ── Operations Views ─────────────────────────────────────────────────────
   operationsProduction: () =>

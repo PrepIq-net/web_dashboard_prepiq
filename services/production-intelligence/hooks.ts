@@ -5,6 +5,8 @@ import {
   createProductionLog,
   createSalesManualQuickEntry,
   getBranchDayToday,
+  getBranchPaceSummary,
+  getMorningBrief,
   getBranchCommandView,
   initializeBranchDay,
   ignoreBranchDayLiveAlert,
@@ -117,6 +119,20 @@ export const productionIntelligenceQueryKeys = {
     [
       ...productionIntelligenceQueryKeys.root,
       "branch-day-today",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  morningBrief: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "morning-brief",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  branchPaceSummary: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-pace-summary",
       params?.branch_id ?? "",
       params?.date ?? "",
     ] as const,
@@ -332,6 +348,36 @@ export function useBranchDayToday(
     queryKey: productionIntelligenceQueryKeys.branchDayToday(params),
     queryFn: () => getBranchDayToday(params),
     enabled: enabled && Boolean(params?.branch_id),
+  });
+}
+
+export function useMorningBrief(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.morningBrief(params),
+    queryFn: () => getMorningBrief(params ?? {}),
+    enabled: enabled && Boolean(params?.branch_id),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useBranchPaceSummary(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchPaceSummary(params),
+    queryFn: () =>
+      getBranchPaceSummary({
+        branch_id: params?.branch_id ?? "",
+        date: params?.date,
+      }),
+    enabled: enabled && Boolean(params?.branch_id),
+    refetchInterval: 180_000,
+    retry: false,
   });
 }
 

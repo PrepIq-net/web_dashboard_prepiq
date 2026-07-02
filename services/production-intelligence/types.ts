@@ -143,6 +143,28 @@ export type PrepPlanItem = z.infer<typeof prepPlanItemSchema>;
 
 export const liveMonitorSchema = prepPlanItemSchema.shape.live_monitor;
 
+// Honest summary of what the forecasting pipeline did during day
+// initialization — powers the walkthrough recap and provenance drawer.
+export const pipelineStatsSchema = z.object({
+  history_days_loaded: z.number().nullable().optional(),
+  excluded_days_max: z.number().nullable().optional(),
+  items_with_exclusions: z.number().nullable().optional(),
+  models_used: z.array(z.string()).nullable().optional(),
+  service_level_avg: z.number().nullable().optional(),
+  weather_event_signals: z
+    .object({
+      is_rain: z.boolean().optional(),
+      special_event: z.boolean().optional(),
+      public_holiday: z.boolean().optional(),
+      temperature_bucket: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  item_count: z.number().nullable().optional(),
+  generated_at: z.string().nullable().optional(),
+});
+export type PipelineStats = z.infer<typeof pipelineStatsSchema>;
+
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
@@ -707,6 +729,7 @@ export const branchDayTodaySchema = z.object({
     .object({
       created_branch_day: z.boolean(),
       created_prep_plan_items: z.number(),
+      pipeline_stats: pipelineStatsSchema.nullable().optional(),
     })
     .optional(),
 });
@@ -1726,6 +1749,20 @@ export const velocityComparisonSchema = z.object({
   forecast_velocity_per_hour: z.number().optional(),
 });
 
+// Cumulative intraday position: actuals vs the historical hour-of-day CDF
+// ("at 1:30pm we're normally at 62% of the day; today we're at 78%").
+export const cumulativePositionSchema = z.object({
+  expected_fraction: z.number(),
+  expected_qty_by_now: z.number(),
+  sold_so_far: z.number(),
+  cumulative_ratio: z.number(),
+  projected_total_at_close: z.number(),
+  projected_gap_units: z.number(),
+  status: z.enum(["SURGE", "SLOWDOWN", "ON_PACE"]),
+  alert_level: z.enum(["NONE", "WARNING", "CRITICAL"]),
+});
+export type CumulativePosition = z.infer<typeof cumulativePositionSchema>;
+
 export const velocityUpdateResponseSchema = z.object({
   sales_velocity: velocitySnapshotSchema.nullable().optional(),
   forecast_velocity: z
@@ -1738,12 +1775,95 @@ export const velocityUpdateResponseSchema = z.object({
     .nullable()
     .optional(),
   comparison: velocityComparisonSchema.optional(),
+  cumulative_position: cumulativePositionSchema.nullable().optional(),
+  should_alert: z.boolean().optional(),
+  alert_reason: z.string().optional(),
   forecast_qty: z.number().optional(),
   window_minutes: z.number().optional(),
 });
 export type VelocityUpdateResponse = z.infer<
   typeof velocityUpdateResponseSchema
 >;
+
+export const branchPaceSummarySchema = z.object({
+  as_of: z.string(),
+  date: z.string(),
+  branch: cumulativePositionSchema
+    .omit({ projected_gap_units: true })
+    .extend({
+      forecast_total: z.number(),
+      projected_gap_units: z.number(),
+    })
+    .nullable(),
+  items: z.array(
+    z.object({
+      item_id: z.string(),
+      item_title: z.string(),
+      unit: z.string(),
+      forecast_qty: z.number(),
+      sold_so_far: z.number(),
+      cumulative_position: cumulativePositionSchema.nullable(),
+      should_alert: z.boolean(),
+      alert_reason: z.string(),
+    }),
+  ),
+});
+export type BranchPaceSummary = z.infer<typeof branchPaceSummarySchema>;
+
+export const morningBriefSchema = z.object({
+  branch_id: z.string(),
+  target_date: z.string(),
+  headline: z.string(),
+  narrative: z.string(),
+  watchouts: z.array(z.string()).catch([]),
+  generated_by: z.enum(["llm", "template"]).catch("template"),
+  drivers: z
+    .object({
+      target_date: z.string().optional(),
+      total_recommended_quantity: z.number().optional(),
+      item_count: z.number().optional(),
+      top_movers: z
+        .array(
+          z.object({
+            item_id: z.string(),
+            item_title: z.string(),
+            recommended_quantity: z.number(),
+            unit: z.string(),
+            delta_vs_forecast_pct: z.number().nullable(),
+            confidence: z.number(),
+          }),
+        )
+        .optional(),
+      signals: z
+        .object({
+          is_rain: z.boolean().optional(),
+          weather_condition: z.string().optional(),
+          temperature_bucket: z.string().optional(),
+          special_event: z.boolean().optional(),
+          public_holiday: z.boolean().optional(),
+          expected_traffic_multiplier: z.number().optional(),
+        })
+        .optional(),
+    })
+    .nullable(),
+  prep_sheet: z
+    .array(
+      z.object({
+        ingredient_id: z.string(),
+        ingredient_name: z.string(),
+        category: z.string(),
+        unit: z.string(),
+        total_quantity: z.number(),
+        is_perishable: z.boolean(),
+        items: z.array(
+          z.object({ menu_item: z.string(), quantity: z.number() }),
+        ),
+      }),
+    )
+    .catch([]),
+  updated_at: z.string(),
+});
+export type MorningBrief = z.infer<typeof morningBriefSchema>;
 
 export const advancedForecastPayloadSchema = z.object({
   branch_id: z.string().uuid(),
