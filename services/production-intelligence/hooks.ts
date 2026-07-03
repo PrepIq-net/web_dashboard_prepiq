@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createProductionLog,
   createSalesManualQuickEntry,
   getBranchDayToday,
+  getBranchDayVersion,
   getBranchPaceSummary,
   getMorningBrief,
   getBranchCommandView,
@@ -135,6 +137,12 @@ export const productionIntelligenceQueryKeys = {
       "branch-pace-summary",
       params?.branch_id ?? "",
       params?.date ?? "",
+    ] as const,
+  branchDayVersion: (branchId?: string) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-day-version",
+      branchId ?? "",
     ] as const,
   branchCommandView: (params: BranchCommandViewQuery) =>
     [
@@ -379,6 +387,57 @@ export function useBranchPaceSummary(
     refetchInterval: 180_000,
     retry: false,
   });
+}
+
+/**
+ * Version-cursor realtime for the Today page.
+ *
+ * Polls a tiny no-DB endpoint (one Redis GET server-side) every `intervalMs`
+ * and, whenever the branch's change counter increases — connector sales
+ * reconciled, a co-worker's quick-tap, a production log — invalidates the
+ * heavy branch-day + pace queries so react-query refetches them. Invalidation
+ * (not setQueryData) deliberately preserves the caller's optimistic updates.
+ *
+ * A version of 0 means Redis is unavailable or nothing has happened yet; the
+ * hook stays quiet and the caller's slow safety poll remains the fallback.
+ */
+export function useBranchDayLiveVersion(
+  branchId?: string,
+  enabled = true,
+  intervalMs = 5_000,
+) {
+  const queryClient = useQueryClient();
+  const lastSeenRef = useRef<number | null>(null);
+
+  const versionQuery = useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchDayVersion(branchId),
+    queryFn: () => getBranchDayVersion({ branch_id: branchId ?? "" }),
+    enabled: enabled && Boolean(branchId),
+    refetchInterval: enabled && Boolean(branchId) ? intervalMs : false,
+    refetchIntervalInBackground: false,
+    staleTime: 0,
+    gcTime: 60_000,
+    retry: false,
+  });
+
+  const version = versionQuery.data?.version;
+
+  useEffect(() => {
+    if (version === undefined || !branchId) return;
+    const lastSeen = lastSeenRef.current;
+    lastSeenRef.current = version;
+    // First observation is a baseline, not a change; 0 = no signal.
+    if (lastSeen === null || version === 0 || version <= lastSeen) return;
+
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today", branchId],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-pace-summary", branchId],
+    });
+  }, [version, branchId, queryClient]);
+
+  return versionQuery;
 }
 
 export function useInitializeBranchDay() {

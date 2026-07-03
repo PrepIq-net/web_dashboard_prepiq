@@ -1810,6 +1810,11 @@ export const branchPaceSummarySchema = z.object({
 });
 export type BranchPaceSummary = z.infer<typeof branchPaceSummarySchema>;
 
+export const branchDayVersionSchema = z.object({
+  version: z.number(),
+});
+export type BranchDayVersion = z.infer<typeof branchDayVersionSchema>;
+
 export const morningBriefSchema = z.object({
   branch_id: z.string(),
   target_date: z.string(),

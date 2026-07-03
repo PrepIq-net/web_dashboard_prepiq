@@ -56,6 +56,7 @@ import {
   dataQualityReportSchema,
   velocityUpdateResponseSchema,
   branchPaceSummarySchema,
+  branchDayVersionSchema,
   morningBriefSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
@@ -387,6 +388,15 @@ export async function getBranchPaceSummary(params: {
       { date: params.date },
     ),
     branchPaceSummarySchema,
+    { method: "GET" },
+  );
+}
+
+export async function getBranchDayVersion(params: { branch_id: string }) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayVersion(safeBranchId),
+    branchDayVersionSchema,
     { method: "GET" },
   );
 }

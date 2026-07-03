@@ -21,6 +21,7 @@ import {
 } from "@/services";
 import {
   useBranchDayToday,
+  useBranchDayLiveVersion,
   useMorningBrief,
   useBranchPaceSummary,
   useCreateProductionLog,
@@ -584,6 +585,13 @@ function TodayWorkspacePageContent() {
   // own 3-minute interval (decoupled from the 20s branch-day poll).
   const paceQuery = useBranchPaceSummary(
     { branch_id: safeBranchId, date: targetDate },
+    canFetchData && branchDay?.status === "LIVE",
+  );
+  // Version-cursor realtime: a 5s poll of a tiny Redis-backed counter; the
+  // heavy branch-day/pace queries refetch only when the counter moves
+  // (connector sales, co-worker quick-taps, production logs).
+  useBranchDayLiveVersion(
+    safeBranchId,
     canFetchData && branchDay?.status === "LIVE",
   );
   const paceSummary = paceQuery.data ?? null;
@@ -1308,6 +1316,8 @@ function TodayWorkspacePageContent() {
     router.push("/workspace/today/csv-map");
   };
 
+  // Slow safety refetch behind the version cursor: catches anything the
+  // version signal misses (e.g. Redis down) without the old 20s hammering.
   useEffect(() => {
     if (!isLive || !branchDay?.id) return;
     if (
@@ -1318,7 +1328,7 @@ function TodayWorkspacePageContent() {
     }
     const interval = window.setInterval(() => {
       todayQuery.refetch();
-    }, 20000);
+    }, 120_000);
     return () => window.clearInterval(interval);
   }, [
     isLive,
