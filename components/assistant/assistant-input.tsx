@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 export function AssistantInput({
   onSend,
@@ -10,12 +10,27 @@ export function AssistantInput({
   disabled?: boolean;
 }) {
   const [value, setValue] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = `${Math.max(nextHeight, 44)}px`;
+  }, [value]);
 
   const submit = () => {
-    const text = value.trim();
-    if (!text || disabled) return;
+    const text = value.trimEnd();
+    if (!text.trim() || disabled) return;
     onSend(text);
     setValue("");
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.style.height = "44px";
+      }
+    });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -28,13 +43,14 @@ export function AssistantInput({
   return (
     <div className="flex items-end gap-2 border-t border-surface-4 px-4 py-3">
       <textarea
+        ref={textareaRef}
         rows={1}
         value={value}
         disabled={disabled}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Ask about today…"
-        className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none"
+        className="max-h-40 min-h-[44px] flex-1 resize-none overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none"
       />
       <button
         type="button"

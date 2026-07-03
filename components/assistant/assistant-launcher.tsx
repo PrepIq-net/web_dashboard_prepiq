@@ -54,6 +54,11 @@ export function AssistantLauncher({
   const greeting = suggested.data?.greeting ?? "I've prepared today's briefing.";
   const questions = suggested.data?.suggested_questions ?? [];
 
+  const handleClose = () => {
+    setOpen(false);
+    setAnimatingMsgId(null);
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -201,11 +206,14 @@ export function AssistantLauncher({
 
       <AssistantDrawer
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         title="PrepIQ Assistant"
         subtitle={subtitle}
       >
-        <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div
+          ref={scrollRef}
+          className="flex-1 space-y-4 overflow-y-auto px-4 py-4 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+        >
           {messages.length === 0 ? (
             <div className="flex items-start gap-2.5">
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
@@ -219,6 +227,9 @@ export function AssistantLauncher({
                 <AssistantMessageBubble
                   message={message}
                   animateIn={message.id === animatingMsgId && message.role === "assistant"}
+                  onAnimationDone={() =>
+                    setAnimatingMsgId((current) => (current === message.id ? null : current))
+                  }
                 />
                 {message.pending_action ? (
                   <PendingActionConfirm

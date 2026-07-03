@@ -118,24 +118,27 @@ function renderContent(text: string) {
 export function AssistantMessageBubble({
   message,
   animateIn,
+  onAnimationDone,
 }: {
   message: AssistantMessageType;
   animateIn?: boolean;
+  onAnimationDone?: () => void;
 }) {
   const isUser = message.role === "user";
   const fullText = message.content ?? "";
 
   const [displayed, setDisplayed] = useState(animateIn && !isUser ? "" : fullText);
-  const [done, setDone] = useState(!animateIn || isUser);
 
   useEffect(() => {
     if (!animateIn || isUser) {
       setDisplayed(fullText);
-      setDone(true);
       return;
     }
     setDisplayed("");
-    setDone(false);
+    if (!fullText.length) {
+      onAnimationDone?.();
+      return;
+    }
     let i = 0;
     // ~14ms per char ≈ 70 chars/sec — feels like ChatGPT
     const id = setInterval(() => {
@@ -143,7 +146,7 @@ export function AssistantMessageBubble({
       setDisplayed(fullText.slice(0, i));
       if (i >= fullText.length) {
         clearInterval(id);
-        setDone(true);
+        onAnimationDone?.();
       }
     }, 14);
     return () => clearInterval(id);
@@ -153,7 +156,7 @@ export function AssistantMessageBubble({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[82%] wrap-break-word rounded-xl rounded-br-md bg-brand-gold px-3.5 py-2.5 text-sm leading-relaxed text-surface-1">
+        <div className="max-w-[82%] whitespace-pre-wrap break-words rounded-xl rounded-br-md bg-brand-gold px-3.5 py-2.5 text-sm leading-relaxed text-surface-1">
           {fullText}
         </div>
       </div>
@@ -162,17 +165,13 @@ export function AssistantMessageBubble({
 
   return (
     <div className="flex items-start gap-2.5">
-      {/* Assistant avatar */}
       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
         IQ
       </div>
       <div className="max-w-[82%] min-w-0">
         <div className="rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
-          <div className="space-y-0.5 wrap-break-word">
+          <div className="space-y-0.5 break-words whitespace-pre-wrap">
             {renderContent(displayed)}
-            {!done ? (
-              <span className="inline-block h-3.5 w-0.5 animate-pulse bg-brand-gold align-middle" />
-            ) : null}
           </div>
         </div>
       </div>

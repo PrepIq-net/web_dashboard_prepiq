@@ -90,14 +90,15 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   }, [threadId, thread?.unread_count, markReadMutation.isPending]);
 
   const handleSendMessage = async (content: string, attachment?: File) => {
-    if (!content.trim() && !attachment) return;
+    const submittedContent = content.trimEnd();
+    if (!submittedContent.trim() && !attachment) return;
 
     setSendError(null);
     try {
       await createMessageMutation.mutateAsync({
         threadId,
         payload: {
-          content: content.trim(),
+          content: submittedContent,
           message_type: attachment ? "ATTACHMENT" : "TEXT",
         },
         attachment,
@@ -167,7 +168,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       {/* Messages */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]"
+        className="flex-1 overflow-y-auto p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
         onScroll={handleScroll}
       >
         {messagesQuery.isLoading ? (
