@@ -66,7 +66,7 @@ export default function ChatPage() {
               onClose={() => setSelectedThreadId(null)}
             />
           ) : (
-            <ChatEmptyState user={user} />
+            <ChatEmptyState user={user} onThreadSelect={setSelectedThreadId} />
           )}
         </div>
       </div>

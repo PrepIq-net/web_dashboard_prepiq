@@ -33,6 +33,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const previousMessageCountRef = useRef(0);
   const readRequestSentForThreadRef = useRef<string | null>(null);
   
@@ -91,6 +92,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const handleSendMessage = async (content: string, attachment?: File) => {
     if (!content.trim() && !attachment) return;
 
+    setSendError(null);
     try {
       await createMessageMutation.mutateAsync({
         threadId,
@@ -104,6 +106,8 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       setIsAtBottom(true);
     } catch (error) {
       console.error("Failed to send message:", error);
+      setSendError("Message failed to send. Please try again.");
+      throw error;
     }
   };
 
@@ -241,6 +245,11 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
       {/* Message Input */}
       <div className="border-t border-surface-4 p-4">
+        {sendError && (
+          <div className="mb-3 rounded-lg border border-status-critical/30 bg-status-critical/10 px-3 py-2 text-xs text-status-critical">
+            {sendError}
+          </div>
+        )}
         <ChatMessageInput
           onSend={handleSendMessage}
           disabled={createMessageMutation.isPending}

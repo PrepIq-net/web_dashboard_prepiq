@@ -27,6 +27,11 @@ export function ChatThreadList({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
+  const handleThreadCreated = (threadId: string) => {
+    setShowCreateModal(false);
+    onThreadSelect(threadId);
+  };
+
   // Filter threads based on search and status
   // Handle different possible data structures from the API
   let threadsArray: ChatThread[] = [];
@@ -60,14 +65,7 @@ export function ChatThreadList({
       return bTimestamp - aTimestamp;
     });
 
-  const canCreateThread = user?.organization_role && [
-    "STAFF_OPERATOR",
-    "BRANCH_MANAGER", 
-    "GM", 
-    "OPS_DIRECTOR", 
-    "ORG_OWNER", 
-    "ORG_ADMIN"
-  ].includes(user.organization_role);
+  const canCreateThread = Boolean(user?.organization_id);
 
   return (
     <>
@@ -166,10 +164,7 @@ export function ChatThreadList({
         <CreateThreadModal
           user={user}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            // The thread list will automatically refresh via React Query
-          }}
+          onSuccess={handleThreadCreated}
         />
       )}
     </>
