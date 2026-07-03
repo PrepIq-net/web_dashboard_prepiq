@@ -1352,6 +1352,17 @@
         "enable": "Activer les heures de silence",
         "start": "Début",
         "end": "Fin"
+      },
+      "webPush": {
+        "title": "Recevez les alertes dans votre navigateur",
+        "description": "Activez les notifications du navigateur pour recevoir les alertes urgentes même lorsque cet onglet n'est pas ouvert. Nous n'envoyons que ce qui nécessite une décision immédiate, et vous contrôlez les catégories ci-dessus.",
+        "enable": "Activer les notifications du navigateur",
+        "enabling": "Activation…",
+        "enabled": "Notifications du navigateur activées.",
+        "denied": "Les notifications ont été bloquées. Vous pouvez les autoriser dans les paramètres de votre navigateur.",
+        "blocked": "Les notifications sont bloquées pour ce site — autorisez-les dans les paramètres de votre navigateur pour les activer.",
+        "unconfigured": "Le push navigateur n'est pas encore configuré sur le serveur.",
+        "error": "Impossible d'activer les notifications du navigateur. Veuillez réessayer."
       }
     },
     "roles": {

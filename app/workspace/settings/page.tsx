@@ -77,6 +77,7 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
+import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
 import { useTranslation } from "@/lib/i18n";
 
 const columnHelper = createColumnHelper<any>();
@@ -868,6 +869,8 @@ function NotificationsSettings() {
           {t("settings.notifications.description")}
         </p>
       </div>
+
+      <WebPushPrimingCard />
 
       <div className="rounded-2xl border border-[#1C1C1F] overflow-hidden">
         <table className="w-full text-left border-collapse">

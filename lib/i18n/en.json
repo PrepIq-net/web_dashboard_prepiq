@@ -1352,6 +1352,17 @@
         "enable": "Enable quiet hours",
         "start": "Starts at",
         "end": "Ends at"
+      },
+      "webPush": {
+        "title": "Get alerts in your browser",
+        "description": "Turn on browser notifications to catch time-sensitive alerts even when this tab isn't open. We only push what needs a decision now, and you control which categories above.",
+        "enable": "Enable browser notifications",
+        "enabling": "Enabling…",
+        "enabled": "Browser notifications enabled.",
+        "denied": "Notifications were blocked. You can allow them in your browser settings.",
+        "blocked": "Notifications are blocked for this site — allow them in your browser settings to enable.",
+        "unconfigured": "Browser push isn't configured on the server yet.",
+        "error": "Couldn't enable browser notifications. Please try again."
       }
     },
     "roles": {
