@@ -1328,7 +1328,8 @@
         "type": "Type de notification",
         "inApp": "In-App",
         "email": "E-mail",
-        "push": "Push"
+        "push": "Push",
+        "digest": "Résumé quotidien"
       },
       "types": {
         "operational": "Opérationnel",
@@ -1342,8 +1343,16 @@
         "executive": "Direction",
         "executiveDesc": "Résumés propriétaires : tendances de revenus, classement des succursales, anomalies de coûts"
       },
+      "digestRequiresEmail": "Activez l'e-mail pour ce type afin de le recevoir sous forme de résumé quotidien.",
       "escalationTitle": "Escalade opérationnelle",
-      "escalationDescription": "Les alertes critiques (comme les pannes de connecteur ou le risque de rupture de stock) conservent toujours une trace dans l'application même si « Application » est désactivé pour ce type, afin qu'aucun événement critique ne passe inaperçu. Les préférences d'e-mail et de notification push restent pleinement respectées."
+      "escalationDescription": "Les alertes critiques (comme les pannes de connecteur ou le risque de rupture de stock) conservent toujours une trace dans l'application même si « Application » est désactivé pour ce type, afin qu'aucun événement critique ne passe inaperçu. Les préférences d'e-mail et de notification push restent pleinement respectées.",
+      "quietHours": {
+        "title": "Heures de silence",
+        "description": "Désactivez les notifications push pendant une plage horaire chaque nuit. Les notifications in-app ne sont jamais concernées, donc rien n'est manqué — vous ne serez simplement pas dérangé pendant cette période.",
+        "enable": "Activer les heures de silence",
+        "start": "Début",
+        "end": "Fin"
+      }
     },
     "roles": {
       "title": "Rôles personnalisés",

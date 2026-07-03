@@ -1328,7 +1328,8 @@
         "type": "Notification Type",
         "inApp": "In-App",
         "email": "Email",
-        "push": "Push"
+        "push": "Push",
+        "digest": "Daily Digest"
       },
       "types": {
         "operational": "Operational",
@@ -1342,8 +1343,16 @@
         "executive": "Executive",
         "executiveDesc": "Owner summaries: revenue trends, branch ranking, cost anomalies"
       },
+      "digestRequiresEmail": "Turn on Email for this type to receive it as a daily digest instead.",
       "escalationTitle": "Operational Escalation",
-      "escalationDescription": "Critical alerts (like connector outages or stockout risk) always keep an in-app record even if In-App is turned off for that type, so nothing business-critical goes unseen. Email and push preferences are still fully respected."
+      "escalationDescription": "Critical alerts (like connector outages or stockout risk) always keep an in-app record even if In-App is turned off for that type, so nothing business-critical goes unseen. Email and push preferences are still fully respected.",
+      "quietHours": {
+        "title": "Quiet Hours",
+        "description": "Silence push notifications during a set window each night. In-app notifications are never affected, so nothing is missed — you just won't be buzzed while it's on.",
+        "enable": "Enable quiet hours",
+        "start": "Starts at",
+        "end": "Ends at"
+      }
     },
     "roles": {
       "title": "Custom Roles",

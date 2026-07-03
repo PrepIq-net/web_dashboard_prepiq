@@ -6,8 +6,10 @@ import {
   notificationsResponseSchema,
   notificationPreferenceSchema,
   notificationPreferencesResponseSchema,
+  notificationQuietHoursSchema,
   type MarkNotificationsPayload,
   type NotificationPreference,
+  type NotificationQuietHours,
 } from "@/services/notifications/types";
 
 export async function getNotificationPreferences() {
@@ -56,6 +58,29 @@ export async function getNotifications(params?: {
   return apiClientWithSchema(endpoint, notificationsResponseSchema, {
     method: "GET",
   });
+}
+
+export async function getNotificationQuietHours() {
+  return apiClientWithSchema(
+    notificationEndpoints.quietHours(),
+    notificationQuietHoursSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function updateNotificationQuietHours(
+  payload: Partial<NotificationQuietHours>,
+) {
+  return apiClientWithSchema(
+    notificationEndpoints.quietHours(),
+    notificationQuietHoursSchema,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
 }
 
 export async function markNotificationsAsRead(payload?: MarkNotificationsPayload) {

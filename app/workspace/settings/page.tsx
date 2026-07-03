@@ -19,6 +19,7 @@ import {
   Trash,
   Edit,
   HelpCircle,
+  Clock,
 } from "iconoir-react";
 import Link from "next/link";
 import {
@@ -50,6 +51,8 @@ import {
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
+  useNotificationQuietHours,
+  useUpdateNotificationQuietHours,
 } from "@/services/notifications/hooks";
 import { Switch } from "@/components/ui/switch";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -761,17 +764,37 @@ function IntegrationsSettings({
   );
 }
 
+const DIGEST_ELIGIBLE_CATEGORIES = ["LEARNING", "EXECUTIVE"];
+
 function NotificationsSettings() {
   const { t } = useTranslation();
   const { data: preferences, isLoading } = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
   const [localPrefs, setLocalPrefs] = useState<any[]>([]);
 
+  const { data: quietHours, isLoading: quietHoursLoading } = useNotificationQuietHours();
+  const updateQuietHours = useUpdateNotificationQuietHours();
+  const [localQuietHours, setLocalQuietHours] = useState<{
+    enabled: boolean;
+    start_time: string;
+    end_time: string;
+  } | null>(null);
+
   useEffect(() => {
     if (preferences) {
       setLocalPrefs(preferences);
     }
   }, [preferences]);
+
+  useEffect(() => {
+    if (quietHours && !localQuietHours) {
+      setLocalQuietHours({
+        enabled: quietHours.enabled,
+        start_time: quietHours.start_time.slice(0, 5),
+        end_time: quietHours.end_time.slice(0, 5),
+      });
+    }
+  }, [quietHours, localQuietHours]);
 
   const handleToggle = (notificationCategory: string, channel: string, enabled: boolean) => {
     const updated = localPrefs.map((p) =>
@@ -781,6 +804,22 @@ function NotificationsSettings() {
     );
     setLocalPrefs(updated);
     updatePreferences.mutate(updated);
+  };
+
+  const handleDigestToggle = (notificationCategory: string, enabled: boolean) => {
+    const updated = localPrefs.map((p) =>
+      p.notification_category === notificationCategory
+        ? { ...p, digest_mode: enabled }
+        : p,
+    );
+    setLocalPrefs(updated);
+    updatePreferences.mutate(updated);
+  };
+
+  const handleQuietHoursChange = (patch: Partial<{ enabled: boolean; start_time: string; end_time: string }>) => {
+    const updated = { ...(localQuietHours ?? { enabled: false, start_time: "23:00", end_time: "07:00" }), ...patch };
+    setLocalQuietHours(updated);
+    updateQuietHours.mutate(updated);
   };
 
   if (isLoading) {
@@ -846,6 +885,9 @@ function NotificationsSettings() {
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
                 {t("settings.notifications.tableHeader.push")}
               </th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
+                {t("settings.notifications.tableHeader.digest")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#1C1C1F]/50">
@@ -857,7 +899,9 @@ function NotificationsSettings() {
                 in_app_enabled: true,
                 email_enabled: true,
                 push_enabled: true,
+                digest_mode: false,
               };
+              const digestEligible = DIGEST_ELIGIBLE_CATEGORIES.includes(type.notification_category);
 
               return (
                 <tr
@@ -896,6 +940,27 @@ function NotificationsSettings() {
                       }
                     />
                   </td>
+                  <td className="px-6 py-5 text-center">
+                    {digestEligible ? (
+                      <span
+                        title={
+                          !pref.email_enabled
+                            ? t("settings.notifications.digestRequiresEmail")
+                            : undefined
+                        }
+                      >
+                        <Switch
+                          checked={!!pref.digest_mode}
+                          disabled={!pref.email_enabled}
+                          onCheckedChange={(val) =>
+                            handleDigestToggle(type.notification_category, val)
+                          }
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-text-muted">—</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -916,6 +981,52 @@ function NotificationsSettings() {
           </p>
         </div>
       </div>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <Clock className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            {t("settings.notifications.quietHours.title")}
+          </h3>
+        </div>
+        <p className="text-xs text-text-muted">
+          {t("settings.notifications.quietHours.description")}
+        </p>
+
+        {quietHoursLoading || !localQuietHours ? (
+          <div className="flex items-center justify-center h-24">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-gold" />
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row md:items-end gap-4 p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F]">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={localQuietHours.enabled}
+                onCheckedChange={(val) => handleQuietHoursChange({ enabled: val })}
+              />
+              <span className="text-sm text-text-primary">
+                {t("settings.notifications.quietHours.enable")}
+              </span>
+            </div>
+            <Input
+              label={t("settings.notifications.quietHours.start")}
+              type="time"
+              value={localQuietHours.start_time}
+              disabled={!localQuietHours.enabled}
+              onChange={(e) => handleQuietHoursChange({ start_time: e.target.value })}
+              className="max-w-[140px]"
+            />
+            <Input
+              label={t("settings.notifications.quietHours.end")}
+              type="time"
+              value={localQuietHours.end_time}
+              disabled={!localQuietHours.enabled}
+              onChange={(e) => handleQuietHoursChange({ end_time: e.target.value })}
+              className="max-w-[140px]"
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 }

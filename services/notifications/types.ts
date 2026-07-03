@@ -54,10 +54,12 @@ export const notificationPreferenceSchema = z.object({
   id: z.string().uuid().optional(),
   domain: z.string().optional(),
   notification_category: z.string().optional(),
+  branch: z.string().uuid().nullable().optional(),
   email_enabled: z.boolean(),
   sms_enabled: z.boolean(),
   in_app_enabled: z.boolean(),
   push_enabled: z.boolean(),
+  digest_mode: z.boolean().optional(),
   updated_at: z.string().optional(),
 });
 export type NotificationPreference = z.infer<typeof notificationPreferenceSchema>;
@@ -66,6 +68,15 @@ export const notificationPreferencesResponseSchema = z.union([
   z.array(notificationPreferenceSchema),
   z.object({ results: z.array(notificationPreferenceSchema) }),
 ]).transform((payload) => ("results" in payload ? payload.results : payload));
+
+export const notificationQuietHoursSchema = z.object({
+  id: z.string().uuid().optional(),
+  enabled: z.boolean(),
+  start_time: z.string(),
+  end_time: z.string(),
+  updated_at: z.string().optional(),
+});
+export type NotificationQuietHours = z.infer<typeof notificationQuietHoursSchema>;
 
 export const NOTIFICATION_CATEGORIES = [
   "OPERATIONAL",

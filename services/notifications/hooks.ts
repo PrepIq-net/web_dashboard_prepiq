@@ -7,16 +7,20 @@ import {
   markNotificationsAsResolved,
   getNotificationPreferences,
   updateNotificationPreferences,
+  getNotificationQuietHours,
+  updateNotificationQuietHours,
 } from "@/services/notifications/service";
 import type {
   MarkNotificationsPayload,
   NotificationPreference,
+  NotificationQuietHours,
 } from "@/services/notifications/types";
 import { toast } from "react-hot-toast";
 
 export const notificationQueryKeys = {
   root: ["notifications"] as const,
   preferences: () => [...notificationQueryKeys.root, "preferences"] as const,
+  quietHours: () => [...notificationQueryKeys.root, "quiet-hours"] as const,
   list: (params?: {
     status?: string;
     domain?: string;
@@ -89,6 +93,29 @@ export function useUpdateNotificationPreferences() {
       toast.error(
         error.message || "Failed to update notification preferences.",
       );
+    },
+  });
+}
+
+export function useNotificationQuietHours() {
+  return useQuery({
+    queryKey: notificationQueryKeys.quietHours(),
+    queryFn: getNotificationQuietHours,
+  });
+}
+
+export function useUpdateNotificationQuietHours() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Partial<NotificationQuietHours>) =>
+      updateNotificationQuietHours(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.quietHours() });
+      toast.success("Quiet hours updated.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update quiet hours.");
     },
   });
 }
