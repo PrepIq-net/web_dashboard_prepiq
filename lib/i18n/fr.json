@@ -1343,7 +1343,7 @@
         "executiveDesc": "Résumés propriétaires : tendances de revenus, classement des succursales, anomalies de coûts"
       },
       "escalationTitle": "Escalade opérationnelle",
-      "escalationDescription": "Les alertes système critiques (comme les temps d'arrêt du serveur ou les écarts d'inventaire majeurs) contournent ces paramètres et sont toujours envoyées via tous les canaux disponibles pour assurer la continuité opérationnelle."
+      "escalationDescription": "Les alertes critiques (comme les pannes de connecteur ou le risque de rupture de stock) conservent toujours une trace dans l'application même si « Application » est désactivé pour ce type, afin qu'aucun événement critique ne passe inaperçu. Les préférences d'e-mail et de notification push restent pleinement respectées."
     },
     "roles": {
       "title": "Rôles personnalisés",
