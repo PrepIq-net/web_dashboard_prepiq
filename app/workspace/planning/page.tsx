@@ -1021,6 +1021,53 @@ function DayPanel({
         </div>
       ) : null}
 
+      {/* Auto-detected signals — weather/sports/religious/payday PrepIQ already
+          knows about, with the branch's learned response. Shown independently
+          of manual calendar events. */}
+      {fc?.automatic_signals && fc.automatic_signals.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-surface-4 bg-surface-2 p-3">
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-brand-gold mb-0.5">
+            {t("planning.auto_detected")}
+          </p>
+          <p className="mb-2 text-[10px] text-text-muted">
+            {t("planning.auto_detected_hint")}
+          </p>
+          <ul className="space-y-1.5">
+            {fc.automatic_signals.map((signal) => {
+              const typeKey = `today.signalType.${signal.signal_type}`;
+              const typed = t(typeKey);
+              const label = typed === typeKey ? signal.label : typed;
+              const pct = signal.learned?.delta_pct ?? null;
+              return (
+                <li
+                  key={signal.signal_type}
+                  className="flex items-center justify-between gap-2 text-[11px]"
+                >
+                  <span className="min-w-0 truncate text-text-secondary">
+                    {label}
+                    {signal.name ? (
+                      <span className="text-text-muted"> · {signal.name}</span>
+                    ) : null}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {pct != null && Math.abs(pct) >= 1 ? (
+                      <span className={`font-semibold ${impactTone(pct / 100)}`}>
+                        {formatImpact(pct / 100)}
+                      </span>
+                    ) : null}
+                    {signal.learned && signal.learned.sample_count > 0 ? (
+                      <span className="rounded-full bg-brand-gold/15 px-1.5 py-0.5 text-[9px] font-semibold text-brand-gold">
+                        {t("planning.learned_label")}
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       {/* Events list */}
       <div className="mt-4 flex-1 overflow-y-auto space-y-2">
         {events.length === 0 ? (

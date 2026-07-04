@@ -1040,6 +1040,7 @@
         "event": "Nearby event",
         "traffic": "Traffic {pct}"
       },
+      "learnedTag": "learned · {count} days",
       "showMore": "Show more",
       "showLess": "Show less",
       "provenanceCta": "How this plan was made",
@@ -1080,8 +1081,15 @@
           "title": "Set prep targets",
           "body": "Quantities balance the cost of running out against the cost of waste for each item.",
           "fact": "Service level: {pct}%"
+        },
+        "taught": {
+          "title": "What this branch has taught us",
+          "body": "Not rules we set — patterns your branch proved over time, each measured from your own results.",
+          "empty": "No learned patterns yet. PrepIQ builds these as your branch racks up days."
         }
-      }
+      },
+      "learnedFrom": "{count} days",
+      "activeToday": "Firing today"
     },
     "prepSheet": {
       "eyebrow": "Ingredients",
@@ -1099,6 +1107,18 @@
       "itemSurge": "Pacing {pct} vs typical — projected {projected} by close",
       "itemSlowdown": "Pacing {pct} vs typical — projected {projected} by close"
     },
+    "signalType": {
+      "RAIN": "Rain",
+      "TEMP_HOT": "Hot day",
+      "TEMP_COLD": "Cold day",
+      "PUBLIC_HOLIDAY": "Public holiday",
+      "PAYDAY": "Payday",
+      "SCHOOL_HOLIDAY": "School holiday",
+      "RELIGIOUS_RAMADAN": "Ramadan",
+      "RELIGIOUS_LENT": "Lent",
+      "SPORTS_BROADCAST": "Sports on TV"
+    },
+    "signalLearnedFrom": "learned from {count} days",
     "learned": {
       "rainResponse": "Today was a rainy day — tomorrow's forecast now weighs how your kitchen responded to rain.",
       "eventResponse": "A nearby event ran today — its real impact on your sales feeds the event model.",
@@ -1890,6 +1910,10 @@
     "fixed_amount": "Fixed amount",
     "forecast_boost_explanation": "The forecast engine will boost predicted demand for these items when this promotion is active.",
     "forecast_impact": "Forecast impact",
+    "auto_detected": "Already detected",
+    "auto_detected_hint": "We already knew about these — no data entry needed.",
+    "learned_label": "learned",
+    "learned_days": "{count} days",
     "free_item": "Free item",
     "fri": "Fri",
     "full_day_closure": "Full-day closure",

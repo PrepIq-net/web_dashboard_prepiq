@@ -5,7 +5,9 @@ import { createPortal } from "react-dom";
 import { Xmark } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import type {
+  ActiveSignal,
   BranchDayToday,
+  LearnedPattern,
   PipelineStats,
 } from "@/services/production-intelligence/types";
 
@@ -114,6 +116,10 @@ type PlanProvenanceDrawerProps = {
   open: boolean;
   onClose: () => void;
   stats: PipelineStats | null;
+  // Signals that fired today + the branch's learned profile (from the morning
+  // brief drivers). Optional so older responses still render the base steps.
+  activeSignals?: ActiveSignal[];
+  learnedPatterns?: LearnedPattern[];
   canAskAssistant: boolean;
   onAskAssistant?: () => void;
 };
@@ -122,6 +128,8 @@ export function PlanProvenanceDrawer({
   open,
   onClose,
   stats,
+  activeSignals = [],
+  learnedPatterns = [],
   canAskAssistant,
   onAskAssistant,
 }: PlanProvenanceDrawerProps) {
@@ -140,12 +148,28 @@ export function PlanProvenanceDrawer({
   }, [open, onClose]);
 
   const steps = useMemo(() => {
-    const signals = stats?.weather_event_signals ?? null;
+    // Prefer the full active-signal list (rain/sports/religious/payday/…) from
+    // the brief; fall back to the three flags derived from pipeline stats.
     const signalParts: string[] = [];
-    if (signals?.is_rain) signalParts.push(t("today.init.recap.rain"));
-    if (signals?.special_event) signalParts.push(t("today.init.recap.event"));
-    if (signals?.public_holiday)
-      signalParts.push(t("today.init.recap.holiday"));
+    if (activeSignals.length > 0) {
+      for (const signal of activeSignals) {
+        const typeKey = `today.signalType.${signal.signal_type}`;
+        const typed = t(typeKey);
+        const base = typed === typeKey ? signal.label : typed;
+        const pct = signal.learned?.delta_pct;
+        signalParts.push(
+          pct != null && Math.abs(pct) >= 1
+            ? `${base} ${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`
+            : base,
+        );
+      }
+    } else {
+      const signals = stats?.weather_event_signals ?? null;
+      if (signals?.is_rain) signalParts.push(t("today.init.recap.rain"));
+      if (signals?.special_event) signalParts.push(t("today.init.recap.event"));
+      if (signals?.public_holiday)
+        signalParts.push(t("today.init.recap.holiday"));
+    }
 
     const modelNames = (stats?.models_used ?? []).map((key) =>
       MODEL_LABEL_KEYS[key] ? t(MODEL_LABEL_KEYS[key]) : key,
@@ -200,7 +224,7 @@ export function PlanProvenanceDrawer({
             : null,
       },
     ];
-  }, [stats, t]);
+  }, [stats, activeSignals, t]);
 
   if (!open || !mounted) return null;
 
@@ -273,6 +297,73 @@ export function PlanProvenanceDrawer({
               {t("today.provenance.unavailable")}
             </p>
           )}
+
+          {/* "What this branch has taught us" — the learned per-branch profile.
+              Shown independently of pipeline stats since it comes from the
+              nightly learning loop, not this run. */}
+          {learnedPatterns.length > 0 ? (
+            <div className="mt-6 border-t border-surface-4 pt-5">
+              <p className="text-sm font-semibold text-text-primary">
+                {t("today.provenance.step.taught.title")}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+                {t("today.provenance.step.taught.body")}
+              </p>
+              <ul className="mt-3 space-y-2">
+                {learnedPatterns.map((pattern) => {
+                  const pct = pattern.delta_pct;
+                  const dots = Math.max(
+                    1,
+                    Math.min(4, Math.round(pattern.confidence * 4)),
+                  );
+                  const typeKey = `today.signalType.${pattern.signal_type}`;
+                  const typed = t(typeKey);
+                  const label = typed === typeKey ? pattern.label : typed;
+                  return (
+                    <li
+                      key={pattern.signal_type}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="min-w-0 truncate text-xs text-text-secondary">
+                        {label}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {pct != null ? (
+                          <span
+                            className={`text-xs font-semibold ${
+                              pct >= 0 ? "text-status-success" : "text-status-critical"
+                            }`}
+                          >
+                            {pct >= 0 ? "+" : ""}
+                            {pct.toFixed(0)}%
+                          </span>
+                        ) : null}
+                        <span className="text-[10px] text-text-muted">
+                          {t("today.provenance.learnedFrom", {
+                            count: pattern.sample_count,
+                          })}
+                        </span>
+                        <span
+                          className="flex items-center gap-0.5"
+                          title={pattern.confidence_label}
+                          aria-label={pattern.confidence_label}
+                        >
+                          {[0, 1, 2, 3].map((i) => (
+                            <span
+                              key={i}
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                i < dots ? "bg-brand-gold" : "bg-surface-4"
+                              }`}
+                            />
+                          ))}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         {canAskAssistant && onAskAssistant ? (
