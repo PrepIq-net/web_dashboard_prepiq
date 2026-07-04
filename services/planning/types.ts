@@ -164,7 +164,37 @@ export const promotionItemUpliftSchema = z.object({
 });
 export type PromotionItemUplift = z.infer<typeof promotionItemUpliftSchema>;
 
+// A learned per-branch response reused for both the whole profile and the
+// per-signal enrichment on automatic signals.
+export const learnedResponseSchema = z.object({
+  delta_pct: z.number().nullable(),
+  confidence: z.number(),
+  confidence_label: z.string(),
+  sample_count: z.number(),
+});
+export type LearnedResponse = z.infer<typeof learnedResponseSchema>;
+
+export const learnedPatternSchema = learnedResponseSchema.extend({
+  signal_type: z.string(),
+  label: z.string(),
+  avg_demand_delta: z.number().nullable(),
+});
+export type LearnedPattern = z.infer<typeof learnedPatternSchema>;
+
+export const automaticSignalSchema = z.object({
+  signal_type: z.string(),
+  label: z.string(),
+  name: z.string(),
+  active: z.boolean(),
+  learned: learnedResponseSchema.nullish(),
+});
+export type AutomaticSignal = z.infer<typeof automaticSignalSchema>;
+
 export const forecastContextSchema = z.object({
+  // Signals PrepIQ auto-detected (weather/sports/religious/payday) + learned
+  // profile. Present when a signal snapshot exists for the day.
+  automatic_signals: z.array(automaticSignalSchema).optional(),
+  learned_patterns: z.array(learnedPatternSchema).optional(),
   has_closure: z.boolean(),
   closure_is_full_day: z.boolean(),
   has_promotion: z.boolean(),

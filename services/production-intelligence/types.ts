@@ -1,6 +1,37 @@
 import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Learned demand signals (per-branch "what this branch taught us")
+// ─────────────────────────────────────────────────────────────────────────────
+// A signal's learned response: what it has historically meant for THIS branch,
+// with how many days back that up and how confident the model is.
+export const learnedResponseSchema = z.object({
+  delta_pct: z.number().nullable(),
+  confidence: z.number(),
+  confidence_label: z.string(),
+  sample_count: z.number(),
+});
+export type LearnedResponse = z.infer<typeof learnedResponseSchema>;
+
+export const learnedPatternSchema = learnedResponseSchema.extend({
+  signal_type: z.string(),
+  label: z.string(),
+  avg_demand_delta: z.number().nullable(),
+});
+export type LearnedPattern = z.infer<typeof learnedPatternSchema>;
+
+// A signal that actually fired on a given day, enriched with its learned
+// response when the branch has one.
+export const activeSignalSchema = z.object({
+  signal_type: z.string(),
+  label: z.string(),
+  name: z.string(),
+  active: z.boolean(),
+  learned: learnedResponseSchema.nullish(),
+});
+export type ActiveSignal = z.infer<typeof activeSignalSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Prep Recommendation Decision
 // ─────────────────────────────────────────────────────────────────────────────
 export const prepRecommendationDecisionSchema = z.object({
@@ -186,14 +217,18 @@ export const branchDayTodaySchema = z.object({
     signals: z
       .array(
         z.object({
-          key: z.enum(["similar_day", "reservation", "weather", "local_event"]),
+          key: z.string(),
           label: z.string(),
           value_pct: z.number(),
           direction: z.enum(["up", "down", "neutral"]),
           explanation: z.string(),
+          // Present when this signal maps to a learned per-branch pattern.
+          learned: learnedResponseSchema.nullish(),
         }),
       )
       .optional(),
+    // The branch's whole learned signal profile ("what this branch taught us").
+    learned_patterns: z.array(learnedPatternSchema).optional(),
     high_risk_items: z.number().optional(),
     tracked_items: z.number().optional(),
     confidence_breakdown: z
@@ -1847,8 +1882,17 @@ export const morningBriefSchema = z.object({
           special_event: z.boolean().optional(),
           public_holiday: z.boolean().optional(),
           expected_traffic_multiplier: z.number().optional(),
+          is_religious_observance: z.boolean().optional(),
+          religious_observance_name: z.string().optional(),
+          sports_event: z.boolean().optional(),
+          sports_event_name: z.string().optional(),
+          sports_match_importance: z.number().optional(),
+          is_payday: z.boolean().optional(),
         })
         .optional(),
+      // Signals that actually fired today + the branch's learned profile.
+      active_signals: z.array(activeSignalSchema).optional(),
+      learned_patterns: z.array(learnedPatternSchema).optional(),
     })
     .nullable(),
   prep_sheet: z

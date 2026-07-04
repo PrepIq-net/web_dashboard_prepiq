@@ -1040,6 +1040,7 @@
         "event": "Événement à proximité",
         "traffic": "Trafic {pct}"
       },
+      "learnedTag": "appris · {count} jours",
       "showMore": "Voir plus",
       "showLess": "Voir moins",
       "provenanceCta": "Comment ce plan a été construit",
@@ -1080,8 +1081,15 @@
           "title": "Définition des objectifs de préparation",
           "body": "Les quantités équilibrent le coût d'une rupture contre le coût du gaspillage pour chaque article.",
           "fact": "Niveau de service : {pct}%"
+        },
+        "taught": {
+          "title": "Ce que cette succursale nous a appris",
+          "body": "Pas des règles que nous imposons — des tendances que votre succursale a prouvées avec le temps, mesurées sur vos propres résultats.",
+          "empty": "Aucune tendance apprise pour l'instant. PrepIQ les construit à mesure que votre succursale accumule des journées."
         }
-      }
+      },
+      "learnedFrom": "{count} jours",
+      "activeToday": "Actif aujourd'hui"
     },
     "prepSheet": {
       "eyebrow": "Ingrédients",
@@ -1099,6 +1107,18 @@
       "itemSurge": "Rythme {pct} vs typique — projection {projected} à la fermeture",
       "itemSlowdown": "Rythme {pct} vs typique — projection {projected} à la fermeture"
     },
+    "signalType": {
+      "RAIN": "Pluie",
+      "TEMP_HOT": "Journée chaude",
+      "TEMP_COLD": "Journée froide",
+      "PUBLIC_HOLIDAY": "Jour férié",
+      "PAYDAY": "Jour de paie",
+      "SCHOOL_HOLIDAY": "Vacances scolaires",
+      "RELIGIOUS_RAMADAN": "Ramadan",
+      "RELIGIOUS_LENT": "Carême",
+      "SPORTS_BROADCAST": "Sport à la télé"
+    },
+    "signalLearnedFrom": "appris sur {count} jours",
     "learned": {
       "rainResponse": "Journée pluvieuse — la prévision de demain intègre désormais la réponse de votre cuisine à la pluie.",
       "eventResponse": "Un événement à proximité a eu lieu aujourd'hui — son impact réel sur vos ventes alimente le modèle d'événements.",
@@ -1890,6 +1910,10 @@
     "fixed_amount": "Montant fixe",
     "forecast_boost_explanation": "Le moteur de prévision augmentera la demande prévue pour ces articles lorsque cette promotion est active.",
     "forecast_impact": "Impact sur les prévisions",
+    "auto_detected": "Déjà détecté",
+    "auto_detected_hint": "Nous le savions déjà — aucune saisie nécessaire.",
+    "learned_label": "appris",
+    "learned_days": "{count} jours",
     "free_item": "Article gratuit",
     "fri": "Ven",
     "full_day_closure": "Fermeture toute la journée",

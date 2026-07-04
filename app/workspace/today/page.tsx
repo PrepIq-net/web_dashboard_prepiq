@@ -1881,15 +1881,29 @@ function TodayWorkspacePageContent() {
                         </span>
                       );
                     }
-                    return activeSignals.slice(0, 4).map((signal) => (
-                      <span
-                        key={signal.key}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                      >
-                        {signal.label}
-                        <span className="font-semibold">{toPercent(signal.value_pct)}</span>
-                      </span>
-                    ));
+                    return activeSignals.slice(0, 4).map((signal) => {
+                      const learned = "learned" in signal ? signal.learned : null;
+                      return (
+                        <span
+                          key={signal.key}
+                          title={
+                            learned && learned.sample_count > 0
+                              ? t("today.signalLearnedFrom", { count: learned.sample_count })
+                              : undefined
+                          }
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
+                        >
+                          {signal.label}
+                          <span className="font-semibold">{toPercent(signal.value_pct)}</span>
+                          {learned && learned.sample_count > 0 ? (
+                            <span
+                              className="h-1 w-1 rounded-full bg-brand-gold"
+                              aria-hidden
+                            />
+                          ) : null}
+                        </span>
+                      );
+                    });
                   })()}
                 </div>
                 {outlookActionSentence ? (
@@ -3867,6 +3881,8 @@ function TodayWorkspacePageContent() {
         open={provenanceOpen}
         onClose={() => setProvenanceOpen(false)}
         stats={provenanceStats}
+        activeSignals={morningBrief?.drivers?.active_signals ?? []}
+        learnedPatterns={morningBrief?.drivers?.learned_patterns ?? []}
         canAskAssistant={canUseAssistant}
         onAskAssistant={() =>
           setExplainRequest({
