@@ -153,6 +153,18 @@ export function AssistantMessageBubble({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message.id, animateIn]);
 
+  // Phase-change markers: a centered, muted "system info" chip, deliberately
+  // unlike the user (gold) and assistant (IQ) bubbles.
+  if (message.role === "system") {
+    return (
+      <div className="flex justify-center py-1">
+        <span className="rounded-full border border-surface-4 bg-surface-2 px-3 py-1 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-text-muted">
+          {fullText}
+        </span>
+      </div>
+    );
+  }
+
   if (isUser) {
     return (
       <div className="flex justify-end">

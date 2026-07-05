@@ -961,6 +961,7 @@ function DayPanel({
     branchId ? { branchId, date } : undefined,
   );
   const conversations = conversationsQuery.data ?? [];
+  const isToday = date === toIso(new Date());
   const [openConversation, setOpenConversation] = useState<AssistantConversation | null>(null);
 
   return (
@@ -1226,8 +1227,32 @@ function DayPanel({
         )}
       </div>
 
-      {/* Assistant conversations for this day — read-only archive */}
-      {conversations.length > 0 ? (
+      {/* Assistant conversations for this day. Today's thread is still live, so
+          it's not shown read-only here — we point to the Today page where it can
+          be continued. Past days open as read-only transcripts. */}
+      {isToday && conversations.length > 0 ? (
+        <div className="mt-4 border-t border-surface-4/60 pt-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            {t("planning.conversations")}
+          </p>
+          <Link
+            href="/workspace/today"
+            className="flex items-start gap-2 rounded-lg border border-surface-4 bg-surface-2 px-2.5 py-2 transition-colors hover:border-brand-gold/50"
+          >
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[9px] font-bold text-brand-gold">
+              IQ
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] text-text-secondary">
+                {t("planning.conversation_live")}
+              </span>
+              <span className="mt-0.5 block text-[10px] font-medium text-brand-gold">
+                {t("planning.conversation_continue")}
+              </span>
+            </span>
+          </Link>
+        </div>
+      ) : !isToday && conversations.length > 0 ? (
         <div className="mt-4 border-t border-surface-4/60 pt-4">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
             {t("planning.conversations")}
