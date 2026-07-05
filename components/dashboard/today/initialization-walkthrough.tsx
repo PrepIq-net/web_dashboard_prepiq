@@ -224,7 +224,9 @@ export function InitializationWalkthrough({
           >
             {t("today.init.showPlan")}
           </button>
-        ) : skipVisible && !isError ? (
+        ) : skipVisible && !isPending && !isError ? (
+          // Skipping is only offered once the forecast request has settled —
+          // while it's still generating the user must wait for it to finish.
           <button
             type="button"
             onClick={onDone}

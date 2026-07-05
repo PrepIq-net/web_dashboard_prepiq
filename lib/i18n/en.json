@@ -1910,6 +1910,8 @@
     "fixed_amount": "Fixed amount",
     "forecast_boost_explanation": "The forecast engine will boost predicted demand for these items when this promotion is active.",
     "forecast_impact": "Forecast impact",
+    "conversations": "Conversations",
+    "conversation_empty": "Empty conversation",
     "auto_detected": "Already detected",
     "auto_detected_hint": "We already knew about these — no data entry needed.",
     "learned_label": "learned",

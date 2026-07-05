@@ -40,6 +40,7 @@ export type AssistantConversation = {
   phase: AssistantPhase;
   branch: string | null;
   branch_name: string | null;
+  service_date: string | null;
   last_message: string;
   created_at: string;
   updated_at: string;
@@ -95,4 +96,13 @@ export type SuggestedQuestionsResponse = {
 export type ConversationDetail = {
   conversation: AssistantConversation;
   messages: AssistantMessage[];
+};
+
+// Resolves the current day's thread for rehydration. When no thread exists yet,
+// `conversation` is null and greeting/suggested_questions seed a fresh session.
+export type CurrentConversationResponse = {
+  conversation: AssistantConversation | null;
+  messages: AssistantMessage[];
+  greeting?: string;
+  suggested_questions?: string[];
 };

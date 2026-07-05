@@ -6,6 +6,7 @@ import type {
   ConfirmActionPayload,
   ConfirmActionResponse,
   ConversationDetail,
+  CurrentConversationResponse,
   EmptyConversationReply,
   ExplainPayload,
   SendMessagePayload,
@@ -15,8 +16,29 @@ import type {
 
 const BASE = "/assistant";
 
-export async function listAssistantConversations(): Promise<AssistantConversation[]> {
-  return apiClient<AssistantConversation[]>(`${BASE}/conversations/`);
+export async function listAssistantConversations(params?: {
+  branch_id?: string;
+  date?: string;
+}): Promise<AssistantConversation[]> {
+  const search = new URLSearchParams();
+  if (params?.branch_id) search.set("branch_id", params.branch_id);
+  if (params?.date) search.set("date", params.date);
+  const query = search.toString();
+  return apiClient<AssistantConversation[]>(
+    `${BASE}/conversations/${query ? `?${query}` : ""}`,
+  );
+}
+
+export async function getCurrentConversation(params: {
+  branch_id: string;
+  date?: string;
+}): Promise<CurrentConversationResponse> {
+  const search = new URLSearchParams();
+  search.set("branch_id", params.branch_id);
+  if (params.date) search.set("date", params.date);
+  return apiClient<CurrentConversationResponse>(
+    `${BASE}/conversations/current/?${search.toString()}`,
+  );
 }
 
 export async function getAssistantConversation(

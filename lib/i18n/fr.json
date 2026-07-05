@@ -1910,6 +1910,8 @@
     "fixed_amount": "Montant fixe",
     "forecast_boost_explanation": "Le moteur de prévision augmentera la demande prévue pour ces articles lorsque cette promotion est active.",
     "forecast_impact": "Impact sur les prévisions",
+    "conversations": "Conversations",
+    "conversation_empty": "Conversation vide",
     "auto_detected": "Déjà détecté",
     "auto_detected_hint": "Nous le savions déjà — aucune saisie nécessaire.",
     "learned_label": "appris",

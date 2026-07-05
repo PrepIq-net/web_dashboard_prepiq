@@ -31,6 +31,9 @@ import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { useAvailabilityOverrides } from "@/services/inventory/hooks";
 import type { ItemAvailabilityOverride } from "@/services/inventory/types";
+import { useAssistantConversations } from "@/services/assistant/hooks";
+import type { AssistantConversation } from "@/services/assistant/types";
+import { ConversationReadonly } from "@/components/assistant/conversation-readonly";
 import Link from "next/link";
 import type {
   CalendarEventList,
@@ -954,6 +957,12 @@ function DayPanel({
   const fc = forecastQuery.data;
   const displayDate = new Date(date + "T00:00:00");
 
+  const conversationsQuery = useAssistantConversations(
+    branchId ? { branchId, date } : undefined,
+  );
+  const conversations = conversationsQuery.data ?? [];
+  const [openConversation, setOpenConversation] = useState<AssistantConversation | null>(null);
+
   return (
     <div className="flex flex-col h-full">
       {/* Panel header */}
@@ -1216,6 +1225,45 @@ function DayPanel({
           </div>
         )}
       </div>
+
+      {/* Assistant conversations for this day — read-only archive */}
+      {conversations.length > 0 ? (
+        <div className="mt-4 border-t border-surface-4/60 pt-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            {t("planning.conversations")}
+          </p>
+          <div className="space-y-1.5">
+            {conversations.map((conv) => (
+              <button
+                key={conv.id}
+                type="button"
+                onClick={() => setOpenConversation(conv)}
+                className="flex w-full items-start gap-2 rounded-lg border border-surface-4 bg-surface-2 px-2.5 py-2 text-left transition-colors hover:border-brand-gold/50"
+              >
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[9px] font-bold text-brand-gold">
+                  IQ
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] text-text-secondary">
+                    {conv.last_message || t("planning.conversation_empty")}
+                  </span>
+                  <span className="block text-[9px] uppercase tracking-[0.1em] text-text-muted">
+                    {new Date(conv.updated_at).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <ConversationReadonly
+        conversation={openConversation}
+        onClose={() => setOpenConversation(null)}
+      />
     </div>
   );
 }

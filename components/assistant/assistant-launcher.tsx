@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import {
+  useCurrentConversation,
   useExplainAlert,
   useSendAssistantMessage,
   useStartAssistantConversation,
@@ -46,11 +47,33 @@ export function AssistantLauncher({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const suggested = useSuggestedQuestions(branchId, date);
+  const current = useCurrentConversation(branchId, date);
   const startConversation = useStartAssistantConversation();
   const sendMessage = useSendAssistantMessage();
   const explain = useExplainAlert();
 
   const sending = startConversation.isPending || sendMessage.isPending || explain.isPending;
+
+  // Rehydrate the persisted day thread on load / branch or date change so a
+  // reload restores the transcript instead of starting over. Only seed while the
+  // local session is still empty so an in-flight send is never clobbered.
+  const currentConv = current.data?.conversation ?? null;
+  useEffect(() => {
+    if (!currentConv) return;
+    if (conversationId || messages.length > 0 || sending) return;
+    setConversationId(currentConv.id);
+    setMessages(current.data?.messages ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentConv?.id]);
+
+  // A branch/date switch belongs to a different day thread — drop the stale
+  // session so the rehydration effect above can load the correct one.
+  useEffect(() => {
+    setConversationId(null);
+    setMessages([]);
+    setAnimatingMsgId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, date]);
   const greeting = suggested.data?.greeting ?? "I've prepared today's briefing.";
   const questions = suggested.data?.suggested_questions ?? [];
 
@@ -182,26 +205,18 @@ export function AssistantLauncher({
 
   return (
     <>
-      {/* Floating launcher — always visible when the drawer is closed */}
+      {/* Compact floating launcher — a small button that frees the page corner
+          for clickable content. Opens the same slide-in drawer. */}
       {!open ? (
-        <div className="fixed bottom-6 right-6 z-9990 w-80 max-w-[calc(100vw-3rem)]">
-          <div className="rounded-xl border border-surface-4 bg-surface-2 p-4 shadow-2xl">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold">
-                IQ
-              </div>
-              <p className="text-sm font-semibold text-text-primary">PrepIQ Assistant</p>
-            </div>
-            <p className="mt-2 text-sm text-text-secondary">{greeting}</p>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="mt-3 w-full rounded-lg bg-brand-gold px-3 py-2 text-sm font-semibold text-surface-1 transition-colors hover:bg-brand-gold-hover"
-            >
-              Open
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open PrepIQ Assistant"
+          title="PrepIQ Assistant"
+          className="fixed bottom-6 right-6 z-9990 flex h-14 w-14 items-center justify-center rounded-full bg-brand-gold text-base font-bold text-surface-1 shadow-2xl transition-colors hover:bg-brand-gold-hover"
+        >
+          IQ
+        </button>
       ) : null}
 
       <AssistantDrawer
