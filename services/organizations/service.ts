@@ -270,3 +270,38 @@ export async function deleteOrganizationRole(
     },
   );
 }
+
+export async function leaveOrganization(id: string): Promise<{ message: string }> {
+  return apiClientWithSchema(
+    organizationsEndpoints.leave(id),
+    z.object({ message: z.string() }),
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function transferOrganizationOwnership(
+  id: string,
+  userId: string,
+): Promise<{ message: string }> {
+  return apiClientWithSchema(
+    organizationsEndpoints.transferOwnership(id),
+    z.object({ message: z.string() }),
+    {
+      method: "POST",
+      body: { user_id: userId },
+    },
+  );
+}
+
+export async function deleteOrganization(id: string): Promise<void> {
+  // 204 No Content — no body to validate.
+  await apiClientWithSchema(
+    organizationsEndpoints.detail(id),
+    z.any(),
+    {
+      method: "DELETE",
+    },
+  );
+}

@@ -53,7 +53,8 @@
     "dayFri": "Ven",
     "daySat": "Sam",
     "daySun": "Dim",
-    "optional": "facultatif"
+    "optional": "facultatif",
+    "processing": "Traitement…"
   },
   "auth": {
     "welcomeBack": "Bon retour parmi nous.",
@@ -1290,7 +1291,14 @@
       "demandContextBefore": "Les modèles de demande avancés (lieux à proximité, événements) sont actuellement gérés par",
       "intelligenceEngine": "Moteur d'intelligence PrepIQ",
       "demandContextAfter": "automatiquement.",
-      "updated": "Paramètres de la succursale mis à jour"
+      "updated": "Paramètres de la succursale mis à jour",
+      "delete": {
+        "title": "Supprimer cette succursale",
+        "description": "Retire ce site des opérations. Son historique est conservé, puis purgé après 90 jours.",
+        "lastBranch": "Vous ne pouvez pas supprimer votre seule succursale active. Ajoutez-en une autre d'abord.",
+        "button": "Supprimer la succursale",
+        "confirm": "Supprimer « {name} » ? Cela la retire des opérations. Action irréversible ici."
+      }
     },
     "tabs": {
       "organization": "Organisation",
@@ -1462,6 +1470,60 @@
         "description": "Cela supprimera {label} de l’organisation et révoquera immédiatement l’accès.",
         "descriptionDefault": "Cette action supprimera le membre de l’organisation.",
         "confirmLabel": "Supprimer le membre"
+      }
+    },
+    "danger": {
+      "title": "Zone de danger",
+      "subtitle": "Actions irréversibles. Assurez-vous avant de continuer.",
+      "soleOwner": {
+        "title": "Vous êtes le seul propriétaire",
+        "body": "Avant de supprimer votre compte, transférez la propriété ou supprimez ces organisations :"
+      },
+      "leave": {
+        "title": "Quitter l'organisation",
+        "description": "Retirez-vous de cette organisation. Votre travail reste dans l'organisation ; vous gardez votre compte.",
+        "button": "Quitter",
+        "confirm": "Voulez-vous vraiment quitter cette organisation ? Vous perdrez l'accès jusqu'à une nouvelle invitation.",
+        "done": "Vous avez quitté l'organisation."
+      },
+      "transfer": {
+        "title": "Transférer la propriété",
+        "description": "Confiez le rôle de propriétaire à un autre membre. Vous serez rétrogradé en administrateur.",
+        "button": "Transférer la propriété",
+        "modalDescription": "Choisissez le membre qui deviendra le nouveau propriétaire.",
+        "selectLabel": "Nouveau propriétaire",
+        "selectPlaceholder": "Sélectionner un membre…"
+      },
+      "org": {
+        "title": "Supprimer l'organisation",
+        "description": "Supprime définitivement l'organisation, annule la facturation et retire l'accès de chaque membre.",
+        "button": "Supprimer l'organisation",
+        "modalTitle": "Supprimer l'organisation",
+        "modalDescription": "Cela annule votre abonnement et supprime toutes les succursales et tous les membres.",
+        "warning": "Ceci est irréversible. Tous les membres perdent l'accès et la facturation est annulée. Les données sont conservées brièvement, puis purgées.",
+        "typeName": "Saisissez « {name} » pour confirmer",
+        "confirmButton": "Supprimer l'organisation",
+        "deleted": "Organisation supprimée."
+      },
+      "account": {
+        "title": "Supprimer le compte",
+        "description": "Supprime définitivement votre compte et votre profil personnels. Irréversible.",
+        "button": "Supprimer le compte",
+        "modalTitle": "Supprimer votre compte",
+        "modalDescription": "Votre profil est programmé pour suppression et anonymisé après 30 jours.",
+        "reasonLabel": "Pourquoi partez-vous ?",
+        "detailsLabel": "Autre chose ? (facultatif)",
+        "detailsPlaceholder": "Dites-nous en plus…",
+        "typeToConfirm": "Saisissez DELETE pour confirmer",
+        "confirmButton": "Supprimer mon compte",
+        "deleted": "Votre compte a été supprimé.",
+        "failed": "Échec de la suppression du compte."
+      },
+      "reasons": {
+        "notUseful": "Pas utile pour moi",
+        "tooComplicated": "Trop compliqué",
+        "privacy": "Préoccupations de confidentialité",
+        "other": "Autre"
       }
     }
   },

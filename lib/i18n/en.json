@@ -53,7 +53,8 @@
     "dayFri": "Fri",
     "daySat": "Sat",
     "daySun": "Sun",
-    "optional": "optional"
+    "optional": "optional",
+    "processing": "Processing…"
   },
   "auth": {
     "welcomeBack": "Welcome Back.",
@@ -1290,7 +1291,14 @@
       "demandContextBefore": "Advanced demand patterns (nearby venues, events) are currently managed via the",
       "intelligenceEngine": "PrepIQ Intelligence Engine",
       "demandContextAfter": "automatically.",
-      "updated": "Branch settings updated"
+      "updated": "Branch settings updated",
+      "delete": {
+        "title": "Delete this branch",
+        "description": "Removes this location from operations. Its history is retained, then purged after 90 days.",
+        "lastBranch": "You can't delete your only active branch. Add another branch first.",
+        "button": "Delete branch",
+        "confirm": "Delete “{name}”? This removes it from operations. This cannot be undone from here."
+      }
     },
     "tabs": {
       "organization": "Organization",
@@ -1462,6 +1470,60 @@
         "description": "This will remove {label} from the organization and revoke access immediately.",
         "descriptionDefault": "This action will remove the member from the organization.",
         "confirmLabel": "Remove member"
+      }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "subtitle": "Irreversible actions. Please be certain before continuing.",
+      "soleOwner": {
+        "title": "You're the sole owner",
+        "body": "Before deleting your account, transfer ownership or delete these organizations:"
+      },
+      "leave": {
+        "title": "Leave organization",
+        "description": "Remove yourself from this organization. Your work stays with the org; you keep your account.",
+        "button": "Leave",
+        "confirm": "Are you sure you want to leave this organization? You'll lose access until re-invited.",
+        "done": "You left the organization."
+      },
+      "transfer": {
+        "title": "Transfer ownership",
+        "description": "Hand the owner role to another member. You'll be downgraded to admin.",
+        "button": "Transfer ownership",
+        "modalDescription": "Choose the member who will become the new owner.",
+        "selectLabel": "New owner",
+        "selectPlaceholder": "Select a member…"
+      },
+      "org": {
+        "title": "Delete organization",
+        "description": "Permanently deletes the organization, cancels billing, and removes every member's access.",
+        "button": "Delete organization",
+        "modalTitle": "Delete organization",
+        "modalDescription": "This cancels your subscription and removes all branches and members.",
+        "warning": "This is irreversible. All members lose access and billing is cancelled. Data is retained briefly, then purged.",
+        "typeName": "Type “{name}” to confirm",
+        "confirmButton": "Delete organization",
+        "deleted": "Organization deleted."
+      },
+      "account": {
+        "title": "Delete account",
+        "description": "Permanently deletes your personal account and profile. This can't be undone.",
+        "button": "Delete account",
+        "modalTitle": "Delete your account",
+        "modalDescription": "Your profile is scheduled for deletion and anonymized after 30 days.",
+        "reasonLabel": "Why are you leaving?",
+        "detailsLabel": "Anything else? (optional)",
+        "detailsPlaceholder": "Tell us more…",
+        "typeToConfirm": "Type DELETE to confirm",
+        "confirmButton": "Delete my account",
+        "deleted": "Your account has been deleted.",
+        "failed": "Failed to delete account."
+      },
+      "reasons": {
+        "notUseful": "Not useful for me",
+        "tooComplicated": "Too complicated",
+        "privacy": "Privacy concerns",
+        "other": "Other"
       }
     }
   },

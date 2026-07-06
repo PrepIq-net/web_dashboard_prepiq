@@ -39,6 +39,7 @@ import {
   useBranches,
   useBranch,
   useUpdateBranch,
+  useDeleteBranch,
 } from "@/services/branches/hooks";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
@@ -78,6 +79,7 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
+import { DangerZone } from "@/components/dashboard/settings/danger-zone";
 import { useTranslation } from "@/lib/i18n";
 
 const columnHelper = createColumnHelper<any>();
@@ -257,6 +259,7 @@ function SettingsPageContent() {
             />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
+          {activeTab === "security" && <DangerZone orgId={org?.id} />}
           {activeTab === "support" && <SupportTabContent />}
           {/* Placeholder for tabs not yet built */}
           {![
@@ -265,6 +268,7 @@ function SettingsPageContent() {
             "users-roles",
             "integrations",
             "notifications",
+            "security",
             "support",
           ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -1045,7 +1049,21 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
     selectedBranchId,
   );
   const updateBranch = useUpdateBranch(orgId || "", selectedBranchId);
+  const deleteBranch = useDeleteBranch(orgId || "");
+  const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
   const [formData, setFormData] = useState<any>(null);
+
+  const isLastBranch = (branches?.length ?? 0) <= 1;
+
+  const handleDeleteBranch = () => {
+    if (!selectedBranchId) return;
+    deleteBranch.mutate(selectedBranchId, {
+      onSuccess: () => {
+        setDeleteBranchOpen(false);
+        setSelectedBranchId("");
+      },
+    });
+  };
 
   // Default to focusedBranchId from URL, then first branch
   useEffect(() => {
@@ -1292,8 +1310,46 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
               />
             </div>
           </section>
+
+          {/* Danger zone — delete this branch */}
+          <section className="space-y-4">
+            <div className="border-l-4 border-status-critical/60 bg-[#141416] rounded-r-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Trash className="h-5 w-5 text-status-critical mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-text-primary">
+                    {t("settings.branch.delete.title")}
+                  </h3>
+                  <p className="text-sm text-text-muted mt-1">
+                    {isLastBranch
+                      ? t("settings.branch.delete.lastBranch")
+                      : t("settings.branch.delete.description")}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                disabled={isLastBranch}
+                onClick={() => setDeleteBranchOpen(true)}
+                className="shrink-0"
+              >
+                {t("settings.branch.delete.button")}
+              </Button>
+            </div>
+          </section>
         </div>
       )}
+
+      <ConfirmActionModal
+        open={deleteBranchOpen}
+        title={t("settings.branch.delete.title")}
+        description={t("settings.branch.delete.confirm", { name: branch?.name ?? "" })}
+        confirmLabel={t("settings.branch.delete.button")}
+        tone="critical"
+        isConfirming={deleteBranch.isPending}
+        onClose={() => setDeleteBranchOpen(false)}
+        onConfirm={handleDeleteBranch}
+      />
     </div>
   );
 }

@@ -228,3 +228,58 @@ export function useDeleteOrganizationRole(id: string) {
     },
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Danger zone — leave / transfer ownership / delete organization
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useLeaveOrganization(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => organizationService.leaveOrganization(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to leave organization.");
+    },
+  });
+}
+
+export function useTransferOrganizationOwnership(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      organizationService.transferOrganizationOwnership(id, userId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) }),
+        queryClient.invalidateQueries({ queryKey: organizationKeys.details(id) }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+      toast.success("Ownership transferred.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to transfer ownership.");
+    },
+  });
+}
+
+export function useDeleteOrganization(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => organizationService.deleteOrganization(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete organization.");
+    },
+  });
+}

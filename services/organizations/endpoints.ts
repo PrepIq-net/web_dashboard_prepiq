@@ -8,6 +8,9 @@ export const organizationsEndpoints = {
     `/api/organizations/${id}/members/${userId}/update/`,
   removeMember: (id: string, userId: string) =>
     `/api/organizations/${id}/members/${userId}/`,
+  leave: (id: string) => `/api/organizations/${id}/leave/`,
+  transferOwnership: (id: string) =>
+    `/api/organizations/${id}/transfer-ownership/`,
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,
   financialOverview: (id: string) =>
     `/api/organizations/${id}/financial/overview/`,
