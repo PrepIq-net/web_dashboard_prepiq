@@ -28,6 +28,8 @@ export type AssistantLauncherProps = {
   // host page can refetch the data the action changed.
   onActionApplied?: (action: PendingAction) => void;
   explainRequest?: { topic: string; nonce: number } | null;
+  // Opens the drawer on mount, e.g. when arriving via a "continue chat" deep link.
+  autoOpen?: boolean;
 };
 
 let TEMP_ID = 0;
@@ -38,6 +40,7 @@ export function AssistantLauncher({
   date,
   onActionApplied,
   explainRequest,
+  autoOpen,
 }: AssistantLauncherProps) {
   const [open, setOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -74,6 +77,12 @@ export function AssistantLauncher({
     setAnimatingMsgId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchId, date]);
+  // Deep link from elsewhere (e.g. Planning's "continue chat") opens the drawer.
+  useEffect(() => {
+    if (autoOpen) setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
+
   const greeting = suggested.data?.greeting ?? "I've prepared today's briefing.";
   const questions = suggested.data?.suggested_questions ?? [];
 

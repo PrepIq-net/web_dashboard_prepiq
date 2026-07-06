@@ -138,7 +138,7 @@ export function Select({
           createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[1000] rounded-card border border-border-default bg-surface-3 p-1 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+              className="fixed z-[10050] rounded-card border border-border-default bg-surface-3 p-1 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: menuPosition.top,
                 left: menuPosition.left,

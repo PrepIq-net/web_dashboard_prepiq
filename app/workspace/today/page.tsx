@@ -432,6 +432,7 @@ function TodayWorkspacePageContent() {
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
   const [ignoredLiveAlertIds, setIgnoredLiveAlertIds] = useState<string[]>([]);
   const [explainRequest, setExplainRequest] = useState<{ topic: string; nonce: number } | null>(null);
+  const [autoOpenAssistant, setAutoOpenAssistant] = useState(false);
   const [quietMode, setQuietMode] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvUploadFile, setCsvUploadFile] = useState<File | null>(null);
@@ -475,6 +476,7 @@ function TodayWorkspacePageContent() {
       setTargetDate(paramDate);
     }
     setShowCsvImportBanner(searchParams.get("csv_import") === "1");
+    setAutoOpenAssistant(searchParams.get("assistant") === "open");
   }, [searchParams]);
 
   useEffect(() => {
@@ -3898,6 +3900,7 @@ function TodayWorkspacePageContent() {
           date={targetDate}
           onActionApplied={handleAssistantActionApplied}
           explainRequest={explainRequest}
+          autoOpen={autoOpenAssistant}
         />
       ) : null}
     </WorkspaceShell>

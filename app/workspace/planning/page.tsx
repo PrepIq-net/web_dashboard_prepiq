@@ -1236,7 +1236,7 @@ function DayPanel({
             {t("planning.conversations")}
           </p>
           <Link
-            href="/workspace/today"
+            href={`/workspace/today?assistant=open${branchId ? `&branch_id=${branchId}` : ""}`}
             className="flex items-start gap-2 rounded-lg border border-surface-4 bg-surface-2 px-2.5 py-2 transition-colors hover:border-brand-gold/50"
           >
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[9px] font-bold text-brand-gold">
