@@ -66,8 +66,16 @@ export function LoginForm() {
 
     if (verified === "1") {
       toast.success(t("auth.otpVerified"));
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("verified");
+      router.replace(`/login${params.toString() ? `?${params.toString()}` : ""}`, {
+        scroll: false,
+      });
     }
-  }, [searchParams, t]);
+    // `t` is intentionally omitted: useTranslation() returns a new `t` reference
+    // on every render, which would re-run this effect (and re-toast) on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, router]);
 
   useEffect(() => {
     let active = true;
