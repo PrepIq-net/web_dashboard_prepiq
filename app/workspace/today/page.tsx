@@ -42,6 +42,7 @@ import {
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
 import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
+import { useBranchStore } from "@/services/context/branch-store";
 import { AdvancedForecastModalContent } from "@/components/dashboard/today/advanced-forecast-modal-content";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
@@ -409,7 +410,11 @@ function TodayWorkspacePageContent() {
   const [targetDate, setTargetDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
+  // Branch selection lives in the shared store so it persists across navigation
+  // and reloads. The URL/default/name-matching effects below still drive
+  // resolution; they now write to the store instead of local state.
+  const branchId = useBranchStore((s) => s.branchId);
+  const setBranchId = useBranchStore((s) => s.setBranchId);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [advancedModalOpen, setAdvancedModalOpen] = useState(false);
   const [plannedQtyByItem, setPlannedQtyByItem] = useState<
@@ -479,23 +484,14 @@ function TodayWorkspacePageContent() {
     setAutoOpenAssistant(searchParams.get("assistant") === "open");
   }, [searchParams]);
 
+  // Resolve the shared selection against THIS user's branches: keep it if it's
+  // still a valid option, otherwise fall back to the page default. This also
+  // corrects a branch persisted from a different org after switching.
   useEffect(() => {
-    if (!branchId && defaultBranch?.id) {
-      setBranchId(defaultBranch.id);
-    }
-  }, [branchId, defaultBranch?.id]);
-  useEffect(() => {
-    if (!branchId || UUID_PATTERN.test(branchId)) return;
-    const normalizedName = branchId.split(" day ")[0].trim();
-    const matched = branchOptions.find(
-      (branch) => branch.name.toLowerCase() === normalizedName.toLowerCase(),
-    );
-    if (matched?.id) {
-      setBranchId(matched.id);
-    } else {
-      setBranchId(defaultBranch?.id ?? "");
-    }
-  }, [branchId, branchOptions, defaultBranch?.id]);
+    if (!defaultBranch?.id) return; // branch options not loaded yet
+    if (branchId && branchOptions.some((b) => b.id === branchId)) return;
+    setBranchId(defaultBranch.id);
+  }, [branchId, branchOptions, defaultBranch?.id, setBranchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) {

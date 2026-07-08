@@ -23,6 +23,14 @@ function backendImagePattern(): { protocol: "http" | "https"; hostname: string; 
 const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["iconoir-react"],
+    // Re-enable the Next.js client-side Router Cache (disabled by default since
+    // Next 15). Re-clicking a sidebar item or using back/forward within these
+    // windows reuses the already-rendered segment instead of a cold RSC fetch,
+    // which is the bulk of the "every click reloads the page" feeling.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,

@@ -1,10 +1,16 @@
 "use client";
 
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { IconoirProvider } from "iconoir-react";
 import { ReactNode, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { createQueryClient } from "@/lib/api/query-client";
+import {
+  createPersister,
+  shouldPersistQuery,
+  PERSIST_MAX_AGE,
+  PERSIST_BUSTER,
+} from "@/lib/api/persist";
 import { SidebarStateProvider } from "@/components/dashboard/sidebar-state";
 import { LanguageProvider } from "@/lib/i18n/language-context";
 
@@ -14,10 +20,19 @@ type ProvidersProps = {
 
 export function Providers({ children }: ProvidersProps) {
   const [queryClient] = useState(() => createQueryClient());
+  const [persister] = useState(() => createPersister());
 
   return (
     <LanguageProvider>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: PERSIST_MAX_AGE,
+        buster: PERSIST_BUSTER,
+        dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+      }}
+    >
       <IconoirProvider
         iconProps={{
           color: "currentColor",
@@ -56,7 +71,7 @@ export function Providers({ children }: ProvidersProps) {
           />
         </SidebarStateProvider>
       </IconoirProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
     </LanguageProvider>
   );
 }

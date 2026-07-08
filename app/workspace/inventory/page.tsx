@@ -19,6 +19,7 @@ import {
 } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useSelectedBranch } from "@/services/context/branch-store";
 import {
   useIngredients,
   useMenuItems,
@@ -93,18 +94,16 @@ function InventoryPageContent() {
     scopedBranches[0] ??
     null;
 
-  const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
+  // Branch selection is shared across workspace pages (persists over navigation
+  // and full reloads) via the branch store.
+  const [branchId, setBranchId] = useSelectedBranch({
+    branches: scopedBranches,
+    defaultBranchId: defaultBranch?.id,
+    urlBranchId,
+  });
   const [activeTab, setActiveTab] = useState<TabId>(
     urlTab && TAB_IDS.some((id) => id === urlTab) ? urlTab : "ingredients"
   );
-
-  useEffect(() => {
-    if (urlBranchId && scopedBranches.some((b) => b.id === urlBranchId)) {
-      setBranchId(urlBranchId);
-    } else if (!branchId && defaultBranch?.id) {
-      setBranchId(defaultBranch.id);
-    }
-  }, [urlBranchId, scopedBranches, defaultBranch?.id, branchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) router.replace("/");

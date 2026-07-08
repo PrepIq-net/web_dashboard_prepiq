@@ -59,7 +59,7 @@ const NAV_SECTIONS: NavSection[] = [
       {
         label: "Dashboard",
         labelKey: "sidebar.dashboard",
-        href: "/",
+        href: "/workspace/dashboard",
         icon: <Home className="h-4 w-4" />,
       },
       {
@@ -199,7 +199,6 @@ function SidebarLink({
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
-      prefetch={false}
       scroll={false}
       className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150
         ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
@@ -286,7 +285,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       <div className="border-b border-[#1C1C1F] px-4 py-5">
         <div className="relative flex items-center">
           <Link
-            href="/"
+            href="/workspace/dashboard"
             className={`inline-flex min-w-0 items-center ${
               collapsed ? "mx-auto justify-center" : "gap-3 pr-8"
             }`}
