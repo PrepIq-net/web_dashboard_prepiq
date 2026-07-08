@@ -28,6 +28,7 @@ import {
   useDeletePlanningEvent,
 } from "@/services/planning/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
+import { useSelectedBranch } from "@/services/context/branch-store";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { useAvailabilityOverrides } from "@/services/inventory/hooks";
 import type { ItemAvailabilityOverride } from "@/services/inventory/types";
@@ -1328,7 +1329,11 @@ function PlanningPageContent() {
     branchOptions[0] ??
     null;
 
-  const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
+  // Shared branch selection — persists across navigation and reloads.
+  const [branchId, setBranchId] = useSelectedBranch({
+    branches: branchOptions,
+    defaultBranchId: defaultBranch?.id,
+  });
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
   const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(safeBranchId || undefined);
 

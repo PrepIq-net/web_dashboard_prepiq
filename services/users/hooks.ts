@@ -39,6 +39,8 @@ import type {
   TokenRefreshPayload,
   UpdateProfilePayload,
 } from "@/services/users/types";
+import { clearPersistedCache } from "@/lib/api/persist";
+import { clearSelectedBranch } from "@/services/context/branch-store";
 
 export const usersQueryKeys = {
   root: ["users"] as const,
@@ -52,6 +54,10 @@ export const usersQueryKeys = {
 function resetSessionCache(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.cancelQueries();
   queryClient.clear();
+  // Also purge persisted state so a subsequent user in the same browser never
+  // restores the previous session's cached data or branch selection.
+  clearPersistedCache();
+  clearSelectedBranch();
 }
 
 function invalidateCurrentUser(queryClient: ReturnType<typeof useQueryClient>) {

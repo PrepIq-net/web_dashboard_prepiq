@@ -1,376 +1,95 @@
 "use client";
 
-import {
-  useBranches,
-  useCurrentUserProfile,
-  useStaffAssignments,
-} from "@/services";
-import {
-  useBranchCommandView,
-  useProductionIntelligenceAccessScope,
-  useSalesDataValidation,
-  useStaffShiftChecklist,
-} from "@/services/production-intelligence/hooks";
+import { useBranches, useCurrentUserProfile } from "@/services";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo } from "react";
-import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
-import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
-import { useSidebarState } from "@/components/dashboard/sidebar-state";
-import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
-import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
-import { InsightFooter } from "@/components/dashboard/home/insight-footer";
-import { DashboardView } from "@/components/dashboard/home/dashboard-view";
-import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
-import { CommandSection } from "@/components/dashboard/home/command-section";
+import { Suspense, useEffect } from "react";
 import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
-import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 
+// The app root is a pure router: it decides where an authenticated user belongs
+// (onboarding / branch setup / Today / Dashboard) and forwards there. The
+// dashboard content itself now lives at /workspace/dashboard, inside the
+// persistent workspace layout, so navigating to it keeps the sidebar mounted.
+// Keeping the onboarding/setup gating HERE means no-org users never flash
+// through the workspace layout's subscription/branch gates.
 export default function Home() {
   const { t } = useTranslation();
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-surface-1">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-            <p className="text-sm font-medium text-text-muted animate-pulse">
-              {t("dashboard.home.gettingReady")}
-            </p>
-          </div>
-        </main>
-      }
-    >
-      <HomeContent />
+    <Suspense fallback={<HomeSpinner label={t("dashboard.home.gettingReady")} />}>
+      <HomeRouter />
     </Suspense>
   );
 }
 
-function HomeContent() {
+function HomeSpinner({ label }: { label: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-surface-1">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
+        <p className="text-sm font-medium text-text-muted animate-pulse">
+          {label}
+        </p>
+      </div>
+    </main>
+  );
+}
+
+function HomeRouter() {
   const { t } = useTranslation();
-  const { collapsed } = useSidebarState();
-  const { data: user, isLoading } = useCurrentUserProfile();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedBranchFromUrl = searchParams.get("branch");
+  const { data: user, isLoading } = useCurrentUserProfile();
 
   const permissions = resolvePermissions(user);
-  const canSeeFinancials = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
-  const canSeeAnalytics = permissions.has(PERMISSIONS.VIEW_ANALYTICS);
-  const canSeeAllBranches =
-    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
-    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
-  const canSeeProductionReports = permissions.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS);
-  const canSeeForecasts = permissions.has(PERMISSIONS.VIEW_FORECASTS);
-
-  // Dashboard is for management-level users. Everyone else goes to Today.
   const hasDashboardAccess = canAccessDashboard(permissions);
 
-  // View selection: show the most informative view the user's permissions allow.
-  const isOwnerMode = canSeeFinancials;
-  const isOpsManagerMode = !canSeeFinancials && canSeeAnalytics;
-  // Operational users who somehow land here (permissions changed mid-session, etc.)
-  const isBranchExecutionMode = !hasDashboardAccess && canSeeForecasts;
-  const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
-
-  // Defer non-critical queries until user data is loaded
+  const hasOrganization = Boolean(user?.has_organization);
   const branchesQuery = useBranches(user?.organization_id ?? "");
-  const accessScopeQuery = useProductionIntelligenceAccessScope();
 
-  const branches = branchesQuery.data ?? [];
-  const accessibleBranches = accessScopeQuery.data?.accessible_branches ?? [];
-  const branchOptions = useMemo(() => {
-    if (!isBranchExecutionMode) return branches;
-    if (!accessibleBranches.length) return branches;
-    const accessibleBranchIds = new Set(
-      accessibleBranches.map((branch) => branch.id),
-    );
-    return branches.filter((branch) => accessibleBranchIds.has(branch.id));
-  }, [branches, isBranchExecutionMode, accessibleBranches]);
-
-  // Only fetch org-level data when needed
-  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const yesterdayDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
-  const activeBranch = useMemo(() => {
-    if (!branchOptions.length) return null;
-    if (selectedBranchFromUrl) {
-      const fromUrl = branchOptions.find((b) => b.id === selectedBranchFromUrl);
-      if (fromUrl) return fromUrl;
-    }
-    const primary = branchOptions.find((b) => b.is_primary);
-    return primary ?? branchOptions[0];
-  }, [branchOptions, selectedBranchFromUrl]);
-
-  const activeBranchId = activeBranch?.id ?? "";
-
-  // Only fetch branch-specific data when in branch execution mode
-  const branchCommandTodayQuery = useBranchCommandView(
-    { branch_id: activeBranchId, target_date: todayDate },
-    isBranchExecutionMode && Boolean(activeBranchId),
-  );
-  const branchCommandYesterdayQuery = useBranchCommandView(
-    { branch_id: activeBranchId, target_date: yesterdayDate },
-    isBranchExecutionMode && Boolean(activeBranchId),
-  );
-  const staffAssignmentsQuery = useStaffAssignments(
-    user?.organization_id ?? "",
-  );
-  const staffChecklistQuery = useStaffShiftChecklist({
-    branch_id: activeBranchId,
-    target_date: todayDate,
-  });
-  const salesValidationQuery = useSalesDataValidation({
-    branch_id: activeBranchId,
-    target_date: todayDate,
-  });
-
-  useEffect(() => {
-    if (!isLoading && user && !user.has_organization) {
-      router.replace("/onboarding");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.has_organization, isLoading]);
-
-  const shouldRedirectToToday =
+  const needsOnboarding = !isLoading && user != null && !hasOrganization;
+  const isOperationalUser =
+    !isLoading && hasOrganization && !hasDashboardAccess;
+  const needsBranchSetup =
     !isLoading &&
-    Boolean(user?.has_organization) &&
-    !hasDashboardAccess;
-  const shouldRedirectToBranchSetup =
-    !isLoading &&
-    Boolean(user?.has_organization) &&
+    hasOrganization &&
+    hasDashboardAccess &&
     !branchesQuery.isLoading &&
     !branchesQuery.isError &&
     (branchesQuery.data?.length ?? 0) === 0;
-  const shouldShowBranchRequiredState =
+  const readyForDashboard =
     !isLoading &&
-    Boolean(user?.has_organization) &&
+    hasOrganization &&
+    hasDashboardAccess &&
     !branchesQuery.isLoading &&
-    ((branchesQuery.data?.length ?? 0) === 0 || branchesQuery.isError);
-  const shouldShowSalesSourceRequiredState =
-    !isLoading &&
-    Boolean(user?.has_organization) &&
-    !shouldRedirectToBranchSetup &&
-    Boolean(activeBranchId) &&
-    !salesValidationQuery.isLoading &&
-    !salesValidationQuery.isError &&
-    salesValidationQuery.data?.sales_source_connected === false;
-  const shouldHoldForBranchGate =
-    !isLoading && Boolean(user?.has_organization) && branchesQuery.isLoading;
+    (branchesQuery.data?.length ?? 0) > 0;
 
   useEffect(() => {
-    if (shouldRedirectToToday) {
+    if (needsOnboarding) {
+      router.replace("/onboarding");
+    } else if (isOperationalUser) {
       router.replace("/workspace/today");
-    }
-  }, [shouldRedirectToToday, router]);
-
-  useEffect(() => {
-    if (shouldRedirectToBranchSetup) {
+    } else if (needsBranchSetup) {
       router.replace("/setup/branch/create");
+    } else if (readyForDashboard) {
+      const qs = searchParams.toString();
+      router.replace(`/workspace/dashboard${qs ? `?${qs}` : ""}`);
     }
-  }, [shouldRedirectToBranchSetup, router]);
+  }, [
+    needsOnboarding,
+    isOperationalUser,
+    needsBranchSetup,
+    readyForDashboard,
+    router,
+    searchParams,
+  ]);
 
-  if (isLoading || (user && !user.has_organization)) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-1">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-text-muted animate-pulse">
-            {t("dashboard.home.gettingReady")}
-          </p>
-        </div>
-      </main>
-    );
-  }
+  const label = needsOnboarding
+    ? t("dashboard.home.gettingReady")
+    : isOperationalUser
+      ? t("dashboard.home.routingToToday")
+      : needsBranchSetup
+        ? t("dashboard.home.routingToSetup")
+        : t("dashboard.home.gettingReady");
 
-  if (shouldHoldForBranchGate) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-1">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-text-muted animate-pulse">
-            {t("dashboard.home.checkingBranchSetup")}
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (shouldRedirectToToday) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-1">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-text-muted animate-pulse">
-            {t("dashboard.home.routingToToday")}
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (shouldRedirectToBranchSetup) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-surface-1">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
-          <p className="text-sm font-medium text-text-muted animate-pulse">
-            {t("dashboard.home.routingToSetup")}
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Derived values (branch execution mode only) ───────────────────────────
-  const todayRecommendations =
-    branchCommandTodayQuery.data?.panels.forecast.recommendations ?? [];
-  const yesterdayPrepared =
-    branchCommandYesterdayQuery.data?.panels.real_time.prepared_total ?? 0;
-  const yesterdaySold =
-    branchCommandYesterdayQuery.data?.panels.real_time.sold_total ?? 0;
-  const yesterdayWasteCost = Number(
-    branchCommandYesterdayQuery.data?.margin_protection?.at_risk_ugx ?? 0,
-  );
-
-  const now = new Date();
-  const currentTimeLabel = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const shiftStart = 6;
-  const shiftEnd = 22;
-  const shiftProgress = Math.max(
-    0,
-    Math.min(
-      100,
-      ((now.getHours() + now.getMinutes() / 60 - shiftStart) /
-        (shiftEnd - shiftStart)) *
-        100,
-    ),
-  );
-
-  const checklistItems = Object.entries(staffChecklistQuery.data?.items ?? {});
-  const assignedTasks = checklistItems.length
-    ? checklistItems.slice(0, 5).map(([task, done]) => ({
-        label: task.replace(/_/g, " "),
-        done: Boolean(done),
-      }))
-    : todayRecommendations.slice(0, 5).map((item) => ({
-        label: `Prepare ${item.item_title} (${item.recommended_quantity} ${item.unit})`,
-        done: false,
-      }));
-
-  const operationalWarnings = [
-    ...(salesValidationQuery.data?.missing_sales_detected
-      ? [
-          `Sales data has gaps for ${salesValidationQuery.data.missing_items_count} item(s).`,
-        ]
-      : []),
-    ...(Number(
-      branchCommandTodayQuery.data?.panels.real_time.remaining_total ?? 0,
-    ) <= 20
-      ? ["Prepared stock is running low on the current shift."]
-      : []),
-  ];
-
-  const todayPlanTotal = todayRecommendations.reduce(
-    (sum, r) => sum + Number(r.recommended_quantity ?? 0),
-    0,
-  );
-  const preparedToday = Number(
-    branchCommandTodayQuery.data?.panels.real_time.prepared_total ?? 0,
-  );
-  const soldToday = Number(
-    branchCommandTodayQuery.data?.panels.real_time.sold_total ?? 0,
-  );
-  const salesVsTargetPct =
-    todayPlanTotal > 0 ? (soldToday / todayPlanTotal) * 100 : 0;
-  const productionVsPlanPct =
-    todayPlanTotal > 0 ? (preparedToday / todayPlanTotal) * 100 : 0;
-  const wasteTodayValue = Number(
-    branchCommandTodayQuery.data?.margin_protection?.at_risk_ugx ?? 0,
-  );
-  const wasteTodayPct =
-    preparedToday > 0 ? ((preparedToday - soldToday) / preparedToday) * 100 : 0;
-  const inventoryRiskCount = Number(
-    branchCommandTodayQuery.data?.panels.real_time.at_risk_count ?? 0,
-  );
-  const belowReorderCount = Number(
-    salesValidationQuery.data?.missing_items_count ?? 0,
-  );
-
-  const branchStaffAssignments = (staffAssignmentsQuery.data ?? []).filter(
-    (a) => a.branch === activeBranchId && a.is_active,
-  );
-  const activeStaffCount = branchStaffAssignments.length;
-  const absentEstimate = Math.max(
-    0,
-    Number(staffChecklistQuery.data?.total_count ?? 0) -
-      Number(staffChecklistQuery.data?.completed_count ?? 0),
-  );
-
-  const subtleInsight =
-    isBranchExecutionMode && todayRecommendations.length > 0
-      ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
-      : "";
-
-  return (
-    <div className="flex min-h-screen bg-surface-1">
-      <DashboardSidebarWrapper user={user} />
-
-      <main
-        className={`flex-1 py-8 transition-[margin-left] duration-200 ${
-          collapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
-          <DashboardTopNavWrapper />
-
-          <div className="mt-10 animate-fade-in">
-            {shouldShowBranchRequiredState ? (
-              <BranchRequiredState />
-            ) : shouldShowSalesSourceRequiredState ? (
-              <SalesSourceRequiredState />
-            ) : isOrgOverviewMode ? (
-              <DashboardView canSeeFinancials={canSeeFinancials} />
-            ) : isBranchExecutionMode ? (
-              <BranchManagerView
-                branchName={activeBranch?.name || "Branch"}
-                currentTimeLabel={currentTimeLabel}
-                shiftProgress={shiftProgress}
-                salesVsTargetPct={salesVsTargetPct}
-                wasteTodayValue={wasteTodayValue}
-                wasteTodayPct={wasteTodayPct}
-                productionVsPlanPct={productionVsPlanPct}
-                inventoryRiskCount={inventoryRiskCount}
-                belowReorderCount={belowReorderCount}
-                preparedToday={preparedToday}
-                soldToday={soldToday}
-                activeStaffCount={activeStaffCount}
-                absentEstimate={absentEstimate}
-                yesterdayPrepared={yesterdayPrepared}
-                yesterdaySold={yesterdaySold}
-                yesterdayWasteCost={yesterdayWasteCost}
-              />
-            ) : null}
-
-            {isOrgOverviewMode &&
-              !shouldShowBranchRequiredState &&
-              !shouldShowSalesSourceRequiredState && (
-                <div className="mt-12 border-t border-surface-4 pt-12">
-                  <CommandSection />
-                </div>
-              )}
-
-            {subtleInsight && <InsightFooter insight={subtleInsight} />}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+  return <HomeSpinner label={label} />;
 }
