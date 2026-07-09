@@ -1,17 +1,18 @@
 "use client";
 
-import { useBranches, useCurrentUserProfile } from "@/services";
+import { useCurrentUserProfile } from "@/services";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
 import { useTranslation } from "@/lib/i18n";
 
 // The app root is a pure router: it decides where an authenticated user belongs
-// (onboarding / branch setup / Today / Dashboard) and forwards there. The
-// dashboard content itself now lives at /workspace/dashboard, inside the
-// persistent workspace layout, so navigating to it keeps the sidebar mounted.
-// Keeping the onboarding/setup gating HERE means no-org users never flash
-// through the workspace layout's subscription/branch gates.
+// (onboarding / Today / Dashboard) and forwards there. The dashboard content
+// itself now lives at /workspace/dashboard, inside the persistent workspace
+// layout, so navigating to it keeps the sidebar mounted. Keeping the
+// onboarding gating HERE means no-org users never flash through the
+// workspace layout's subscription/branch gates. Branch setup is NOT gated
+// here — see the readyForDashboard comment below.
 export default function Home() {
   const { t } = useTranslation();
   return (
@@ -44,52 +45,33 @@ function HomeRouter() {
   const hasDashboardAccess = canAccessDashboard(permissions);
 
   const hasOrganization = Boolean(user?.has_organization);
-  const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const needsOnboarding = !isLoading && user != null && !hasOrganization;
   const isOperationalUser =
     !isLoading && hasOrganization && !hasDashboardAccess;
-  const needsBranchSetup =
-    !isLoading &&
-    hasOrganization &&
-    hasDashboardAccess &&
-    !branchesQuery.isLoading &&
-    !branchesQuery.isError &&
-    (branchesQuery.data?.length ?? 0) === 0;
-  const readyForDashboard =
-    !isLoading &&
-    hasOrganization &&
-    hasDashboardAccess &&
-    !branchesQuery.isLoading &&
-    (branchesQuery.data?.length ?? 0) > 0;
+  // Branches are NOT a hard gate here: an org with dashboard access but zero
+  // branches still lands on /workspace/dashboard, which renders the
+  // BranchRequiredState CTA (see workspace/layout.tsx) instead of blocking
+  // navigation. Brand-new signups are routed to /setup/branch/create directly
+  // from /onboarding, so that entry path doesn't depend on this redirect.
+  const readyForDashboard = !isLoading && hasOrganization && hasDashboardAccess;
 
   useEffect(() => {
     if (needsOnboarding) {
       router.replace("/onboarding");
     } else if (isOperationalUser) {
       router.replace("/workspace/today");
-    } else if (needsBranchSetup) {
-      router.replace("/setup/branch/create");
     } else if (readyForDashboard) {
       const qs = searchParams.toString();
       router.replace(`/workspace/dashboard${qs ? `?${qs}` : ""}`);
     }
-  }, [
-    needsOnboarding,
-    isOperationalUser,
-    needsBranchSetup,
-    readyForDashboard,
-    router,
-    searchParams,
-  ]);
+  }, [needsOnboarding, isOperationalUser, readyForDashboard, router, searchParams]);
 
   const label = needsOnboarding
     ? t("dashboard.home.gettingReady")
     : isOperationalUser
       ? t("dashboard.home.routingToToday")
-      : needsBranchSetup
-        ? t("dashboard.home.routingToSetup")
-        : t("dashboard.home.gettingReady");
+      : t("dashboard.home.gettingReady");
 
   return <HomeSpinner label={label} />;
 }
