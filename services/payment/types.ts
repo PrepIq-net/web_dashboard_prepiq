@@ -226,6 +226,7 @@ export const paymentCheckoutPayloadSchema = z.object({
   business_name: z.string().min(1),
   billing_email: z.string().email(),
   phone_number: z.string().min(1),
+  checkout_source: z.enum(["setup", "workspace"]).optional(),
 });
 export type PaymentCheckoutPayload = z.infer<
   typeof paymentCheckoutPayloadSchema

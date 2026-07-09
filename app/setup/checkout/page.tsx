@@ -177,12 +177,15 @@ export default function CheckoutPage() {
         business_name: businessName,
         billing_email: billingEmail,
         phone_number: phoneNumber,
+        checkout_source: "setup",
       },
       {
         onSuccess: (response) => {
           const redirect = response.payment_link;
           if (redirect) {
             window.location.href = redirect;
+          } else {
+            router.push(`/setup/checkout/success?paymentId=${response.payment.id}`);
           }
         },
         onError: (error: any) => {

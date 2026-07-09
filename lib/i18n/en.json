@@ -1721,7 +1721,26 @@
       "cardAccepted": "Visa, Mastercard, and all major cards accepted",
       "securePayment": "Secure, encrypted payment — you will be redirected to complete payment.",
       "monthlyLabel": "Monthly",
-      "yearlyLabel": "Yearly"
+      "yearlyLabel": "Yearly",
+      "success": {
+        "title": "Payment successful",
+        "description": "Your subscription is now active. A receipt has been sent to your billing email.",
+        "loading": "Confirming your payment...",
+        "plan": "Plan",
+        "amountPaid": "Amount paid",
+        "date": "Date",
+        "reference": "Reference",
+        "goToDashboard": "Go to Dashboard",
+        "backToBilling": "Back to Billing",
+        "pendingTitle": "Confirming your payment",
+        "pendingDesc": "This usually takes a few seconds. This page will update automatically once your payment is confirmed.",
+        "failedTitle": "Payment didn't go through",
+        "failedDesc": "Your payment couldn't be completed. No charge was made — please try again.",
+        "tryAgain": "Try again",
+        "notFoundTitle": "We couldn't find that payment",
+        "notFoundDesc": "This link may have expired or is missing information. Please return to checkout and try again.",
+        "backToCheckout": "Back to checkout"
+      }
     },
     "forecast": {
       "title": "Forecast & Demand",

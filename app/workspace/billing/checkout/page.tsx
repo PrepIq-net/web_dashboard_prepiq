@@ -139,13 +139,14 @@ export default function WorkspaceCheckoutPage() {
         business_name: businessName.trim(),
         billing_email: billingEmail.trim(),
         phone_number: phoneNumber.trim(),
+        checkout_source: "workspace",
       },
       {
         onSuccess: (res) => {
           if (res.payment_link) {
             window.location.href = res.payment_link;
           } else {
-            router.push("/workspace/billing?payment=success");
+            router.push(`/workspace/billing/checkout/success?paymentId=${res.payment.id}`);
           }
         },
         onError: (err: unknown) => {

@@ -1721,7 +1721,26 @@
       "cardAccepted": "Visa, Mastercard et toutes les principales cartes acceptées",
       "securePayment": "Paiement sécurisé et crypté — vous serez redirigé pour finaliser le paiement.",
       "monthlyLabel": "Mensuel",
-      "yearlyLabel": "Annuel"
+      "yearlyLabel": "Annuel",
+      "success": {
+        "title": "Paiement réussi",
+        "description": "Votre abonnement est maintenant actif. Un reçu a été envoyé à votre e-mail de facturation.",
+        "loading": "Confirmation de votre paiement...",
+        "plan": "Forfait",
+        "amountPaid": "Montant payé",
+        "date": "Date",
+        "reference": "Référence",
+        "goToDashboard": "Aller au tableau de bord",
+        "backToBilling": "Retour à la facturation",
+        "pendingTitle": "Confirmation de votre paiement",
+        "pendingDesc": "Cela prend généralement quelques secondes. Cette page se mettra à jour automatiquement une fois votre paiement confirmé.",
+        "failedTitle": "Le paiement n'a pas abouti",
+        "failedDesc": "Votre paiement n'a pas pu être finalisé. Aucun montant n'a été débité — veuillez réessayer.",
+        "tryAgain": "Réessayer",
+        "notFoundTitle": "Paiement introuvable",
+        "notFoundDesc": "Ce lien a peut-être expiré ou des informations sont manquantes. Veuillez retourner au paiement et réessayer.",
+        "backToCheckout": "Retour au paiement"
+      }
     },
     "forecast": {
       "title": "Prévisions & Demande",

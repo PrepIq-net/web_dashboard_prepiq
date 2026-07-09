@@ -290,11 +290,17 @@ export function usePayments(params?: SubscriptionQuery) {
   });
 }
 
-export function usePaymentDetail(paymentId: string) {
+export function usePaymentDetail(
+  paymentId: string,
+  options?: { refetchInterval?: (data: { status: string } | undefined) => number | false },
+) {
   return useQuery({
     queryKey: paymentQueryKeys.paymentDetail(paymentId),
     queryFn: () => getPaymentDetail(paymentId),
     enabled: Boolean(paymentId),
+    refetchInterval: options?.refetchInterval
+      ? (query) => options.refetchInterval!(query.state.data)
+      : undefined,
   });
 }
 
