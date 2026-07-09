@@ -9,7 +9,6 @@ import {
   CreditCard,
   MultiplePages,
   InfoCircle,
-  DoubleCheck,
   CoinsSwap,
 } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
@@ -60,7 +59,7 @@ export default function CheckoutPage() {
     "MONTHLY",
   );
   const [selectedBranchId, setSelectedBranchId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("CARD");
+  const paymentMethod = "CARD";
   const [businessName, setBusinessName] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -375,58 +374,22 @@ export default function CheckoutPage() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("CARD")}
-                  className={`p-6 rounded-card border text-left flex flex-col gap-4 transition-all ${
-                    paymentMethod === "CARD"
-                      ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
-                      : "border-border-default bg-surface-2 hover:bg-surface-3"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <CreditCard
-                      className={`h-6 w-6 ${paymentMethod === "CARD" ? "text-brand-gold" : "text-text-muted"}`}
-                    />
-                    {paymentMethod === "CARD" && (
-                      <DoubleCheck className="h-4 w-4 text-brand-gold" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[15px]">
-                      {t("setup.checkout.card")}
-                    </p>
-                    <p className="text-[12px] text-text-muted mt-0.5">
-                      {t("setup.checkout.cardDesc")}
-                    </p>
-                  </div>
-                </button>
+              <div className="p-6 rounded-card border border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)] flex items-center gap-4">
+                <CreditCard className="h-6 w-6 text-brand-gold shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-[15px]">
+                    {t("setup.checkout.card")}
+                  </p>
+                  <p className="text-[12px] text-text-muted mt-0.5">
+                    {t("setup.checkout.cardAccepted")}
+                  </p>
+                </div>
+                <CheckCircle className="h-4 w-4 text-brand-gold shrink-0" />
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("MOBILE_MONEY")}
-                  className={`p-6 rounded-card border text-left flex flex-col gap-4 transition-all ${
-                    paymentMethod === "MOBILE_MONEY"
-                      ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
-                      : "border-border-default bg-surface-2 hover:bg-surface-3"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="h-6 flex items-center text-[10px] font-bold uppercase tracking-widest text-[#B8962E]">
-                      {t("setup.checkout.mpesa")}
-                    </div>
-                    {paymentMethod === "MOBILE_MONEY" && (
-                      <DoubleCheck className="h-4 w-4 text-brand-gold" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[15px]">{t("setup.checkout.mobileMoney")}</p>
-                    <p className="text-[12px] text-text-muted mt-0.5">
-                      {t("setup.checkout.mobileMoneyDesc")}
-                    </p>
-                  </div>
-                </button>
+              <div className="flex items-center gap-2 text-[11px] text-text-muted">
+                <ShieldCheck className="h-3.5 w-3.5 text-brand-gold" />
+                {t("setup.checkout.securePayment")}
               </div>
             </section>
           </div>
