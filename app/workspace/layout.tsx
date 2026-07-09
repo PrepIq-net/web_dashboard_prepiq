@@ -93,16 +93,30 @@ export default function WorkspaceLayout({
     !salesValidationQuery.isError &&
     salesValidationQuery.data?.sales_source_connected === false;
 
-  const renderChildren = shouldShowBranchRequiredState ? (
+  // Branch-required always wins: an org with zero branches must always be
+  // able to create one, even with no active subscription — the first branch
+  // is what unlocks the trial in the first place, so gating branch creation
+  // behind a subscription check would be a dead end.
+  const mainContent = shouldShowBranchRequiredState ? (
     <div className="mt-8">
       <BranchRequiredState compact />
+    </div>
+  ) : shouldBlockAccess ? (
+    <div className="mt-8">
+      <SubscriptionRequiredState variant={gateVariant} compact />
     </div>
   ) : shouldShowSalesSourceRequiredState ? (
     <div className="mt-8">
       <SalesSourceRequiredState compact />
     </div>
   ) : (
-    children
+    <>
+      {isTrial && (
+        <TrialBanner daysLeft={typeof daysLeft === "number" ? daysLeft : null} />
+      )}
+      {isPastDue && <PaymentFailedBanner />}
+      {children}
+    </>
   );
 
   return (
@@ -115,19 +129,7 @@ export default function WorkspaceLayout({
       >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
           <DashboardTopNavWrapper />
-          {shouldBlockAccess ? (
-            <div className="mt-8">
-              <SubscriptionRequiredState variant={gateVariant} compact />
-            </div>
-          ) : (
-            <>
-              {isTrial && (
-                <TrialBanner daysLeft={typeof daysLeft === "number" ? daysLeft : null} />
-              )}
-              {isPastDue && <PaymentFailedBanner />}
-              {renderChildren}
-            </>
-          )}
+          {mainContent}
         </div>
       </main>
     </div>
