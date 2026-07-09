@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
-import { ArrowRight } from "iconoir-react";
+import { ArrowRight, Sparks } from "iconoir-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -248,6 +248,18 @@ export default function NewBranchPage() {
       description={t("workspace.branches.new.description")}
       insight=""
     >
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-gold/20 bg-brand-gold/5 px-4 py-3.5">
+        <Sparks className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold" />
+        <div>
+          <p className="text-[13px] font-semibold text-text-primary">
+            {t("workspace.branches.new.trialNoticeTitle")}
+          </p>
+          <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+            {t("workspace.branches.new.trialNoticeDescription")}
+          </p>
+        </div>
+      </div>
+
       {isOrgsLoading && (
         <div className="mb-6 rounded-xl border border-surface-4 bg-surface-2/60 px-4 py-3">
           <p className="text-xs text-text-muted">{t("workspace.branches.new.loadingOrg")}</p>

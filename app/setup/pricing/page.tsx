@@ -203,9 +203,9 @@ export default function PricingStepPage() {
             } else if (planTier > currentTier) {
               buttonLabel = currentTier === 0 ? t("setup.pricing.getStarted") : t("setup.pricing.upgradeNow");
             } else {
-              buttonLabel = "Contact support to downgrade";
-              isDisabled = true;
-              showArrow = false;
+              // Downgrades are allowed — a lower tier is always a valid choice,
+              // it just takes effect immediately via the same checkout flow as an upgrade.
+              buttonLabel = t("setup.pricing.downgradeNow");
             }
 
             return (

@@ -1576,7 +1576,10 @@
       "skip": "Passer pour l'instant",
       "optional": "(optionnel)",
       "limitReached": "Limite de succursales atteinte sur le plan actuel.",
-      "upgradePlan": "Mettre à niveau le plan"
+      "upgradePlan": "Mettre à niveau le plan",
+      "trialBadge": "Essai Intelligence de 30 jours",
+      "trialNoticeTitle": "Votre essai gratuit de 30 jours commence maintenant",
+      "trialNoticeDescription": "La création de cette succursale active automatiquement un essai gratuit de 30 jours du plan Intelligence — accès complet, sans carte bancaire. Si vous choisissez de souscrire à un plan payant, la facturation ne débute qu'après la fin de votre essai."
     },
     "branchPrompt": {
       "orgCreated": "Organisation créée",
@@ -1648,6 +1651,7 @@
       "currentTier": "Niveau actuel",
       "getStarted": "Commencer",
       "upgradeNow": "Mettre à niveau",
+      "downgradeNow": "Rétrograder",
       "downgradeRestricted": "Rétrogradation restreinte",
       "secureInfra": "Infrastructure sécurisée",
       "secureInfraDesc": "PropIQ utilise un cryptage de niveau entreprise pour toutes les intégrations de points de vente et les données opérationnelles. Transactions vérifiées conformes PCI-DSS.",
@@ -1666,6 +1670,10 @@
       "detailsTitle": "Détails de l'abonnement",
       "transitioning": "Passage de votre succursale {branch} au plan {plan}.",
       "settingUp": "Configuration du plan {plan} pour votre organisation.",
+      "trialDeferralSubtitle": "Réservation du plan {plan} — votre essai gratuit continue.",
+      "trialDeferralDetected": "Votre essai continue sans interruption",
+      "trialDeferralDesc": "Vous êtes actuellement en essai gratuit. Votre carte est débitée aujourd'hui pour réserver ce plan, mais votre essai n'est pas écourté — vous conservez un accès complet, et la période de facturation de ce plan ne commence qu'à la fin de votre essai.",
+      "trialDeferralDescWithDate": "Vous êtes actuellement en essai gratuit. Votre carte est débitée aujourd'hui pour réserver ce plan, mais votre essai n'est pas écourté — vous conservez un accès complet jusqu'au {date}, date à laquelle la période de facturation de ce plan commence.",
       "upgradeTransitionDetected": "Transition de mise à niveau détectée",
       "upgradeTransitionDesc": "Vous êtes actuellement sur le plan {currentPlan}. En continuant, votre nouveau niveau {newPlan} s'activera immédiatement, remplaçant votre période d'abonnement existante pour cette succursale.",
       "selectedTier": "Votre niveau d'opérations sélectionné",
@@ -2161,7 +2169,9 @@
         "managePlan": "Gérer le forfait",
         "noOrgWarning": "Aucune organisation trouvée",
         "creating": "Création",
-        "submit": "Soumettre"
+        "submit": "Soumettre",
+        "trialNoticeTitle": "Essai gratuit de 30 jours inclus",
+        "trialNoticeDescription": "Cette succursale démarrera automatiquement un essai gratuit de 30 jours du plan Intelligence — accès complet, sans carte bancaire. Si vous souscrivez à un plan payant, la facturation débute après la fin de l'essai, pas avant."
       }
     },
     "billing": {
@@ -2192,6 +2202,7 @@
         "upToLocations": "Jusqu'à {count} emplacements",
         "currentPlan": "Forfait actuel",
         "downgradeDisabled": "Rétrogradation désactivée",
+        "downgradeTo": "Rétrograder",
         "renew": "Renouveler",
         "upgradeTo": "Passer à",
         "select": "Sélectionner",

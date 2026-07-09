@@ -1576,7 +1576,10 @@
       "skip": "Skip for now",
       "optional": "(optional)",
       "limitReached": "Branch limit reached on current plan.",
-      "upgradePlan": "Upgrade plan"
+      "upgradePlan": "Upgrade plan",
+      "trialBadge": "30-day Intelligence trial",
+      "trialNoticeTitle": "Your 30-day free trial starts now",
+      "trialNoticeDescription": "Creating this branch automatically activates a 30-day free trial of the Intelligence plan — full access, no card required. If you choose to subscribe to a paid plan, billing only starts after your trial ends."
     },
     "branchPrompt": {
       "orgCreated": "Organization created",
@@ -1648,6 +1651,7 @@
       "currentTier": "Current Tier",
       "getStarted": "Get Started",
       "upgradeNow": "Upgrade Now",
+      "downgradeNow": "Downgrade",
       "downgradeRestricted": "Downgrade Restricted",
       "secureInfra": "Secure Infrastructure",
       "secureInfraDesc": "PropIQ uses enterprise-grade encryption for all POS integrations and operational data. Verified PCI-DSS compliant transactions.",
@@ -1666,6 +1670,10 @@
       "detailsTitle": "Subscription Details",
       "transitioning": "Transitioning your {branch} branch to the {plan} plan.",
       "settingUp": "Setting up {plan} for your organization.",
+      "trialDeferralSubtitle": "Locking in {plan} — your free trial keeps running.",
+      "trialDeferralDetected": "Your Trial Continues Uninterrupted",
+      "trialDeferralDesc": "You're currently on a free trial. Your card is charged today to lock in this plan, but your trial isn't cut short — you keep full access, and this plan's billing period only begins once your trial ends.",
+      "trialDeferralDescWithDate": "You're currently on a free trial. Your card is charged today to lock in this plan, but your trial isn't cut short — you keep full access until {date}, when this plan's billing period begins.",
       "upgradeTransitionDetected": "Upgrade Transition Detected",
       "upgradeTransitionDesc": "You are currently on the {currentPlan} plan. By proceeding, your new {newPlan} tier will activate immediately, replacing your existing subscription window for this branch.",
       "selectedTier": "Your selected operations tier",
@@ -2161,7 +2169,9 @@
         "managePlan": "Manage Plan",
         "noOrgWarning": "No Org Warning",
         "creating": "Creating",
-        "submit": "Submit"
+        "submit": "Submit",
+        "trialNoticeTitle": "30-day free trial included",
+        "trialNoticeDescription": "This branch will automatically start a 30-day free trial of the Intelligence plan — full access, no card required. If you subscribe to a paid plan, billing starts after the trial ends, not before."
       }
     },
     "billing": {
@@ -2192,6 +2202,7 @@
         "upToLocations": "Up To Locations",
         "currentPlan": "Current Plan",
         "downgradeDisabled": "Downgrade Disabled",
+        "downgradeTo": "Downgrade",
         "renew": "Renew",
         "upgradeTo": "Upgrade To",
         "select": "Select",

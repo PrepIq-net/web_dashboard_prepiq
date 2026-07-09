@@ -296,10 +296,6 @@ export default function BillingUpgradePage() {
                       <div className="flex h-9 w-full items-center justify-center rounded-full bg-brand-gold/10 text-[12px] font-semibold text-brand-gold">
                         {t("workspace.billing.upgrade.currentPlan")}
                       </div>
-                    ) : isDowngrade ? (
-                      <div className="flex h-9 w-full items-center justify-center rounded-full border border-surface-4 text-[12px] font-medium text-text-muted opacity-40 cursor-not-allowed">
-                        {t("workspace.billing.upgrade.downgradeDisabled")}
-                      </div>
                     ) : (
                       <button
                         onClick={() => goToCheckout(plan)}
@@ -313,7 +309,9 @@ export default function BillingUpgradePage() {
                           ? t("workspace.billing.upgrade.renew", { name: plan.name })
                           : isUpgrade
                             ? t("workspace.billing.upgrade.upgradeTo", { name: plan.name })
-                            : t("workspace.billing.upgrade.select", { name: plan.name })}
+                            : isDowngrade
+                              ? t("workspace.billing.upgrade.downgradeTo", { name: plan.name })
+                              : t("workspace.billing.upgrade.select", { name: plan.name })}
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                       </button>
                     )}

@@ -110,12 +110,24 @@ export default function CheckoutPage() {
     selectedBranchId ? { branch_id: selectedBranchId } : undefined,
   );
   const branchSub = currentSubscriptionQuery.data;
+  // Paying while a free trial is still running doesn't cut the trial short —
+  // the backend defers the paid period to start once the trial ends.
+  const isActiveTrial =
+    Boolean(branchSub) && branchSub!.status === "ACTIVE" && Boolean(branchSub!.is_trial);
   const isTransition =
+    !isActiveTrial &&
     branchSub &&
     branchSub.status === "ACTIVE" &&
     (branchSub.plan?.id !== selectedPlanId ||
       branchSub.billing_cycle !== billingCycle);
   const currentSubPlanName = branchSub?.plan?.name;
+  const trialEndsAtLabel = branchSub?.trial_ends_at
+    ? new Date(branchSub.trial_ends_at).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   useEffect(() => {
     if (!branches.length) return;
@@ -216,11 +228,32 @@ export default function CheckoutPage() {
                   {isTransition ? t("setup.checkout.completeUpgrade") : t("setup.checkout.detailsTitle")}
                 </h1>
                 <p className="text-text-muted text-[15px]">
-                  {isTransition
-                    ? t("setup.checkout.transitioning", { branch: selectedBranchName, plan: selectedPlan?.name ?? "" })
-                    : t("setup.checkout.settingUp", { plan: selectedPlan?.name || "your plan" })}
+                  {isActiveTrial
+                    ? t("setup.checkout.trialDeferralSubtitle", { plan: selectedPlan?.name ?? "" })
+                    : isTransition
+                      ? t("setup.checkout.transitioning", { branch: selectedBranchName, plan: selectedPlan?.name ?? "" })
+                      : t("setup.checkout.settingUp", { plan: selectedPlan?.name || "your plan" })}
                 </p>
               </div>
+
+              {/* Trial Deferral Notice — paying mid-trial doesn't cut the trial short */}
+              {isActiveTrial && (
+                <div className="p-5 rounded-xl border border-brand-gold/30 bg-brand-gold/5 flex items-start gap-4 animate-fade-in">
+                  <div className="h-10 w-10 rounded-full bg-brand-gold/10 flex items-center justify-center shrink-0">
+                    <CoinsSwap className="h-5 w-5 text-brand-gold" />
+                  </div>
+                  <div>
+                    <h4 className="text-[15px] font-semibold text-brand-gold font-display">
+                      {t("setup.checkout.trialDeferralDetected")}
+                    </h4>
+                    <p className="text-[13px] text-text-secondary leading-relaxed mt-1">
+                      {trialEndsAtLabel
+                        ? t("setup.checkout.trialDeferralDescWithDate", { date: trialEndsAtLabel })
+                        : t("setup.checkout.trialDeferralDesc")}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Upgrade Transition Notice */}
               {isTransition && (
