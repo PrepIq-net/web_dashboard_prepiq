@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
 
@@ -117,6 +118,7 @@ export default function CreateBranchPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("UTC");
+  const [currency, setCurrency] = useState("USD");
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -257,6 +259,7 @@ export default function CreateBranchPage() {
         name: name.trim(),
         address: address.trim(),
         timezone,
+        currency,
         operating_hours: schedule.map((d) => ({
           day_of_week: d.day,
           is_closed: !d.isOpen,
@@ -452,13 +455,24 @@ export default function CreateBranchPage() {
               ) : null}
             </div>
 
-            <div className="space-y-1.5 md:col-span-2">
+            <div className="space-y-1.5">
               <Select
                 label={t("setup.branch.timezoneLabel")}
                 value={timezone}
                 onChange={setTimezone}
                 options={TIMEZONES}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <CurrencySelect
+                label={t("setup.branch.currencyLabel")}
+                value={currency}
+                onChange={setCurrency}
+              />
+              <p className="text-xs text-[#5A5A60]">
+                {t("setup.branch.currencyHelp")}
+              </p>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ import { useCreateBranch } from "@/services/branches/hooks";
 import { ArrowRight, Sparks } from "iconoir-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
@@ -90,6 +91,7 @@ export default function NewBranchPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("UTC");
+  const [currency, setCurrency] = useState("USD");
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -216,6 +218,7 @@ export default function NewBranchPage() {
         name: name.trim(),
         address: address.trim(),
         timezone,
+        currency,
         operating_hours: schedule.map((d) => ({
           day_of_week: d.day,
           is_closed: !d.isOpen,
@@ -365,12 +368,20 @@ export default function NewBranchPage() {
             ) : null}
           </div>
 
-          <div className="space-y-1.5 md:col-span-2">
+          <div className="space-y-1.5">
             <Select
               label={t("workspace.branches.new.timezoneLabel")}
               value={timezone}
               onChange={setTimezone}
               options={TIMEZONES}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <CurrencySelect
+              label={t("workspace.branches.new.currencyLabel")}
+              value={currency}
+              onChange={setCurrency}
             />
           </div>
         </div>

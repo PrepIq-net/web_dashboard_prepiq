@@ -237,6 +237,7 @@ export const paymentCheckoutResponseSchema = z
     payment: paymentSchema,
     invoice: z.unknown(),
     total_amount: moneyValueSchema,
+    currency: z.string().optional(),
     payment_link: z.string().url().or(z.string()),
     message: z.string(),
   })

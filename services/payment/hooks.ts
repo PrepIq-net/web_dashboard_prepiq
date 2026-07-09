@@ -17,6 +17,7 @@ import {
   failPayment,
   getAvailableSubscriptionAddOns,
   getCurrentSubscription,
+  getFxRates,
   getInvoiceDetail,
   getPaymentDetail,
   getSubscriptionDetail,
@@ -98,6 +99,14 @@ export function useSubscriptionPlanPricing(params?: SubscriptionQuery) {
   return useQuery({
     queryKey: paymentQueryKeys.plansPricing(params),
     queryFn: () => getSubscriptionPlanPricing(params),
+  });
+}
+
+export function useFxRates() {
+  return useQuery({
+    queryKey: [...paymentQueryKeys.root, "fx-rates"] as const,
+    queryFn: getFxRates,
+    staleTime: 1000 * 60 * 60, // rates change slowly; refetch hourly at most
   });
 }
 

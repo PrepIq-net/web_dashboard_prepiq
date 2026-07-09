@@ -19,9 +19,11 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   useCurrentSubscription,
   useCheckoutPayment,
+  useFxRates,
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
 import { useBranches, useCurrentUserProfile } from "@/services";
+import { convertFromUsd, formatMoney, getCurrency } from "@/lib/currencies";
 import { useTranslation } from "@/lib/i18n";
 import type { Branch } from "@/services/branches/types";
 import type { SubscriptionPlan } from "@/services/payment/types";
@@ -93,10 +95,11 @@ export default function CheckoutPage() {
     [plans, selectedPlanId],
   );
 
-  const selectedBranchName = useMemo(
-    () => branches.find((b) => b.id === selectedBranchId)?.name || "selected",
+  const selectedBranch = useMemo(
+    () => branches.find((b) => b.id === selectedBranchId),
     [branches, selectedBranchId],
   );
+  const selectedBranchName = selectedBranch?.name || "selected";
 
   useEffect(() => {
     if (userLoading || !user) return;
@@ -141,6 +144,14 @@ export default function CheckoutPage() {
       ? toNumber(selectedPlan.monthly_price)
       : toNumber(selectedPlan.yearly_price);
   }, [selectedPlan, billingCycle]);
+
+  // Subscription is priced in USD, charged in the branch's local currency —
+  // show the branch-currency total so the page matches the gateway charge.
+  const fxQuery = useFxRates();
+  const branchCurrency = (selectedBranch?.currency ?? "USD").toUpperCase();
+  const localPrice = convertFromUsd(price, branchCurrency, fxQuery.data?.rates);
+  const isConverted = branchCurrency !== "USD";
+  const displayPrice = (v: number) => formatMoney(v, branchCurrency);
 
   function handleCheckout() {
     setSubmitError("");
@@ -282,7 +293,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[24px] font-semibold text-brand-gold">
-                        {formatCurrency(price)}
+                        {displayPrice(localPrice)}
                       </p>
                       <p className="text-text-muted text-[12px] uppercase tracking-wider">
                         {billingCycle === "MONTHLY"
@@ -411,7 +422,7 @@ export default function CheckoutPage() {
                         {t("setup.checkout.planPlan", { plan: selectedPlan?.name ?? "" })}
                       </span>
                       <span className="font-medium">
-                        {formatCurrency(price)}
+                        {displayPrice(localPrice)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px]">
@@ -433,13 +444,21 @@ export default function CheckoutPage() {
                           {t("setup.checkout.totalDueToday")}
                         </p>
                         <p className="text-[34px] font-semibold text-text-primary leading-none mt-2 font-display">
-                          {formatCurrency(price)}
+                          {displayPrice(localPrice)}
                         </p>
                       </div>
                       <p className="text-[12px] text-text-muted pb-1">
                         {billingCycle === "MONTHLY" ? t("setup.checkout.perMonth") : t("setup.checkout.perYear")}
                       </p>
                     </div>
+                    {isConverted && (
+                      <p className="mt-2 text-[11px] text-text-muted">
+                        {t("setup.checkout.convertedFromUsd", {
+                          amount: formatCurrency(price),
+                          currency: getCurrency(branchCurrency).code,
+                        })}
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-6">
@@ -464,7 +483,7 @@ export default function CheckoutPage() {
                           {t("setup.checkout.processing")}
                         </span>
                       ) : (
-                        t("setup.checkout.pay", { amount: formatCurrency(price) })
+                        t("setup.checkout.pay", { amount: displayPrice(localPrice) })
                       )}
                     </Button>
 
