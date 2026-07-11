@@ -2899,7 +2899,9 @@
         "statusActive": "Status Active",
         "statusInactive": "Status Inactive",
         "selectHint": "Select an ingredient",
-        "selectDescription": "Choose from available ingredients"
+        "selectDescription": "Choose from available ingredients",
+        "aiReviewBadge": "AI",
+        "aiReviewTooltip": "Added or matched by AI from your POS — needs confirmation"
       },
       "page": {
         "eyebrow": "Inventory",
@@ -2975,7 +2977,15 @@
         "perishableLabel": "Perishable Label",
         "wastePercent": "Waste Percent",
         "perishableCount": "Perishable Count",
-        "avgWaste": "Avg Waste"
+        "avgWaste": "Avg Waste",
+        "aiReviewCreatedTitle": "AI added this item from your POS",
+        "aiReviewMatchedTitle": "AI matched POS names to this item",
+        "aiReviewSource": "POS name",
+        "aiReviewConfidence": "confidence",
+        "aiReviewAliases": "Matched POS names",
+        "aiReviewHint": "If this looks right, confirm it. If not, edit or delete the item — sales already recorded against it will follow your fix.",
+        "aiReviewConfirm": "Confirm",
+        "aiReviewConfirming": "Confirming…"
       },
       "sparkline": {
         "soldValue": "Sold Value",

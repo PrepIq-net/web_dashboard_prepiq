@@ -34,6 +34,20 @@ export const ingredientSchema = z.object({
   updated_at: z.string(),
 });
 
+export const menuItemAiReviewSchema = z.object({
+  ai_provisioned: z.boolean().optional(),
+  confidence: z.number().nullable().optional(),
+  source_pos_name: z.string().nullable().optional(),
+  pending_aliases: z
+    .array(
+      z.object({
+        name: z.string().nullable().optional(),
+        confidence: z.number().nullable().optional(),
+      })
+    )
+    .optional(),
+});
+
 export const menuItemSchema = z.object({
   id: z.string(),
   branch: z.string(),
@@ -45,9 +59,15 @@ export const menuItemSchema = z.object({
   image: z.string().optional().nullable(),
   instructions: z.string().optional(),
   is_active: z.boolean(),
+  // Connector AI provenance: true while an AI match/provision decision for
+  // this item awaits human confirmation.
+  needs_review: z.boolean().optional(),
+  ai_review: menuItemAiReviewSchema.nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
+
+export type MenuItemAiReview = z.infer<typeof menuItemAiReviewSchema>;
 
 export const recipeSchema = z.object({
   id: z.string(),

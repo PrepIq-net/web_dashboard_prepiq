@@ -2899,7 +2899,9 @@
         "statusActive": "Actif",
         "statusInactive": "Inactif",
         "selectHint": "Sélectionner un élément",
-        "selectDescription": "Description de sélection"
+        "selectDescription": "Description de sélection",
+        "aiReviewBadge": "IA",
+        "aiReviewTooltip": "Ajouté ou associé par l'IA depuis votre caisse — confirmation requise"
       },
       "page": {
         "eyebrow": "Inventaire",
@@ -2975,7 +2977,15 @@
         "perishableLabel": "Périssable",
         "wastePercent": "% Gaspillage",
         "perishableCount": "Nombre périssable",
-        "avgWaste": "Gaspillage moyen"
+        "avgWaste": "Gaspillage moyen",
+        "aiReviewCreatedTitle": "L'IA a ajouté cet article depuis votre caisse",
+        "aiReviewMatchedTitle": "L'IA a associé des noms de caisse à cet article",
+        "aiReviewSource": "Nom en caisse",
+        "aiReviewConfidence": "de confiance",
+        "aiReviewAliases": "Noms de caisse associés",
+        "aiReviewHint": "Si c'est correct, confirmez. Sinon, modifiez ou supprimez l'article — les ventes déjà enregistrées suivront votre correction.",
+        "aiReviewConfirm": "Confirmer",
+        "aiReviewConfirming": "Confirmation…"
       },
       "sparkline": {
         "soldValue": "Valeur vendue",
