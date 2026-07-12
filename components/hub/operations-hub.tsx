@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ChatBubble } from "iconoir-react";
 import { useNotifications } from "@/services/notifications/hooks";
 import {
+  getConversation,
   hubQueryKeys,
   upsertMessageInCache,
   useExecuteMessageAction,
@@ -215,6 +216,26 @@ export function OperationsHub({ user }: { user: CurrentUser }) {
     },
     [markReadMutation, socket],
   );
+
+  // Deep link from other pages: /workspace/chat?conversation=<id> opens that
+  // thread once the list is in (falls back to a direct fetch if it's not).
+  const openedFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (openedFromUrlRef.current) return;
+    const target = new URLSearchParams(window.location.search).get("conversation");
+    if (!target) {
+      openedFromUrlRef.current = true;
+      return;
+    }
+    const found = conversations.find((c) => c.id === target);
+    if (found) {
+      openedFromUrlRef.current = true;
+      openConversation(found);
+    } else if (conversationsQuery.data) {
+      openedFromUrlRef.current = true;
+      getConversation(target).then(openConversation).catch(() => {});
+    }
+  }, [conversations, conversationsQuery.data, openConversation]);
 
   const openConversationById = useCallback(
     (conversationId: string) => {

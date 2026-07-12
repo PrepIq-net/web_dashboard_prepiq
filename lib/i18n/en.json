@@ -473,7 +473,8 @@
       "supplyConstrained": "Supply Constrained",
       "markUnavailable": "Mark Unavailable",
       "batchRule": "Batch rule: {{raw}} → {{rounded}}",
-      "batchSize": "(batch size {{size}})"
+      "batchSize": "(batch size {{size}})",
+      "message": "Message"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",

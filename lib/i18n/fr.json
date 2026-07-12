@@ -473,7 +473,8 @@
       "supplyConstrained": "Approvisionnement limité",
       "markUnavailable": "Marquer indisponible",
       "batchRule": "Règle de lot : {{raw}} → {{rounded}}",
-      "batchSize": "(taille de lot {{size}})"
+      "batchSize": "(taille de lot {{size}})",
+      "message": "Message"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",

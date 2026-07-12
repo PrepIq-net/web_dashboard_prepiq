@@ -21,6 +21,7 @@ const REF_ICONS: Record<RefType, React.ComponentType<{ className?: string }>> = 
   INGREDIENT: Box,
   MENU_ITEM: Cutlery,
   PREP_BATCH: Packages,
+  PREP_ITEM: Cutlery,
   WASTE_EVENT: Trash,
   CALENDAR_EVENT: Calendar,
   NOTIFICATION: Bell,

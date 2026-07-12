@@ -6,6 +6,7 @@ import { useHubShareables, type ShareableObject } from "@/services/hub";
 import {
   filterMentionTargets,
   getActiveMentionContext,
+  getMentionGhost,
   insertMentionToken,
   MentionedText,
   type HubMentionTarget,
@@ -62,6 +63,11 @@ export function MessageComposer({
   const mentionSuggestions = useMemo(
     () => filterMentionTargets(mentionTargets, activeMention?.query ?? ""),
     [activeMention?.query, mentionTargets],
+  );
+
+  const mentionGhost = useMemo(
+    () => getMentionGhost(activeMention, mentionSuggestions, activeMentionIndex),
+    [activeMention, activeMentionIndex, mentionSuggestions],
   );
 
   useEffect(() => {
@@ -128,14 +134,15 @@ export function MessageComposer({
   function pickMention(target: HubMentionTarget) {
     if (!activeMention) return;
     const suffix = content.slice(activeMention.end);
-    const insertedSpace = suffix.length > 0 && !/^\s/.test(suffix) ? 1 : 0;
+    // Land the caret after the space that follows the token (inserted or pre-existing).
+    const advance = /^\s/.test(suffix) ? (suffix.startsWith(" ") ? 1 : 0) : 1;
     const next = insertMentionToken(content, activeMention.start, activeMention.end, target.token);
     setContent(next);
     setActiveMentionIndex(0);
     requestAnimationFrame(() => {
       const textarea = textareaRef.current;
       if (!textarea) return;
-      const nextCursor = activeMention.start + target.token.length + insertedSpace;
+      const nextCursor = activeMention.start + target.token.length + advance;
       textarea.focus();
       textarea.setSelectionRange(nextCursor, nextCursor);
       updateCursor(textarea);
@@ -301,15 +308,33 @@ export function MessageComposer({
           {content ? (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 overflow-hidden px-3 py-2 text-sm leading-relaxed text-text-primary"
+              className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-3 py-2 text-sm leading-relaxed text-text-primary"
               style={{ transform: `translateY(-${mirrorScrollTop}px)` }}
             >
-              <MentionedText
-                text={content}
-                targets={mentionTargets}
-                className="whitespace-pre-wrap break-words text-text-primary"
-                mentionClassName="rounded-md bg-brand-gold/15 px-1.5 py-0.5 text-brand-gold"
-              />
+              {mentionGhost ? (
+                <>
+                  <MentionedText
+                    text={content.slice(0, mentionGhost.at)}
+                    targets={mentionTargets}
+                    className="text-text-primary"
+                    mentionClassName="rounded bg-brand-gold/15 text-brand-gold box-decoration-clone"
+                  />
+                  <span className="text-text-disabled">{mentionGhost.remainder}</span>
+                  <MentionedText
+                    text={content.slice(mentionGhost.at)}
+                    targets={mentionTargets}
+                    className="text-text-primary"
+                    mentionClassName="rounded bg-brand-gold/15 text-brand-gold box-decoration-clone"
+                  />
+                </>
+              ) : (
+                <MentionedText
+                  text={content}
+                  targets={mentionTargets}
+                  className="text-text-primary"
+                  mentionClassName="rounded bg-brand-gold/15 text-brand-gold box-decoration-clone"
+                />
+              )}
             </div>
           ) : null}
           <textarea
@@ -397,7 +422,13 @@ export function MessageComposer({
                           {target.kind === "assistant" ? "PrepIQ assistant" : target.subtitle}
                         </span>
                       </span>
-                      <span className="text-xs text-text-disabled">{target.token}</span>
+                      {active ? (
+                        <span className="rounded border border-border-default px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
+                          Tab
+                        </span>
+                      ) : (
+                        <span className="text-xs text-text-disabled">{target.token}</span>
+                      )}
                     </button>
                   );
                 })}

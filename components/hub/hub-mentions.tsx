@@ -85,8 +85,21 @@ export function insertMentionToken(
 ): string {
   const prefix = text.slice(0, rangeStart);
   const suffix = text.slice(rangeEnd);
-  const needsSpace = suffix.length > 0 && !/^\s/.test(suffix);
+  const needsSpace = !/^\s/.test(suffix);
   return `${prefix}${token}${needsSpace ? " " : ""}${suffix}`;
+}
+
+export function getMentionGhost(
+  context: { query: string; end: number } | null,
+  suggestions: HubMentionTarget[],
+  activeIndex: number,
+): { remainder: string; at: number } | null {
+  if (!context || suggestions.length === 0 || context.query.length === 0) return null;
+  const target = suggestions[activeIndex] ?? suggestions[0];
+  const typed = `@${context.query}`;
+  if (!target.token.toLowerCase().startsWith(typed.toLowerCase())) return null;
+  const remainder = target.token.slice(typed.length);
+  return remainder ? { remainder, at: context.end } : null;
 }
 
 export function splitMentionText(
