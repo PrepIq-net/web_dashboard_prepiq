@@ -38,7 +38,7 @@
     "reports": "Reports",
     "purchasing": "Purchasing",
     "billing": "Billing",
-    "chat": "Chat",
+    "chat": "Operations Hub",
     "production": "Production",
     "salesWaste": "Sales & Waste",
     "financial": "Financial",
@@ -173,7 +173,7 @@
       "command": "Command",
       "purchasing": "Purchasing",
       "billing": "Billing",
-      "chat": "Chat",
+      "chat": "Operations Hub",
       "history": "History",
       "salesWaste": "Sales & Waste",
       "risk": "Risk",
@@ -1223,7 +1223,7 @@
     "purchasing": "Purchasing",
     "risk": "Risk",
     "billing": "Billing",
-    "chat": "Chat",
+    "chat": "Operations Hub",
     "settings": "Settings",
     "section": {
       "analytics": "Analytics",
@@ -2111,10 +2111,10 @@
   },
   "workspace": {
     "chat": {
-      "eyebrow": "Chat",
-      "title": "Chat",
-      "description": "Team communication",
-      "insight": "Real-time messaging for your kitchen team."
+      "eyebrow": "Operations Hub",
+      "title": "Operations Hub",
+      "description": "Work-centric team communication",
+      "insight": "Conversations, live kitchen events, shared operational data and PrepIQ — one stream."
     },
     "notifications": {
       "eyebrow": "Notifications",
