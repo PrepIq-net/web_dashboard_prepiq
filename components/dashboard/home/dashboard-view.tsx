@@ -8,19 +8,15 @@ import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { formatMoney } from "@/lib/format";
+import { alertCTA, type BranchEntry } from "./alert-cta";
+import { KpiPulseCard } from "./kpi-pulse-card";
+import { KpiDetailModals, type KpiModalKey } from "./kpi-detail-modals";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Branch diagnosis
+// Ordered by impact: blocking ops first, financial loss second, data gaps third.
 // ─────────────────────────────────────────────────────────────────────────────
-
-type BranchEntry = NonNullable<
-  ReturnType<typeof useExecutiveControlTower>["data"]
->["branch_grid"][number];
-
-type AlertEntry = NonNullable<
-  ReturnType<typeof useExecutiveControlTower>["data"]
->["alerts"][number];
 
 type Diagnosis = {
   issue: string | null;
@@ -29,11 +25,6 @@ type Diagnosis = {
   ctaHref: string;
   severity: "critical" | "warning" | "ok";
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Branch diagnosis
-// Ordered by impact: blocking ops first, financial loss second, data gaps third.
-// ─────────────────────────────────────────────────────────────────────────────
 
 function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // Each destination has its own URL param convention.
@@ -45,7 +36,10 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   const wastePct = Number(branch.waste_pct ?? 0);
 
   // 1. Plan not locked — branch is blocked from starting live service
-  if (!branch.plan_locked && (branch.day_status === "MORNING" || branch.day_status == null)) {
+  if (
+    !branch.plan_locked &&
+    (branch.day_status === "MORNING" || branch.day_status == null)
+  ) {
     return {
       issue: "Prep plan hasn't been approved",
       detail: "The branch can't go live until a manager locks today's plan.",
@@ -81,7 +75,8 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   if (branch.staff_activity_status === "IDLE" && branch.day_status === "LIVE") {
     return {
       issue: "No staff POS activity in 2+ hours",
-      detail: "Live service is running but the POS hasn't synced. Sales may be missing.",
+      detail:
+        "Live service is running but the POS hasn't synced. Sales may be missing.",
       ctaLabel: "Review live status",
       ctaHref: toToday,
       severity: "critical",
@@ -121,48 +116,6 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Alert action labels
-// Generic "View" tells the user nothing. These tell them exactly what to do.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const ALERT_CTA: Record<string, { label: string; href: (branchId: string) => string }> = {
-  WASTE_RISK: {
-    label: "See at-risk items",
-    href: (id) => `/workspace/sales-waste?branch=${id}`,
-  },
-  POS_SYNC_LAG: {
-    label: "Fix POS sync",
-    href: (id) => `/workspace/settings?tab=integrations&branch=${id}`,
-  },
-  POS_NOT_CONNECTED: {
-    label: "Connect POS",
-    href: (id) => `/workspace/settings?tab=integrations&branch=${id}`,
-  },
-  SALES_VELOCITY_DROP: {
-    label: "Review live sales",
-    href: (id) => `/workspace/today?branch_id=${id}`,
-  },
-  SALES_VELOCITY_SURGE: {
-    label: "Check stock levels",
-    href: (id) => `/workspace/inventory?branch=${id}`,
-  },
-  BRANCH_UNDERPERFORMING: {
-    label: "See branch breakdown",
-    href: (id) => `/workspace/branches?branch=${id}`,
-  },
-  UNMAPPED_SALES: {
-    label: "Map missing items",
-    href: (id) => `/workspace/sales-waste?branch=${id}`,
-  },
-};
-
-function alertCTA(alert: AlertEntry): { label: string; href: string } {
-  const def = ALERT_CTA[alert.type ?? ""];
-  if (def) return { label: def.label, href: def.href(alert.branch_id) };
-  return { label: "Review alert", href: `/workspace/today?branch_id=${alert.branch_id}` };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Misc helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -192,97 +145,12 @@ function branchStatusLine(branch: BranchEntry): string {
   return `${status} · ${plan} · ${staff}`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// KPI modal helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-type KpiModalKey = "revenue" | "waste" | "forecast" | "alerts";
-
-function fmtMoney(v: number) {
-  return `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-function ExpandIcon() {
-  return (
-    <svg
-      className="h-3.5 w-3.5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-    </svg>
-  );
-}
-
-function ModalStat({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  highlight?: "red" | "amber";
-}) {
-  const valueColor =
-    highlight === "red"
-      ? "text-status-critical"
-      : highlight === "amber"
-        ? "text-status-warning"
-        : "text-text-primary";
-  return (
-    <div className="bg-surface-3 rounded-lg p-4 border border-surface-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-1.5">
-        {label}
-      </p>
-      <p className={`text-xl font-bold tabular-nums ${valueColor}`}>{value}</p>
-      {sub && <p className="text-[11px] text-text-muted mt-1">{sub}</p>}
-    </div>
-  );
-}
-
-type BarItem = { label: string; value: number; colorClass: string; display?: string };
-
-function HorizontalBars({
-  items,
-  formatVal,
-  emptyText = "No data",
-}: {
-  items: BarItem[];
-  formatVal: (item: BarItem) => string;
-  emptyText?: string;
-}) {
-  const max = Math.max(...items.map((d) => d.value), 1);
-  if (items.length === 0) {
-    return <p className="text-sm text-text-muted text-center py-6">{emptyText}</p>;
-  }
-  return (
-    <div className="space-y-2.5">
-      {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <span className="text-xs text-text-muted w-28 truncate shrink-0 text-right">
-            {item.label}
-          </span>
-          <div className="flex-1 h-4 bg-surface-4 rounded-sm overflow-hidden">
-            <div
-              className={`h-full rounded-sm ${item.colorClass}`}
-              style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }}
-            />
-          </div>
-          <span className="text-xs font-semibold text-text-primary w-16 text-right shrink-0 tabular-nums">
-            {formatVal(item)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const QUICK_ACTIONS = [
+  { label: "Today's prep plans", href: "/workspace/today" },
+  { label: "Planning calendar", href: "/workspace/planning" },
+  { label: "Inventory", href: "/workspace/inventory" },
+  { label: "Sales & waste", href: "/workspace/sales-waste" },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
@@ -318,7 +186,8 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
     const order: Record<string, number> = { RED: 0, AMBER: 1, GREEN: 2 };
     return [...branchGrid].sort(
       (a, b) =>
-        (order[a.compliance_badge ?? ""] ?? 1) - (order[b.compliance_badge ?? ""] ?? 1),
+        (order[a.compliance_badge ?? ""] ?? 1) -
+        (order[b.compliance_badge ?? ""] ?? 1),
     );
   }, [branchGrid]);
 
@@ -337,7 +206,8 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
   const wasteAsRevenuePct = revenueToday > 0 ? (wasteCost / revenueToday) * 100 : 0;
   const wasteIsBad = canSeeFinancials ? wasteCost > 500 : wasteRiskPct > 8;
 
-  const forecastAccuracyPct = Number(tower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
+  const forecastAccuracyPct =
+    Number(tower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
   const forecastIsBad = forecastAccuracyPct > 0 && forecastAccuracyPct < 70;
   const forecastIsWarning = forecastAccuracyPct >= 70 && forecastAccuracyPct < 85;
 
@@ -364,144 +234,93 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
               ? "Loading…"
               : "No branches connected yet"}
         </p>
+        {/* Quick navigation into the day's working surfaces */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {QUICK_ACTIONS.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className="group inline-flex h-9 items-center gap-1.5 rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            >
+              {action.label}
+              <ArrowRight className="h-3 w-3 transition-transform duration-150 group-hover:translate-x-0.5" />
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* ── Pulse KPIs ─────────────────────────────────────────────────── */}
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
-        <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-brand-gold/30 hover:bg-surface-3/40 group"
-          onClick={() => setKpiModal("revenue")}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Revenue today
-            </p>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setKpiModal("revenue"); }}
-              aria-label="View revenue details"
-              className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-text-muted hover:text-text-primary"
-            >
-              <ExpandIcon />
-            </button>
-          </div>
-          <p className="font-display text-3xl font-semibold text-text-primary tracking-tight">
-            ${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4 flex items-center gap-2">
-            {revenueDeltaPct !== null ? (
-              <>
-                {revenueDeltaPct >= 0 ? (
-                  <StatsUpSquare className="h-4 w-4 text-status-success shrink-0" />
-                ) : (
-                  <StatsDownSquare className="h-4 w-4 text-status-critical shrink-0" />
-                )}
-                <span
-                  className={`text-sm font-medium ${revenueDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}
-                >
-                  {revenueDeltaPct >= 0 ? "+" : ""}
-                  {revenueDeltaPct.toFixed(1)}% vs yesterday
-                </span>
-              </>
-            ) : (
-              <span className="text-xs text-text-muted">No prior-day baseline</span>
-            )}
-          </div>
-        </article>
+        <KpiPulseCard
+          label="Revenue today"
+          value={formatMoney(revenueToday)}
+          onOpen={() => setKpiModal("revenue")}
+          openAriaLabel="View revenue details"
+          footer={
+            <div className="flex items-center gap-2">
+              {revenueDeltaPct !== null ? (
+                <>
+                  {revenueDeltaPct >= 0 ? (
+                    <StatsUpSquare className="h-4 w-4 text-status-success shrink-0" />
+                  ) : (
+                    <StatsDownSquare className="h-4 w-4 text-status-critical shrink-0" />
+                  )}
+                  <span
+                    className={`text-sm font-medium ${revenueDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}
+                  >
+                    {revenueDeltaPct >= 0 ? "+" : ""}
+                    {revenueDeltaPct.toFixed(1)}% vs yesterday
+                  </span>
+                </>
+              ) : (
+                <span className="text-xs text-text-muted">No prior-day baseline</span>
+              )}
+            </div>
+          }
+        />
 
-        <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-status-critical/20 hover:bg-surface-3/40 group"
-          onClick={() => setKpiModal("waste")}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              {canSeeFinancials ? "Waste cost" : "Waste risk"}
-            </p>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setKpiModal("waste"); }}
-              aria-label="View waste details"
-              className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-text-muted hover:text-text-primary"
-            >
-              <ExpandIcon />
-            </button>
-          </div>
-          <p
-            className={`font-display text-3xl font-semibold tracking-tight ${
-              wasteIsBad ? "text-status-critical" : "text-text-primary"
-            }`}
-          >
-            {canSeeFinancials
-              ? `$${wasteCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-              : `${wasteRiskPct.toFixed(1)}%`}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
+        <KpiPulseCard
+          label={canSeeFinancials ? "Waste cost" : "Waste risk"}
+          value={
+            canSeeFinancials ? formatMoney(wasteCost) : `${wasteRiskPct.toFixed(1)}%`
+          }
+          valueClass={wasteIsBad ? "text-status-critical" : "text-text-primary"}
+          hoverBorderClass="hover:border-status-critical/20"
+          onOpen={() => setKpiModal("waste")}
+          openAriaLabel="View waste details"
+          footer={
             <p className="text-xs text-text-muted">
               {canSeeFinancials
                 ? `${wasteAsRevenuePct.toFixed(1)}% of revenue`
                 : "items at risk today"}
             </p>
-          </div>
-        </article>
+          }
+        />
 
-        <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-brand-gold/30 hover:bg-surface-3/40 group"
-          onClick={() => setKpiModal("forecast")}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Forecast accuracy
-            </p>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setKpiModal("forecast"); }}
-              aria-label="View forecast details"
-              className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-text-muted hover:text-text-primary"
-            >
-              <ExpandIcon />
-            </button>
-          </div>
-          <p
-            className={`font-display text-3xl font-semibold tracking-tight ${
-              forecastIsBad
-                ? "text-status-critical"
-                : forecastIsWarning
-                  ? "text-status-warning"
-                  : "text-text-primary"
-            }`}
-          >
-            {forecastAccuracyPct.toFixed(1)}%
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
-            <p className="text-xs text-text-muted">7-day rolling average</p>
-          </div>
-        </article>
+        <KpiPulseCard
+          label="Forecast accuracy"
+          value={`${forecastAccuracyPct.toFixed(1)}%`}
+          valueClass={
+            forecastIsBad
+              ? "text-status-critical"
+              : forecastIsWarning
+                ? "text-status-warning"
+                : "text-text-primary"
+          }
+          onOpen={() => setKpiModal("forecast")}
+          openAriaLabel="View forecast details"
+          footer={<p className="text-xs text-text-muted">7-day rolling average</p>}
+        />
 
-        <article
-          className="bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:border-brand-gold/30 hover:bg-surface-3/40 group"
-          onClick={() => setKpiModal("alerts")}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-              Active alerts
-            </p>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setKpiModal("alerts"); }}
-              aria-label="View all alerts"
-              className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex h-6 w-6 items-center justify-center rounded text-text-muted hover:text-text-primary"
-            >
-              <ExpandIcon />
-            </button>
-          </div>
-          <p
-            className={`font-display text-3xl font-semibold tracking-tight ${
-              highAlerts.length > 0 ? "text-status-critical" : "text-text-primary"
-            }`}
-          >
-            {alerts.length}
-          </p>
-          <div className="mt-4 pt-4 border-t border-surface-4">
+        <KpiPulseCard
+          label="Active alerts"
+          value={alerts.length}
+          valueClass={
+            highAlerts.length > 0 ? "text-status-critical" : "text-text-primary"
+          }
+          onOpen={() => setKpiModal("alerts")}
+          openAriaLabel="View all alerts"
+          footer={
             <p className="text-xs text-text-muted">
               {highAlerts.length > 0
                 ? `${highAlerts.length} need immediate action`
@@ -509,8 +328,8 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   ? "No urgent issues"
                   : "All clear"}
             </p>
-          </div>
-        </article>
+          }
+        />
       </section>
 
       {/* ── HIGH alerts — specific issue + specific action ─────────────── */}
@@ -529,14 +348,18 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                     <p className="text-sm font-semibold text-text-primary">
                       {alert.title || alert.type}
                     </p>
-                    <p className="text-xs text-text-muted mt-0.5">{alert.branch_name}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {alert.branch_name}
+                    </p>
                     {alert.context && (
                       <p className="mt-2 text-sm text-text-secondary leading-relaxed">
                         {alert.context}
                       </p>
                     )}
                     {alert.suggested_action && (
-                      <p className="mt-1 text-xs text-text-muted">→ {alert.suggested_action}</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        → {alert.suggested_action}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -567,12 +390,14 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                 {sortedBranches.length === 1 ? "location" : "locations"}
               </h2>
               <p className="mt-1 text-sm text-text-muted">
-                System status — POS connections, plan approvals, live service activity.
+                System status — POS connections, plan approvals, live service
+                activity.
               </p>
             </div>
             {sortedBranches.some((b) => b.compliance_badge === "RED") && (
               <span className="text-xs font-medium text-status-critical shrink-0 mt-1">
-                {sortedBranches.filter((b) => b.compliance_badge === "RED").length} need attention
+                {sortedBranches.filter((b) => b.compliance_badge === "RED").length}{" "}
+                need attention
               </span>
             )}
           </div>
@@ -607,10 +432,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                       </h3>
                     </div>
                     <p className="text-sm font-semibold text-text-primary shrink-0">
-                      $
-                      {Number(branch.revenue ?? 0).toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}
+                      {formatMoney(Number(branch.revenue ?? 0))}
                     </p>
                   </div>
 
@@ -633,7 +455,9 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-text-muted">{branchStatusLine(branch)}</p>
+                    <p className="text-xs text-text-muted">
+                      {branchStatusLine(branch)}
+                    </p>
                   )}
 
                   {/* CTA — specific label that says what the user will do */}
@@ -668,414 +492,27 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         </div>
       )}
 
-      {/* ── KPI detail modals ─────────────────────────────────────────────── */}
-
-      {/* Revenue modal */}
-      <ModalShell
-        open={kpiModal === "revenue"}
+      {/* ── KPI detail modals ──────────────────────────────────────────── */}
+      <KpiDetailModals
+        openModal={kpiModal}
         onClose={() => setKpiModal(null)}
-        title="Revenue"
-        description="Today's revenue across all connected branches"
-        maxWidthClassName="max-w-2xl"
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
-            <ModalStat
-              label="Today"
-              value={`$${revenueToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-              sub={
-                revenueDeltaPct !== null
-                  ? `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}% vs yesterday`
-                  : "No prior-day baseline"
-              }
-            />
-            <ModalStat
-              label="Units sold"
-              value={(tower?.summary?.total_sold ?? 0).toLocaleString(undefined, {
-                maximumFractionDigits: 0,
-              })}
-              sub="across all branches"
-            />
-            <ModalStat
-              label="Cost saved today"
-              value={fmtMoney(Number(tower?.summary?.cost_saved_today ?? 0))}
-              sub="vs unoptimized baseline"
-            />
-          </div>
-
-          {branchGrid.some((b) => Number(b.revenue ?? 0) > 0) && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                Revenue by branch
-              </p>
-              <HorizontalBars
-                items={[...branchGrid]
-                  .filter((b) => Number(b.revenue ?? 0) > 0)
-                  .sort((a, b) => Number(b.revenue ?? 0) - Number(a.revenue ?? 0))
-                  .map((b) => ({
-                    label: b.branch_name,
-                    value: Number(b.revenue ?? 0),
-                    colorClass: "bg-brand-gold/70",
-                  }))}
-                formatVal={(item) => fmtMoney(item.value)}
-                emptyText="No revenue data available"
-              />
-            </div>
-          )}
-
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Prepared vs sold
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <ModalStat
-                label="Total prepared"
-                value={(tower?.summary?.total_prepared ?? 0).toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })}
-                sub="units across branches"
-              />
-              <ModalStat
-                label="Predicted surplus"
-                value={(tower?.summary?.predicted_surplus ?? 0).toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })}
-                sub="units at end of service"
-                highlight={Number(tower?.summary?.predicted_surplus ?? 0) > 0 ? "amber" : undefined}
-              />
-            </div>
-          </div>
-
-          <Link
-            href="/workspace/financial"
-            className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
-          >
-            View full financial report
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </ModalShell>
-
-      {/* Waste modal */}
-      <ModalShell
-        open={kpiModal === "waste"}
-        onClose={() => setKpiModal(null)}
-        title={canSeeFinancials ? "Waste Cost" : "Waste Risk"}
-        description="Item-level waste exposure across all branches today"
-        maxWidthClassName="max-w-2xl"
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
-            <ModalStat
-              label={canSeeFinancials ? "Total waste cost" : "Waste risk %"}
-              value={
-                canSeeFinancials
-                  ? fmtMoney(wasteCost)
-                  : `${wasteRiskPct.toFixed(1)}%`
-              }
-              sub={canSeeFinancials ? `${wasteAsRevenuePct.toFixed(1)}% of revenue` : "items at risk"}
-              highlight={wasteIsBad ? "red" : undefined}
-            />
-            <ModalStat
-              label="Branches above 7%"
-              value={branchGrid
-                .filter((b) => Number(b.waste_pct ?? 0) >= 7)
-                .length.toString()}
-              sub="critical threshold"
-              highlight={
-                branchGrid.some((b) => Number(b.waste_pct ?? 0) >= 7) ? "red" : undefined
-              }
-            />
-            <ModalStat
-              label="Branches 4–7%"
-              value={branchGrid
-                .filter((b) => {
-                  const p = Number(b.waste_pct ?? 0);
-                  return p >= 4 && p < 7;
-                })
-                .length.toString()}
-              sub="approaching threshold"
-              highlight={
-                branchGrid.some((b) => {
-                  const p = Number(b.waste_pct ?? 0);
-                  return p >= 4 && p < 7;
-                })
-                  ? "amber"
-                  : undefined
-              }
-            />
-          </div>
-
-          {marginReport.data?.summary?.margin_reliability?.is_reliable === false && (
-            <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3">
-              <p className="text-xs font-semibold text-text-primary">
-                Data reliability note
-              </p>
-              <p className="text-xs text-text-muted mt-0.5">
-                {marginReport.data.summary.margin_reliability.warning ??
-                  `${marginReport.data.summary.margin_reliability.unreliable_items_count ?? "Some"} items have incomplete data — figures may be understated.`}
-              </p>
-            </div>
-          )}
-
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Waste % by branch — sorted worst first
-            </p>
-            <HorizontalBars
-              items={[...branchGrid]
-                .filter(
-                  (b) => b.waste_pct !== null && b.waste_pct !== undefined,
-                )
-                .sort((a, b) => Number(b.waste_pct ?? 0) - Number(a.waste_pct ?? 0))
-                .map((b) => {
-                  const p = Number(b.waste_pct ?? 0);
-                  const mb = marginReport.data?.branches?.find(
-                    (m) => m.branch_id === b.branch_id,
-                  );
-                  return {
-                    label: b.branch_name,
-                    value: p,
-                    colorClass:
-                      p >= 7
-                        ? "bg-status-critical"
-                        : p >= 4
-                          ? "bg-status-warning"
-                          : "bg-chart-baseline",
-                    display: mb
-                      ? fmtMoney(Number(mb.total_waste_cost ?? "0"))
-                      : undefined,
-                  };
-                })}
-              formatVal={(item) =>
-                item.display ? `${item.value.toFixed(1)}% · ${item.display}` : `${item.value.toFixed(1)}%`
-              }
-              emptyText="No waste data available"
-            />
-          </div>
-
-          {canSeeFinancials && marginReport.data?.branches && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                Waste cost by branch
-              </p>
-              <HorizontalBars
-                items={[...marginReport.data.branches]
-                  .filter((b) => Number(b.total_waste_cost ?? "0") > 0)
-                  .sort(
-                    (a, b) =>
-                      Number(b.total_waste_cost ?? "0") -
-                      Number(a.total_waste_cost ?? "0"),
-                  )
-                  .map((b) => ({
-                    label: b.branch_name,
-                    value: Number(b.total_waste_cost ?? "0"),
-                    colorClass: "bg-chart-baseline",
-                  }))}
-                formatVal={(item) => fmtMoney(item.value)}
-                emptyText="No cost data available"
-              />
-            </div>
-          )}
-
-          <Link
-            href="/workspace/sales-waste"
-            className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
-          >
-            View waste details
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </ModalShell>
-
-      {/* Forecast accuracy modal */}
-      <ModalShell
-        open={kpiModal === "forecast"}
-        onClose={() => setKpiModal(null)}
-        title="Forecast Accuracy"
-        description="How well AI-predicted demand matched actual sales"
-        maxWidthClassName="max-w-2xl"
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
-            <ModalStat
-              label="7-day rolling"
-              value={`${forecastAccuracyPct.toFixed(1)}%`}
-              sub="across all branches"
-              highlight={forecastIsBad ? "red" : forecastIsWarning ? "amber" : undefined}
-            />
-            <ModalStat
-              label="Branches below 70%"
-              value={branchGrid
-                .filter(
-                  (b) =>
-                    b.forecast_confidence !== null &&
-                    b.forecast_confidence !== undefined &&
-                    Number(b.forecast_confidence) < 0.7,
-                )
-                .length.toString()}
-              sub="need attention"
-              highlight={
-                branchGrid.some(
-                  (b) =>
-                    b.forecast_confidence !== null &&
-                    b.forecast_confidence !== undefined &&
-                    Number(b.forecast_confidence) < 0.7,
-                )
-                  ? "amber"
-                  : undefined
-              }
-            />
-            <ModalStat
-              label="Active branches"
-              value={branchGrid
-                .filter(
-                  (b) =>
-                    b.forecast_confidence !== null &&
-                    b.forecast_confidence !== undefined,
-                )
-                .length.toString()}
-              sub="with forecast data"
-            />
-          </div>
-
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Forecast confidence by branch — worst first
-            </p>
-            <HorizontalBars
-              items={[...branchGrid]
-                .filter(
-                  (b) =>
-                    b.forecast_confidence !== null &&
-                    b.forecast_confidence !== undefined,
-                )
-                .sort(
-                  (a, b) =>
-                    Number(a.forecast_confidence ?? 1) -
-                    Number(b.forecast_confidence ?? 1),
-                )
-                .map((b) => {
-                  const conf = Number(b.forecast_confidence ?? 0) * 100;
-                  const mb = marginReport.data?.branches?.find(
-                    (m) => m.branch_id === b.branch_id,
-                  );
-                  const accuracy = mb?.forecast_accuracy_summary;
-                  return {
-                    label: b.branch_name,
-                    value: conf,
-                    colorClass:
-                      conf < 50
-                        ? "bg-status-critical"
-                        : conf < 65
-                          ? "bg-status-warning"
-                          : "bg-chart-baseline",
-                    display: accuracy != null ? `${(accuracy * 100).toFixed(0)}% actual` : undefined,
-                  };
-                })}
-              formatVal={(item) =>
-                item.display
-                  ? `${item.value.toFixed(0)}% · ${item.display}`
-                  : `${item.value.toFixed(0)}%`
-              }
-              emptyText="No forecast data available"
-            />
-          </div>
-
-          <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3.5 space-y-1">
-            <p className="text-xs font-semibold text-text-primary">
-              What drives low confidence?
-            </p>
-            <ul className="text-xs text-text-muted space-y-0.5 list-disc list-inside">
-              <li>Unmapped menu items not feeding the demand model</li>
-              <li>Irregular sales patterns in the last 7 days</li>
-              <li>POS sync gaps (missing sales data)</li>
-              <li>New items with fewer than 14 days of history</li>
-            </ul>
-          </div>
-
-          <Link
-            href="/workspace/today"
-            className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
-          >
-            Review today's prep plan
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </ModalShell>
-
-      {/* Alerts modal */}
-      <ModalShell
-        open={kpiModal === "alerts"}
-        onClose={() => setKpiModal(null)}
-        title="Active Alerts"
-        description={
-          alerts.length > 0
-            ? `${alerts.length} alert${alerts.length !== 1 ? "s" : ""} across your network${highAlerts.length > 0 ? ` · ${highAlerts.length} urgent` : ""}`
-            : "No active alerts right now"
-        }
-        maxWidthClassName="max-w-xl"
-      >
-        {alerts.length === 0 ? (
-          <div className="py-10 text-center">
-            <p className="text-sm font-medium text-text-primary">All clear</p>
-            <p className="text-xs text-text-muted mt-1">No alerts detected across your branches.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-surface-4 overflow-y-auto max-h-[calc(100vh-18rem)]">
-            {[...alerts]
-              .sort((a, b) => {
-                const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-                return (order[a.severity ?? ""] ?? 1) - (order[b.severity ?? ""] ?? 1);
-              })
-              .map((alert) => {
-                const cta = alertCTA(alert);
-                const isHigh = alert.severity === "HIGH";
-                return (
-                  <div key={alert.id} className="flex items-start justify-between gap-4 py-4 first:pt-0">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <span
-                        className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${
-                          isHigh ? "bg-status-critical" : "bg-status-warning"
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-text-primary leading-snug">
-                            {alert.title || alert.type}
-                          </p>
-                          {alert.type && (
-                            <span className="text-[10px] uppercase tracking-wider text-text-muted">
-                              {alert.type.replace(/_/g, " ")}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-text-muted mt-0.5">{alert.branch_name}</p>
-                        {alert.context && (
-                          <p className="mt-1.5 text-xs text-text-secondary leading-relaxed">
-                            {alert.context}
-                          </p>
-                        )}
-                        {alert.suggested_action && (
-                          <p className="mt-1 text-xs text-text-muted">
-                            → {alert.suggested_action}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Link
-                      href={cta.href}
-                      className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-brand-gold/30 hover:text-text-primary"
-                    >
-                      {cta.label}
-                      <ArrowRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </ModalShell>
+        canSeeFinancials={canSeeFinancials}
+        tower={tower}
+        marginReport={marginReport.data}
+        metrics={{
+          revenueToday,
+          revenueDeltaPct,
+          wasteCost,
+          wasteRiskPct,
+          wasteAsRevenuePct,
+          wasteIsBad,
+          forecastAccuracyPct,
+          forecastIsBad,
+          forecastIsWarning,
+        }}
+        alerts={alerts}
+        highAlerts={highAlerts}
+      />
     </>
   );
 }

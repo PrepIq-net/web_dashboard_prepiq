@@ -469,7 +469,11 @@
       "trackRecord": "Historique",
       "why": "Pourquoi ?",
       "whyDesktop": "Pourquoi cette quantité ?",
-      "yourPlan": "Votre plan"
+      "yourPlan": "Votre plan",
+      "supplyConstrained": "Approvisionnement limité",
+      "markUnavailable": "Marquer indisponible",
+      "batchRule": "Règle de lot : {{raw}} → {{rounded}}",
+      "batchSize": "(taille de lot {{size}})"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",
@@ -494,7 +498,9 @@
       "mayRunOut": "Risque de rupture de {item}",
       "stockoutRiskWithMargin": "Risque de rupture — ~{cost} de marge à risque",
       "wasteRiskWithCost": "~{cost} de gaspillage si la demande n'augmente pas",
-      "marginRiskWithImpact": "Impact sur la marge : ~{cost}"
+      "marginRiskWithImpact": "Impact sur la marge : ~{cost}",
+      "why": "Pourquoi ?",
+      "fixTo": "Corriger → {{quantity}}"
     },
     "live": {
       "status": "Le service est en cours",
@@ -530,7 +536,9 @@
       "runningSteady": "Rythme stable",
       "slowSales": "Ventes lentes",
       "sold": "Vendu",
-      "startBatchNow": "Démarrer le lot maintenant"
+      "startBatchNow": "Démarrer le lot maintenant",
+      "logWaste": "Déclarer une perte",
+      "pctLeft": "{{pct}}% restant"
     },
     "closed": {
       "dayComplete": "Journée clôturée",
@@ -1126,6 +1134,12 @@
       "overrides": "{count} modification(s) enregistrée(s) ; {won} ont battu la prévision — le modèle ajuste sa confiance sur ces articles.",
       "wasteRows": "{count} événement(s) de gaspillage alimentent le calcul du tampon de demain.",
       "stockoutRows": "{count} rupture(s) marquée(s) comme demande censurée — estimée à partir du rythme avant la rupture, pas ignorée."
+    },
+    "phase": {
+      "plan": "Planifier",
+      "service": "Service",
+      "review": "Bilan",
+      "aria": "Progression de la journée"
     }
   },
   "profile": {
@@ -2082,7 +2096,18 @@
     "update_details": "Mettre à jour les détails",
     "update_note": "Note de mise à jour (optionnel)",
     "wed": "Mer",
-    "wedding": "Mariage"
+    "wedding": "Mariage",
+    "today": "Aujourd'hui",
+    "previous_month": "Mois précédent",
+    "next_month": "Mois suivant",
+    "month_events": "{{count}} événements ce mois-ci",
+    "month_guests": "{{count}} convives attendus",
+    "month_promos": "{{count}} promotions",
+    "menu_availability": "Disponibilité du menu",
+    "manage_link": "Gérer →",
+    "no_unavailable_items": "Aucun article marqué indisponible pour ce jour.",
+    "off_menu": "Hors menu",
+    "supply": "Stock"
   },
   "workspace": {
     "chat": {

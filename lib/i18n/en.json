@@ -469,7 +469,11 @@
       "trackRecord": "Track record",
       "why": "Why?",
       "whyDesktop": "Why this quantity?",
-      "yourPlan": "Your plan"
+      "yourPlan": "Your plan",
+      "supplyConstrained": "Supply Constrained",
+      "markUnavailable": "Mark Unavailable",
+      "batchRule": "Batch rule: {{raw}} → {{rounded}}",
+      "batchSize": "(batch size {{size}})"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",
@@ -494,7 +498,9 @@
       "mayRunOut": "May run out of {item}",
       "stockoutRiskWithMargin": "May run out — ~{cost} margin at risk",
       "wasteRiskWithCost": "~{cost} in waste if demand does not pick up",
-      "marginRiskWithImpact": "Margin impact: ~{cost}"
+      "marginRiskWithImpact": "Margin impact: ~{cost}",
+      "why": "Why?",
+      "fixTo": "Fix → {{quantity}}"
     },
     "live": {
       "status": "Service is live",
@@ -530,7 +536,9 @@
       "runningSteady": "Running steady",
       "slowSales": "Slow sales",
       "sold": "Sold",
-      "startBatchNow": "Start batch now"
+      "startBatchNow": "Start batch now",
+      "logWaste": "Log waste",
+      "pctLeft": "{{pct}}% left"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -1126,6 +1134,12 @@
       "overrides": "{count} override(s) recorded; {won} beat the forecast — the model shifts its trust on those items.",
       "wasteRows": "{count} waste event(s) feed tomorrow's buffer calculation.",
       "stockoutRows": "{count} sellout(s) marked as censored demand — estimated from pace before selling out, not ignored."
+    },
+    "phase": {
+      "plan": "Plan",
+      "service": "Service",
+      "review": "Review",
+      "aria": "Day progress"
     }
   },
   "profile": {
@@ -2082,7 +2096,18 @@
     "update_details": "Update details",
     "update_note": "Update note (optional)",
     "wed": "Wed",
-    "wedding": "Wedding"
+    "wedding": "Wedding",
+    "today": "Today",
+    "previous_month": "Previous month",
+    "next_month": "Next month",
+    "month_events": "{{count}} events this month",
+    "month_guests": "{{count}} expected guests",
+    "month_promos": "{{count}} promotions",
+    "menu_availability": "Menu Availability",
+    "manage_link": "Manage →",
+    "no_unavailable_items": "No items marked unavailable for this day.",
+    "off_menu": "Off Menu",
+    "supply": "Supply"
   },
   "workspace": {
     "chat": {
