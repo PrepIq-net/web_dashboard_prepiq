@@ -38,7 +38,7 @@
     "reports": "Rapports",
     "purchasing": "Achats",
     "billing": "Facturation",
-    "chat": "Chat",
+    "chat": "Hub Opérations",
     "production": "Production",
     "salesWaste": "Ventes & Gaspillage",
     "financial": "Financier",
@@ -173,7 +173,7 @@
       "command": "Commande",
       "purchasing": "Achats",
       "billing": "Facturation",
-      "chat": "Chat",
+      "chat": "Hub Opérations",
       "history": "Historique",
       "salesWaste": "Ventes & Gaspillage",
       "risk": "Risque",
@@ -473,7 +473,8 @@
       "supplyConstrained": "Approvisionnement limité",
       "markUnavailable": "Marquer indisponible",
       "batchRule": "Règle de lot : {{raw}} → {{rounded}}",
-      "batchSize": "(taille de lot {{size}})"
+      "batchSize": "(taille de lot {{size}})",
+      "message": "Message"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",
@@ -1223,7 +1224,7 @@
     "purchasing": "Achats",
     "risk": "Risque",
     "billing": "Facturation",
-    "chat": "Chat",
+    "chat": "Hub Opérations",
     "settings": "Paramètres",
     "section": {
       "analytics": "Analytique",
@@ -2111,10 +2112,10 @@
   },
   "workspace": {
     "chat": {
-      "eyebrow": "Chat",
-      "title": "Chat",
-      "description": "Communication d'équipe",
-      "insight": "Messagerie en temps réel pour votre équipe de cuisine."
+      "eyebrow": "Hub Opérations",
+      "title": "Hub Opérations",
+      "description": "Communication d’équipe centrée sur le travail",
+      "insight": "Conversations, événements cuisine en direct, données opérationnelles partagées et PrepIQ — un seul flux."
     },
     "notifications": {
       "eyebrow": "Notifications",

@@ -11,6 +11,7 @@ import {
 } from "@/services";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
+import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { Shop } from "iconoir-react";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
@@ -802,20 +803,28 @@ export default function ProductionPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedItemId(item.id);
-                              const qty =
-                                item.prepNowQty > 0
-                                  ? Math.round(item.prepNowQty)
-                                  : 0;
-                              setBatchQuantity(qty ? String(qty) : "");
-                            }}
-                            className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold active:scale-[0.98]"
-                          >
-                            {t("workspace.production.table.log")}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedItemId(item.id);
+                                const qty =
+                                  item.prepNowQty > 0
+                                    ? Math.round(item.prepNowQty)
+                                    : 0;
+                                setBatchQuantity(qty ? String(qty) : "");
+                              }}
+                              className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold active:scale-[0.98]"
+                            >
+                              {t("workspace.production.table.log")}
+                            </button>
+                            <QuickMessageButton
+                              refType="PREP_ITEM"
+                              objectId={item.id}
+                              title={item.title}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-surface-4 text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -917,20 +926,28 @@ export default function ProductionPage() {
                           {formatMinutes(item.runoutMinutes)}
                         </span>
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedItemId(item.id);
-                          const qty =
-                            item.prepNowQty > 0
-                              ? Math.round(item.prepNowQty)
-                              : 0;
-                          setBatchQuantity(qty ? String(qty) : "");
-                        }}
-                        className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
-                      >
-                        {t("workspace.production.table.log")}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedItemId(item.id);
+                            const qty =
+                              item.prepNowQty > 0
+                                ? Math.round(item.prepNowQty)
+                                : 0;
+                            setBatchQuantity(qty ? String(qty) : "");
+                          }}
+                          className="inline-flex h-7 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
+                        >
+                          {t("workspace.production.table.log")}
+                        </button>
+                        <QuickMessageButton
+                          refType="PREP_ITEM"
+                          objectId={item.id}
+                          title={item.title}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-surface-4 text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
+                        />
+                      </div>
                     </div>
                   </article>
                 );

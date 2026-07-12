@@ -12,6 +12,7 @@ import {
   signedQuantity,
 } from "@/lib/format";
 import type { PrepPlanItem, BranchDayToday } from "@/services/production-intelligence/types";
+import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import {
   buildFinancialSnapshot,
   confidenceLabel,
@@ -328,6 +329,13 @@ function RowLinks({
       >
         {t("today.table.trackRecord")}
       </Link>
+      <QuickMessageButton
+        refType="PREP_ITEM"
+        objectId={item.id}
+        title={item.product_title}
+        label={t("today.table.message")}
+        className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
+      />
       {isMorning ? (
         <button
           type="button"

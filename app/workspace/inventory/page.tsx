@@ -39,6 +39,7 @@ import {
 import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import { SupplierModal } from "@/components/dashboard/inventory/supplier-modal";
@@ -325,14 +326,22 @@ function IngredientsTab({
         id: "actions",
         header: "",
         cell: (info) => (
-          <button
-            type="button"
-            onClick={() => openEdit(info.row.original)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
-            aria-label={t("workspace.inventory.ingredients.editAria", { name: info.row.original.name })}
-          >
-            <EditPencil className="h-4 w-4" />
-          </button>
+          <div className="flex items-center justify-end gap-1.5">
+            <QuickMessageButton
+              refType="INGREDIENT"
+              objectId={info.row.original.id}
+              title={info.row.original.name}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            />
+            <button
+              type="button"
+              onClick={() => openEdit(info.row.original)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+              aria-label={t("workspace.inventory.ingredients.editAria", { name: info.row.original.name })}
+            >
+              <EditPencil className="h-4 w-4" />
+            </button>
+          </div>
         ),
       }),
     ],

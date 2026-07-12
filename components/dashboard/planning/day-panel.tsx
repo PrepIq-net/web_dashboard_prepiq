@@ -15,6 +15,7 @@ import type { ItemAvailabilityOverride } from "@/services/inventory/types";
 import { useAssistantConversations } from "@/services/assistant/hooks";
 import type { AssistantConversation } from "@/services/assistant/types";
 import { ConversationReadonly } from "@/components/assistant/conversation-readonly";
+import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { toIso } from "./planning-helpers";
 
 /**
@@ -234,6 +235,12 @@ export function DayPanel({
                 </div>
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1">
+                  <QuickMessageButton
+                    refType="CALENDAR_EVENT"
+                    objectId={event.id}
+                    title={event.title}
+                    className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
+                  />
                   <button
                     type="button"
                     onClick={() => onEditClick(event.id)}
