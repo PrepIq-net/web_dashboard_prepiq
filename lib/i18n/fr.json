@@ -417,7 +417,15 @@
       "needsAttention": "Nécessite une attention",
       "tracked": "Suivi",
       "forecastConfidence": "Confiance des prévisions",
-      "vsTypical": "par rapport au {day} habituel"
+      "vsTypical": "par rapport au {day} habituel",
+      "and": " et ",
+      "maintainBaselineAll": "La demande semble stable — gardez votre plan de base aujourd'hui.",
+      "maintainBaselineWatch": "La demande semble stable — gardez un œil sur {items}.",
+      "planAcrossAll": "Prévoyez {delta} sur l'ensemble des articles.",
+      "prioritize": "Gardez un œil attentif sur {items} — {suffix}.",
+      "reviewHighDemand": "Examinez les articles à forte demande et ajustez votre plan en conséquence.",
+      "sensitiveSuffix": "ce sont ceux qui risquent le plus de manquer",
+      "wasteSuffix": "ce sont ceux qui risquent le plus d'être surproduits"
     },
     "prepPlan": {
       "title": "Plan de préparation",
@@ -432,7 +440,13 @@
       "locking": "Verrouillage...",
       "startService": "Commencer le service",
       "starting": "Démarrage...",
-      "lockedAt": "Verrouillé à {time} par {user}"
+      "lockedAt": "Verrouillé à {time} par {user}",
+      "lockFirst": "Verrouillez votre plan avant de commencer le service.",
+      "lockToStart": "Verrouillez le plan pour commencer le service",
+      "lockedAtBy": "Verrouillé à {time} par {user}",
+      "lockedAtTime": "Verrouillé à {time}",
+      "ofCount": "sur {total} articles examinés",
+      "pending": "en attente"
     },
     "table": {
       "item": "Article",
@@ -630,7 +644,10 @@
     },
     "eyebrow": "Opérations du jour",
     "expectedDemand": "Demande prévue",
-    "demandSignals": "Signaux de demande",
+    "demandSignals": {
+      "title": "Signaux de demande",
+      "noStrong": "Aucun signal de demande fort détecté aujourd'hui."
+    },
     "statusIs": "Statut",
     "tracked": "Suivi",
     "planReliability": "Fiabilité du plan",
@@ -833,186 +850,6 @@
         "Certains jours résistent. Tu as continué.",
         "C'était un service difficile. Repose-toi maintenant."
       ]
-    },
-    "csvMap": {
-      "errors": {
-        "noHeader": "Pas d'en-tête",
-        "saleDateRequired": "Date de vente requise",
-        "itemRequired": "Article requis",
-        "quantityRequired": "Quantité requise",
-        "duplicateColumn": "Colonne en double",
-        "columnNotInHeaders": "Colonne absente des en-têtes",
-        "fixMapping": "Corriger le mappage",
-        "previewFailed": "Aperçu échoué",
-        "noRowsImported": "Aucune ligne importée",
-        "importFailed": "Échec de l'importation"
-      },
-      "unmapped": "Non mappé",
-      "toast": {
-        "imported": "Importé",
-        "importComplete": "Importation terminée",
-        "noRows": "Aucune ligne"
-      },
-      "back": "Retour",
-      "backToLive": "Retour au direct",
-      "title": "Correspondance des colonnes",
-      "heading": "En-tête",
-      "description": "Faites correspondre vos colonnes CSV aux champs PrepIQ pour importer les données de vente.",
-      "requiredData": "Données requises",
-      "yourCsvColumn": "Votre colonne CSV",
-      "csvColumn": "Colonne CSV",
-      "autoCreateItems": "Créer automatiquement les articles",
-      "preview": "Aperçu",
-      "validating": "Validation",
-      "validateMapping": "Valider le mappage",
-      "importing": "Importation",
-      "importSalesData": "Importer les données de vente"
-    },
-    "itemDetail": {
-      "confidenceNarrative": {
-        "noHistory": "Aucun historique",
-        "high": "Élevé",
-        "moderate": "Modéré",
-        "lower": "Plus faible",
-        "low": "Faible"
-      },
-      "trendNarrative": {
-        "improving": "En amélioration",
-        "degrading": "En dégradation",
-        "stable": "Stable"
-      },
-      "varianceLabel": {
-        "matches": "Correspond",
-        "aboveSuggestion": "Au-dessus de la suggestion",
-        "belowSuggestion": "En dessous de la suggestion"
-      },
-      "financial": {
-        "whatCouldYouMake": "Ce que vous pourriez gagner",
-        "revenueEstimates": "Estimation des revenus",
-        "relativeOutcomes": "Résultats relatifs",
-        "aiPick": "Choix de l'IA",
-        "revenue": "Revenu",
-        "wasteCost": "Coût du gaspillage",
-        "net": "Net"
-      },
-      "trackRecord": {
-        "title": "Historique",
-        "lastSimilar": "Dernier jour similaire",
-        "prepped": "Préparé",
-        "sold": "Vendu",
-        "ranOut": "En rupture",
-        "leftover": "Restant",
-        "soldClean": "Vendu propre",
-        "overrodeModel": "A dérogé du modèle",
-        "colDate": "Date",
-        "colAiSaid": "Prévision IA",
-        "colPrepped": "Préparé",
-        "colSold": "Vendu",
-        "colOutcome": "Résultat",
-        "wasted": "Gaspillé",
-        "clean": "Propre",
-        "sameDay": "Même jour",
-        "override": "Dérogation"
-      },
-      "defaultTitle": "Titre par défaut",
-      "upside": {
-        "coversHighRunOutRisk": "Couvre un risque élevé de rupture",
-        "goodCoverageDemandSpikes": "Bonne couverture des pics de demande",
-        "lowerWasteSoftDemand": "Moins de gaspillage en cas de demande faible"
-      },
-      "downside": {
-        "mayGoUnsold": "Peut rester invendu",
-        "smallWasteRisk": "Petit risque de gaspillage",
-        "runningShort": "Quantité insuffisante",
-        "mayMissLateDemand": "Peut manquer la demande tardive"
-      },
-      "scenario": {
-        "conservative": "Prudent",
-        "followAi": "Suivre l'IA",
-        "extraBuffer": "Tampon supplémentaire",
-        "yourPlan": "Votre plan",
-        "lowerWasteRisk": "Risque de gaspillage réduit",
-        "coversDemandSpikes": "Couvre les pics de demande"
-      },
-      "signal": {
-        "reservation": "Réservation",
-        "event": "Événement",
-        "weather": "Météo",
-        "staffing": "Personnel",
-        "kitchenCapacity": "Capacité de la cuisine",
-        "deliveryMix": "Mix de livraison",
-        "traffic": "Trafic"
-      },
-      "eyebrow": "Détail de l'article",
-      "description": "Signaux de prévision, analyse des risques et historique pour cet article.",
-      "insight": "Vos décisions sur cet article entraînent le modèle pour les services futurs.",
-      "backToPrepPlan": "Retour au plan de préparation",
-      "loading": "Chargement",
-      "whyThisNumber": "Pourquoi ce nombre",
-      "howForecastBuilt": "Comment la prévision est construite",
-      "howForecastBuiltDesc": "Description de la construction de la prévision",
-      "confidence": "Confiance",
-      "chefWeight": {
-        "overrideWeight": "Poids de la dérogation",
-        "trustChef": "Confiance au chef",
-        "blended": "Mixte",
-        "modelLed": "Piloté par le modèle"
-      },
-      "whatIf": "Et si",
-      "comparePrepQuantities": "Comparer les quantités de préparation",
-      "metrics": {
-        "pastAccuracy": "Précision passée",
-        "wasteRate": "Taux de gaspillage",
-        "stockoutRate": "Taux de rupture",
-        "daysTracked": "Jours suivis"
-      },
-      "ingredients": {
-        "whatYouNeed": "Ce dont vous avez besoin",
-        "description": "Ingrédients nécessaires pour correspondre à votre quantité planifiée.",
-        "yourPlannedQty": "Votre quantité planifiée",
-        "calculating": "Calcul",
-        "noRecipe": "Aucune recette",
-        "addRecipe": "Ajouter une recette",
-        "buildRecipe": "Créer une recette",
-        "emptyRecipe": "Recette vide",
-        "editRecipe": "Modifier la recette",
-        "perServing": "Par portion",
-        "wasteBuffer": "Tampon de gaspillage",
-        "basedOn": "Basé sur",
-        "plannedQuantity": "Quantité planifiée"
-      },
-      "decision": {
-        "yourDecision": "Votre décision",
-        "aiRecommends": "L'IA recommande",
-        "yourPlan": "Votre plan",
-        "notSet": "Non défini",
-        "status": "Statut",
-        "acceptedAi": "IA acceptée",
-        "yourOverride": "Votre dérogation",
-        "pending": "En attente",
-        "planSaved": "Plan enregistré",
-        "couldNotSave": "Échec de l'enregistrement",
-        "saving": "Enregistrement",
-        "accept": "Accepter",
-        "qtyPlaceholder": "Qté",
-        "setOverride": "Définir une dérogation",
-        "planLocked": "Plan verrouillé"
-      },
-      "risk": {
-        "riskToday": "Risque aujourd'hui",
-        "runOutRisk": "Risque de rupture",
-        "wasteRisk": "Risque de gaspillage",
-        "highRunOut": "Rupture élevée",
-        "highWaste": "Gaspillage élevé"
-      },
-      "quickStats": {
-        "past60Days": "60 derniers jours",
-        "aiAccuracy": "Précision IA",
-        "stockouts": "Ruptures",
-        "wasteRate": "Taux de gaspillage",
-        "daysTracked": "Jours suivis"
-      },
-      "viewFullHistory": "Voir tout l'historique"
     },
     "init": {
       "eyebrow": "PrepIQ réfléchit",
@@ -3224,6 +3061,214 @@
         "ai_aligned_inline": "Aligné IA",
         "stockout_abbr": "Rupt.",
         "waste_abbr": "Gasp."
+      }
+    },
+    "today": {
+      "itemDetail": {
+        "eyebrow": "Détail de l'article",
+        "description": "Signaux de prévision, analyse des risques et historique pour cet article — {date}.",
+        "insight": "Vos décisions sur cet article entraînent le modèle pour les services futurs.",
+        "defaultTitle": "Cet article",
+        "backToPrepPlan": "Retour au plan de préparation",
+        "loading": "Chargement…",
+        "whyThisNumber": "Pourquoi ce nombre",
+        "howForecastBuilt": "Comment la prévision est construite",
+        "howForecastBuiltDesc": "En partant d'une base de référence, voici comment chaque signal a influencé la quantité finale.",
+        "confidence": "Confiance",
+        "confidenceNarrative": {
+          "noHistory": "Pas encore assez d'historique pour évaluer la confiance — le modèle apprendra du résultat d'aujourd'hui.",
+          "high": "Confiance élevée — cette prévision correspond étroitement à des tendances éprouvées.",
+          "moderate": "Confiance modérée — la prévision est assez fiable, mais mérite un second regard.",
+          "lower": "Confiance plus faible — considérez cette prévision comme un point de départ, pas une certitude.",
+          "low": "Confiance faible — un historique limité ou irrégulier signifie que cette prévision peut être imprécise."
+        },
+        "chefWeight": {
+          "overrideWeight": "Le poids de vos dérogations est de {weight} —",
+          "trustChef": "nous faisons confiance à votre jugement sur cet article.",
+          "blended": "mélangé avec la propre prévision du modèle.",
+          "modelLed": "le modèle prend la décision ici."
+        },
+        "whatIf": "Et si ?",
+        "comparePrepQuantities": "Comparez les résultats selon différentes quantités de préparation.",
+        "financial": {
+          "whatCouldYouMake": "Ce que vous pourriez gagner",
+          "revenueEstimates": "Estimation des revenus basée sur vos prix.",
+          "relativeOutcomes": "Résultats relatifs — les données de prix ne sont pas encore assez fiables pour des estimations en euros.",
+          "aiPick": "Choix de l'IA",
+          "revenue": "{amount} de revenus",
+          "wasteCost": "{amount} de coût de gaspillage",
+          "net": "{amount} net"
+        },
+        "trackRecord": {
+          "title": "Historique",
+          "lastSimilar": "Dernier {weekday} ({date})",
+          "prepped": "Préparé",
+          "sold": "Vendu",
+          "ranOut": "En rupture",
+          "leftover": "{qty} restant",
+          "soldClean": "Tout vendu",
+          "overrodeModel": "Vous avez dérogé au modèle",
+          "colDate": "Date",
+          "colAiSaid": "Prévision IA",
+          "colPrepped": "Préparé",
+          "colSold": "Vendu",
+          "colOutcome": "Résultat",
+          "wasted": "{qty} gaspillé",
+          "clean": "Propre",
+          "sameDay": "Même jour",
+          "override": "dérogation"
+        },
+        "ingredients": {
+          "whatYouNeed": "Ce dont vous avez besoin",
+          "description": "Ingrédients nécessaires pour préparer {qty} de {item}.",
+          "yourPlannedQty": "votre quantité planifiée",
+          "calculating": "Calcul des besoins en ingrédients…",
+          "noRecipe": "Aucune recette n'est encore associée à cet article.",
+          "addRecipe": "Ajoutez une recette pour voir les besoins en ingrédients et calculer automatiquement ce qu'il vous faut.",
+          "buildRecipe": "Créer une recette",
+          "emptyRecipe": "Cette recette ne contient encore aucun ingrédient.",
+          "editRecipe": "Modifier la recette",
+          "perServing": "{amount} {unit} par portion",
+          "wasteBuffer": "tampon de gaspillage de {pct}%",
+          "basedOn": "Basé sur {qty} de {name}",
+          "plannedQuantity": "quantité planifiée"
+        },
+        "decision": {
+          "yourDecision": "Votre décision",
+          "aiRecommends": "L'IA recommande",
+          "yourPlan": "Votre plan",
+          "notSet": "Non défini",
+          "status": "Statut",
+          "acceptedAi": "IA acceptée",
+          "yourOverride": "Votre dérogation",
+          "pending": "En attente",
+          "planSaved": "Plan enregistré.",
+          "couldNotSave": "Échec de l'enregistrement — réessayez.",
+          "saving": "Enregistrement…",
+          "accept": "Accepter {qty}",
+          "qtyPlaceholder": "Qté",
+          "setOverride": "Définir une dérogation",
+          "planLocked": "Le plan est verrouillé — aucune modification possible."
+        },
+        "risk": {
+          "riskToday": "Risque aujourd'hui",
+          "runOutRisk": "Risque de rupture",
+          "wasteRisk": "Risque de gaspillage",
+          "highRunOut": "Risque élevé de rupture — envisagez de préparer davantage.",
+          "highWaste": "Risque élevé de gaspillage — envisagez de préparer moins."
+        },
+        "quickStats": {
+          "past60Days": "60 derniers jours",
+          "aiAccuracy": "Précision IA",
+          "stockouts": "Ruptures",
+          "wasteRate": "Taux de gaspillage",
+          "daysTracked": "Jours suivis"
+        },
+        "metrics": {
+          "pastAccuracy": "Précision passée",
+          "wasteRate": "Taux de gaspillage",
+          "stockoutRate": "Taux de rupture",
+          "daysTracked": "Jours suivis"
+        },
+        "viewFullHistory": "Voir tout l'historique",
+        "upside": {
+          "coversHighRunOutRisk": "Couvre un risque élevé de rupture",
+          "goodCoverageDemandSpikes": "Bonne couverture des pics de demande",
+          "lowerWasteSoftDemand": "Moins de gaspillage en cas de demande faible"
+        },
+        "downside": {
+          "mayGoUnsold": "{qty} pourrait rester invendu",
+          "smallWasteRisk": "Petit risque de gaspillage",
+          "runningShort": "Quantité insuffisante",
+          "mayMissLateDemand": "Peut manquer la demande tardive"
+        },
+        "scenario": {
+          "conservative": "Prudent",
+          "followAi": "Suivre l'IA",
+          "extraBuffer": "Tampon supplémentaire",
+          "yourPlan": "Votre plan",
+          "lowerWasteRisk": "Risque de gaspillage réduit",
+          "coversDemandSpikes": "Couvre les pics de demande"
+        },
+        "signal": {
+          "reservation": "Réservations",
+          "event": "Événements locaux",
+          "weather": "Météo",
+          "staffing": "Personnel",
+          "kitchenCapacity": "Capacité de la cuisine",
+          "deliveryMix": "Mix de livraison",
+          "traffic": "Affluence"
+        },
+        "trendNarrative": {
+          "improving": "La précision de vos prévisions pour cet article s'améliore.",
+          "degrading": "La précision de vos prévisions pour cet article se dégrade.",
+          "stable": "La précision de vos prévisions pour cet article reste stable."
+        },
+        "varianceLabel": {
+          "matches": "Correspond à la suggestion de l'IA",
+          "aboveSuggestion": "{qty} au-dessus de la suggestion de l'IA",
+          "belowSuggestion": "{qty} en dessous de la suggestion de l'IA"
+        }
+      },
+      "csvMap": {
+        "back": "Retour",
+        "backToLive": "Retour à Aujourd'hui",
+        "title": "Correspondance des colonnes",
+        "heading": "Associez vos colonnes de ventes",
+        "description": "Associez les {count} colonnes de votre CSV aux champs PrepIQ pour importer les données de vente.",
+        "requiredData": "Données requises",
+        "yourCsvColumn": "Votre colonne CSV",
+        "csvColumn": "Colonne CSV",
+        "autoCreateItems": "Créer automatiquement les nouveaux articles",
+        "preview": "{valid} lignes valides, {failed} en échec — {create} créations et {update} mises à jour.",
+        "validating": "Validation…",
+        "validateMapping": "Valider le mappage",
+        "importing": "Importation…",
+        "importSalesData": "Importer les données de vente",
+        "unmapped": "Non mappé",
+        "field": {
+          "saleDate": {
+            "label": "Date",
+            "description": "Date de la vente (ex. : date, horodatage)"
+          },
+          "item": {
+            "label": "Nom de l'article ou ID article POS",
+            "description": "Nom de l'article ou identifiant fournisseur depuis votre export"
+          },
+          "quantity": {
+            "label": "Quantité vendue",
+            "description": "Nombre d'unités (ex. : qté, montant)"
+          },
+          "revenue": {
+            "label": "Revenu (optionnel)",
+            "description": "Valeur totale de la vente pour l'analyse de marge."
+          },
+          "unit": {
+            "label": "Unité (optionnel)",
+            "description": "PCS, KG, LTR, etc."
+          },
+          "externalRef": {
+            "label": "Référence externe (optionnel)",
+            "description": "Identifiant de commande/reçu pour éviter les doublons."
+          }
+        },
+        "errors": {
+          "noHeader": "Ce fichier CSV ne contient aucun en-tête de colonne.",
+          "saleDateRequired": "Date de vente requise",
+          "itemRequired": "Article requis",
+          "quantityRequired": "Quantité requise",
+          "duplicateColumn": "La même colonne est utilisée plusieurs fois.",
+          "columnNotInHeaders": "« {name} » ne fait pas partie des colonnes de votre CSV.",
+          "fixMapping": "Corrigez la correspondance des colonnes avant de continuer.",
+          "previewFailed": "Impossible de générer l'aperçu — réessayez.",
+          "noRowsImported": "Aucune ligne n'a été importée. Vérifiez votre fichier et la correspondance des colonnes.",
+          "importFailed": "Échec de l'importation. Veuillez réessayer."
+        },
+        "toast": {
+          "imported": "{created} lignes importées ({failed} en échec)",
+          "importComplete": "{count} lignes importées",
+          "noRows": "Aucune ligne importée"
+        }
       }
     }
   }

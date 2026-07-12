@@ -153,7 +153,7 @@ export function MorningOutlook({
         {/* Signal chips + action sentence */}
         <div className="flex-1 min-w-[180px]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            {t("today.demandSignals")}
+            {t("today.demandSignals.title")}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {(() => {

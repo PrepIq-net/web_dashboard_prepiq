@@ -417,7 +417,15 @@
       "needsAttention": "Needs attention",
       "tracked": "Tracked",
       "forecastConfidence": "Forecast confidence",
-      "vsTypical": "vs typical {day}"
+      "vsTypical": "vs typical {day}",
+      "and": " and ",
+      "maintainBaselineAll": "Demand looks steady — stick with your baseline plan today.",
+      "maintainBaselineWatch": "Demand looks steady — keep an eye on {items}.",
+      "planAcrossAll": "Plan {delta} across all items.",
+      "prioritize": "Keep a close eye on {items} — {suffix}.",
+      "reviewHighDemand": "Review high-demand items and adjust your plan accordingly.",
+      "sensitiveSuffix": "they're the most likely to run out",
+      "wasteSuffix": "they're the most likely to be over-prepped"
     },
     "prepPlan": {
       "title": "Prep Plan",
@@ -432,7 +440,13 @@
       "locking": "Locking...",
       "startService": "Start service",
       "starting": "Starting...",
-      "lockedAt": "Locked at {time} by {user}"
+      "lockedAt": "Locked at {time} by {user}",
+      "lockFirst": "Lock your plan before starting service.",
+      "lockToStart": "Lock the plan to start service",
+      "lockedAtBy": "Locked at {time} by {user}",
+      "lockedAtTime": "Locked at {time}",
+      "ofCount": "of {total} items reviewed",
+      "pending": "pending"
     },
     "table": {
       "item": "Item",
@@ -630,7 +644,10 @@
     },
     "eyebrow": "Today's Operations",
     "expectedDemand": "Expected demand",
-    "demandSignals": "Demand signals",
+    "demandSignals": {
+      "title": "Demand signals",
+      "noStrong": "No strong demand signals detected today."
+    },
     "statusIs": "Status",
     "tracked": "Tracked",
     "planReliability": "Plan reliability",
@@ -833,186 +850,6 @@
         "Some days push back. You kept going.",
         "It was a tough shift. Rest now."
       ]
-    },
-    "csvMap": {
-      "errors": {
-        "noHeader": "No Header",
-        "saleDateRequired": "Sale Date Required",
-        "itemRequired": "Item Required",
-        "quantityRequired": "Quantity Required",
-        "duplicateColumn": "Duplicate Column",
-        "columnNotInHeaders": "Column Not In Headers",
-        "fixMapping": "Fix Mapping",
-        "previewFailed": "Preview Failed",
-        "noRowsImported": "No Rows Imported",
-        "importFailed": "Import Failed"
-      },
-      "unmapped": "Unmapped",
-      "toast": {
-        "imported": "Imported",
-        "importComplete": "Import Complete",
-        "noRows": "No Rows"
-      },
-      "back": "Back",
-      "backToLive": "Back To Live",
-      "title": "Column Mapping",
-      "heading": "Heading",
-      "description": "Map your CSV columns to PrepIQ fields to import sales data.",
-      "requiredData": "Required Data",
-      "yourCsvColumn": "Your Csv Column",
-      "csvColumn": "Csv Column",
-      "autoCreateItems": "Auto Create Items",
-      "preview": "Preview",
-      "validating": "Validating",
-      "validateMapping": "Validate Mapping",
-      "importing": "Importing",
-      "importSalesData": "Import Sales Data"
-    },
-    "itemDetail": {
-      "confidenceNarrative": {
-        "noHistory": "No History",
-        "high": "High",
-        "moderate": "Moderate",
-        "lower": "Lower",
-        "low": "Low"
-      },
-      "trendNarrative": {
-        "improving": "Improving",
-        "degrading": "Degrading",
-        "stable": "Stable"
-      },
-      "varianceLabel": {
-        "matches": "Matches",
-        "aboveSuggestion": "Above Suggestion",
-        "belowSuggestion": "Below Suggestion"
-      },
-      "financial": {
-        "whatCouldYouMake": "What Could You Make",
-        "revenueEstimates": "Revenue Estimates",
-        "relativeOutcomes": "Relative Outcomes",
-        "aiPick": "Ai Pick",
-        "revenue": "Revenue",
-        "wasteCost": "Waste Cost",
-        "net": "Net"
-      },
-      "trackRecord": {
-        "title": "Track Record",
-        "lastSimilar": "Last Similar",
-        "prepped": "Prepped",
-        "sold": "Sold",
-        "ranOut": "Ran Out",
-        "leftover": "Leftover",
-        "soldClean": "Sold Clean",
-        "overrodeModel": "Overrode Model",
-        "colDate": "Col Date",
-        "colAiSaid": "Col Ai Said",
-        "colPrepped": "Col Prepped",
-        "colSold": "Col Sold",
-        "colOutcome": "Col Outcome",
-        "wasted": "Wasted",
-        "clean": "Clean",
-        "sameDay": "Same Day",
-        "override": "Override"
-      },
-      "defaultTitle": "Default Title",
-      "upside": {
-        "coversHighRunOutRisk": "Covers High Run Out Risk",
-        "goodCoverageDemandSpikes": "Good Coverage Demand Spikes",
-        "lowerWasteSoftDemand": "Lower Waste Soft Demand"
-      },
-      "downside": {
-        "mayGoUnsold": "May Go Unsold",
-        "smallWasteRisk": "Small Waste Risk",
-        "runningShort": "Running Short",
-        "mayMissLateDemand": "May Miss Late Demand"
-      },
-      "scenario": {
-        "conservative": "Conservative",
-        "followAi": "Follow Ai",
-        "extraBuffer": "Extra Buffer",
-        "yourPlan": "Your Plan",
-        "lowerWasteRisk": "Lower Waste Risk",
-        "coversDemandSpikes": "Covers Demand Spikes"
-      },
-      "signal": {
-        "reservation": "Reservation",
-        "event": "Event",
-        "weather": "Weather",
-        "staffing": "Staffing",
-        "kitchenCapacity": "Kitchen Capacity",
-        "deliveryMix": "Delivery Mix",
-        "traffic": "Traffic"
-      },
-      "eyebrow": "Item Detail",
-      "description": "Forecast signals, risk analysis, and history for this item.",
-      "insight": "Your decisions on this item train the model for future shifts.",
-      "backToPrepPlan": "Back To Prep Plan",
-      "loading": "Loading",
-      "whyThisNumber": "Why This Number",
-      "howForecastBuilt": "How Forecast Built",
-      "howForecastBuiltDesc": "How Forecast Built Desc",
-      "confidence": "Confidence",
-      "chefWeight": {
-        "overrideWeight": "Override Weight",
-        "trustChef": "Trust Chef",
-        "blended": "Blended",
-        "modelLed": "Model Led"
-      },
-      "whatIf": "What If",
-      "comparePrepQuantities": "Compare Prep Quantities",
-      "metrics": {
-        "pastAccuracy": "Past Accuracy",
-        "wasteRate": "Waste Rate",
-        "stockoutRate": "Stockout Rate",
-        "daysTracked": "Days Tracked"
-      },
-      "ingredients": {
-        "whatYouNeed": "What You Need",
-        "description": "Ingredients required to match your planned quantity.",
-        "yourPlannedQty": "Your Planned Qty",
-        "calculating": "Calculating",
-        "noRecipe": "No Recipe",
-        "addRecipe": "Add Recipe",
-        "buildRecipe": "Build Recipe",
-        "emptyRecipe": "Empty Recipe",
-        "editRecipe": "Edit Recipe",
-        "perServing": "Per Serving",
-        "wasteBuffer": "Waste Buffer",
-        "basedOn": "Based On",
-        "plannedQuantity": "Planned Quantity"
-      },
-      "decision": {
-        "yourDecision": "Your Decision",
-        "aiRecommends": "Ai Recommends",
-        "yourPlan": "Your Plan",
-        "notSet": "Not Set",
-        "status": "Status",
-        "acceptedAi": "Accepted Ai",
-        "yourOverride": "Your Override",
-        "pending": "Pending",
-        "planSaved": "Plan Saved",
-        "couldNotSave": "Could Not Save",
-        "saving": "Saving",
-        "accept": "Accept",
-        "qtyPlaceholder": "Qty Placeholder",
-        "setOverride": "Set Override",
-        "planLocked": "Plan Locked"
-      },
-      "risk": {
-        "riskToday": "Risk Today",
-        "runOutRisk": "Run Out Risk",
-        "wasteRisk": "Waste Risk",
-        "highRunOut": "High Run Out",
-        "highWaste": "High Waste"
-      },
-      "quickStats": {
-        "past60Days": "Past60 Days",
-        "aiAccuracy": "Ai Accuracy",
-        "stockouts": "Stockouts",
-        "wasteRate": "Waste Rate",
-        "daysTracked": "Days Tracked"
-      },
-      "viewFullHistory": "View Full History"
     },
     "init": {
       "eyebrow": "PrepIQ is thinking",
@@ -3224,6 +3061,214 @@
         "ai_aligned_inline": "Ai aligned inline",
         "stockout_abbr": "Stockout abbr",
         "waste_abbr": "Waste abbr"
+      }
+    },
+    "today": {
+      "itemDetail": {
+        "eyebrow": "Item Detail",
+        "description": "Forecast signals, risk analysis, and history for this item — {date}.",
+        "insight": "Your decisions on this item train the model for future shifts.",
+        "defaultTitle": "This item",
+        "backToPrepPlan": "Back to prep plan",
+        "loading": "Loading…",
+        "whyThisNumber": "Why this number",
+        "howForecastBuilt": "How the forecast was built",
+        "howForecastBuiltDesc": "Starting from a baseline, here's how each signal shaped the final quantity.",
+        "confidence": "Confidence",
+        "confidenceNarrative": {
+          "noHistory": "Not enough history yet to gauge confidence — the model will learn from today's outcome.",
+          "high": "High confidence — this forecast closely matches proven patterns.",
+          "moderate": "Moderate confidence — the forecast is fairly reliable, but worth a second look.",
+          "lower": "Lower confidence — treat this forecast as a starting point, not a certainty.",
+          "low": "Low confidence — limited or inconsistent history means this forecast could be off."
+        },
+        "chefWeight": {
+          "overrideWeight": "Your override weight is {weight} —",
+          "trustChef": "we're trusting your judgment on this one.",
+          "blended": "blended with the model's own forecast.",
+          "modelLed": "the model is leading this call."
+        },
+        "whatIf": "What if?",
+        "comparePrepQuantities": "Compare outcomes across different prep quantities.",
+        "financial": {
+          "whatCouldYouMake": "What could you make?",
+          "revenueEstimates": "Estimated revenue based on your pricing.",
+          "relativeOutcomes": "Relative outcomes — pricing data isn't reliable enough for dollar estimates yet.",
+          "aiPick": "AI pick",
+          "revenue": "{amount} revenue",
+          "wasteCost": "{amount} waste cost",
+          "net": "{amount} net"
+        },
+        "trackRecord": {
+          "title": "Track record",
+          "lastSimilar": "Last {weekday} ({date})",
+          "prepped": "Prepped",
+          "sold": "Sold",
+          "ranOut": "Ran out",
+          "leftover": "{qty} leftover",
+          "soldClean": "Sold clean",
+          "overrodeModel": "You overrode the model",
+          "colDate": "Date",
+          "colAiSaid": "AI said",
+          "colPrepped": "Prepped",
+          "colSold": "Sold",
+          "colOutcome": "Outcome",
+          "wasted": "{qty} wasted",
+          "clean": "Clean",
+          "sameDay": "Same day",
+          "override": "override"
+        },
+        "ingredients": {
+          "whatYouNeed": "What you'll need",
+          "description": "Ingredients needed to prep {qty} of {item}.",
+          "yourPlannedQty": "your planned quantity",
+          "calculating": "Calculating ingredient needs…",
+          "noRecipe": "No recipe linked to this item yet.",
+          "addRecipe": "Add a recipe to see ingredient requirements and auto-calculate what you'll need.",
+          "buildRecipe": "Build recipe",
+          "emptyRecipe": "This recipe doesn't have any ingredients yet.",
+          "editRecipe": "Edit recipe",
+          "perServing": "{amount} {unit} per serving",
+          "wasteBuffer": "{pct}% waste buffer",
+          "basedOn": "Based on {qty} of {name}",
+          "plannedQuantity": "planned quantity"
+        },
+        "decision": {
+          "yourDecision": "Your decision",
+          "aiRecommends": "AI recommends",
+          "yourPlan": "Your plan",
+          "notSet": "Not set",
+          "status": "Status",
+          "acceptedAi": "Accepted AI",
+          "yourOverride": "Your override",
+          "pending": "Pending",
+          "planSaved": "Plan saved.",
+          "couldNotSave": "Couldn't save — try again.",
+          "saving": "Saving…",
+          "accept": "Accept {qty}",
+          "qtyPlaceholder": "Qty",
+          "setOverride": "Set override",
+          "planLocked": "Plan is locked — no further changes."
+        },
+        "risk": {
+          "riskToday": "Risk today",
+          "runOutRisk": "Run-out risk",
+          "wasteRisk": "Waste risk",
+          "highRunOut": "High risk of running out — consider prepping more.",
+          "highWaste": "High risk of waste — consider prepping less."
+        },
+        "quickStats": {
+          "past60Days": "Past 60 days",
+          "aiAccuracy": "AI accuracy",
+          "stockouts": "Stockouts",
+          "wasteRate": "Waste rate",
+          "daysTracked": "Days tracked"
+        },
+        "metrics": {
+          "pastAccuracy": "Past accuracy",
+          "wasteRate": "Waste rate",
+          "stockoutRate": "Stockout rate",
+          "daysTracked": "Days tracked"
+        },
+        "viewFullHistory": "View full forecast history",
+        "upside": {
+          "coversHighRunOutRisk": "Covers high run-out risk",
+          "goodCoverageDemandSpikes": "Good coverage if demand spikes",
+          "lowerWasteSoftDemand": "Lower waste if demand is soft"
+        },
+        "downside": {
+          "mayGoUnsold": "{qty} may go unsold",
+          "smallWasteRisk": "Small waste risk",
+          "runningShort": "Risk of running short",
+          "mayMissLateDemand": "May miss late demand"
+        },
+        "scenario": {
+          "conservative": "Conservative",
+          "followAi": "Follow AI",
+          "extraBuffer": "Extra buffer",
+          "yourPlan": "Your plan",
+          "lowerWasteRisk": "Lower waste risk",
+          "coversDemandSpikes": "Covers demand spikes"
+        },
+        "signal": {
+          "reservation": "Reservations",
+          "event": "Local events",
+          "weather": "Weather",
+          "staffing": "Staffing",
+          "kitchenCapacity": "Kitchen capacity",
+          "deliveryMix": "Delivery mix",
+          "traffic": "Foot traffic"
+        },
+        "trendNarrative": {
+          "improving": "Your forecast accuracy for this item has been improving.",
+          "degrading": "Your forecast accuracy for this item has been slipping.",
+          "stable": "Your forecast accuracy for this item has stayed steady."
+        },
+        "varianceLabel": {
+          "matches": "Matches AI suggestion",
+          "aboveSuggestion": "{qty} above AI suggestion",
+          "belowSuggestion": "{qty} below AI suggestion"
+        }
+      },
+      "csvMap": {
+        "back": "Back",
+        "backToLive": "Back to Today",
+        "title": "Column Mapping",
+        "heading": "Map your sales columns",
+        "description": "Match your CSV's {count} columns to PrepIQ fields to import sales data.",
+        "requiredData": "Required data",
+        "yourCsvColumn": "Your CSV column",
+        "csvColumn": "CSV column",
+        "autoCreateItems": "Automatically create new items",
+        "preview": "{valid} valid rows, {failed} failed — will create {create} and update {update}.",
+        "validating": "Validating…",
+        "validateMapping": "Validate mapping",
+        "importing": "Importing…",
+        "importSalesData": "Import sales data",
+        "unmapped": "Unmapped",
+        "field": {
+          "saleDate": {
+            "label": "Date",
+            "description": "When the sale occurred (e.g., date, timestamp)"
+          },
+          "item": {
+            "label": "Item name or POS item id",
+            "description": "Item title or provider item identifier from your export"
+          },
+          "quantity": {
+            "label": "Quantity sold",
+            "description": "How many units (e.g., qty, amount)"
+          },
+          "revenue": {
+            "label": "Revenue (optional)",
+            "description": "Total sale value for margin analysis."
+          },
+          "unit": {
+            "label": "Unit (optional)",
+            "description": "PCS, KG, LTR, etc."
+          },
+          "externalRef": {
+            "label": "External ref (optional)",
+            "description": "Order/receipt identifier for dedupe."
+          }
+        },
+        "errors": {
+          "noHeader": "This CSV file has no column headers.",
+          "saleDateRequired": "Sale date is required",
+          "itemRequired": "Item is required",
+          "quantityRequired": "Quantity is required",
+          "duplicateColumn": "The same column is mapped more than once.",
+          "columnNotInHeaders": "\"{name}\" isn't one of your CSV columns.",
+          "fixMapping": "Fix the column mapping before continuing.",
+          "previewFailed": "Couldn't preview the import — try again.",
+          "noRowsImported": "No rows were imported. Check your file and mapping.",
+          "importFailed": "Import failed. Please try again."
+        },
+        "toast": {
+          "imported": "Imported {created} rows ({failed} failed)",
+          "importComplete": "Imported {count} rows",
+          "noRows": "No rows imported"
+        }
       }
     }
   }
