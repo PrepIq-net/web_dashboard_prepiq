@@ -91,6 +91,9 @@
     "agreeToTerms": "En cliquant sur « Créer un compte », vous acceptez les conditions d'utilisation et la politique de confidentialité de PrepIQ.",
     "otpVerified": "OTP vérifié. Vous pouvez maintenant vous connecter.",
     "sessionSwitched": "Session changée, actualisation de l'espace de travail…",
+    "accountReactivated": "Bon retour ! Votre compte a été réactivé.",
+    "googleLoading": "La connexion Google est en cours de chargement. Veuillez réessayer.",
+    "googleFailed": "Échec de la connexion Google. Veuillez réessayer.",
     "authenticating": "Authentification...",
     "unverifiedMessage": "Votre compte n'est pas encore vérifié. Pour continuer, veuillez vérifier votre e-mail.",
     "verifyEmail": "vérifier votre e-mail",
@@ -1019,6 +1022,8 @@
     "security": {
       "changePasswordTitle": "Changer le mot de passe",
       "changePasswordDescription": "Mettez à jour votre mot de passe. Vous aurez besoin de votre mot de passe actuel.",
+      "setPasswordTitle": "Définir un mot de passe",
+      "setPasswordDescription": "Vous vous êtes inscrit avec Google. Ajoutez un mot de passe pour pouvoir aussi vous connecter avec votre e-mail.",
       "currentPassword": "Mot de passe actuel",
       "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
       "newPassword": "Nouveau mot de passe",

@@ -1,53 +1,86 @@
 "use client";
 
 import { Select } from "@/components/ui/select";
-import { useState, useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import {
   Search,
   HelpCircle,
   Bug,
   LightBulb,
-  Clock,
   CheckCircle,
   WarningTriangle,
   Circle,
-  Page,
   Play,
-  CreditCard,
-  ArrowRight,
-  Plus,
+  ArrowUp,
+  Attachment,
   ChatBubble,
   Book,
   Rocket,
   Terminal,
   Package,
   GraphUp,
-  Cart,
-  Coins,
-  User,
-  WarningCircle,
+  Xmark,
 } from "iconoir-react";
 import { Button } from "@/components/ui/button";
 import {
   useCurrentUserProfile,
-  useSupportStats,
   useHelpArticles,
   useSearchHelpArticles,
   useSystemStatus,
-  useSupportTickets,
-  useCreateSupportTicket,
-  useCreateBugReport,
-  useFeatureRequests,
-  useCreateFeatureRequest,
-  useVoteFeatureRequest,
   useBranches,
 } from "@/services";
-import type {
-  HelpArticle,
-  SystemStatus,
-  SupportTicket,
-  FeatureRequest,
-} from "@/services/support/types";
+import type { HelpArticle, SystemStatus } from "@/services/support/types";
+import {
+  useFeatureBoard,
+  useSubmitSupportRequest,
+  useToggleFeatureVote,
+  type FeatureBoardEntry,
+  type SupportContactType,
+} from "@/services/support/contact";
+import { useLanguage } from "@/lib/i18n/language-context";
+
+const MAX_FILES = 5;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+const CONTACT_TYPES: {
+  value: SupportContactType;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "BUG",
+    label: "Report a bug",
+    description: "Something isn't working the way it should",
+    icon: <Bug className="h-5 w-5" />,
+  },
+  {
+    value: "FEATURE_REQUEST",
+    label: "Request a feature",
+    description: "Something PrepIQ could do for your kitchen",
+    icon: <LightBulb className="h-5 w-5" />,
+  },
+  {
+    value: "INQUIRY",
+    label: "Ask a question",
+    description: "Billing, data, forecasts — anything unclear",
+    icon: <HelpCircle className="h-5 w-5" />,
+  },
+  {
+    value: "FEEDBACK",
+    label: "Share feedback",
+    description: "Tell us how PrepIQ is working for you",
+    icon: <ChatBubble className="h-5 w-5" />,
+  },
+];
+
+const MESSAGE_PLACEHOLDERS: Record<SupportContactType, string> = {
+  BUG: "What happened, what did you expect, and how can we reproduce it? Include any error messages…",
+  FEATURE_REQUEST: "Describe the feature and how it would help your operations…",
+  INQUIRY: "What would you like to know?",
+  FEEDBACK: "What's working well? What's getting in your way?",
+};
 
 function getStatusIcon(status: SystemStatus["forecast_engine"]) {
   switch (status) {
@@ -71,6 +104,12 @@ function getStatusLabel(status: SystemStatus["forecast_engine"]) {
   }
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 function QuickGuideCard({
   title,
   description,
@@ -89,17 +128,14 @@ function QuickGuideCard({
       onClick={onClick}
       className="w-full text-left p-5 rounded-xl border border-border-default bg-surface-2 hover:bg-surface-3 hover:border-brand-gold/30 transition-all duration-200 group"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-3 text-brand-gold group-hover:bg-brand-gold/10">
-            {icon}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-            <p className="text-xs text-text-muted mt-0.5">{description}</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-3 text-brand-gold group-hover:bg-brand-gold/10">
+          {icon}
         </div>
-        <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-brand-gold group-hover:translate-x-1 transition-all" />
+        <div>
+          <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+          <p className="text-xs text-text-muted mt-0.5">{description}</p>
+        </div>
       </div>
       <p className="text-xs text-text-muted mt-3">
         <span className="text-brand-gold font-medium">{articleCount}</span> articles
@@ -136,74 +172,72 @@ function SystemStatusCard({
   );
 }
 
-function FeatureRequestCard({
-  request,
+function FeatureBoardCard({
+  entry,
   onVote,
+  voting,
 }: {
-  request: FeatureRequest;
+  entry: FeatureBoardEntry;
   onVote: (id: string) => void;
+  voting: boolean;
 }) {
-  const [voting, setVoting] = useState(false);
-
-  const handleVote = async () => {
-    setVoting(true);
-    await onVote(request.id);
-    setVoting(false);
-  };
-
   return (
     <div className="p-4 rounded-lg bg-surface-2 border border-border-default">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <h4 className="text-sm font-semibold text-text-primary">{request.title}</h4>
-          <p className="text-xs text-text-muted mt-1 line-clamp-2">{request.description}</p>
+          <h4 className="text-sm font-semibold text-text-primary">{entry.title}</h4>
+          <p className="text-xs text-text-muted mt-1 line-clamp-3">{entry.description}</p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] px-2 py-0.5 rounded bg-surface-3 text-text-muted uppercase tracking-wider">
-              {request.category}
+              {entry.status === "IN_PROGRESS" ? "In progress" : "Under review"}
             </span>
+            <span className="text-[10px] text-text-muted font-mono">{entry.reference}</span>
           </div>
         </div>
         <button
-          onClick={handleVote}
+          onClick={() => onVote(entry.id)}
           disabled={voting}
-          className="flex flex-col items-center gap-1 p-2 rounded-lg bg-surface-3 hover:bg-brand-gold/10 hover:text-brand-gold border border-border-default transition-colors"
+          title={entry.hasVoted ? "Remove your vote" : "Vote for this feature"}
+          className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors ${
+            entry.hasVoted
+              ? "bg-brand-gold/15 text-brand-gold border-brand-gold/40"
+              : "bg-surface-3 border-border-default hover:bg-brand-gold/10 hover:text-brand-gold"
+          }`}
         >
-          <Plus className={`h-4 w-4 ${voting ? "animate-pulse" : ""}`} />
-          <span className="text-xs font-bold">{request.votes}</span>
+          <ArrowUp className={`h-4 w-4 ${voting ? "animate-pulse" : ""}`} />
+          <span className="text-xs font-bold">{entry.votes}</span>
         </button>
       </div>
     </div>
   );
 }
 
+type ReplyPreference = "account" | "custom" | "none";
+
 export function SupportTabContent() {
   const { data: user } = useCurrentUserProfile();
+  const { language } = useLanguage();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
-  const statsQuery = useSupportStats();
   const helpArticlesQuery = useHelpArticles();
   const systemStatusQuery = useSystemStatus();
-  const featureRequestsQuery = useFeatureRequests();
+  const featureBoardQuery = useFeatureBoard();
 
-  const createTicketMutation = useCreateSupportTicket();
-  const createBugReportMutation = useCreateBugReport();
-  const createFeatureRequestMutation = useCreateFeatureRequest();
-  const voteFeatureRequestMutation = useVoteFeatureRequest();
+  const submitMutation = useSubmitSupportRequest();
+  const voteMutation = useToggleFeatureVote();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"help" | "contact" | "report" | "features">("help");
-  const [ticketForm, setTicketForm] = useState({
-    subject: "",
-    category: "technical_issue" as const,
-    description: "",
-    priority: "medium" as const,
-  });
-  const [bugForm, setBugForm] = useState({ description: "" });
-  const [featureForm, setFeatureForm] = useState({
-    title: "",
-    description: "",
-    category: "forecasting" as const,
-  });
+  const [activeTab, setActiveTab] = useState<"help" | "contact" | "board">("help");
+
+  const [contactType, setContactType] = useState<SupportContactType>("BUG");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [replyPreference, setReplyPreference] = useState<ReplyPreference>("account");
+  const [customEmail, setCustomEmail] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [lastReference, setLastReference] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const searchResults = useSearchHelpArticles(searchQuery);
 
@@ -219,38 +253,73 @@ export function SupportTabContent() {
     );
   }, [helpArticlesQuery.data]);
 
-  const openFeatureRequests = useMemo(() => {
-    const requests = Array.isArray(featureRequestsQuery.data) ? featureRequestsQuery.data : [];
-    return requests.filter(
-      (r) => r.status === "open" || r.status === "under_review" || r.status === "planned",
-    );
-  }, [featureRequestsQuery.data]);
+  const branches = branchesQuery.data ?? [];
 
-  const handleSubmitTicket = async (e: React.FormEvent) => {
+  function handleAddFiles(selected: FileList | null) {
+    if (!selected) return;
+    const next = [...files];
+    for (const file of Array.from(selected)) {
+      if (next.length >= MAX_FILES) {
+        toast.error(`You can attach up to ${MAX_FILES} files.`);
+        break;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        toast.error(`"${file.name}" is larger than 5 MB.`);
+        continue;
+      }
+      if (next.some((f) => f.name === file.name && f.size === file.size)) continue;
+      next.push(file);
+    }
+    setFiles(next);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await createTicketMutation.mutateAsync(ticketForm);
-    setTicketForm({ subject: "", category: "technical_issue", description: "", priority: "medium" });
-    setActiveTab("help");
-  };
 
-  const handleSubmitBugReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createBugReportMutation.mutateAsync(bugForm);
-    setBugForm({ description: "" });
-  };
+    if (replyPreference === "custom" && !/^\S+@\S+\.\S+$/.test(customEmail.trim())) {
+      toast.error("Enter a valid email for the reply, or choose another option.");
+      return;
+    }
 
-  const handleSubmitFeatureRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createFeatureRequestMutation.mutateAsync(featureForm);
-    setFeatureForm({ title: "", description: "", category: "forecasting" });
-  };
+    const form = new FormData();
+    form.set("type", contactType);
+    form.set("subject", subject);
+    form.set("message", message);
+    if (replyPreference === "account" && user?.email) {
+      form.set("contactEmail", user.email);
+    } else if (replyPreference === "custom") {
+      form.set("contactEmail", customEmail.trim());
+    }
+    const branch = branches.find((b) => b.id === branchId);
+    if (branch) {
+      form.set("branchId", branch.id);
+      form.set("branchName", branch.name);
+    }
+    form.set("currentUrl", window.location.href);
+    form.set("locale", language);
+    for (const file of files) form.append("attachments", file);
 
-  const handleVote = async (id: string) => {
-    await voteFeatureRequestMutation.mutateAsync(id);
-    featureRequestsQuery.refetch();
-  };
+    try {
+      const result = await submitMutation.mutateAsync(form);
+      setLastReference(result.reference);
+      setSubject("");
+      setMessage("");
+      setFiles([]);
+      toast.success(`Sent! Your reference is ${result.reference}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send your request.");
+    }
+  }
 
-  const stats = statsQuery.data;
+  function handleVote(id: string) {
+    voteMutation.mutate(id, {
+      onError: (error) =>
+        toast.error(error instanceof Error ? error.message : "Could not register your vote."),
+    });
+  }
+
+  const boardEntries = featureBoardQuery.data ?? [];
 
   return (
     <div className="space-y-8">
@@ -258,38 +327,17 @@ export function SupportTabContent() {
       <div>
         <h2 className="text-xl font-semibold text-text-primary">Support Hub</h2>
         <p className="text-sm text-text-muted mt-1">
-          Help center, issue tracking, and feature requests.
+          Help center, direct line to the PrepIQ team, and feature voting.
         </p>
       </div>
-
-      {/* Quick Stats */}
-      <section className="grid grid-cols-3 gap-5 pb-6 border-b border-[#2A2A2E]">
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Open Tickets</p>
-          <p className="mt-1 text-3xl font-semibold text-[#F5F5F7]">{stats?.open_tickets ?? "—"}</p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Avg Response</p>
-          <p className="mt-1 text-3xl font-semibold text-[#F5F5F7]">
-            {stats?.avg_response_time_minutes ?? "—"} min
-          </p>
-        </article>
-        <article>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">Resolved This Week</p>
-          <p className="mt-1 text-3xl font-semibold text-[#F5F5F7]">
-            {stats?.resolved_this_week ?? "—"}
-          </p>
-        </article>
-      </section>
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2 border-b border-border-default pb-4">
         {(
           [
             { id: "help", label: "Help & Guides", icon: <Search className="h-4 w-4" /> },
-            { id: "contact", label: "Contact Support", icon: <ChatBubble className="h-4 w-4" /> },
-            { id: "report", label: "Report a Problem", icon: <Bug className="h-4 w-4" /> },
-            { id: "features", label: "Feature Requests", icon: <LightBulb className="h-4 w-4" /> },
+            { id: "contact", label: "Contact Us", icon: <ChatBubble className="h-4 w-4" /> },
+            { id: "board", label: "Feature Board", icon: <LightBulb className="h-4 w-4" /> },
           ] as const
         ).map((t) => (
           <button
@@ -446,183 +494,245 @@ export function SupportTabContent() {
         </div>
       )}
 
-      {/* Contact Support */}
+      {/* Contact Us — unified intake for bugs, features, questions, feedback */}
       {activeTab === "contact" && (
-        <div>
-          <form onSubmit={handleSubmitTicket} className="max-w-2xl space-y-6">
+        <div className="max-w-3xl space-y-6">
+          {lastReference && (
+            <div className="p-4 rounded-xl bg-status-success/10 border border-status-success/20 flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-status-success shrink-0" />
+              <p className="text-sm text-text-primary">
+                Thanks — your message reached the PrepIQ team. Reference{" "}
+                <span className="font-mono text-brand-gold">{lastReference}</span>.
+              </p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-3">
+                What&apos;s this about?
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {CONTACT_TYPES.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setContactType(option.value)}
+                    className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all ${
+                      contactType === option.value
+                        ? "border-brand-gold bg-brand-gold/10"
+                        : "border-border-default bg-surface-2 hover:bg-surface-3"
+                    }`}
+                  >
+                    <span
+                      className={
+                        contactType === option.value ? "text-brand-gold" : "text-text-muted"
+                      }
+                    >
+                      {option.icon}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-text-primary">
+                        {option.label}
+                      </span>
+                      <span className="block text-xs text-text-muted mt-0.5">
+                        {option.description}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
                 Subject
               </label>
               <input
                 type="text"
-                value={ticketForm.subject}
-                onChange={(e) => setTicketForm({ ...ticketForm, subject: e.target.value })}
-                placeholder="Brief description of your issue"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="One line summing it up"
                 required
+                maxLength={200}
                 className="w-full h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Category"
-                options={[
-                  { value: "technical_issue", label: "Technical Issue" },
-                  { value: "data_problem", label: "Data Problem" },
-                  { value: "forecast_question", label: "Forecast Question" },
-                  { value: "billing_issue", label: "Billing Issue" },
-                  { value: "pos_integration", label: "POS Integration" },
-                  { value: "other", label: "Other" },
-                ]}
-                value={ticketForm.category}
-                onChange={(value) =>
-                  setTicketForm({ ...ticketForm, category: value as typeof ticketForm.category })
-                }
-              />
-              <Select
-                label="Priority"
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "critical", label: "Critical" },
-                ]}
-                value={ticketForm.priority}
-                onChange={(value) =>
-                  setTicketForm({ ...ticketForm, priority: value as typeof ticketForm.priority })
-                }
               />
             </div>
 
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
-                Description
+                Details
               </label>
               <textarea
-                value={ticketForm.description}
-                onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
-                placeholder="Please provide details about your issue..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={MESSAGE_PLACEHOLDERS[contactType]}
                 required
                 rows={6}
                 className="w-full px-4 py-3 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none"
               />
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Branch concerned (optional)"
+                options={[
+                  { value: "", label: "General / all branches" },
+                  ...branches.map((b) => ({ value: b.id, label: b.name })),
+                ]}
+                value={branchId}
+                onChange={(value) => setBranchId(value)}
+              />
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
+                  Attachments
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.txt,.csv,.json"
+                  className="hidden"
+                  onChange={(e) => handleAddFiles(e.target.files)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-12"
+                >
+                  <Attachment className="h-4 w-4 mr-2" />
+                  Add screenshots or files
+                </Button>
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  Up to {MAX_FILES} files, 5 MB each. Images, PDF, or logs.
+                </p>
+              </div>
+            </div>
+
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {files.map((file) => (
+                  <span
+                    key={`${file.name}-${file.size}`}
+                    className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-lg bg-surface-3 border border-border-default text-xs text-text-primary"
+                  >
+                    {file.name}
+                    <span className="text-text-muted">{formatBytes(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles(files.filter((f) => f !== file))}
+                      className="h-5 w-5 rounded flex items-center justify-center hover:bg-surface-2 text-text-muted hover:text-status-critical"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <Xmark className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-3">
+                Where should we reply?
+              </label>
+              <div className="space-y-2">
+                {(
+                  [
+                    {
+                      value: "account",
+                      label: `My account email${user?.email ? ` — ${user.email}` : ""}`,
+                    },
+                    { value: "custom", label: "A different email" },
+                    { value: "none", label: "No reply needed — just letting you know" },
+                  ] as { value: ReplyPreference; label: string }[]
+                ).map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      replyPreference === option.value
+                        ? "border-brand-gold/50 bg-brand-gold/5"
+                        : "border-border-default bg-surface-2 hover:bg-surface-3"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="replyPreference"
+                      value={option.value}
+                      checked={replyPreference === option.value}
+                      onChange={() => setReplyPreference(option.value)}
+                      className="accent-[#C9A961]"
+                    />
+                    <span className="text-sm text-text-primary">{option.label}</span>
+                  </label>
+                ))}
+                {replyPreference === "custom" && (
+                  <input
+                    type="email"
+                    value={customEmail}
+                    onChange={(e) => setCustomEmail(e.target.value)}
+                    placeholder="reply-here@yourdomain.com"
+                    required
+                    className="w-full h-11 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all"
+                  />
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
               <p className="text-xs text-text-muted">
-                Branch: {branchesQuery.data?.[0]?.name ?? "Not selected"}
+                Goes straight to the PrepIQ team with your account context attached.
               </p>
-              <Button type="submit" disabled={createTicketMutation.isPending}>
-                {createTicketMutation.isPending ? "Submitting..." : "Submit Ticket"}
+              <Button type="submit" disabled={submitMutation.isPending}>
+                {submitMutation.isPending ? "Sending..." : "Send to PrepIQ"}
               </Button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Report a Problem */}
-      {activeTab === "report" && (
-        <div>
-          <div className="max-w-2xl p-6 rounded-xl bg-status-critical/10 border border-status-critical/20">
-            <div className="flex items-center gap-3 mb-4">
-              <WarningCircle className="h-6 w-6 text-status-critical" />
-              <h3 className="text-sm font-semibold text-text-primary">Report a Problem</h3>
-            </div>
-            <p className="text-xs text-text-muted mb-6">
-              Use this for urgent issues. Browser info and page location are automatically captured.
+      {/* Feature Board — published requests, votable */}
+      {activeTab === "board" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-text-muted">
+              Features other kitchens asked for. Vote for what would help you most —
+              submit new ideas via{" "}
+              <button
+                onClick={() => {
+                  setContactType("FEATURE_REQUEST");
+                  setActiveTab("contact");
+                }}
+                className="text-brand-gold hover:underline"
+              >
+                Contact Us
+              </button>
+              .
             </p>
-            <form onSubmit={handleSubmitBugReport} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-2">
-                  Describe the Issue
-                </label>
-                <textarea
-                  value={bugForm.description}
-                  onChange={(e) => setBugForm({ ...bugForm, description: e.target.value })}
-                  placeholder="What isn't working? Include any error messages..."
-                  required
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-lg bg-surface-3 border border-status-critical/20 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-status-critical focus:ring-1 focus:ring-status-critical/20 transition-all resize-none"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-text-muted">Environment data will be captured automatically</p>
-                <Button type="submit" variant="primary" disabled={createBugReportMutation.isPending}>
-                  {createBugReportMutation.isPending ? "Submitting..." : "Submit Report"}
-                </Button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
-
-      {/* Feature Requests */}
-      {activeTab === "features" && (
-        <div className="space-y-8">
-          <div className="p-6 rounded-xl bg-surface-2 border border-border-default">
-            <h3 className="text-sm font-semibold text-text-primary mb-4">Submit a Feature Request</h3>
-            <form onSubmit={handleSubmitFeatureRequest} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  value={featureForm.title}
-                  onChange={(e) => setFeatureForm({ ...featureForm, title: e.target.value })}
-                  placeholder="Feature title"
-                  required
-                  className="h-12 px-4 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all"
+          {featureBoardQuery.isLoading ? (
+            <p className="text-sm text-text-muted">Loading...</p>
+          ) : featureBoardQuery.isError ? (
+            <p className="text-sm text-text-muted p-4 rounded-lg bg-surface-2">
+              The feature board is unavailable right now. Please try again later.
+            </p>
+          ) : boardEntries.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {boardEntries.map((entry) => (
+                <FeatureBoardCard
+                  key={entry.id}
+                  entry={entry}
+                  onVote={handleVote}
+                  voting={voteMutation.isPending && voteMutation.variables === entry.id}
                 />
-                <Select
-                  options={[
-                    { value: "forecasting", label: "Forecasting" },
-                    { value: "production", label: "Production" },
-                    { value: "purchasing", label: "Purchasing" },
-                    { value: "reporting", label: "Reporting" },
-                    { value: "inventory", label: "Inventory" },
-                    { value: "pos_integration", label: "POS Integration" },
-                    { value: "other", label: "Other" },
-                  ]}
-                  value={featureForm.category}
-                  onChange={(value) =>
-                    setFeatureForm({ ...featureForm, category: value as typeof featureForm.category })
-                  }
-                  placeholder="Select category"
-                />
-              </div>
-              <textarea
-                value={featureForm.description}
-                onChange={(e) => setFeatureForm({ ...featureForm, description: e.target.value })}
-                placeholder="Describe how this feature would help your operations..."
-                required
-                rows={3}
-                className="w-full px-4 py-3 rounded-lg bg-surface-3 border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none"
-              />
-              <div className="flex justify-end">
-                <Button type="submit" disabled={createFeatureRequestMutation.isPending}>
-                  {createFeatureRequestMutation.isPending ? "Submitting..." : "Submit Request"}
-                </Button>
-              </div>
-            </form>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-muted mb-4">
-              Open Feature Requests
-            </h3>
-            {featureRequestsQuery.isLoading ? (
-              <p className="text-sm text-text-muted">Loading...</p>
-            ) : openFeatureRequests.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {openFeatureRequests.map((request) => (
-                  <FeatureRequestCard key={request.id} request={request} onVote={handleVote} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-muted p-4 rounded-lg bg-surface-2">
-                No open feature requests. Be the first to submit one!
-              </p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-muted p-4 rounded-lg bg-surface-2">
+              Nothing on the board yet. Be the first — send us a feature request!
+            </p>
+          )}
         </div>
       )}
     </div>

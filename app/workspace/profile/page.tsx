@@ -360,10 +360,15 @@ function SecurityTab({
     is_verified: boolean;
     phone?: string | null;
     phone_verified?: boolean;
+    has_password?: boolean;
+    google_linked?: boolean;
   };
 }) {
   const { t } = useTranslation();
   const changePassword = useChangePassword();
+  // Google-only accounts have no password yet — the form becomes "set a
+  // password" and skips the current-password proof (the session is the proof).
+  const hasPassword = user.has_password ?? true;
   const [form, setForm] = useState({
     current_password: "",
     new_password: "",
@@ -386,7 +391,7 @@ function SecurityTab({
     }
     changePassword.mutate(
       {
-        current_password: form.current_password,
+        ...(hasPassword ? { current_password: form.current_password } : {}),
         new_password: form.new_password,
       },
       {
@@ -403,7 +408,7 @@ function SecurityTab({
   }
 
   const allFilled =
-    form.current_password.length > 0 &&
+    (!hasPassword || form.current_password.length > 0) &&
     form.new_password.length > 0 &&
     form.confirm_password.length > 0;
 
@@ -411,17 +416,19 @@ function SecurityTab({
     <div className="space-y-4">
       {/* Change password */}
       <Section
-        title={t("profile.security.changePasswordTitle")}
-        description={t("profile.security.changePasswordDescription")}
+        title={t(hasPassword ? "profile.security.changePasswordTitle" : "profile.security.setPasswordTitle")}
+        description={t(hasPassword ? "profile.security.changePasswordDescription" : "profile.security.setPasswordDescription")}
         icon={<ShieldCheck className="h-4 w-4" />}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <PasswordField
-            label={t("profile.security.currentPassword")}
-            value={form.current_password}
-            onChange={(v) => handleChange("current_password", v)}
-            placeholder={t("profile.security.currentPasswordPlaceholder")}
-          />
+          {hasPassword && (
+            <PasswordField
+              label={t("profile.security.currentPassword")}
+              value={form.current_password}
+              onChange={(v) => handleChange("current_password", v)}
+              placeholder={t("profile.security.currentPasswordPlaceholder")}
+            />
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <PasswordField
               label={t("profile.security.newPassword")}

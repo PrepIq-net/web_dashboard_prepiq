@@ -63,6 +63,8 @@ export const googleLoginPayloadSchema = z.object({
 
 export const googleLoginResponseSchema = loginResponseSchema.extend({
   created: z.boolean(),
+  restored: z.boolean().optional(),
+  has_password: z.boolean().optional(),
 });
 
 export const sessionGoogleLoginResponseSchema = z.object({
@@ -74,6 +76,8 @@ export const sessionGoogleLoginResponseSchema = z.object({
     has_organization: z.boolean(),
     missing_setup_fields: z.array(z.string()),
     created: z.boolean(),
+    restored: z.boolean().optional(),
+    has_password: z.boolean().optional(),
   }),
 });
 
@@ -136,6 +140,8 @@ export const userProfileSchema = z.object({
   missing_setup_fields: z.array(z.string()),
   preferred_language: z.enum(["en", "fr"]).optional().default("en"),
   permissions: z.array(z.string()).default([]),
+  has_password: z.boolean().optional().default(true),
+  google_linked: z.boolean().optional().default(false),
 });
 
 export const updateProfilePayloadSchema = z.object({
@@ -157,7 +163,8 @@ export const photoUploadResponseSchema = z.object({
 });
 
 export const changePasswordPayloadSchema = z.object({
-  current_password: z.string().min(1),
+  // Omitted when a Google-only account sets its first password.
+  current_password: z.string().optional(),
   new_password: z.string().min(8),
 });
 

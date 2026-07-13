@@ -23,6 +23,8 @@ const googleLoginResponseSchema = z.object({
   has_organization: z.boolean(),
   missing_setup_fields: z.array(z.string()),
   created: z.boolean().optional(),
+  restored: z.boolean().optional(),
+  has_password: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -71,6 +73,8 @@ export async function POST(request: Request) {
           has_organization: parsed.has_organization,
           missing_setup_fields: parsed.missing_setup_fields,
           created: parsed.created ?? false,
+          restored: parsed.restored ?? false,
+          has_password: parsed.has_password ?? true,
         },
       },
       { status: 200 },
