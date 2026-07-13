@@ -11,7 +11,8 @@ import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { useRegisterUser } from "@/services";
+import { useGoogleIdentity } from "@/lib/auth/use-google-identity";
+import { useRegisterUser, useSessionGoogleLogin } from "@/services";
 import { useTranslation } from "@/lib/i18n";
 
 export default function RegisterPage() {
@@ -26,6 +27,32 @@ export default function RegisterPage() {
   const [nickname, setNickname] = useState(""); // honeypot
 
   const registerMutation = useRegisterUser();
+  const googleLoginMutation = useSessionGoogleLogin();
+
+  const googleIdentity = useGoogleIdentity({
+    onCredential: async (idToken) => {
+      try {
+        const result = await googleLoginMutation.mutateAsync({ id_token: idToken });
+        toast.success(
+          result.user.restored
+            ? t("auth.accountReactivated")
+            : t("auth.accountCreated"),
+        );
+        // Google emails arrive verified — no OTP step, straight to setup.
+        router.replace("/");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t("auth.googleFailed"));
+      }
+    },
+    onError: (message) => toast.error(message),
+  });
+
+  function handleGoogleSignUp() {
+    if (!googleIdentity.prompt()) {
+      toast.error(t("auth.googleLoading"));
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -161,8 +188,10 @@ export default function RegisterPage() {
                   fullWidth
                   className="py-7 border-border-default/50 hover:bg-surface-3 transition-all"
                   leftIcon={<Image src="/app_logo/logo-google.png" alt="Google" width={18} height={18} className="h-[18px] w-[18px]" />}
+                  onClick={handleGoogleSignUp}
+                  disabled={registerMutation.isPending || googleLoginMutation.isPending || !googleIdentity.configured}
                 >
-                  {t("auth.continueWithGoogle")}
+                  {googleLoginMutation.isPending ? t("auth.authenticating") : t("auth.continueWithGoogle")}
                 </Button>
               </div>
             </form>

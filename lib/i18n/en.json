@@ -91,6 +91,9 @@
     "agreeToTerms": "By clicking “Create Account” you agree to the PrepIQ Terms of Service and Privacy Policy.",
     "otpVerified": "OTP verified. You can now sign in.",
     "sessionSwitched": "Session switched, refreshing workspace…",
+    "accountReactivated": "Welcome back! Your account has been reactivated.",
+    "googleLoading": "Google sign-in is still loading. Please try again.",
+    "googleFailed": "Google sign-in failed. Please try again.",
     "authenticating": "Authenticating...",
     "unverifiedMessage": "Your account isn't verified yet. To continue, please verify your email.",
     "verifyEmail": "verify your email",
@@ -1019,6 +1022,8 @@
     "security": {
       "changePasswordTitle": "Change Password",
       "changePasswordDescription": "Update your password. You will need your current password to make changes.",
+      "setPasswordTitle": "Set a Password",
+      "setPasswordDescription": "You signed up with Google. Add a password so you can also sign in with your email.",
       "currentPassword": "Current password",
       "currentPasswordPlaceholder": "Enter your current password",
       "newPassword": "New password",
