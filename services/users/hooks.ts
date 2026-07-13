@@ -13,6 +13,7 @@ import {
   getVerificationStatus,
   loginUser,
   loginUserWithSession,
+  listLoginSessions,
   loginWithGoogle,
   loginWithGoogleSession,
   logoutUser,
@@ -21,6 +22,9 @@ import {
   registerUser,
   resendOtp,
   resetPassword,
+  revokeAllLoginSessions,
+  revokeLoginSession,
+  revokeLoginSessions,
   updateCurrentUserProfile,
   uploadUserDocument,
   uploadUserPhoto,
@@ -36,6 +40,7 @@ import type {
   OtpPayload,
   RegisterPayload,
   ResetPasswordPayload,
+  RevokeAllSessionsPayload,
   TokenRefreshPayload,
   UpdateProfilePayload,
 } from "@/services/users/types";
@@ -49,6 +54,7 @@ export const usersQueryKeys = {
   roleInfo: () => [...usersQueryKeys.root, "role-info"] as const,
   qrCode: () => [...usersQueryKeys.root, "qr-code"] as const,
   detail: (userId: string) => [...usersQueryKeys.root, "detail", userId] as const,
+  sessions: () => [...usersQueryKeys.root, "sessions"] as const,
 };
 
 function resetSessionCache(queryClient: ReturnType<typeof useQueryClient>) {
@@ -168,6 +174,47 @@ export function useAuthSessionState() {
     queryKey: [...usersQueryKeys.root, "session-state"],
     queryFn: getAuthSessionState,
     staleTime: 0,
+  });
+}
+
+// --- Login sessions (active devices) ---------------------------------------
+
+export function useLoginSessions() {
+  return useQuery({
+    queryKey: usersQueryKeys.sessions(),
+    queryFn: listLoginSessions,
+    staleTime: 30_000,
+  });
+}
+
+export function useRevokeLoginSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sid: string) => revokeLoginSession(sid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.sessions() });
+    },
+  });
+}
+
+export function useRevokeAllLoginSessions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: RevokeAllSessionsPayload = {}) =>
+      revokeAllLoginSessions(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.sessions() });
+    },
+  });
+}
+
+export function useRevokeLoginSessions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sids: string[]) => revokeLoginSessions({ sids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.sessions() });
+    },
   });
 }
 

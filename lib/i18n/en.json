@@ -1075,6 +1075,22 @@
     }
   },
   "settings": {
+    "sessions": {
+      "title": "Active sessions",
+      "subtitle": "Devices currently signed in to your account. Revoke any you don't recognize.",
+      "thisDevice": "This device",
+      "activePrefix": "Active",
+      "revoke": "Revoke",
+      "revokeTitle": "Sign out this device?",
+      "revokeConfirm": "This will sign {device} out of your account immediately.",
+      "signOutOthers": "Sign out other devices",
+      "signOutOthersConfirm": "This signs you out everywhere except this device. You'll stay signed in here.",
+      "signedOutOthers": "Signed out of all other devices",
+      "revoked": "Device signed out",
+      "revokeFailed": "Could not sign out that device. Please try again.",
+      "loadFailed": "Could not load your active sessions.",
+      "empty": "No other active sessions."
+    },
     "organization": {
       "title": "Organization Settings",
       "description": "Manage global business identity and operational defaults.",

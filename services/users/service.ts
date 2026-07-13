@@ -12,7 +12,10 @@ import {
   googleLoginResponseSchema,
   loginPayloadSchema,
   loginResponseSchema,
+  loginSessionsResponseSchema,
   logoutPayloadSchema,
+  revokeAllSessionsPayloadSchema,
+  revokeSessionsPayloadSchema,
   otpPayloadSchema,
   photoUploadResponseSchema,
   registerPayloadSchema,
@@ -37,6 +40,8 @@ import {
   type OtpPayload,
   type RegisterPayload,
   type ResetPasswordPayload,
+  type RevokeAllSessionsPayload,
+  type RevokeSessionsPayload,
   type TokenRefreshPayload,
   type UpdateProfilePayload,
 } from "@/services/users/types";
@@ -183,6 +188,42 @@ export async function getAuthSessionState() {
   }
 
   return sessionStateResponseSchema.parse(data);
+}
+
+// --- Login sessions (active devices) ---------------------------------------
+
+export async function listLoginSessions() {
+  return apiClientWithSchema(
+    usersEndpoints.sessions.list,
+    loginSessionsResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function revokeLoginSession(sid: string) {
+  return apiClientWithSchema(
+    usersEndpoints.sessions.revoke(sid),
+    apiMessageResponseSchema,
+    { method: "DELETE" },
+  );
+}
+
+export async function revokeLoginSessions(payload: RevokeSessionsPayload) {
+  const body = revokeSessionsPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    usersEndpoints.sessions.revokeMany,
+    apiMessageResponseSchema,
+    { method: "POST", body },
+  );
+}
+
+export async function revokeAllLoginSessions(payload: RevokeAllSessionsPayload = {}) {
+  const body = revokeAllSessionsPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    usersEndpoints.sessions.revokeAll,
+    apiMessageResponseSchema,
+    { method: "POST", body },
+  );
 }
 
 export async function verifyOtp(payload: OtpPayload) {

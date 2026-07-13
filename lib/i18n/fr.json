@@ -1075,6 +1075,22 @@
     }
   },
   "settings": {
+    "sessions": {
+      "title": "Sessions actives",
+      "subtitle": "Appareils actuellement connectés à votre compte. Déconnectez ceux que vous ne reconnaissez pas.",
+      "thisDevice": "Cet appareil",
+      "activePrefix": "Actif",
+      "revoke": "Déconnecter",
+      "revokeTitle": "Déconnecter cet appareil ?",
+      "revokeConfirm": "{device} sera immédiatement déconnecté de votre compte.",
+      "signOutOthers": "Déconnecter les autres appareils",
+      "signOutOthersConfirm": "Vous serez déconnecté partout sauf sur cet appareil. Vous resterez connecté ici.",
+      "signedOutOthers": "Déconnecté de tous les autres appareils",
+      "revoked": "Appareil déconnecté",
+      "revokeFailed": "Impossible de déconnecter cet appareil. Veuillez réessayer.",
+      "loadFailed": "Impossible de charger vos sessions actives.",
+      "empty": "Aucune autre session active."
+    },
     "organization": {
       "title": "Paramètres de l'organisation",
       "description": "Gérez l'identité commerciale et les valeurs par défaut opérationnelles.",

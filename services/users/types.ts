@@ -4,6 +4,38 @@ export const apiMessageResponseSchema = z.object({
   message: z.string(),
 });
 
+// --- Login sessions (active devices) ---------------------------------------
+export const loginSessionSchema = z.object({
+  id: z.string(),
+  device: z.string(),
+  platform: z.string(),
+  client: z.string(),
+  ip: z.string(),
+  created_at: z.number(),
+  last_seen: z.number(),
+  current: z.boolean(),
+});
+
+export const loginSessionsResponseSchema = z.object({
+  sessions: z.array(loginSessionSchema),
+  count: z.number(),
+});
+
+export const revokeSessionsPayloadSchema = z.object({
+  sids: z.array(z.string()).min(1),
+});
+
+export const revokeAllSessionsPayloadSchema = z.object({
+  keep_current: z.boolean().optional(),
+});
+
+export type LoginSession = z.infer<typeof loginSessionSchema>;
+export type LoginSessionsResponse = z.infer<typeof loginSessionsResponseSchema>;
+export type RevokeSessionsPayload = z.infer<typeof revokeSessionsPayloadSchema>;
+export type RevokeAllSessionsPayload = z.infer<
+  typeof revokeAllSessionsPayloadSchema
+>;
+
 export const apiErrorResponseSchema = z
   .object({
     error: z.string().optional(),
