@@ -7,7 +7,6 @@ import { WarningTriangle, Trash, LogOut } from "iconoir-react";
 import { toast } from "react-hot-toast";
 
 import { ModalShell } from "@/components/ui/modal-shell";
-import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -87,9 +86,16 @@ export function DangerZone({ orgId }: { orgId?: string }) {
 
   // Org-delete form
   const [orgConfirm, setOrgConfirm] = useState("");
+  const [orgReasonChoice, setOrgReasonChoice] = useState("SWITCHED_TOOL");
+  const [orgReasonDetails, setOrgReasonDetails] = useState("");
+
+  // Leave form
+  const [leaveReasonChoice, setLeaveReasonChoice] = useState("LEFT_COMPANY");
+  const [leaveReasonDetails, setLeaveReasonDetails] = useState("");
 
   // Transfer form
   const [transferTarget, setTransferTarget] = useState("");
+  const [transferReasonChoice, setTransferReasonChoice] = useState("DELEGATING");
 
   const transferOptions = useMemo(
     () =>
@@ -161,36 +167,45 @@ export function DangerZone({ orgId }: { orgId?: string }) {
   }
 
   function handleLeaveOrg() {
-    leaveOrg.mutate(undefined, {
-      onSuccess: () => {
-        setLeaveOpen(false);
-        toast.success(t("settings.danger.leave.done"));
-        resetWorkspaceAndGoHome();
+    leaveOrg.mutate(
+      { reason_choice: leaveReasonChoice, reason_details: leaveReasonDetails },
+      {
+        onSuccess: () => {
+          setLeaveOpen(false);
+          toast.success(t("settings.danger.leave.done"));
+          resetWorkspaceAndGoHome();
+        },
       },
-    });
+    );
   }
 
   function handleTransfer() {
     if (!transferTarget) return;
-    transferOwnership.mutate(transferTarget, {
-      onSuccess: () => {
-        setTransferOpen(false);
-        setTransferTarget("");
-        setBlockedOrgs([]);
+    transferOwnership.mutate(
+      { userId: transferTarget, reason_choice: transferReasonChoice },
+      {
+        onSuccess: () => {
+          setTransferOpen(false);
+          setTransferTarget("");
+          setBlockedOrgs([]);
+        },
       },
-    });
+    );
   }
 
   function handleDeleteOrg() {
-    deleteOrg.mutate(undefined, {
-      onSuccess: () => {
-        setOrgDeleteOpen(false);
-        setOrgConfirm("");
-        setBlockedOrgs([]);
-        toast.success(t("settings.danger.org.deleted"));
-        resetWorkspaceAndGoHome();
+    deleteOrg.mutate(
+      { reason_choice: orgReasonChoice, reason_details: orgReasonDetails },
+      {
+        onSuccess: () => {
+          setOrgDeleteOpen(false);
+          setOrgConfirm("");
+          setBlockedOrgs([]);
+          toast.success(t("settings.danger.org.deleted"));
+          resetWorkspaceAndGoHome();
+        },
       },
-    });
+    );
   }
 
   return (
@@ -328,6 +343,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
               { value: "TOO_COMPLICATED", label: t("settings.danger.reasons.tooComplicated") },
               { value: "PRIVACY", label: t("settings.danger.reasons.privacy") },
               { value: "STARTING_OVER", label: t("settings.danger.reasons.startingOver") },
+              { value: "NO_LONGER_HERE", label: t("settings.danger.reasons.noLongerHere") },
               { value: "OTHER", label: t("settings.danger.reasons.other") },
             ]}
           />
@@ -348,16 +364,41 @@ export function DangerZone({ orgId }: { orgId?: string }) {
       </ModalShell>
 
       {/* ── Leave org confirm ── */}
-      <ConfirmActionModal
+      <ModalShell
         open={leaveOpen}
         title={t("settings.danger.leave.title")}
         description={t("settings.danger.leave.confirm")}
-        confirmLabel={t("settings.danger.leave.button")}
-        tone="critical"
-        isConfirming={leaveOrg.isPending}
         onClose={() => setLeaveOpen(false)}
-        onConfirm={handleLeaveOrg}
-      />
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setLeaveOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={leaveOrg.isPending}
+              onClick={handleLeaveOrg}
+            >
+              {leaveOrg.isPending
+                ? t("common.processing")
+                : t("settings.danger.leave.button")}
+            </Button>
+          </>
+        }
+      >
+        <Select
+          label={t("settings.danger.leave.reasonLabel")}
+          value={leaveReasonChoice}
+          onChange={(v: string) => setLeaveReasonChoice(v)}
+          options={[
+            { value: "LEFT_COMPANY", label: t("settings.danger.leaveReasons.leftCompany") },
+            { value: "ROLE_CHANGED", label: t("settings.danger.leaveReasons.roleChanged") },
+            { value: "WRONG_ORG", label: t("settings.danger.leaveReasons.wrongOrg") },
+            { value: "TEAM_ISSUE", label: t("settings.danger.leaveReasons.teamIssue") },
+            { value: "OTHER", label: t("settings.danger.reasons.other") },
+          ]}
+        />
+      </ModalShell>
 
       {/* ── Transfer ownership ── */}
       <ModalShell
@@ -382,15 +423,28 @@ export function DangerZone({ orgId }: { orgId?: string }) {
           </>
         }
       >
-        <Select
-          label={t("settings.danger.transfer.selectLabel")}
-          value={transferTarget}
-          onChange={(v: string) => setTransferTarget(v)}
-          options={[
-            { value: "", label: t("settings.danger.transfer.selectPlaceholder") },
-            ...transferOptions,
-          ]}
-        />
+        <div className="space-y-4">
+          <Select
+            label={t("settings.danger.transfer.selectLabel")}
+            value={transferTarget}
+            onChange={(v: string) => setTransferTarget(v)}
+            options={[
+              { value: "", label: t("settings.danger.transfer.selectPlaceholder") },
+              ...transferOptions,
+            ]}
+          />
+          <Select
+            label={t("settings.danger.transfer.reasonLabel")}
+            value={transferReasonChoice}
+            onChange={(v: string) => setTransferReasonChoice(v)}
+            options={[
+              { value: "DELEGATING", label: t("settings.danger.transferReasons.delegating") },
+              { value: "SELLING_BUSINESS", label: t("settings.danger.transferReasons.sellingBusiness") },
+              { value: "LEAVING", label: t("settings.danger.transferReasons.leaving") },
+              { value: "OTHER", label: t("settings.danger.reasons.other") },
+            ]}
+          />
+        </div>
       </ModalShell>
 
       {/* ── Delete org (typed confirm) ── */}
@@ -420,6 +474,28 @@ export function DangerZone({ orgId }: { orgId?: string }) {
           <p className="text-sm text-text-secondary">
             {t("settings.danger.org.warning")}
           </p>
+          <Select
+            label={t("settings.danger.org.reasonLabel")}
+            value={orgReasonChoice}
+            onChange={(v: string) => setOrgReasonChoice(v)}
+            options={[
+              { value: "SWITCHED_TOOL", label: t("settings.danger.orgReasons.switchedTool") },
+              { value: "TOO_EXPENSIVE", label: t("settings.danger.orgReasons.tooExpensive") },
+              { value: "MISSING_FEATURES", label: t("settings.danger.orgReasons.missingFeatures") },
+              { value: "BUSINESS_CLOSED", label: t("settings.danger.orgReasons.businessClosed") },
+              { value: "JUST_TESTING", label: t("settings.danger.orgReasons.justTesting") },
+              { value: "TOO_HARD", label: t("settings.danger.orgReasons.tooHard") },
+              { value: "PAUSING", label: t("settings.danger.orgReasons.pausing") },
+              { value: "OTHER", label: t("settings.danger.reasons.other") },
+            ]}
+          />
+          <Input
+            label={t("settings.danger.org.detailsLabel")}
+            value={orgReasonDetails}
+            onChange={(e) => setOrgReasonDetails(e.target.value)}
+            placeholder={t("settings.danger.org.detailsPlaceholder")}
+            maxLength={500}
+          />
           <Input
             label={t("settings.danger.org.typeName", { name: org?.name ?? "" })}
             value={orgConfirm}

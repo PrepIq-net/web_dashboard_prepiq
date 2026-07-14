@@ -201,7 +201,7 @@ export const changePasswordPayloadSchema = z.object({
 });
 
 export const deleteAccountPayloadSchema = z.object({
-  reason_choice: z.enum(["PRIVACY", "NOT_USEFUL", "TOO_COMPLICATED", "STARTING_OVER", "OTHER"]),
+  reason_choice: z.enum(["PRIVACY", "NOT_USEFUL", "TOO_COMPLICATED", "STARTING_OVER", "NO_LONGER_HERE", "OTHER"]),
   reason_details: z.string().max(500).optional(),
   confirm: z.literal(true),
 });

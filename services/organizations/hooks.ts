@@ -236,7 +236,8 @@ export function useDeleteOrganizationRole(id: string) {
 export function useLeaveOrganization(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => organizationService.leaveOrganization(id),
+    mutationFn: (reason?: { reason_choice?: string; reason_details?: string }) =>
+      organizationService.leaveOrganization(id, reason),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
@@ -252,8 +253,15 @@ export function useLeaveOrganization(id: string) {
 export function useTransferOrganizationOwnership(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) =>
-      organizationService.transferOrganizationOwnership(id, userId),
+    mutationFn: (vars: {
+      userId: string;
+      reason_choice?: string;
+      reason_details?: string;
+    }) =>
+      organizationService.transferOrganizationOwnership(id, vars.userId, {
+        reason_choice: vars.reason_choice,
+        reason_details: vars.reason_details,
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) }),
@@ -271,7 +279,8 @@ export function useTransferOrganizationOwnership(id: string) {
 export function useDeleteOrganization(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => organizationService.deleteOrganization(id),
+    mutationFn: (reason?: { reason_choice?: string; reason_details?: string }) =>
+      organizationService.deleteOrganization(id, reason),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),

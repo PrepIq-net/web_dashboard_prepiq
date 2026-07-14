@@ -1089,18 +1089,22 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
   const updateBranch = useUpdateBranch(orgId || "", selectedBranchId);
   const deleteBranch = useDeleteBranch(orgId || "");
   const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
+  const [branchReasonChoice, setBranchReasonChoice] = useState("LOCATION_CLOSED");
   const [formData, setFormData] = useState<any>(null);
 
   const isLastBranch = (branches?.length ?? 0) <= 1;
 
   const handleDeleteBranch = () => {
     if (!selectedBranchId) return;
-    deleteBranch.mutate(selectedBranchId, {
-      onSuccess: () => {
-        setDeleteBranchOpen(false);
-        setSelectedBranchId("");
+    deleteBranch.mutate(
+      { branchId: selectedBranchId, reason_choice: branchReasonChoice },
+      {
+        onSuccess: () => {
+          setDeleteBranchOpen(false);
+          setSelectedBranchId("");
+        },
       },
-    });
+    );
   };
 
   // Default to focusedBranchId from URL, then first branch
@@ -1392,16 +1396,47 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
         </div>
       )}
 
-      <ConfirmActionModal
+      <ModalShell
         open={deleteBranchOpen}
         title={t("settings.branch.delete.title")}
         description={t("settings.branch.delete.confirm", { name: branch?.name ?? "" })}
-        confirmLabel={t("settings.branch.delete.button")}
-        tone="critical"
-        isConfirming={deleteBranch.isPending}
         onClose={() => setDeleteBranchOpen(false)}
-        onConfirm={handleDeleteBranch}
-      />
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteBranchOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteBranch.isPending}
+              onClick={handleDeleteBranch}
+            >
+              {deleteBranch.isPending
+                ? t("common.processing")
+                : t("settings.branch.delete.button")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            {t("settings.branch.delete.dataNote")}
+          </p>
+          <Select
+            label={t("settings.branch.delete.reasonLabel")}
+            value={branchReasonChoice}
+            onChange={(v: string) => setBranchReasonChoice(v)}
+            options={[
+              { value: "LOCATION_CLOSED", label: t("settings.branch.deleteReasons.locationClosed") },
+              { value: "SEASONAL", label: t("settings.branch.deleteReasons.seasonal") },
+              { value: "CONSOLIDATING", label: t("settings.branch.deleteReasons.consolidating") },
+              { value: "TEST_DUPLICATE", label: t("settings.branch.deleteReasons.testDuplicate") },
+              { value: "SWITCHED_TOOL", label: t("settings.branch.deleteReasons.switchedTool") },
+              { value: "OTHER", label: t("settings.branch.deleteReasons.other") },
+            ]}
+          />
+        </div>
+      </ModalShell>
     </div>
   );
 }

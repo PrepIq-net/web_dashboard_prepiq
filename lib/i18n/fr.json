@@ -1200,7 +1200,17 @@
         "description": "Retire ce site des opérations. Son historique est conservé, puis purgé après 90 jours.",
         "lastBranch": "Vous ne pouvez pas supprimer votre seule succursale active. Ajoutez-en une autre d'abord.",
         "button": "Supprimer la succursale",
-        "confirm": "Supprimer « {name} » ? Cela la retire des opérations. Action irréversible ici."
+        "confirm": "Supprimer « {name} » ? Cela la retire des opérations. Action irréversible ici.",
+        "dataNote": "Ses données de ventes, production, inventaire et personnel sont masquées immédiatement, récupérables pendant 90 jours, puis purgées. Tout connecteur POS de cette succursale est déconnecté.",
+        "reasonLabel": "Pourquoi supprimez-vous cette succursale ?"
+      },
+      "deleteReasons": {
+        "locationClosed": "Site fermé définitivement",
+        "seasonal": "Fermeture temporaire / saisonnière",
+        "consolidating": "Regroupement dans une autre succursale",
+        "testDuplicate": "Était un test ou un doublon",
+        "switchedTool": "Passage de ce site à un autre outil",
+        "other": "Autre"
       }
     },
     "tabs": {
@@ -1386,8 +1396,15 @@
         "title": "Quitter l'organisation",
         "description": "Retirez-vous de cette organisation. Votre travail reste dans l'organisation ; vous gardez votre compte.",
         "button": "Quitter",
-        "confirm": "Voulez-vous vraiment quitter cette organisation ? Vous perdrez l'accès jusqu'à une nouvelle invitation.",
+        "confirm": "Vous perdrez l'accès à cette organisation jusqu'à une nouvelle invitation. Votre compte reste le vôtre.",
+        "reasonLabel": "Pourquoi partez-vous ? (facultatif)",
         "done": "Vous avez quitté l'organisation."
+      },
+      "leaveReasons": {
+        "leftCompany": "J'ai quitté l'entreprise / je n'y travaille plus",
+        "roleChanged": "Changement de rôle — accès inutile",
+        "wrongOrg": "J'ai rejoint la mauvaise organisation",
+        "teamIssue": "Problème avec l'équipe"
       },
       "transfer": {
         "title": "Transférer la propriété",
@@ -1395,7 +1412,13 @@
         "button": "Transférer la propriété",
         "modalDescription": "Choisissez le membre qui deviendra le nouveau propriétaire.",
         "selectLabel": "Nouveau propriétaire",
-        "selectPlaceholder": "Sélectionner un membre…"
+        "selectPlaceholder": "Sélectionner un membre…",
+        "reasonLabel": "Motif (facultatif)"
+      },
+      "transferReasons": {
+        "delegating": "Déléguer la gestion quotidienne",
+        "sellingBusiness": "Vente / cession de l'entreprise",
+        "leaving": "Je pars / changement de rôle"
       },
       "org": {
         "title": "Supprimer l'organisation",
@@ -1404,6 +1427,9 @@
         "modalTitle": "Supprimer l'organisation",
         "modalDescription": "Cela annule votre abonnement et supprime toutes les succursales et tous les membres.",
         "warning": "Ceci est irréversible. Tous les membres perdent l'accès et la facturation est annulée. Les données sont conservées brièvement, puis purgées.",
+        "reasonLabel": "Pourquoi supprimez-vous cette organisation ?",
+        "detailsLabel": "Autre chose ? (facultatif)",
+        "detailsPlaceholder": "Dites-nous en plus…",
         "typeName": "Saisissez « {name} » pour confirmer",
         "confirmButton": "Supprimer l'organisation",
         "deleted": "Organisation supprimée."
@@ -1429,7 +1455,17 @@
         "tooComplicated": "Trop compliqué",
         "privacy": "Préoccupations de confidentialité",
         "startingOver": "Recommencer — je veux une nouvelle organisation",
+        "noLongerHere": "Je ne suis plus dans cette entreprise / changement d'emploi",
         "other": "Autre"
+      },
+      "orgReasons": {
+        "switchedTool": "Passage à un autre outil",
+        "tooExpensive": "Trop cher / ne vaut pas le prix",
+        "missingFeatures": "Fonctionnalités manquantes dont nous avions besoin",
+        "businessClosed": "Entreprise fermée / cessation d'activité",
+        "justTesting": "Simple test / créé par erreur",
+        "tooHard": "Trop difficile à configurer / jamais rentabilisé",
+        "pausing": "En pause — saisonnier ou temporaire"
       }
     }
   },

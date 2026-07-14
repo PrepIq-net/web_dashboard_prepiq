@@ -1200,7 +1200,17 @@
         "description": "Removes this location from operations. Its history is retained, then purged after 90 days.",
         "lastBranch": "You can't delete your only active branch. Add another branch first.",
         "button": "Delete branch",
-        "confirm": "Delete “{name}”? This removes it from operations. This cannot be undone from here."
+        "confirm": "Delete “{name}”? This removes it from operations. This cannot be undone from here.",
+        "dataNote": "Its sales, production, inventory, and staff data are hidden immediately, recoverable for 90 days, then purged. Any POS connector on this branch is disconnected.",
+        "reasonLabel": "Why are you deleting this branch?"
+      },
+      "deleteReasons": {
+        "locationClosed": "Location closed permanently",
+        "seasonal": "Temporary / seasonal closure",
+        "consolidating": "Consolidating into another branch",
+        "testDuplicate": "Was a test or duplicate",
+        "switchedTool": "Moving this location to another tool",
+        "other": "Other"
       }
     },
     "tabs": {
@@ -1386,8 +1396,15 @@
         "title": "Leave organization",
         "description": "Remove yourself from this organization. Your work stays with the org; you keep your account.",
         "button": "Leave",
-        "confirm": "Are you sure you want to leave this organization? You'll lose access until re-invited.",
+        "confirm": "You'll lose access to this organization until you're re-invited. Your account stays yours.",
+        "reasonLabel": "Why are you leaving? (optional)",
         "done": "You left the organization."
+      },
+      "leaveReasons": {
+        "leftCompany": "Left the company / no longer work here",
+        "roleChanged": "Changed roles — don't need access",
+        "wrongOrg": "Joined the wrong organization",
+        "teamIssue": "Problem with the team"
       },
       "transfer": {
         "title": "Transfer ownership",
@@ -1395,7 +1412,13 @@
         "button": "Transfer ownership",
         "modalDescription": "Choose the member who will become the new owner.",
         "selectLabel": "New owner",
-        "selectPlaceholder": "Select a member…"
+        "selectPlaceholder": "Select a member…",
+        "reasonLabel": "Reason (optional)"
+      },
+      "transferReasons": {
+        "delegating": "Delegating day-to-day management",
+        "sellingBusiness": "Selling / handing over the business",
+        "leaving": "I'm leaving / role change"
       },
       "org": {
         "title": "Delete organization",
@@ -1404,6 +1427,9 @@
         "modalTitle": "Delete organization",
         "modalDescription": "This cancels your subscription and removes all branches and members.",
         "warning": "This is irreversible. All members lose access and billing is cancelled. Data is retained briefly, then purged.",
+        "reasonLabel": "Why are you deleting this organization?",
+        "detailsLabel": "Anything else? (optional)",
+        "detailsPlaceholder": "Tell us more…",
         "typeName": "Type “{name}” to confirm",
         "confirmButton": "Delete organization",
         "deleted": "Organization deleted."
@@ -1429,7 +1455,17 @@
         "tooComplicated": "Too complicated",
         "privacy": "Privacy concerns",
         "startingOver": "Starting over — want a new organization",
+        "noLongerHere": "No longer at this company / changed jobs",
         "other": "Other"
+      },
+      "orgReasons": {
+        "switchedTool": "Switching to another tool",
+        "tooExpensive": "Too expensive / not worth the price",
+        "missingFeatures": "Missing features we needed",
+        "businessClosed": "Business closed / no longer operating",
+        "justTesting": "Just testing / created by mistake",
+        "tooHard": "Too hard to set up / never got value",
+        "pausing": "Pausing — seasonal or temporary"
       }
     }
   },

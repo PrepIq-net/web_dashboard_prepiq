@@ -94,8 +94,15 @@ export function useUpdateBranch(orgId: string, branchId: string) {
 export function useDeleteBranch(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (branchId: string) =>
-      branchService.deleteBranch(orgId, branchId),
+    mutationFn: (vars: {
+      branchId: string;
+      reason_choice?: string;
+      reason_details?: string;
+    }) =>
+      branchService.deleteBranch(orgId, vars.branchId, {
+        reason_choice: vars.reason_choice,
+        reason_details: vars.reason_details,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: branchKeys.branches(orgId) });
       toast.success("Branch removed.");

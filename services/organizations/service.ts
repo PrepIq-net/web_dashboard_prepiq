@@ -271,12 +271,21 @@ export async function deleteOrganizationRole(
   );
 }
 
-export async function leaveOrganization(id: string): Promise<{ message: string }> {
+export type LifecycleReason = {
+  reason_choice?: string;
+  reason_details?: string;
+};
+
+export async function leaveOrganization(
+  id: string,
+  reason?: LifecycleReason,
+): Promise<{ message: string }> {
   return apiClientWithSchema(
     organizationsEndpoints.leave(id),
     z.object({ message: z.string() }),
     {
       method: "POST",
+      body: reason ?? {},
     },
   );
 }
@@ -284,24 +293,30 @@ export async function leaveOrganization(id: string): Promise<{ message: string }
 export async function transferOrganizationOwnership(
   id: string,
   userId: string,
+  reason?: LifecycleReason,
 ): Promise<{ message: string }> {
   return apiClientWithSchema(
     organizationsEndpoints.transferOwnership(id),
     z.object({ message: z.string() }),
     {
       method: "POST",
-      body: { user_id: userId },
+      body: { user_id: userId, ...(reason ?? {}) },
     },
   );
 }
 
-export async function deleteOrganization(id: string): Promise<void> {
-  // 204 No Content — no body to validate.
+export async function deleteOrganization(
+  id: string,
+  reason?: LifecycleReason,
+): Promise<void> {
+  // 204 No Content — no body to validate. The reason travels in the DELETE body
+  // (the proxy forwards it and DRF reads request.data on DELETE).
   await apiClientWithSchema(
     organizationsEndpoints.detail(id),
     z.any(),
     {
       method: "DELETE",
+      body: reason ?? {},
     },
   );
 }
