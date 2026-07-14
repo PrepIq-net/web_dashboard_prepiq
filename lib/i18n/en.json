@@ -1117,6 +1117,11 @@
     "organization": {
       "title": "Organization Settings",
       "description": "Manage global business identity and operational defaults.",
+      "noOrg": {
+        "title": "You don't have an organization yet",
+        "description": "Create an organization to set up branches, connect your POS, and start planning.",
+        "cta": "Create organization"
+      },
       "saving": "Saving...",
       "saveChanges": "Save Changes",
       "general": "General",
@@ -1415,12 +1420,15 @@
         "typeToConfirm": "Type DELETE to confirm",
         "confirmButton": "Delete my account",
         "deleted": "Your account has been deleted.",
-        "failed": "Failed to delete account."
+        "failed": "Failed to delete account.",
+        "soleMemberTitle": "This also deletes your organization",
+        "soleMemberWarning": "You're the only member of {org}. Deleting your account will also permanently delete it, all of its branches ({count}), and cancel its subscription."
       },
       "reasons": {
         "notUseful": "Not useful for me",
         "tooComplicated": "Too complicated",
         "privacy": "Privacy concerns",
+        "startingOver": "Starting over — want a new organization",
         "other": "Other"
       }
     }

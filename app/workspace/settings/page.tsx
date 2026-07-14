@@ -194,8 +194,15 @@ function SettingsPageContent() {
     },
   ];
 
+  // A user with no organization (e.g. they just deleted their only one) keeps
+  // the Organization tab so they can create a new one from its empty state,
+  // even though they hold no org-settings permission yet.
+  const hasNoOrg = user != null && !user.has_organization;
   const filteredTabs = tabs.filter(
-    (tab) => !tab.permission || userPermissions.has(tab.permission),
+    (tab) =>
+      !tab.permission ||
+      userPermissions.has(tab.permission) ||
+      (tab.id === "organization" && hasNoOrg),
   );
 
   // Once permissions resolve, snap activeTab to the first tab the user can see.
@@ -320,6 +327,31 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
       });
     }
   }, [org, formData]);
+
+  // No org yet (fresh account, or just deleted the last one): offer a way back
+  // in instead of spinning forever on an org detail that will never load.
+  if (!orgId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl px-6">
+        <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
+          <Building className="h-6 w-6 text-brand-gold" />
+        </div>
+        <h3 className="text-lg font-medium text-text-primary">
+          {t("settings.organization.noOrg.title")}
+        </h3>
+        <p className="text-sm text-text-muted mt-1 max-w-sm">
+          {t("settings.organization.noOrg.description")}
+        </p>
+        <Link
+          href="/onboarding"
+          className="mt-4 inline-flex h-10 items-center gap-2 rounded-[8px] bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-colors hover:bg-[#B8962E]"
+        >
+          <Plus className="h-4 w-4" />
+          {t("settings.organization.noOrg.cta")}
+        </Link>
+      </div>
+    );
+  }
 
   if (isLoading || !formData) {
     return (

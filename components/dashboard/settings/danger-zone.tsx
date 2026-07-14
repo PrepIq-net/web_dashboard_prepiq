@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { WarningTriangle, Trash, LogOut } from "iconoir-react";
 import { toast } from "react-hot-toast";
 
@@ -18,10 +19,13 @@ import {
   useTransferOrganizationOwnership,
   useDeleteOrganization,
 } from "@/services/organizations/hooks";
+import { useBranches } from "@/services/branches/hooks";
 import { useDeleteAccount, useSessionLogoutUser } from "@/services/users/hooks";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { ApiError } from "@/lib/api/errors";
+import { clearPersistedCache } from "@/lib/api/persist";
+import { clearSelectedBranch } from "@/services/context/branch-store";
 
 type SoleOwnerOrg = { id: string; name: string };
 
@@ -42,11 +46,26 @@ export function DangerZone({ orgId }: { orgId?: string }) {
   );
   const effectiveOrgId = org?.id ?? orgId ?? "";
   const { data: members } = useOrganizationMembers(effectiveOrgId);
+  const { data: branches } = useBranches(effectiveOrgId);
+  const queryClient = useQueryClient();
 
   const permissions = resolvePermissions(user);
   const isOwner =
     permissions.has(PERMISSIONS.MANAGE_ORG_SETTINGS) &&
     permissions.has(PERMISSIONS.MANAGE_BILLING);
+
+  // Sole member = owner with no other active teammates. Deleting the account then
+  // cascades the org (branches + subscription) server-side, so we must warn.
+  const otherActiveMembers = useMemo(
+    () => (members ?? []).filter((m) => m.is_active && m.user !== user?.id),
+    [members, user?.id],
+  );
+  const isSoleMember =
+    isOwner &&
+    Boolean(effectiveOrgId) &&
+    Array.isArray(members) &&
+    otherActiveMembers.length === 0;
+  const branchCount = branches?.length ?? 0;
 
   const deleteAccount = useDeleteAccount();
   const leaveOrg = useLeaveOrganization(effectiveOrgId);
@@ -88,7 +107,12 @@ export function DangerZone({ orgId }: { orgId?: string }) {
     try {
       await logout.mutateAsync(undefined);
     } catch {
-      /* tokens already blacklisted server-side; redirect regardless */
+      // A just-deleted account can't call logout (its token 401s). Clear client
+      // auth state ourselves so nothing routes the user back into /workspace.
+    } finally {
+      queryClient.clear();
+      clearPersistedCache();
+      clearSelectedBranch();
     }
     router.replace("/login");
   }
@@ -266,6 +290,22 @@ export function DangerZone({ orgId }: { orgId?: string }) {
         }
       >
         <div className="space-y-4">
+          {isSoleMember && (
+            <div className="border-l-4 border-status-critical bg-status-critical/5 rounded-r-lg px-4 py-3">
+              <div className="flex items-center gap-2 text-status-critical">
+                <WarningTriangle className="h-4 w-4" />
+                <p className="text-sm font-semibold">
+                  {t("settings.danger.account.soleMemberTitle")}
+                </p>
+              </div>
+              <p className="text-sm text-text-secondary mt-1">
+                {t("settings.danger.account.soleMemberWarning", {
+                  org: org?.name ?? "",
+                  count: branchCount,
+                })}
+              </p>
+            </div>
+          )}
           <Select
             label={t("settings.danger.account.reasonLabel")}
             value={reasonChoice}
@@ -274,6 +314,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
               { value: "NOT_USEFUL", label: t("settings.danger.reasons.notUseful") },
               { value: "TOO_COMPLICATED", label: t("settings.danger.reasons.tooComplicated") },
               { value: "PRIVACY", label: t("settings.danger.reasons.privacy") },
+              { value: "STARTING_OVER", label: t("settings.danger.reasons.startingOver") },
               { value: "OTHER", label: t("settings.danger.reasons.other") },
             ]}
           />

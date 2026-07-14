@@ -1117,6 +1117,11 @@
     "organization": {
       "title": "Paramètres de l'organisation",
       "description": "Gérez l'identité commerciale et les valeurs par défaut opérationnelles.",
+      "noOrg": {
+        "title": "Vous n'avez pas encore d'organisation",
+        "description": "Créez une organisation pour configurer des établissements, connecter votre caisse et commencer à planifier.",
+        "cta": "Créer une organisation"
+      },
       "saving": "Enregistrement...",
       "saveChanges": "Enregistrer les modifications",
       "general": "Général",
@@ -1415,12 +1420,15 @@
         "typeToConfirm": "Saisissez DELETE pour confirmer",
         "confirmButton": "Supprimer mon compte",
         "deleted": "Votre compte a été supprimé.",
-        "failed": "Échec de la suppression du compte."
+        "failed": "Échec de la suppression du compte.",
+        "soleMemberTitle": "Cela supprime aussi votre organisation",
+        "soleMemberWarning": "Vous êtes le seul membre de {org}. Supprimer votre compte la supprimera également définitivement, ainsi que tous ses établissements ({count}), et annulera son abonnement."
       },
       "reasons": {
         "notUseful": "Pas utile pour moi",
         "tooComplicated": "Trop compliqué",
         "privacy": "Préoccupations de confidentialité",
+        "startingOver": "Recommencer — je veux une nouvelle organisation",
         "other": "Autre"
       }
     }
