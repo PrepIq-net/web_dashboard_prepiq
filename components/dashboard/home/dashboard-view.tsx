@@ -483,7 +483,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
       {branchGrid.length === 0 && !ctToday.isLoading && (
         <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
           <p className="text-text-muted">No branches connected yet</p>
-          <Link href="/setup/branch/create">
+          <Link href="/workspace/branches/new">
             <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
               <Shop className="h-4 w-4" />
               Add your first branch

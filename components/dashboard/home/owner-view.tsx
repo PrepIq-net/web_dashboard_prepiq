@@ -360,7 +360,7 @@ export function OwnerView({
       )}
 
       <section className="flex items-center gap-4">
-        <Link href="/setup/branch/create">
+        <Link href="/workspace/branches/new">
           <button className="h-11 rounded-lg bg-brand-gold hover:bg-brand-gold-hover active:bg-brand-gold-pressed text-background px-6 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200 shadow-[0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.4)] active:scale-[0.98]">
             <Shop className="h-4 w-4" />
             {t("dashboard.home.addBranch")}

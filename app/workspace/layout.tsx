@@ -24,6 +24,21 @@ const SUBSCRIPTION_EXEMPT_PATHS = [
   "/workspace/support",
 ];
 
+// Pages that must render WITHOUT an org-level branch. These are either where you
+// create/manage the first branch (so gating them behind "create a branch" would
+// be a dead end) or account-level areas that simply don't operate on branch
+// data. Everything else is real kitchen work and stays branch-gated. Tabs inside
+// these pages that DO need a branch (e.g. connecting a POS under Settings →
+// Integrations) render their own inline empty state instead of blocking the page.
+const BRANCH_EXEMPT_PATHS = [
+  "/workspace/branches",
+  "/workspace/settings",
+  "/workspace/profile",
+  "/workspace/billing",
+  "/workspace/support",
+  "/workspace/notifications",
+];
+
 export default function WorkspaceLayout({
   children,
 }: {
@@ -78,7 +93,14 @@ export default function WorkspaceLayout({
       : "expired";
   // ──────────────────────────────────────────────────────────────────────────
 
+  // Account-level and branch-management pages opt out of the branch/sales gates
+  // so they stay reachable before any branch exists (see BRANCH_EXEMPT_PATHS).
+  const isBranchExemptPath = BRANCH_EXEMPT_PATHS.some((p) =>
+    pathname.startsWith(p),
+  );
+
   const shouldShowBranchRequiredState =
+    !isBranchExemptPath &&
     Boolean(user?.has_organization) &&
     !branchesQuery.isLoading &&
     !branchesQuery.isError &&
@@ -87,6 +109,7 @@ export default function WorkspaceLayout({
     branch_id: activeBranchId,
   });
   const shouldShowSalesSourceRequiredState =
+    !isBranchExemptPath &&
     Boolean(user?.has_organization) &&
     !shouldShowBranchRequiredState &&
     Boolean(activeBranchId) &&

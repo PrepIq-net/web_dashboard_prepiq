@@ -1168,6 +1168,8 @@
       "saving": "Enregistrement...",
       "saveChanges": "Enregistrer les modifications",
       "noBranchSelected": "Sélectionnez une succursale pour configurer ses paramètres.",
+      "noBranchesYet": "Vous n'avez pas encore créé de succursale. Ajoutez-en une pour configurer ses paramètres.",
+      "createFirstBranch": "Créer votre première succursale",
       "general": "Général",
       "kitchenConfiguration": "Configuration de la cuisine",
       "demandContext": "Contexte de la demande",

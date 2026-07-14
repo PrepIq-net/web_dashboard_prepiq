@@ -52,7 +52,7 @@ export function BranchRequiredState({ compact = false }: BranchRequiredStateProp
 
       <div className="mt-7">
         <Link
-          href="/setup/branch/create"
+          href="/workspace/branches/new"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-[8px] bg-[#A8821F] px-5 text-sm font-semibold text-[#141416] transition-colors hover:bg-[#B8962E] active:bg-[#8F6F18]"
         >
           Create Branch First

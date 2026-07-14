@@ -28,6 +28,10 @@ const DENYLIST_ROOTS: readonly (readonly string[])[] = [
   ["users"], // profile / identity / session
   ["payment"], // subscription gate must always be evaluated live
   ["assistant"], // conversation contents
+  ["branches"], // branch gate must always be evaluated live — a persisted
+  // empty list (e.g. right after signup, before the first branch exists)
+  // would otherwise lock the user out of their workspace across reloads
+  // until staleTime expires, even after they've created a branch.
 ];
 
 function isDenied(queryKey: readonly unknown[]): boolean {

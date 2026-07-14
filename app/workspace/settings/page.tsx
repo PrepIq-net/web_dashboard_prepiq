@@ -1155,7 +1155,21 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
         </div>
       </div>
 
-      {!selectedBranchId ? (
+      {branchOptions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
+          <Shop className="h-8 w-8 text-text-muted mb-3" />
+          <p className="text-sm text-text-muted">
+            {t("settings.branch.noBranchesYet")}
+          </p>
+          <Link
+            href="/workspace/branches/new"
+            className="mt-4 inline-flex h-10 items-center gap-2 rounded-[8px] bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-colors hover:bg-[#B8962E]"
+          >
+            <Plus className="h-4 w-4" />
+            {t("settings.branch.createFirstBranch")}
+          </Link>
+        </div>
+      ) : !selectedBranchId ? (
         <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
           <Shop className="h-8 w-8 text-text-muted mb-3" />
           <p className="text-sm text-text-muted">

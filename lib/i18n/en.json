@@ -1168,6 +1168,8 @@
       "saving": "Saving...",
       "saveChanges": "Save Changes",
       "noBranchSelected": "Select a branch to configure its settings.",
+      "noBranchesYet": "You haven't created a branch yet. Add one to configure its settings.",
+      "createFirstBranch": "Create your first branch",
       "general": "General",
       "kitchenConfiguration": "Kitchen Configuration",
       "demandContext": "Demand Context",
