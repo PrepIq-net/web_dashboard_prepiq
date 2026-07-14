@@ -17,11 +17,17 @@ import {
   useSalesDataValidation,
 } from "@/services/production-intelligence/hooks";
 
-// Pages that must always be accessible regardless of subscription state.
+// Pages that must always be accessible regardless of subscription state. These
+// are account/tenant-management surfaces — you must be able to reach them to fix
+// billing, manage/create/delete an org, view sessions, or get help — so paywalling
+// them would be a dead end. Kitchen-work pages stay subscription-gated. Tabs inside
+// these pages that DO need a subscription/branch render their own inline gate.
 const SUBSCRIPTION_EXEMPT_PATHS = [
   "/workspace/billing",
   "/workspace/profile",
   "/workspace/support",
+  "/workspace/settings",
+  "/workspace/notifications",
 ];
 
 // Pages that must render WITHOUT an org-level branch. These are either where you

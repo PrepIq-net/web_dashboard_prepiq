@@ -117,6 +117,19 @@ export function DangerZone({ orgId }: { orgId?: string }) {
     router.replace("/login");
   }
 
+  // Leaving/deleting an org invalidates the entire workspace context (the selected
+  // branch, every cached query for the now-gone tenant). Without a hard reset the
+  // SPA re-renders the stale dashboard and keeps hitting the dead org's endpoints
+  // (branches 403 / subscription 400) until a manual refresh. Clear it all, then
+  // route through the app root so the user is re-placed on FRESH data (→ onboarding
+  // if they now have no org, or their remaining org).
+  function resetWorkspaceAndGoHome() {
+    clearSelectedBranch();
+    clearPersistedCache();
+    queryClient.clear();
+    router.replace("/");
+  }
+
   function handleDeleteAccount() {
     deleteAccount.mutate(
       {
@@ -152,10 +165,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
       onSuccess: () => {
         setLeaveOpen(false);
         toast.success(t("settings.danger.leave.done"));
-        // The hook already awaited invalidation of the profile + org list, so the
-        // cache is fresh. Route through the app root, which forwards a now-org-less
-        // user to /onboarding (or their remaining org). Bare /workspace is a 404.
-        router.replace("/");
+        resetWorkspaceAndGoHome();
       },
     });
   }
@@ -178,10 +188,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
         setOrgConfirm("");
         setBlockedOrgs([]);
         toast.success(t("settings.danger.org.deleted"));
-        // The hook already awaited invalidation of the profile + org list, so the
-        // cache is fresh. Route through the app root, which forwards a now-org-less
-        // user to /onboarding (or their remaining org). Bare /workspace is a 404.
-        router.replace("/");
+        resetWorkspaceAndGoHome();
       },
     });
   }
