@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
 
 /**
  * Shared, cross-navigation branch selection.
@@ -38,6 +39,18 @@ export const useBranchStore = create<BranchState>()(
 /** Clear persisted branch selection (call on logout). */
 export function clearSelectedBranch() {
   useBranchStore.getState().reset();
+}
+
+/**
+ * The branch global surfaces (e.g. the command palette) should act on:
+ * the user's persisted selection when present, else the org's default
+ * branch from the (already cached) access scope — the same fallback the
+ * workspace layout uses. Returns "" while nothing is resolvable yet.
+ */
+export function useActiveBranchId(): string {
+  const branchId = useBranchStore((s) => s.branchId);
+  const accessScopeQuery = useProductionIntelligenceAccessScope();
+  return branchId || accessScopeQuery.data?.default_branch_id || "";
 }
 
 type Branchy = { id: string };

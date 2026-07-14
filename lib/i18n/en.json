@@ -1068,11 +1068,34 @@
     "billing": "Billing",
     "chat": "Operations Hub",
     "settings": "Settings",
+    "notifications": "Notifications",
+    "profile": "My Profile",
+    "support": "Support",
     "section": {
       "analytics": "Analytics",
       "management": "Management",
       "workspace": "Workspace"
     }
+  },
+  "command": {
+    "placeholder": "Search or type a command…",
+    "close": "Close",
+    "sectionNavigation": "Navigation",
+    "sectionRecent": "Recent",
+    "sectionSearch": "Workspace search",
+    "sectionAsk": "Ask PrepIQ",
+    "ask": "Ask PrepIQ:",
+    "thinking": "PrepIQ is thinking…",
+    "open": "Open",
+    "applied": "Applied",
+    "declined": "Declined",
+    "failed": "Failed",
+    "audited": "Audited",
+    "backHint": "Press Esc to go back",
+    "empty": "No matching pages.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorNoBranch": "Select a branch to run commands.",
+    "errorUnavailable": "The assistant is unreachable — navigation still works."
   },
   "settings": {
     "sessions": {

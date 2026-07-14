@@ -1068,11 +1068,34 @@
     "billing": "Facturation",
     "chat": "Hub Opérations",
     "settings": "Paramètres",
+    "notifications": "Notifications",
+    "profile": "Mon profil",
+    "support": "Assistance",
     "section": {
       "analytics": "Analytique",
       "management": "Gestion",
       "workspace": "Espace de travail"
     }
+  },
+  "command": {
+    "placeholder": "Rechercher ou taper une commande…",
+    "close": "Fermer",
+    "sectionNavigation": "Navigation",
+    "sectionRecent": "Récents",
+    "sectionSearch": "Recherche espace de travail",
+    "sectionAsk": "Demander à PrepIQ",
+    "ask": "Demander à PrepIQ :",
+    "thinking": "PrepIQ réfléchit…",
+    "open": "Ouvrir",
+    "applied": "Appliqué",
+    "declined": "Refusé",
+    "failed": "Échec",
+    "audited": "Audité",
+    "backHint": "Appuyez sur Échap pour revenir",
+    "empty": "Aucune page correspondante.",
+    "errorGeneric": "Une erreur s'est produite. Veuillez réessayer.",
+    "errorNoBranch": "Sélectionnez une succursale pour lancer des commandes.",
+    "errorUnavailable": "L'assistant est injoignable — la navigation fonctionne toujours."
   },
   "settings": {
     "sessions": {

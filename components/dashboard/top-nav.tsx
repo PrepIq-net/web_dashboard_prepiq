@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Bell, LogOut, NavArrowDown, Search, ProfileCircle, Settings } from "iconoir-react";
+import { useCommandPalette } from "@/components/command/command-palette-provider";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
@@ -14,6 +15,11 @@ import { useTranslation } from "@/lib/i18n";
 
 const TopNavComponent = memo(function DashboardTopNav() {
   const { t } = useTranslation();
+  const { enabled: paletteEnabled, setOpen: setPaletteOpen } = useCommandPalette();
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setIsMac(/mac/i.test(navigator.platform));
+  }, []);
   const { data: user } = useCurrentUserProfile();
   const notificationsQuery = useNotifications({
     status: "UNREAD",
@@ -83,14 +89,30 @@ const TopNavComponent = memo(function DashboardTopNav() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-          <label className="relative min-w-[220px] flex-1 lg:min-w-[340px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
-            <input
-              type="text"
-              placeholder={t("dashboard.topNav.searchPlaceholder")}
-              className="h-10 w-full rounded-[8px] bg-[#232327] pl-9 pr-3 text-[13px] text-[#F5F5F7] placeholder:text-[#8E8E93] focus:outline-none focus:ring-1 focus:ring-[#A8821F]"
-            />
-          </label>
+          {paletteEnabled ? (
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="relative min-w-[220px] flex-1 lg:min-w-[340px]"
+            >
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
+              <span className="flex h-10 w-full items-center rounded-[8px] bg-[#232327] pl-9 pr-3 text-[13px] text-[#8E8E93] transition-colors hover:bg-[#2A2A2E]">
+                <span className="flex-1 truncate text-left">{t("command.placeholder")}</span>
+                <kbd className="ml-2 inline-flex shrink-0 items-center gap-0.5 rounded-[5px] border border-[#2E2E33] bg-[#1C1C1F] px-1.5 py-0.5 font-sans text-[10px] font-medium text-[#8E8E93]">
+                  {isMac ? "⌘" : "Ctrl"} K
+                </kbd>
+              </span>
+            </button>
+          ) : (
+            <label className="relative min-w-[220px] flex-1 lg:min-w-[340px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
+              <input
+                type="text"
+                placeholder={t("dashboard.topNav.searchPlaceholder")}
+                className="h-10 w-full rounded-[8px] bg-[#232327] pl-9 pr-3 text-[13px] text-[#F5F5F7] placeholder:text-[#8E8E93] focus:outline-none focus:ring-1 focus:ring-[#A8821F]"
+              />
+            </label>
+          )}
 
           <div className="relative" ref={notificationsRef}>
             <button
