@@ -152,7 +152,10 @@ export function DangerZone({ orgId }: { orgId?: string }) {
       onSuccess: () => {
         setLeaveOpen(false);
         toast.success(t("settings.danger.leave.done"));
-        router.replace("/workspace");
+        // The hook already awaited invalidation of the profile + org list, so the
+        // cache is fresh. Route through the app root, which forwards a now-org-less
+        // user to /onboarding (or their remaining org). Bare /workspace is a 404.
+        router.replace("/");
       },
     });
   }
@@ -175,7 +178,10 @@ export function DangerZone({ orgId }: { orgId?: string }) {
         setOrgConfirm("");
         setBlockedOrgs([]);
         toast.success(t("settings.danger.org.deleted"));
-        router.replace("/workspace");
+        // The hook already awaited invalidation of the profile + org list, so the
+        // cache is fresh. Route through the app root, which forwards a now-org-less
+        // user to /onboarding (or their remaining org). Bare /workspace is a 404.
+        router.replace("/");
       },
     });
   }
