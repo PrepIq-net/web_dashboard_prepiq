@@ -11,6 +11,12 @@ export const usersEndpoints = {
     resetPassword: "/api/auth/reset-password/",
     verificationStatus: "/api/auth/verification-status/",
   },
+  sessions: {
+    list: "/api/auth/sessions/",
+    revokeMany: "/api/auth/sessions/revoke/",
+    revokeAll: "/api/auth/sessions/revoke-all/",
+    revoke: (sid: string) => `/api/auth/sessions/${sid}/`,
+  },
   profile: {
     me: "/api/user/me/",
     update: "/api/user/update-profile/",

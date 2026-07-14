@@ -73,6 +73,7 @@ export type ConfirmActionResponse = {
   applied: boolean;
   status: "APPLIED" | "DECLINED" | "FAILED" | "NOT_FOUND";
   summary: string;
+  action_log_id?: string | null;
   message: AssistantMessage;
 };
 
@@ -105,4 +106,75 @@ export type CurrentConversationResponse = {
   messages: AssistantMessage[];
   greeting?: string;
   suggested_questions?: string[];
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command palette (POST /assistant/command/) — mirrors
+// backend/ai_assistant/command/schemas.py. Exactly one payload field is
+// populated per response `type`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type CommandRequestPayload = {
+  text: string;
+  branch_id?: string;
+  date?: string;
+};
+
+export type CommandResponseType =
+  | "NAVIGATION"
+  | "QUERY"
+  | "MUTATION_PROPOSAL"
+  | "ANSWER"
+  | "ERROR";
+
+export type CommandErrorCode =
+  | "no_branch"
+  | "forbidden"
+  | "llm_unavailable"
+  | "disabled"
+  | "invalid";
+
+// Aligned with the Hub's ReferenceStat tone union for later renderer sharing.
+export type CommandCardTone = "neutral" | "ok" | "warning" | "danger";
+
+export type CommandCardStat = {
+  label: string;
+  value: string;
+  tone: CommandCardTone;
+};
+
+export type CommandCard = {
+  ref_type: string;
+  title: string;
+  subtitle: string;
+  stats: CommandCardStat[];
+  rows: CommandCardStat[];
+  deep_link: string;
+  footnote: string;
+};
+
+export type CommandNavigation = {
+  page_id: string;
+  path: string;
+  params: Record<string, string>;
+};
+
+export type CommandProposal = {
+  conversation_id: string;
+  message_id: string;
+  action_log_id: string | null;
+  pending_action: PendingAction;
+  summary: string;
+  destructive: boolean;
+};
+
+export type CommandResponse = {
+  type: CommandResponseType;
+  query: string;
+  navigation?: CommandNavigation;
+  card?: CommandCard;
+  source_tool?: string;
+  proposal?: CommandProposal;
+  answer?: string;
+  error?: { code: CommandErrorCode; detail: string };
 };

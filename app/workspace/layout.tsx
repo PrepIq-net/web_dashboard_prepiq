@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { CommandPaletteProvider } from "@/components/command/command-palette-provider";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
 import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
@@ -120,18 +121,20 @@ export default function WorkspaceLayout({
   );
 
   return (
-    <div className="flex min-h-screen bg-surface-1">
-      <DashboardSidebarWrapper user={memoizedUser} />
-      <main
-        className={`flex-1 py-8 transition-[margin-left] duration-200 ${
-          collapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
-          <DashboardTopNavWrapper />
-          {mainContent}
-        </div>
-      </main>
-    </div>
+    <CommandPaletteProvider>
+      <div className="flex min-h-screen bg-surface-1">
+        <DashboardSidebarWrapper user={memoizedUser} />
+        <main
+          className={`flex-1 py-8 transition-[margin-left] duration-200 ${
+            collapsed ? "ml-20" : "ml-64"
+          }`}
+        >
+          <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
+            <DashboardTopNavWrapper />
+            {mainContent}
+          </div>
+        </main>
+      </div>
+    </CommandPaletteProvider>
   );
 }

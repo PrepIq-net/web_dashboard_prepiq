@@ -3,6 +3,8 @@ import type {
   AssistantConversation,
   AssistantMessage,
   AssistantReply,
+  CommandRequestPayload,
+  CommandResponse,
   ConfirmActionPayload,
   ConfirmActionResponse,
   ConversationDetail,
@@ -90,6 +92,15 @@ export async function getSuggestedQuestions(params: {
 
 export async function explainAlert(payload: ExplainPayload): Promise<AssistantReply> {
   return apiClient<AssistantReply>(`${BASE}/explain/`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function runAssistantCommand(
+  payload: CommandRequestPayload,
+): Promise<CommandResponse> {
+  return apiClient<CommandResponse>(`${BASE}/command/`, {
     method: "POST",
     body: payload,
   });

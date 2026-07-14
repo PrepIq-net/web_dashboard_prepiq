@@ -80,6 +80,7 @@ import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
+import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
 import { useTranslation } from "@/lib/i18n";
 
 const columnHelper = createColumnHelper<any>();
@@ -259,7 +260,12 @@ function SettingsPageContent() {
             />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
-          {activeTab === "security" && <DangerZone orgId={org?.id} />}
+          {activeTab === "security" && (
+            <div className="space-y-10">
+              <ActiveSessions />
+              <DangerZone orgId={org?.id} />
+            </div>
+          )}
           {activeTab === "support" && <SupportTabContent />}
           {/* Placeholder for tabs not yet built */}
           {![

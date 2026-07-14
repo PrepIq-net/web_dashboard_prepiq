@@ -8,10 +8,12 @@ import {
   getCurrentConversation,
   getSuggestedQuestions,
   listAssistantConversations,
+  runAssistantCommand,
   sendAssistantMessage,
   startAssistantConversation,
 } from "./service";
 import type {
+  CommandRequestPayload,
   ConfirmActionPayload,
   ExplainPayload,
   SendMessagePayload,
@@ -114,5 +116,13 @@ export function useExplainAlert() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationsPrefix });
     },
+  });
+}
+
+// One-shot command-palette router. Reads/navigation touch nothing cached;
+// mutations only propose (the confirm step invalidates what it changes).
+export function useRunAssistantCommand() {
+  return useMutation({
+    mutationFn: (payload: CommandRequestPayload) => runAssistantCommand(payload),
   });
 }
