@@ -457,7 +457,12 @@ export async function updateBranchDayStatus(
 
 export async function updateBranchDayNotes(
   branchDayId: string,
-  payload: { notes?: string; reaction?: string },
+  payload: {
+    notes?: string;
+    reaction?: string;
+    variance_cause?: string;
+    variance_cause_note?: string;
+  },
 ) {
   return apiClient(productionIntelligenceEndpoints.branchDayNotes(branchDayId), {
     method: "PATCH",

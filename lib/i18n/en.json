@@ -643,7 +643,30 @@
       "noteSaved": "Note saved",
       "aiWasCloserWithCount": "AI was closer on {count} items",
       "revenueProtectedAmount": "{amount} protected",
-      "missedRevenueAmount": "{amount} missed"
+      "missedRevenueAmount": "{amount} missed",
+      "variance": {
+        "title": "Today missed forecast",
+        "subtitleBelow": "Sales came in below what we expected. Telling us why keeps the model from learning the wrong lesson.",
+        "subtitleAbove": "Sales came in above what we expected. Telling us why keeps the model from learning the wrong lesson.",
+        "expected": "Expected",
+        "actual": "Actual",
+        "difference": "Difference",
+        "whatHappened": "What happened?",
+        "otherPlaceholder": "Briefly, what happened?",
+        "saved": "Recorded. Tonight's training will account for it.",
+        "cause": {
+          "HEAVY_RAIN": "Heavy rain",
+          "PUBLIC_HOLIDAY": "Public holiday",
+          "ROAD_CLOSURE": "Road closure",
+          "EVENT_CANCELLED": "Event cancelled",
+          "PRIVATE_EVENT": "Private event",
+          "STAFF_SHORTAGE": "Staff shortage",
+          "SUPPLIER_ISSUE": "Supplier issue",
+          "EQUIPMENT_FAILURE": "Equipment failure",
+          "POWER_OUTAGE": "Power outage",
+          "OTHER": "Other"
+        }
+      }
     },
     "eyebrow": "Today's Operations",
     "expectedDemand": "Expected demand",

@@ -643,7 +643,30 @@
       "noteSaved": "Note enregistrée",
       "aiWasCloserWithCount": "L'IA était plus proche sur {count} articles",
       "revenueProtectedAmount": "{amount} protégés",
-      "missedRevenueAmount": "{amount} manqués"
+      "missedRevenueAmount": "{amount} manqués",
+      "variance": {
+        "title": "Journée hors prévision",
+        "subtitleBelow": "Les ventes sont inférieures à nos prévisions. Nous en indiquer la raison évite au modèle d'en tirer une mauvaise leçon.",
+        "subtitleAbove": "Les ventes sont supérieures à nos prévisions. Nous en indiquer la raison évite au modèle d'en tirer une mauvaise leçon.",
+        "expected": "Prévu",
+        "actual": "Réel",
+        "difference": "Écart",
+        "whatHappened": "Que s'est-il passé ?",
+        "otherPlaceholder": "En bref, que s'est-il passé ?",
+        "saved": "Enregistré. L'entraînement de ce soir en tiendra compte.",
+        "cause": {
+          "HEAVY_RAIN": "Fortes pluies",
+          "PUBLIC_HOLIDAY": "Jour férié",
+          "ROAD_CLOSURE": "Route fermée",
+          "EVENT_CANCELLED": "Événement annulé",
+          "PRIVATE_EVENT": "Événement privé",
+          "STAFF_SHORTAGE": "Manque de personnel",
+          "SUPPLIER_ISSUE": "Problème fournisseur",
+          "EQUIPMENT_FAILURE": "Panne d'équipement",
+          "POWER_OUTAGE": "Coupure de courant",
+          "OTHER": "Autre"
+        }
+      }
     },
     "eyebrow": "Opérations du jour",
     "expectedDemand": "Demande prévue",

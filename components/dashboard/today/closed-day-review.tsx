@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpdateBranchDayNotes } from "@/services/production-intelligence/hooks";
+import { DayVarianceCausePrompt } from "./day-variance-cause-prompt";
 import type {
   BranchDayToday,
   PipelineStats,
@@ -509,6 +510,9 @@ export function ClosedDayReview({
             {t("today.closed.previewTomorrow")}
           </Link>
         </section>
+
+        {/* ── 6.5 WHAT HAPPENED? (only when variance exceeds threshold) ── */}
+        <DayVarianceCausePrompt branchDay={branchDay} />
 
         {/* ── 7. HOW DID TODAY FEEL + NOTE ── */}
         <section className="space-y-6">

@@ -490,8 +490,13 @@ export function useUpdateBranchDayNotes() {
     mutationFn: ({
       branchDayId,
       ...payload
-    }: { branchDayId: string; notes?: string; reaction?: string }) =>
-      updateBranchDayNotes(branchDayId, payload),
+    }: {
+      branchDayId: string;
+      notes?: string;
+      reaction?: string;
+      variance_cause?: string;
+      variance_cause_note?: string;
+    }) => updateBranchDayNotes(branchDayId, payload),
   });
 }
 

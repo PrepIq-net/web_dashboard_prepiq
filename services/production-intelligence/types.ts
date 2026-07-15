@@ -713,6 +713,19 @@ export const branchDayTodaySchema = z.object({
         weekday: z.string().optional(),
         sample_size: z.number().optional(),
       }),
+      // exceeds_threshold is decided server-side; the client never re-derives it.
+      variance_review: z
+        .object({
+          forecast_total: z.number(),
+          actual_total: z.number(),
+          variance_ratio: z.number().nullable(),
+          exceeds_threshold: z.boolean(),
+          threshold: z.number(),
+          cause: z.string(),
+          cause_note: z.string(),
+          cause_recorded_at: z.string().nullable(),
+        })
+        .optional(),
     })
     .nullable()
     .optional(),
