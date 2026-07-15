@@ -82,6 +82,11 @@ export const PERMISSIONS = {
   // Planning calendar
   VIEW_CALENDAR: "VIEW_CALENDAR",
   MANAGE_CALENDAR: "MANAGE_CALENDAR",
+  // Labor & scheduling
+  SUBMIT_AVAILABILITY: "SUBMIT_AVAILABILITY",
+  VIEW_TEAM_SCHEDULE: "VIEW_TEAM_SCHEDULE",
+  MANAGE_SCHEDULE: "MANAGE_SCHEDULE",
+  PUBLISH_SCHEDULE: "PUBLISH_SCHEDULE",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -117,6 +122,10 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   VIEW_DONATION_HISTORY: "View Donation History",
   VIEW_CALENDAR: "View Planning Calendar",
   MANAGE_CALENDAR: "Manage Planning Calendar Events",
+  SUBMIT_AVAILABILITY: "Submit Own Availability",
+  VIEW_TEAM_SCHEDULE: "View Team Schedule",
+  MANAGE_SCHEDULE: "Build & Edit Schedules",
+  PUBLISH_SCHEDULE: "Publish Schedules",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

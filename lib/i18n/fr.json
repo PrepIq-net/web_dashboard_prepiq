@@ -1079,6 +1079,7 @@
     "dashboard": "Tableau de bord",
     "today": "Aujourd'hui",
     "planning": "Planification",
+    "schedule": "Planning",
     "production": "Production",
     "inventory": "Inventaire",
     "history": "Historique",
@@ -3383,6 +3384,100 @@
           "noRows": "Aucune ligne importée"
         }
       }
+    }
+  },
+  "schedule": {
+    "title": "Planning",
+    "eyebrow": "Capacité opérationnelle",
+    "description": "Validez les disponibilités, construisez la semaine et vérifiez que l'équipe peut exécuter le plan.",
+    "tabs": {
+      "availability": "Disponibilités",
+      "schedule": "Planning",
+      "coverage": "Couverture",
+      "history": "Historique"
+    },
+    "actions": {
+      "generate": "Générer",
+      "generating": "Génération…",
+      "publish": "Publier",
+      "publishing": "Publication…",
+      "copyPrevious": "Copier la semaine dernière",
+      "recompute": "Recalculer les besoins",
+      "previousWeek": "Semaine précédente",
+      "nextWeek": "Semaine suivante",
+      "thisWeek": "Cette semaine",
+      "approve": "Approuver",
+      "reject": "Refuser",
+      "addShift": "Ajouter un service",
+      "removeShift": "Supprimer le service",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "published": "Publié",
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Refusé",
+      "notSubmitted": "Non soumis",
+      "under": "Sous-effectif",
+      "ok": "Adéquat",
+      "over": "Sureffectif",
+      "unknown": "Pas de prévision"
+    },
+    "coverage": {
+      "title": "Couverture",
+      "score": "Couverture",
+      "noRequirement": "Aucun besoin en personnel pour ce jour.",
+      "estimatedMeals": "Couverts prévus",
+      "estimatedHours": "Heures de travail nécessaires",
+      "required": "Requis",
+      "scheduled": "Planifié",
+      "role": "Rôle",
+      "people": "personnes",
+      "hours": "heures",
+      "understaffedDays": "{{count}} jour(s) en sous-effectif",
+      "standard": "Standard de productivité",
+      "perLaborHour": "{{value}} couverts par heure de travail"
+    },
+    "availability": {
+      "title": "Disponibilités",
+      "submitted": "{{count}} soumises",
+      "missing": "{{count}} manquantes",
+      "pendingReview": "{{count}} en attente de validation",
+      "notSubmittedYet": "N'a pas soumis ses disponibilités pour cette semaine.",
+      "reviewedBy": "Validé par {{name}}",
+      "note": "Note",
+      "empty": "Personne n'a encore soumis de disponibilités pour cette semaine.",
+      "emptyRoster": "Cette succursale n'a pas encore de personnel."
+    },
+    "grid": {
+      "employee": "Membre de l'équipe",
+      "off": "Repos",
+      "unassignedRole": "Aucun rôle",
+      "empty": "Aucun service. Utilisez Générer, copiez la semaine dernière ou cliquez sur une case.",
+      "clickToAdd": "Ajouter un service"
+    },
+    "generation": {
+      "title": "Brouillon généré",
+      "summary": "Résumé",
+      "warnings": "Créneaux non pourvus",
+      "rejectedSwaps": "Ajustements suggérés par l'IA non appliqués",
+      "sourceAllocator": "Construit à partir des disponibilités approuvées",
+      "sourceLlm": "Construit à partir des disponibilités approuvées, revu par l'IA",
+      "reviewBeforePublish": "Vérifiez le brouillon, puis publiez."
+    },
+    "history": {
+      "title": "Historique",
+      "week": "Semaine",
+      "coverage": "Couverture",
+      "forecastAccuracy": "Précision des prévisions",
+      "laborHours": "Heures de travail",
+      "understaffed": "Jours en sous-effectif",
+      "empty": "Aucune semaine terminée. L'historique se remplit à la clôture des journées."
+    },
+    "empty": {
+      "noSchedule": "Aucun planning pour cette semaine."
     }
   }
 }

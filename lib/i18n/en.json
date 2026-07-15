@@ -1079,6 +1079,7 @@
     "dashboard": "Dashboard",
     "today": "Today",
     "planning": "Planning",
+    "schedule": "Schedule",
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
@@ -3383,6 +3384,100 @@
           "noRows": "No rows imported"
         }
       }
+    }
+  },
+  "schedule": {
+    "title": "Schedule",
+    "eyebrow": "Operational capacity",
+    "description": "Approve availability, build the week, and check the team can execute the plan.",
+    "tabs": {
+      "availability": "Availability",
+      "schedule": "Schedule",
+      "coverage": "Coverage",
+      "history": "History"
+    },
+    "actions": {
+      "generate": "Generate",
+      "generating": "Generating…",
+      "publish": "Publish",
+      "publishing": "Publishing…",
+      "copyPrevious": "Copy last week",
+      "recompute": "Recalculate staffing",
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "thisWeek": "This week",
+      "approve": "Approve",
+      "reject": "Reject",
+      "addShift": "Add shift",
+      "removeShift": "Remove shift",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "notSubmitted": "Not submitted",
+      "under": "Understaffed",
+      "ok": "Adequate",
+      "over": "Overstaffed",
+      "unknown": "No forecast"
+    },
+    "coverage": {
+      "title": "Coverage",
+      "score": "Coverage",
+      "noRequirement": "No staffing requirement for this day yet.",
+      "estimatedMeals": "Forecast covers",
+      "estimatedHours": "Labor hours needed",
+      "required": "Required",
+      "scheduled": "Scheduled",
+      "role": "Role",
+      "people": "people",
+      "hours": "hours",
+      "understaffedDays": "{{count}} day(s) understaffed",
+      "standard": "Productivity standard",
+      "perLaborHour": "{{value}} covers per labor hour"
+    },
+    "availability": {
+      "title": "Availability",
+      "submitted": "{{count}} submitted",
+      "missing": "{{count}} missing",
+      "pendingReview": "{{count}} awaiting review",
+      "notSubmittedYet": "Has not submitted availability for this week.",
+      "reviewedBy": "Reviewed by {{name}}",
+      "note": "Note",
+      "empty": "Nobody has submitted availability for this week yet.",
+      "emptyRoster": "This branch has no staff on its roster yet."
+    },
+    "grid": {
+      "employee": "Team member",
+      "off": "Off",
+      "unassignedRole": "No role",
+      "empty": "No shifts yet. Use Generate, copy last week, or click a cell to add one.",
+      "clickToAdd": "Add shift"
+    },
+    "generation": {
+      "title": "Generated draft",
+      "summary": "Summary",
+      "warnings": "Unfilled slots",
+      "rejectedSwaps": "Adjustments the AI suggested that were not applied",
+      "sourceAllocator": "Built from approved availability",
+      "sourceLlm": "Built from approved availability, reviewed by AI",
+      "reviewBeforePublish": "Review the draft, then publish when it looks right."
+    },
+    "history": {
+      "title": "History",
+      "week": "Week",
+      "coverage": "Coverage",
+      "forecastAccuracy": "Forecast accuracy",
+      "laborHours": "Labor hours",
+      "understaffed": "Short days",
+      "empty": "No completed weeks yet. History fills in as days are closed."
+    },
+    "empty": {
+      "noSchedule": "No schedule for this week yet."
     }
   }
 }

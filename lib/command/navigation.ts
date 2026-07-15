@@ -7,6 +7,7 @@ import {
   Clock,
   ClockRotateRight,
   Coins,
+  Community,
   CreditCard,
   GraphUp,
   Group,
@@ -34,6 +35,7 @@ export type NavPageId =
   | "dashboard"
   | "today"
   | "planning"
+  | "schedule"
   | "production"
   | "inventory"
   | "history"
@@ -95,8 +97,31 @@ export const NAV_PAGES: NavPage[] = [
     labelKey: "sidebar.planning",
     icon: Calendar,
     permission: PERMISSIONS.VIEW_CALENDAR,
+    // "schedule" now belongs to the Schedule page below; leaving it here would
+    // make the deterministic router send "open the schedule" to the calendar.
+    keywords: ["calendar", "planner", "events"],
     sectionKey: "operations",
-    keywords: ["calendar", "planner", "schedule"],
+  },
+  {
+    id: "schedule",
+    href: "/workspace/schedule",
+    labelKey: "sidebar.schedule",
+    icon: Community,
+    permission: PERMISSIONS.VIEW_TEAM_SCHEDULE,
+    sectionKey: "operations",
+    keywords: [
+      "schedule",
+      "team schedule",
+      "staff schedule",
+      "shifts",
+      "roster",
+      "rota",
+      "staffing",
+      "availability",
+      "coverage",
+      "labor",
+      "who works",
+    ],
   },
   {
     id: "production",
