@@ -13,6 +13,7 @@ import {
   initializeBranchDay,
   ignoreBranchDayLiveAlert,
   lockBranchDayPlan,
+  recomputeIngredientRequirement,
   createPrepRecommendationDecision,
   evaluatePrepPlan,
   getExecutiveControlTower,
@@ -447,12 +448,15 @@ export function useInitializeBranchDay() {
     mutationFn: (payload: BranchDayInitializePayload) =>
       initializeBranchDay(payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: productionIntelligenceQueryKeys.branchDayToday({
-          branch_id: data.branch_id,
-          date: data.date,
-        }),
+      const queryKey = productionIntelligenceQueryKeys.branchDayToday({
+        branch_id: data.branch_id,
+        date: data.date,
       });
+      // The response is the same payload the today query serves, so seed the
+      // cache with it. Callers then read the day from one place, and a later
+      // lock/status refetch can actually replace it.
+      queryClient.setQueryData(queryKey, data);
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 }
@@ -497,6 +501,25 @@ export function useUpdateBranchDayNotes() {
       variance_cause?: string;
       variance_cause_note?: string;
     }) => updateBranchDayNotes(branchDayId, payload),
+  });
+}
+
+export function useRecomputeIngredientRequirement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { branch_id: string; date: string }) =>
+      recomputeIngredientRequirement(payload),
+    onSuccess: (_data, variables) => {
+      // The requirement is served inside the today payload, so refetch that
+      // rather than caching it separately and having two versions of the truth.
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayToday({
+          branch_id: variables.branch_id,
+          date: variables.date,
+        }),
+      });
+    },
   });
 }
 

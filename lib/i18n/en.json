@@ -1004,6 +1004,41 @@
       "service": "Service",
       "review": "Review",
       "aria": "Day progress"
+    },
+    "ingredients": {
+      "title": "Ingredient requirements",
+      "subtitle": "What your kitchen needs to prep today's plan",
+      "recalculate": "Recalculate",
+      "calculating": "Calculating…",
+      "countSummary": "{count} ingredients",
+      "shortSummary": "{count} short",
+      "costSummary": "est. {amount} to cover",
+      "allCovered": "all covered by stock on hand",
+      "shortHeading": "{count} ingredient(s) short for today's plan",
+      "need": "Need",
+      "onHand": "on hand",
+      "short": "Short",
+      "covered": "Covered",
+      "stockUnknown": "No stock count",
+      "emptyLocked": "Ingredient quantities could not be calculated for this plan. Try recalculating.",
+      "emptyUnlocked": "Lock the plan and PrepIQ will work out exactly what you need — and what you're short.",
+      "noRecipeData": "No ingredient data found.",
+      "buildRecipes": "Build recipes →",
+      "setUpRecipes": "Set up recipes →",
+      "missingRecipes": "{count} item(s) missing recipes",
+      "missingRecipesHint": "These items are in your prep plan but have no recipe defined:",
+      "addMissingRecipes": "Add missing recipes →",
+      "error": "Could not calculate ingredient demand. Make sure recipes are set up for your menu items.",
+      "footerFromLock": "Calculated when the plan was locked",
+      "footerFromManual": "Recalculated by hand",
+      "goToPurchasing": "Order what's short →",
+      "uncountedSummary": "{count} not counted"
+    },
+    "tasksStrip": {
+      "suggested": "{count} suggested task(s) waiting for your review",
+      "review": "Review →",
+      "counts": "Tasks: {todo} to do · {inProgress} in progress · {done} done",
+      "open": "Open the board →"
     }
   },
   "profile": {
@@ -1079,6 +1114,7 @@
     "dashboard": "Dashboard",
     "today": "Today",
     "planning": "Planning",
+    "schedule": "Schedule",
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
@@ -1098,7 +1134,8 @@
       "analytics": "Analytics",
       "management": "Management",
       "workspace": "Workspace"
-    }
+    },
+    "tasks": "Tasks"
   },
   "command": {
     "placeholder": "Search or type a command…",
@@ -3383,6 +3420,198 @@
           "noRows": "No rows imported"
         }
       }
+    }
+  },
+  "schedule": {
+    "title": "Schedule",
+    "eyebrow": "Operational capacity",
+    "description": "Approve availability, build the week, and check the team can execute the plan.",
+    "tabs": {
+      "availability": "Availability",
+      "schedule": "Schedule",
+      "coverage": "Coverage",
+      "history": "History"
+    },
+    "actions": {
+      "generate": "Generate",
+      "generating": "Generating…",
+      "publish": "Publish",
+      "publishing": "Publishing…",
+      "copyPrevious": "Copy last week",
+      "recompute": "Recalculate staffing",
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "thisWeek": "This week",
+      "approve": "Approve",
+      "reject": "Reject",
+      "addShift": "Add shift",
+      "removeShift": "Remove shift",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "notSubmitted": "Not submitted",
+      "under": "Understaffed",
+      "ok": "Adequate",
+      "over": "Overstaffed",
+      "unknown": "No forecast"
+    },
+    "coverage": {
+      "title": "Coverage",
+      "score": "Coverage",
+      "noRequirement": "No staffing requirement for this day yet.",
+      "estimatedMeals": "Forecast covers",
+      "estimatedHours": "Labor hours needed",
+      "required": "Required",
+      "scheduled": "Scheduled",
+      "role": "Role",
+      "people": "people",
+      "hours": "hours",
+      "understaffedDays": "{{count}} day(s) understaffed",
+      "standard": "Productivity standard",
+      "perLaborHour": "{{value}} covers per labor hour"
+    },
+    "availability": {
+      "title": "Availability",
+      "submitted": "{{count}} submitted",
+      "missing": "{{count}} missing",
+      "pendingReview": "{{count}} awaiting review",
+      "notSubmittedYet": "Has not submitted availability for this week.",
+      "reviewedBy": "Reviewed by {{name}}",
+      "note": "Note",
+      "empty": "Nobody has submitted availability for this week yet.",
+      "emptyRoster": "This branch has no staff on its roster yet.",
+      "reviewNote": "Note: {note}",
+      "message": "Message about this"
+    },
+    "grid": {
+      "employee": "Team member",
+      "off": "Off",
+      "unassignedRole": "No role",
+      "empty": "No shifts yet. Use Generate, copy last week, or click a cell to add one.",
+      "clickToAdd": "Add shift"
+    },
+    "generation": {
+      "title": "Generated draft",
+      "summary": "Summary",
+      "warnings": "Unfilled slots",
+      "rejectedSwaps": "Adjustments the AI suggested that were not applied",
+      "sourceAllocator": "Built from approved availability",
+      "sourceLlm": "Built from approved availability, reviewed by AI",
+      "reviewBeforePublish": "Review the draft, then publish when it looks right."
+    },
+    "history": {
+      "title": "History",
+      "week": "Week",
+      "coverage": "Coverage",
+      "forecastAccuracy": "Forecast accuracy",
+      "laborHours": "Labor hours",
+      "understaffed": "Short days",
+      "empty": "No completed weeks yet. History fills in as days are closed."
+    },
+    "empty": {
+      "noSchedule": "No schedule for this week yet."
+    },
+    "review": {
+      "approveTitle": "Approve availability",
+      "rejectTitle": "Reject availability",
+      "approveDescription": "Approve {name}'s availability for the week of {week}.",
+      "rejectDescription": "Let {name} know why their availability wasn't approved.",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Add a note…",
+      "rejectNotePlaceholder": "Reason for rejecting… (optional)",
+      "confirmApprove": "Approve",
+      "confirmReject": "Reject",
+      "cancel": "Cancel"
+    },
+    "roster": {
+      "button": "Add to roster",
+      "title": "Add to roster",
+      "description": "Add someone to work at {branch}. Pick a teammate who’s already in your org, or invite someone new.",
+      "fromTeam": "From your team",
+      "inviteNew": "Invite someone new",
+      "memberLabel": "Team member",
+      "memberPlaceholder": "Select a person",
+      "roleLabel": "Role",
+      "add": "Add to roster",
+      "adding": "Adding…",
+      "cancel": "Cancel",
+      "loading": "Loading team…",
+      "everyoneAdded": "Everyone in your org is already on this roster — invite someone new instead.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@restaurant.com",
+      "sendInvite": "Send invite",
+      "sending": "Sending…",
+      "inviteHint": "They’ll get an email to join and will appear on the roster at {branch} once they accept.",
+      "noInvitePermission": "You don’t have permission to invite staff to this branch."
+    }
+  },
+  "tasks": {
+    "eyebrow": "Execution",
+    "title": "Tasks",
+    "description": "Today's plan as work with owners — review, confirm, and track it to done.",
+    "insight": "Tasks come from the locked plan. Confirm the suggestions and everyone knows what they own before service starts.",
+    "loadError": "Could not load the task board.",
+    "emptyManager": "No tasks yet. Lock today's plan and PrepIQ will draft them, or add one yourself.",
+    "emptyStaff": "No tasks yet for today.",
+    "filter": {
+      "everyone": "Everyone"
+    },
+    "actions": {
+      "generate": "Regenerate",
+      "add": "Add task"
+    },
+    "column": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done",
+      "empty": {
+        "todo": "Nothing waiting.",
+        "in_progress": "Nothing underway.",
+        "done": "Nothing finished yet."
+      }
+    },
+    "category": {
+      "prep": "Prep",
+      "setup": "Setup",
+      "service": "Service",
+      "cleaning": "Cleaning",
+      "other": "Other"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "card": {
+      "minutes": "{count} min",
+      "unassigned": "Unassigned"
+    },
+    "tray": {
+      "title": "{count} suggested task(s) to review",
+      "confirm": "Confirm {count} task(s)",
+      "confirming": "Confirming…",
+      "dismiss": "Dismiss suggestion",
+      "unassigned": "Unassigned",
+      "load": "{count} task(s)"
+    },
+    "add": {
+      "title": "Add a task",
+      "description": "Goes straight onto the board — no review step for your own tasks.",
+      "fieldTitle": "Title",
+      "titlePlaceholder": "e.g. Break down the walk-in",
+      "fieldDescription": "Details (optional)",
+      "fieldCategory": "Category",
+      "fieldPriority": "Priority",
+      "fieldMinutes": "Estimated minutes",
+      "fieldAssignee": "Assign to",
+      "save": "Add task",
+      "saving": "Adding…"
     }
   }
 }

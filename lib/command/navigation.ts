@@ -7,6 +7,7 @@ import {
   Clock,
   ClockRotateRight,
   Coins,
+  Community,
   CreditCard,
   GraphUp,
   Group,
@@ -18,6 +19,7 @@ import {
   ShieldAlert,
   Shop,
   StatsReport,
+  TaskList,
 } from "iconoir-react";
 import { PERMISSIONS } from "@/services/organizations/types";
 
@@ -34,6 +36,8 @@ export type NavPageId =
   | "dashboard"
   | "today"
   | "planning"
+  | "schedule"
+  | "tasks"
   | "production"
   | "inventory"
   | "history"
@@ -95,8 +99,52 @@ export const NAV_PAGES: NavPage[] = [
     labelKey: "sidebar.planning",
     icon: Calendar,
     permission: PERMISSIONS.VIEW_CALENDAR,
+    // "schedule" now belongs to the Schedule page below; leaving it here would
+    // make the deterministic router send "open the schedule" to the calendar.
+    keywords: ["calendar", "planner", "events"],
     sectionKey: "operations",
-    keywords: ["calendar", "planner", "schedule"],
+  },
+  {
+    id: "schedule",
+    href: "/workspace/schedule",
+    labelKey: "sidebar.schedule",
+    icon: Community,
+    permission: PERMISSIONS.VIEW_TEAM_SCHEDULE,
+    sectionKey: "operations",
+    keywords: [
+      "schedule",
+      "team schedule",
+      "staff schedule",
+      "shifts",
+      "roster",
+      "rota",
+      "staffing",
+      "availability",
+      "coverage",
+      "labor",
+      "who works",
+    ],
+  },
+  {
+    id: "tasks",
+    href: "/workspace/tasks",
+    labelKey: "sidebar.tasks",
+    icon: TaskList,
+    permission: PERMISSIONS.VIEW_TASK_BOARD,
+    sectionKey: "operations",
+    // "prep plan" stays with Today: the plan is quantities, the board is
+    // who is doing what. Mirrors backend ai_assistant/command/pages.py.
+    keywords: [
+      "tasks",
+      "task board",
+      "board",
+      "kanban",
+      "kitchen tasks",
+      "prep tasks",
+      "to do",
+      "todo list",
+      "what needs doing",
+    ],
   },
   {
     id: "production",

@@ -9,6 +9,7 @@ import {
   branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
   createProductionLogPayloadSchema,
+  ingredientRequirementSchema,
   prepPlanEvaluatePayloadSchema,
   prepPlanEvaluateResponseSchema,
   branchCommandViewSchema,
@@ -482,6 +483,17 @@ export async function lockBranchDayPlan(
       method: "POST",
       body,
     },
+  );
+}
+
+export async function recomputeIngredientRequirement(payload: {
+  branch_id: string;
+  date: string;
+}) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayIngredientsRecompute(),
+    ingredientRequirementSchema,
+    { method: "POST", body: payload },
   );
 }
 

@@ -6,13 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Shop, Calendar } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
-import { isDiscreteUnit } from "@/lib/format";
+import { isDiscreteUnit, todayIso } from "@/lib/format";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
 import { IngredientRequirements } from "@/components/dashboard/today/ingredient-requirements";
+import { TasksStrip } from "@/components/dashboard/today/tasks-strip";
 import {
   useBranchDayToday,
   useBranchDayLiveVersion,
@@ -68,9 +69,7 @@ function TodayWorkspacePageContent() {
   const { user, branchOptions, defaultBranch, isLoading } = useBranchOptions();
   const canAccess = Boolean(user?.has_organization);
 
-  const [targetDate, setTargetDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [targetDate, setTargetDate] = useState(todayIso());
   // Branch selection lives in the shared store so it persists across
   // navigation and reloads. URL params seed it once per param change so a
   // manual branch switch afterwards isn't overridden.
@@ -138,7 +137,7 @@ function TodayWorkspacePageContent() {
   });
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
 
-  const branchDay = initializeMutation.data ?? todayQuery.data;
+  const branchDay = todayQuery.data;
   const pipelineStats = initializeMutation.data?.meta?.pipeline_stats ?? null;
 
   const isMorning = branchDay?.status === "MORNING";
@@ -910,8 +909,16 @@ function TodayWorkspacePageContent() {
                   branchId={safeBranchId}
                   targetDate={targetDate}
                   orgId={user?.organization_id ?? ""}
+                  requirement={branchDay?.ingredient_requirement}
+                  isPlanLocked={isPlanLocked}
                 />
               </section>
+
+              <TasksStrip
+                branchId={safeBranchId}
+                targetDate={targetDate}
+                enabled={canFetchData && isPlanLocked}
+              />
 
               <MorningContextFooter
                 branchDay={branchDay}
@@ -922,6 +929,12 @@ function TodayWorkspacePageContent() {
 
           {/* ── LIVE: tiered stock monitor ── */}
           {!walkthroughActive && isLive && branchDay ? (
+            <>
+            <TasksStrip
+              branchId={safeBranchId}
+              targetDate={targetDate}
+              enabled={canFetchData}
+            />
             <LiveMonitorSection
               branchDay={branchDay}
               criticalRows={criticalRows}
@@ -939,6 +952,7 @@ function TodayWorkspacePageContent() {
               branchId={safeBranchId}
               targetDate={targetDate}
             />
+            </>
           ) : null}
 
           {/* ── CLOSED: day review ── */}

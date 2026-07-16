@@ -196,6 +196,39 @@ export const pipelineStatsSchema = z.object({
 });
 export type PipelineStats = z.infer<typeof pipelineStatsSchema>;
 
+/** One ingredient the day's plan needs, measured against what's in the store room. */
+export const ingredientRequirementLineSchema = z.object({
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  unit: z.string(),
+  needed: z.number(),
+  on_hand: z.number(),
+  net_need: z.number(),
+  purchase_qty: z.number().nullable().optional(),
+  estimated_cost: z.number().nullable().optional(),
+  supplier_name: z.string().optional(),
+  /** False when no stock count exists — `net_need` is then the full requirement,
+   *  not a shortfall, and must not be shown as one. */
+  stock_known: z.boolean(),
+});
+export type IngredientRequirementLine = z.infer<
+  typeof ingredientRequirementLineSchema
+>;
+
+export const ingredientRequirementSchema = z.object({
+  date: z.string(),
+  status: z.enum(["OK", "SHORT", "NO_RECIPES", "NO_DATA"]),
+  source: z.enum(["PLAN_LOCK", "MANUAL"]),
+  ingredient_count: z.number(),
+  shortfall_count: z.number(),
+  coverage_pct: z.number().nullable(),
+  total_estimated_cost: z.number().nullable(),
+  items_with_no_recipe: z.array(z.string()),
+  lines: z.array(ingredientRequirementLineSchema),
+  computed_at: z.string().nullable(),
+});
+export type IngredientRequirement = z.infer<typeof ingredientRequirementSchema>;
+
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
@@ -770,6 +803,7 @@ export const branchDayTodaySchema = z.object({
       note: z.string(),
     })
     .optional(),
+  ingredient_requirement: ingredientRequirementSchema.nullable().optional(),
   session_notes: z.string().optional(),
   day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),
   created_at: z.string(),
