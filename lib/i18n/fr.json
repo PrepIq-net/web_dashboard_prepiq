@@ -556,7 +556,8 @@
       "sold": "Vendu",
       "startBatchNow": "Démarrer le lot maintenant",
       "logWaste": "Déclarer une perte",
-      "pctLeft": "{{pct}}% restant"
+      "pctLeft": "{{pct}}% restant",
+      "recordCooked": "Enregistrer ce qui a été cuisiné"
     },
     "closed": {
       "dayComplete": "Journée clôturée",
@@ -666,7 +667,12 @@
           "POWER_OUTAGE": "Coupure de courant",
           "OTHER": "Autre"
         }
-      }
+      },
+      "discardedCost": "Coût du jeté",
+      "unaccountedSub": "{quantity} unités encore non justifiées",
+      "discardedQty": "Jeté {quantity}",
+      "unaccountedQty": "{quantity} non justifiés — dites-le ci-dessous",
+      "storedQty": "{quantity} stocké pour demain"
     },
     "eyebrow": "Opérations du jour",
     "expectedDemand": "Demande prévue",
@@ -757,10 +763,18 @@
     },
     "override": {
       "foodAtRisk": "~{cost} de nourriture à risque si la demande chute",
-      "marginAtRisk": "~{cost} de marge à risque si la demande se maintient"
+      "marginAtRisk": "~{cost} de marge à risque si la demande se maintient",
+      "why": "Pourquoi ce changement ?",
+      "large_booking": "Grande réservation",
+      "event": "Événement",
+      "weather": "Météo",
+      "experience": "Expérience",
+      "holiday": "Jour férié",
+      "other": "Autre"
     },
     "reason": {
-      "demandSpike": "Pic de demande"
+      "demandSpike": "Pic de demande",
+      "recordedManually": "Enregistré manuellement"
     },
     "prepRisk": {
       "high": "Élevé",
@@ -1039,6 +1053,82 @@
       "review": "Vérifier →",
       "counts": "Tâches : {todo} à faire · {inProgress} en cours · {done} terminées",
       "open": "Ouvrir le tableau →"
+    },
+    "plan": {
+      "carryOver": "− {quantity} stocké d'hier",
+      "carryOverTitle": "Prévision de demande : {demand} ; le stock conservé en couvre une partie, il y a donc moins à produire."
+    },
+    "advisory": {
+      "surgeWindow": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer un petit lot supplémentaire (~{quantity}) dans les {window} prochaines minutes pour réduire le risque de rupture.",
+      "surge": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer bientôt un petit lot supplémentaire (~{quantity}) pour réduire le risque de rupture.",
+      "runoutSoon": "Au rythme actuel, rupture dans environ {runoutMin} min, et un lot prend {prepTimeMin} min — mieux vaut décider bientôt.",
+      "watchPace": "La demande s'écarte du plan — à surveiller.",
+      "confidence": "Confiance : {confidence} %"
+    },
+    "record": {
+      "title": "Enregistrer ce que vous avez cuisiné",
+      "description": "Consignez le lot de {item} réellement préparé. C'est un fait enregistré — aucune suggestion n'est modifiée.",
+      "cancel": "Annuler",
+      "saving": "Enregistrement...",
+      "submit": "Enregistrer le lot",
+      "quantityLabel": "Quantité cuisinée ({unit})",
+      "placeholder": "Saisir la quantité en {unit}",
+      "hint": "Si vos ventes arrivent via le POS, un CSV ou le connecteur PIQ, ceci ne sert que lorsqu'un lot n'y est pas capturé."
+    },
+    "timeline": {
+      "title": "Déroulement de la journée",
+      "legendSold": "Vendu",
+      "legendExpected": "Rythme habituel",
+      "legendPlanned": "Prévu",
+      "allOnPace": "Chaque plat suit son rythme habituel.",
+      "onPaceCount": "Dans le rythme · {count} plats",
+      "rowNumbers": "{sold} vendus sur {target} prévus",
+      "projected": "en route vers {projected}",
+      "planned": "Plan : {quantity}",
+      "batchTooltip": "Lot de {quantity} vers {hour}",
+      "hoverSold": "Vendu : {quantity}",
+      "hoverExpected": "Habituel : {quantity}",
+      "chartAria": "Rythme des ventes intrajournalier pour {item}"
+    },
+    "outcomes": {
+      "title": "Qu'est-il arrivé aux unités restantes ?",
+      "subtitle": "L'invendu n'est pas du gaspillage tant que vous ne le dites pas — le stock conservé ou transformé revient dans le plan de demain.",
+      "allAttributed": "✓ Tout est justifié",
+      "progress": "{attributed} sur {total} justifiés",
+      "bulk": "Remplissage rapide",
+      "bulkStore": "Tout au frigo",
+      "bulkUnknown": "Incertain pour tout",
+      "minorLeftovers": "Petits restes · {count} articles",
+      "itemQuestion": "{quantity} {item} restants — que s'est-il passé ?",
+      "itemComplete": "✓ Justifié",
+      "itemRemaining": "{quantity} non justifiés",
+      "itemContext": "Préparé {prepared} · vendu {sold}",
+      "presumedFromPlan": "basé sur votre plan — la production n'a pas été consignée",
+      "stockoutQuestion": "{item} : {sold} vendus sur {prepared} préparés — avez-vous vraiment refusé des clients ?",
+      "stockoutYes": "Oui, rupture réelle",
+      "stockoutNo": "Non, tout juste écoulé",
+      "expiredQuestion": "{quantity} {item} ({state}, stocké le {date}) a dépassé sa durée de conservation — qu'en est-il ?",
+      "state": {
+        "DISCARDED": "Jeté",
+        "REFRIGERATED": "Réfrigéré",
+        "FROZEN": "Congelé",
+        "CONVERTED": "Transformé",
+        "STAFF_MEAL": "Repas du personnel",
+        "DISCOUNTED": "Soldé",
+        "UNKNOWN": "Incertain"
+      },
+      "discardReason": {
+        "SPOILED": "Avarié",
+        "QUALITY_ISSUE": "Problème de qualité",
+        "DEMAND_DROPPED": "Demande en baisse",
+        "LATE_PREP": "Préparation tardive",
+        "OTHER": "Autre"
+      },
+      "expired": {
+        "DISCARD": "Le jeter",
+        "USED": "Utilisé",
+        "STILL_GOOD": "Encore bon"
+      }
     }
   },
   "profile": {

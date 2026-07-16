@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import { LogWasteModal } from "@/components/dashboard/today/log-waste-modal";
+import { RecordProductionModal } from "@/components/dashboard/today/record-production-modal";
 import { IngredientRequirements } from "@/components/dashboard/today/ingredient-requirements";
 import { TasksStrip } from "@/components/dashboard/today/tasks-strip";
 import {
@@ -19,6 +20,7 @@ import {
   useBranchDayLiveVersion,
   useMorningBrief,
   useBranchPaceSummary,
+  useIntradayTimeline,
   useCreateProductionLog,
   useEvaluatePrepPlan,
   useInitializeBranchDay,
@@ -48,6 +50,7 @@ import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-ale
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
 import { MorningContextFooter } from "@/components/dashboard/today/morning-context-footer";
 import { LiveMonitorSection } from "@/components/dashboard/today/live-monitor-section";
+import { LiveTimelineSection } from "@/components/dashboard/today/live-timeline-section";
 import { ClosedDayReview } from "@/components/dashboard/today/closed-day-review";
 import {
   buildMorningRiskAlerts,
@@ -58,6 +61,7 @@ import {
   type MorningRiskAlert,
 } from "@/components/dashboard/today/today-helpers";
 import type { PendingAction } from "@/services/assistant/types";
+import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
 
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
@@ -163,6 +167,11 @@ function TodayWorkspacePageContent() {
     title: string;
     unit: string;
   }>(null);
+  const [recordItem, setRecordItem] = useState<null | {
+    id: string;
+    title: string;
+    unit: string;
+  }>(null);
   const [importantItemsOnly, setImportantItemsOnly] = useState(true);
   const [explainRequest, setExplainRequest] = useState<{
     topic: string;
@@ -224,6 +233,11 @@ function TodayWorkspacePageContent() {
     canFetchData && branchDay?.status === "LIVE",
   );
   const paceSummary = paceQuery.data ?? null;
+  // Per-dish intraday curves for the live timeline (same 3-minute cadence).
+  const timelineQuery = useIntradayTimeline(
+    { branch_id: safeBranchId, date: targetDate },
+    canFetchData && branchDay?.status === "LIVE",
+  );
   const paceAlertByProductId = useMemo(() => {
     const map = new Map<
       string,
@@ -470,6 +484,30 @@ function TodayWorkspacePageContent() {
           }));
           clearActionError(prepPlanItemId);
         },
+        onError: () =>
+          setActionErrorByItem((prev) => ({
+            ...prev,
+            [prepPlanItemId]: t("today.error.keepPlan"),
+          })),
+      },
+    );
+  };
+
+  const setOverrideReason = (prepPlanItemId: string, reason: string) => {
+    const planned = plannedQtyByItem[prepPlanItemId];
+    if (planned === "" || planned == null) return;
+    updatePrepPlanMutation.mutate(
+      {
+        prepPlanItemId,
+        payload: {
+          planned_quantity: Number(planned),
+          accepted_suggestion: false,
+          override_reason:
+            reason as UpdatePrepPlanItemPayload["override_reason"],
+        },
+      },
+      {
+        onSuccess: () => clearActionError(prepPlanItemId),
         onError: () =>
           setActionErrorByItem((prev) => ({
             ...prev,
@@ -891,6 +929,7 @@ function TodayWorkspacePageContent() {
                 onPlannedChange={onPlannedChange}
                 onAcceptSuggestion={acceptSuggestion}
                 onKeepMyPlan={keepMyPlan}
+                onOverrideReason={setOverrideReason}
                 actionErrorByItem={actionErrorByItem}
                 expandedItemIds={expandedItemIds}
                 onToggleExpand={toggleItemExpand}
@@ -946,12 +985,13 @@ function TodayWorkspacePageContent() {
               onDismissCsvBanner={dismissCsvBanner}
               closePending={updateBranchDayStatusMutation.isPending}
               onCloseDay={() => setConfirmAction("CLOSE_DAY")}
-              onLogProduction={logProduction}
+              onRecordProduction={setRecordItem}
               onQuickSale={quickTapSale}
               onLogWaste={setWasteItem}
               branchId={safeBranchId}
               targetDate={targetDate}
             />
+            <LiveTimelineSection timeline={timelineQuery.data} />
             </>
           ) : null}
 
@@ -1022,6 +1062,23 @@ function TodayWorkspacePageContent() {
             onSubmit={(wasteQuantity) => {
               if (!wasteItem) return;
               logWaste(wasteItem.id, wasteQuantity);
+            }}
+          />
+
+          <RecordProductionModal
+            open={Boolean(recordItem)}
+            itemTitle={recordItem?.title ?? ""}
+            unit={recordItem?.unit ?? ""}
+            isSubmitting={createProductionLogMutation.isPending}
+            onClose={() => setRecordItem(null)}
+            onSubmit={(quantityProduced) => {
+              if (!recordItem) return;
+              logProduction(
+                recordItem.id,
+                quantityProduced,
+                t("today.reason.recordedManually"),
+              );
+              setRecordItem(null);
             }}
           />
 

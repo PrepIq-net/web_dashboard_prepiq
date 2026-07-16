@@ -25,11 +25,11 @@ export type LiveMonitorSectionProps = {
   onDismissCsvBanner: () => void;
   closePending: boolean;
   onCloseDay: () => void;
-  onLogProduction: (
-    prepPlanItemId: string,
-    quantityProduced: number,
-    reason?: string,
-  ) => void;
+  onRecordProduction: (item: {
+    id: string;
+    title: string;
+    unit: string;
+  }) => void;
   onQuickSale: (
     prepPlanItemId: string,
     item: { product_id: string; unit: string },
@@ -78,6 +78,69 @@ function PaceLine({
   );
 }
 
+/** Advisory sentence for an item that needs attention. Careful wording by
+ * design: PrepIQ suggests and quantifies risk — the kitchen decides. What was
+ * actually cooked arrives via POS/CSV/connector or the record modal, never
+ * from tapping a suggestion. */
+function LiveAdvisoryLine({
+  unit,
+  suggestedAdditional,
+  runoutMin,
+  prepTimeMin,
+  startBatchNow,
+  sellThrough,
+}: {
+  unit: string;
+  suggestedAdditional: number;
+  runoutMin: number | null;
+  prepTimeMin: number;
+  startBatchNow: boolean;
+  sellThrough: number | undefined;
+}) {
+  const { t } = useTranslation();
+  const windowMin =
+    runoutMin !== null
+      ? Math.max(5, Math.min(120, Math.round(runoutMin - prepTimeMin)))
+      : null;
+  const confidence =
+    sellThrough !== undefined
+      ? Math.round(Math.min(Math.max(sellThrough, 0.5), 0.97) * 100)
+      : null;
+
+  let text: string;
+  if (suggestedAdditional > 0 && windowMin !== null) {
+    text = t("today.advisory.surgeWindow", {
+      quantity: formatQuantity(
+        Math.max(1, isDiscreteUnit(unit) ? Math.round(suggestedAdditional) : suggestedAdditional),
+        unit,
+      ),
+      window: windowMin,
+    });
+  } else if (suggestedAdditional > 0) {
+    text = t("today.advisory.surge", {
+      quantity: formatQuantity(
+        Math.max(1, isDiscreteUnit(unit) ? Math.round(suggestedAdditional) : suggestedAdditional),
+        unit,
+      ),
+    });
+  } else if (startBatchNow && runoutMin !== null) {
+    text = t("today.advisory.runoutSoon", { runoutMin, prepTimeMin });
+  } else {
+    text = t("today.advisory.watchPace");
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-status-warning/25 bg-status-warning/5 px-3.5 py-2.5">
+      <p className="text-sm leading-snug text-text-primary">{text}</p>
+      {confidence !== null ? (
+        <p className="mt-1 text-[11px] font-medium text-text-muted">
+          {t("today.advisory.confidence", { confidence })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function LiveMonitorSection(props: LiveMonitorSectionProps) {
   const { t } = useTranslation();
   const {
@@ -91,7 +154,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
     onDismissCsvBanner,
     closePending,
     onCloseDay,
-    onLogProduction,
+    onRecordProduction,
     onQuickSale,
     onLogWaste,
     branchId,
@@ -301,65 +364,37 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm text-status-critical">
-                        {startBatchNow && runoutMin !== null
-                          ? t("today.live.startBatchNow", {
-                              runoutMin,
-                              prepTimeMin,
-                            })
-                          : runoutMin !== null
-                            ? t("today.live.cookMoreRunout", { runoutMin })
-                            : t("today.live.cookMoreNow")}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        {suggestedAdditional > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onLogProduction(
-                                item.id,
-                                Math.max(
-                                  1,
-                                  isDiscreteUnit(item.unit)
-                                    ? Math.round(suggestedAdditional)
-                                    : suggestedAdditional,
-                                ),
-                                t("today.reason.demandSpike"),
-                              )
-                            }
-                            className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
-                          >
-                            {t("today.live.prepare", {
-                              quantity: formatQuantity(
-                                Math.max(1, suggestedAdditional),
-                                item.unit,
-                              ),
-                            })}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onLogProduction(
-                                item.id,
-                                1,
-                                t("today.reason.demandSpike"),
-                              )
-                            }
-                            className="inline-flex h-10 items-center rounded-full border border-status-success/50 bg-status-success/15 px-4 text-sm font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98]"
-                          >
-                            {t("today.live.cookMore")}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => onQuickSale(item.id, item, 1)}
-                          className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
-                        >
-                          {t("today.live.plusOneSold")}
-                        </button>
-                      </div>
+                    <LiveAdvisoryLine
+                      unit={item.unit}
+                      suggestedAdditional={suggestedAdditional}
+                      runoutMin={runoutMin}
+                      prepTimeMin={prepTimeMin}
+                      startBatchNow={startBatchNow}
+                      sellThrough={monitor?.sell_through_probability}
+                    />
+
+                    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRecordProduction({
+                            id: item.id,
+                            title: item.product_title,
+                            unit: item.unit,
+                          })
+                        }
+                        className="inline-flex h-10 items-center rounded-full border border-brand-gold/40 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98]"
+                      >
+                        {t("today.live.recordCooked")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onQuickSale(item.id, item, 1)}
+                        className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
+                      >
+                        {t("today.live.plusOneSold")}
+                      </button>
+                      {wasteButton(item)}
                     </div>
                   </article>
                 );
@@ -440,10 +475,16 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => onLogProduction(item.id, 1)}
+                        onClick={() =>
+                          onRecordProduction({
+                            id: item.id,
+                            title: item.product_title,
+                            unit: item.unit,
+                          })
+                        }
                         className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10 active:scale-[0.97]"
                       >
-                        {t("today.live.plusBatch")}
+                        {t("today.live.recordCooked")}
                       </button>
                       {wasteButton(item)}
                     </div>
@@ -508,10 +549,16 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => onLogProduction(item.id, 1)}
+                        onClick={() =>
+                          onRecordProduction({
+                            id: item.id,
+                            title: item.product_title,
+                            unit: item.unit,
+                          })
+                        }
                         className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
                       >
-                        {t("today.live.plusBatch")}
+                        {t("today.live.recordCooked")}
                       </button>
                       {wasteButton(item, true)}
                     </div>

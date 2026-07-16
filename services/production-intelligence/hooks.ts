@@ -8,6 +8,9 @@ import {
   getBranchDayToday,
   getBranchDayVersion,
   getBranchPaceSummary,
+  getBranchDayOutcomes,
+  attributeBranchDayOutcomes,
+  getIntradayTimeline,
   getMorningBrief,
   getBranchCommandView,
   initializeBranchDay,
@@ -100,6 +103,7 @@ import type {
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
   IntegrationsSyncRetryQuery,
+  AttributeOutcomesPayload,
 } from "@/services/production-intelligence/types";
 
 export const productionIntelligenceQueryKeys = {
@@ -136,6 +140,19 @@ export const productionIntelligenceQueryKeys = {
     [
       ...productionIntelligenceQueryKeys.root,
       "branch-pace-summary",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  branchDayOutcomes: (branchDayId?: string) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-day-outcomes",
+      branchDayId ?? "",
+    ] as const,
+  intradayTimeline: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "intraday-timeline",
       params?.branch_id ?? "",
       params?.date ?? "",
     ] as const,
@@ -501,6 +518,58 @@ export function useUpdateBranchDayNotes() {
       variance_cause?: string;
       variance_cause_note?: string;
     }) => updateBranchDayNotes(branchDayId, payload),
+  });
+}
+
+export function useBranchDayOutcomes(branchDayId?: string, enabled = true) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchDayOutcomes(branchDayId),
+    queryFn: () => getBranchDayOutcomes(branchDayId ?? ""),
+    enabled: enabled && Boolean(branchDayId),
+    retry: false,
+  });
+}
+
+export function useAttributeOutcomes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      payload,
+    }: {
+      branchDayId: string;
+      payload: AttributeOutcomesPayload;
+    }) => attributeBranchDayOutcomes(branchDayId, payload),
+    onSuccess: (_data, variables) => {
+      // Attribution re-derives the review phase server-side, so the whole
+      // day payload is stale, not just the outcomes list.
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayOutcomes(
+          variables.branchDayId,
+        ),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
+      });
+    },
+  });
+}
+
+export function useIntradayTimeline(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.intradayTimeline(params),
+    queryFn: () =>
+      getIntradayTimeline({
+        branch_id: params?.branch_id ?? "",
+        date: params?.date,
+      }),
+    enabled: enabled && Boolean(params?.branch_id),
+    refetchInterval: 180_000,
+    retry: false,
   });
 }
 

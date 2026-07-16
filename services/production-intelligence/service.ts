@@ -61,6 +61,10 @@ import {
   morningBriefSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
+  branchDayOutcomesResponseSchema,
+  attributeOutcomesPayloadSchema,
+  intradayTimelineSchema,
+  type AttributeOutcomesPayload,
   type SalesWasteReport,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
@@ -469,6 +473,44 @@ export async function updateBranchDayNotes(
     method: "PATCH",
     body: payload,
   });
+}
+
+export async function getBranchDayOutcomes(branchDayId: string) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayOutcomes(branchDayId),
+    branchDayOutcomesResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function attributeBranchDayOutcomes(
+  branchDayId: string,
+  payload: AttributeOutcomesPayload,
+) {
+  const body = attributeOutcomesPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayOutcomes(branchDayId),
+    branchDayOutcomesResponseSchema.partial().passthrough(),
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function getIntradayTimeline(params: {
+  branch_id: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(
+      productionIntelligenceEndpoints.branchIntradayTimeline(safeBranchId),
+      { date: params.date },
+    ),
+    intradayTimelineSchema,
+    { method: "GET" },
+  );
 }
 
 export async function lockBranchDayPlan(

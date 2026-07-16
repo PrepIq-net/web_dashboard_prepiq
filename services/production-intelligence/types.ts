@@ -84,6 +84,10 @@ export const prepPlanItemSchema = z.object({
   chef_final_qty: z.number().nullable().optional(),
   variance: z.number().optional(),
   decision: z.enum(["ACCEPTED_AI", "CHEF_OVERRIDE"]).nullable().optional(),
+  override_reason: z.string().optional(),
+  override_reason_note: z.string().optional(),
+  carry_over_qty: z.number().optional(),
+  net_suggested_quantity: z.number().optional(),
   final_quantity: z.number(),
   unit: z.string(),
   suggestion_reason_json: z.record(z.string(), z.unknown()),
@@ -228,6 +232,95 @@ export const ingredientRequirementSchema = z.object({
   computed_at: z.string().nullable(),
 });
 export type IngredientRequirement = z.infer<typeof ingredientRequirementSchema>;
+
+// ── Production outcomes (the EOD "what happened to the remaining N?" flow) ──
+// Waste is only ever an attributed discard; everything else the chef reports
+// (stored / frozen / converted / staff meal / discounted) is an outcome, and
+// what nobody explains stays "unaccounted".
+export const outcomeStateSchema = z.enum([
+  "DISCARDED",
+  "REFRIGERATED",
+  "FROZEN",
+  "CONVERTED",
+  "STAFF_MEAL",
+  "DISCOUNTED",
+  "UNKNOWN",
+]);
+export type OutcomeState = z.infer<typeof outcomeStateSchema>;
+
+export const discardReasonSchema = z.enum([
+  "SPOILED",
+  "QUALITY_ISSUE",
+  "DEMAND_DROPPED",
+  "LATE_PREP",
+  "OTHER",
+]);
+export type DiscardReason = z.infer<typeof discardReasonSchema>;
+
+export const outcomeAttributionRowSchema = z.object({
+  prep_plan_item_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  item_title: z.string(),
+  unit: z.string(),
+  prepared: z.number(),
+  prepared_basis: z.enum(["LOGGED", "PLANNED", "NONE"]),
+  sold: z.number(),
+  remaining: z.number(),
+  attributed: z.record(z.string(), z.number()),
+  attributed_total: z.number(),
+  discarded: z.number(),
+  unaccounted: z.number(),
+  carry_over_out: z.number(),
+  complete: z.boolean(),
+  cost_impact: z.number(),
+  minor: z.boolean().optional(),
+});
+export type OutcomeAttributionRow = z.infer<typeof outcomeAttributionRowSchema>;
+
+export const expiredCarryOverRowSchema = z.object({
+  outcome_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  item_title: z.string(),
+  state: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+  stored_on: z.string(),
+  expired_at: z.string().nullable(),
+});
+export type ExpiredCarryOverRow = z.infer<typeof expiredCarryOverRowSchema>;
+
+export const branchDayOutcomesResponseSchema = z.object({
+  items: z.array(outcomeAttributionRowSchema.omit({ minor: true })),
+  expired_carry_over: z.array(expiredCarryOverRowSchema),
+});
+export type BranchDayOutcomesResponse = z.infer<
+  typeof branchDayOutcomesResponseSchema
+>;
+
+export const attributeOutcomesPayloadSchema = z.object({
+  item_id: z.string().uuid().optional(),
+  entries: z
+    .array(
+      z.object({
+        state: outcomeStateSchema,
+        quantity: z.number(),
+        discard_reason: discardReasonSchema.optional(),
+        note: z.string().optional(),
+        converted_to_item_id: z.string().uuid().optional(),
+      }),
+    )
+    .optional(),
+  stockout_confirmed: z.boolean().optional(),
+  expired_resolution: z
+    .object({
+      outcome_id: z.string().uuid(),
+      resolution: z.enum(["DISCARD", "USED", "STILL_GOOD"]),
+    })
+    .optional(),
+});
+export type AttributeOutcomesPayload = z.infer<
+  typeof attributeOutcomesPayloadSchema
+>;
 
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
@@ -631,6 +724,13 @@ export const branchDayTodaySchema = z.object({
             unit: z.enum(["CURRENCY"]),
             comparison: z.unknown().nullable().optional(),
           }),
+          unaccounted: z
+            .object({
+              value: z.number(),
+              unit: z.enum(["COUNT"]),
+              comparison: z.unknown().nullable().optional(),
+            })
+            .optional(),
         }),
         demand_vs_production: z.array(
           z.object({
@@ -671,7 +771,13 @@ export const branchDayTodaySchema = z.object({
             forecast: z.number(),
             prepared: z.number(),
             sold: z.number(),
+            // waste = attributed discards only; the unsold remainder is
+            // split into unaccounted / discarded / stored.
             waste: z.number(),
+            remaining: z.number().optional(),
+            unaccounted: z.number().optional(),
+            discarded: z.number().optional(),
+            stored: z.number().optional(),
             stockout: z.boolean(),
             impact: z.number(),
             lost_revenue_estimate: z.number(),
@@ -757,8 +863,38 @@ export const branchDayTodaySchema = z.object({
           cause: z.string(),
           cause_note: z.string(),
           cause_recorded_at: z.string().nullable(),
+          suggested_cause: z
+            .object({
+              cause: z.string(),
+              reason: z.string(),
+            })
+            .nullable()
+            .optional(),
         })
         .optional(),
+      outcome_attribution: z
+        .object({
+          rows: z.array(outcomeAttributionRowSchema),
+          summary: z.object({
+            items_with_remaining: z.number(),
+            total_remaining: z.number(),
+            attributed_remaining: z.number(),
+            complete: z.boolean(),
+          }),
+        })
+        .optional(),
+      stockout_questions: z
+        .array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            unit: z.string(),
+            prepared: z.number(),
+            sold: z.number(),
+          }),
+        )
+        .optional(),
+      expired_carry_over: z.array(expiredCarryOverRowSchema).optional(),
     })
     .nullable()
     .optional(),
@@ -790,6 +926,11 @@ export const branchDayTodaySchema = z.object({
         ),
         suggested_action: z.string(),
         suggested_prepare_qty: z.number(),
+        advisory_kind: z
+          .enum(["PREPARE_SOON", "SLOW_DOWN", "INFO"])
+          .optional(),
+        confidence: z.number().nullable().optional(),
+        window_minutes: z.number().nullable().optional(),
       }),
     )
     .optional(),
@@ -879,9 +1020,21 @@ export type PrepPlanEvaluateResponse = z.infer<
   typeof prepPlanEvaluateResponseSchema
 >;
 
+export const overrideReasonSchema = z.enum([
+  "LARGE_BOOKING",
+  "EVENT",
+  "WEATHER",
+  "EXPERIENCE",
+  "HOLIDAY",
+  "OTHER",
+]);
+export type OverrideReason = z.infer<typeof overrideReasonSchema>;
+
 export const updatePrepPlanItemPayloadSchema = z.object({
   planned_quantity: z.number().min(0).optional(),
   accepted_suggestion: z.boolean().optional(),
+  override_reason: z.union([overrideReasonSchema, z.literal("")]).optional(),
+  override_reason_note: z.string().optional(),
 });
 export type UpdatePrepPlanItemPayload = z.infer<
   typeof updatePrepPlanItemPayloadSchema
@@ -1897,6 +2050,41 @@ export const branchDayVersionSchema = z.object({
 });
 export type BranchDayVersion = z.infer<typeof branchDayVersionSchema>;
 
+// Per-dish intraday series for the live timeline: cumulative sold vs the
+// expected pace curve, with production batches as steps. Read-only —
+// situational awareness, never commands.
+export const intradayTimelineItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  unit: z.string(),
+  forecast_qty: z.number(),
+  planned_qty: z.number().nullable(),
+  prepared_qty: z.number(),
+  sold_so_far: z.number(),
+  pace_status: z.string().nullable().optional(),
+  projected_total_at_close: z.number().nullable().optional(),
+  sold_series: z.array(z.object({ hour: z.number(), cumulative: z.number() })),
+  expected_series: z.array(
+    z.object({ hour: z.number(), cumulative: z.number() }),
+  ),
+  production_steps: z.array(
+    z.object({
+      hour: z.number(),
+      quantity: z.number(),
+      event_type: z.string(),
+    }),
+  ),
+});
+export type IntradayTimelineItem = z.infer<typeof intradayTimelineItemSchema>;
+
+export const intradayTimelineSchema = z.object({
+  as_of: z.string(),
+  date: z.string(),
+  current_hour: z.number(),
+  items: z.array(intradayTimelineItemSchema),
+});
+export type IntradayTimeline = z.infer<typeof intradayTimelineSchema>;
+
 export const morningBriefSchema = z.object({
   branch_id: z.string(),
   target_date: z.string(),
@@ -2044,6 +2232,8 @@ export const salesWastePeriodSummarySchema = z.object({
     total_waste_value: z.number(),
     waste_rate_pct: z.number(),
     top_waste_item: salesWasteTopWasteItemSchema.nullable(),
+    total_unaccounted_units: z.number().optional(),
+    total_stored_units: z.number().optional(),
   }),
 });
 
@@ -2054,7 +2244,11 @@ export const salesWasteItemRowSchema = z.object({
   forecasted: z.number(),
   produced: z.number(),
   sold: z.number(),
+  // waste = attributed discards; remaining is split into unaccounted/stored.
   waste: z.number(),
+  remaining: z.number().optional(),
+  unaccounted: z.number().optional(),
+  stored: z.number().optional(),
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),
