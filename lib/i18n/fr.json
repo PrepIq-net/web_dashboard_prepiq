@@ -3485,7 +3485,9 @@
       "reviewedBy": "Validé par {{name}}",
       "note": "Note",
       "empty": "Personne n'a encore soumis de disponibilités pour cette semaine.",
-      "emptyRoster": "Cette succursale n'a pas encore de personnel."
+      "emptyRoster": "Cette succursale n'a pas encore de personnel.",
+      "reviewNote": "Note : {note}",
+      "message": "Envoyer un message à ce sujet"
     },
     "grid": {
       "employee": "Membre de l'équipe",
@@ -3514,6 +3516,39 @@
     },
     "empty": {
       "noSchedule": "Aucun planning pour cette semaine."
+    },
+    "review": {
+      "approveTitle": "Approuver la disponibilité",
+      "rejectTitle": "Refuser la disponibilité",
+      "approveDescription": "Approuver la disponibilité de {name} pour la semaine du {week}.",
+      "rejectDescription": "Expliquez à {name} pourquoi sa disponibilité n'a pas été approuvée.",
+      "noteLabel": "Note (facultatif)",
+      "notePlaceholder": "Ajouter une note…",
+      "rejectNotePlaceholder": "Motif du refus… (facultatif)",
+      "confirmApprove": "Approuver",
+      "confirmReject": "Refuser",
+      "cancel": "Annuler"
+    },
+    "roster": {
+      "button": "Ajouter au personnel",
+      "title": "Ajouter au personnel",
+      "description": "Ajoutez quelqu’un pour travailler à {branch}. Choisissez un collègue déjà dans votre organisation ou invitez une nouvelle personne.",
+      "fromTeam": "Depuis votre équipe",
+      "inviteNew": "Inviter une nouvelle personne",
+      "memberLabel": "Membre de l’équipe",
+      "memberPlaceholder": "Sélectionner une personne",
+      "roleLabel": "Rôle",
+      "add": "Ajouter au personnel",
+      "adding": "Ajout…",
+      "cancel": "Annuler",
+      "loading": "Chargement de l’équipe…",
+      "everyoneAdded": "Tout le monde dans votre organisation est déjà sur cette liste — invitez plutôt une nouvelle personne.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "nom@restaurant.com",
+      "sendInvite": "Envoyer l’invitation",
+      "sending": "Envoi…",
+      "inviteHint": "La personne recevra un e-mail pour rejoindre et apparaîtra sur la liste de {branch} une fois l’invitation acceptée.",
+      "noInvitePermission": "Vous n’avez pas la permission d’inviter du personnel dans cet établissement."
     }
   },
   "tasks": {

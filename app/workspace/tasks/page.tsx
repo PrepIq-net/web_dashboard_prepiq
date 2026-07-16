@@ -14,13 +14,16 @@ import {
 } from "@/services";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSelectedBranch } from "@/services/context/branch-store";
+import { useSubscriptionTier } from "@/services/payment/hooks";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
+import { UUID_PATTERN } from "@/lib/constants";
 import { todayIso } from "@/lib/format";
 import { TaskBoard } from "@/components/dashboard/tasks/task-board";
 import { SuggestionsTray } from "@/components/dashboard/tasks/suggestions-tray";
@@ -39,6 +42,10 @@ export default function TasksPage() {
     branches: branchOptions,
     defaultBranchId: defaultBranch?.id,
   });
+  const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } =
+    useSubscriptionTier(safeBranchId || undefined);
+  const subscriptionBlocked = Boolean(safeBranchId) && !subLoading && shouldBlockAccess;
 
   // The board is a today surface. Yesterday's board is history, not work, so
   // there is deliberately no date picker in v1.
@@ -50,7 +57,7 @@ export default function TasksPage() {
   const permissions = useMemo(() => resolvePermissions(user), [user]);
   const canManage = permissions.has(PERMISSIONS.MANAGE_TASKS);
 
-  const boardQuery = useTaskBoard(branchId, date);
+  const boardQuery = useTaskBoard(branchId, date, !subscriptionBlocked);
   const generate = useGenerateTasks();
   const confirm = useConfirmTasks();
   const create = useCreateTask();
@@ -196,7 +203,9 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {boardQuery.isLoading ? (
+      {subscriptionBlocked ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : boardQuery.isLoading ? (
         <div className="flex justify-center py-16">
           <Spinner />
         </div>

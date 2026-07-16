@@ -10,6 +10,7 @@ import {
   Bell,
   Trash,
   WarningTriangle,
+  UserPlus,
 } from "iconoir-react";
 import type { HubReference, RefType } from "@/services/hub";
 import { STAT_TONE_CLASSES } from "./hub-utils";
@@ -25,6 +26,8 @@ const REF_ICONS: Record<RefType, React.ComponentType<{ className?: string }>> = 
   WASTE_EVENT: Trash,
   CALENDAR_EVENT: Calendar,
   NOTIFICATION: Bell,
+  SCHEDULE: Calendar,
+  AVAILABILITY: UserPlus,
 };
 
 export function ReferenceCard({ reference }: { reference: HubReference }) {

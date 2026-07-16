@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Shop } from "iconoir-react";
+import { Shop, UserPlus } from "iconoir-react";
 import {
   useAvailabilityWeek,
   useCopyPreviousWeek,
@@ -19,12 +19,15 @@ import {
 } from "@/services";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSelectedBranch } from "@/services/context/branch-store";
+import { useSubscriptionTier } from "@/services/payment/hooks";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
+import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { UUID_PATTERN } from "@/lib/constants";
 import { useTranslation } from "@/lib/i18n";
 import { AvailabilityTab } from "@/components/dashboard/schedule/availability-tab";
 import {
@@ -33,6 +36,7 @@ import {
 } from "@/components/dashboard/schedule/assign-shift-modal";
 import { CoverageTab } from "@/components/dashboard/schedule/coverage-tab";
 import { HistoryTab } from "@/components/dashboard/schedule/history-tab";
+import { AddToRosterModal } from "@/components/dashboard/schedule/add-to-roster-modal";
 import { ScheduleContextBar } from "@/components/dashboard/schedule/schedule-context-bar";
 import { WeekGrid } from "@/components/dashboard/schedule/week-grid";
 import { currentWeekIso } from "@/components/dashboard/schedule/schedule-helpers";
@@ -48,23 +52,39 @@ export default function SchedulePage() {
     branches: branchOptions,
     defaultBranchId: defaultBranch?.id,
   });
+  const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
+  const { isLoading: subLoading, shouldBlockAccess, gateVariant } =
+    useSubscriptionTier(safeBranchId || undefined);
+  const subscriptionBlocked = Boolean(safeBranchId) && !subLoading && shouldBlockAccess;
 
   const [weekIso, setWeekIso] = useState(currentWeekIso);
   const [activeTab, setActiveTab] = useState<ScheduleTab>("SCHEDULE");
   const [draft, setDraft] = useState<ShiftDraft | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const permissions = useMemo(() => resolvePermissions(user), [user]);
   const canManage = permissions.has(PERMISSIONS.MANAGE_SCHEDULE);
   const canPublish = permissions.has(PERMISSIONS.PUBLISH_SCHEDULE);
+  const canManageTeam = permissions.has(PERMISSIONS.MANAGE_TEAM);
+  const selectedBranchName =
+    branchOptions.find((branch) => branch.id === branchId)?.name ?? "";
 
-  const weekQuery = useScheduleWeek(branchId, weekIso);
+  const weekQuery = useScheduleWeek(branchId, weekIso, !subscriptionBlocked);
   const availabilityQuery = useAvailabilityWeek(
     branchId,
     weekIso,
-    activeTab === "AVAILABILITY",
+    activeTab === "AVAILABILITY" && !subscriptionBlocked,
   );
-  const coverageQuery = useCoverage(branchId, weekIso, activeTab === "COVERAGE");
-  const historyQuery = useScheduleHistory(branchId, 8, activeTab === "HISTORY");
+  const coverageQuery = useCoverage(
+    branchId,
+    weekIso,
+    activeTab === "COVERAGE" && !subscriptionBlocked,
+  );
+  const historyQuery = useScheduleHistory(
+    branchId,
+    8,
+    activeTab === "HISTORY" && !subscriptionBlocked,
+  );
 
   const generate = useGenerateSchedule(branchId, weekIso);
   const publish = usePublishSchedule(branchId, weekIso);
@@ -142,20 +162,38 @@ export default function SchedulePage() {
       description={t("schedule.description")}
       insight={t("schedule.description")}
     >
-      {branchOptions.length > 1 ? (
-        <div className="mb-6 max-w-xs">
-          <Select
-            options={branchOptions.map((branch) => ({
-              value: branch.id,
-              label: branch.name,
-            }))}
-            value={branchId}
-            onChange={setBranchId}
-            leadingIcon={<Shop className="h-4 w-4" />}
-          />
+      {(branchOptions.length > 1 || canManageTeam) ? (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          {branchOptions.length > 1 ? (
+            <div className="max-w-xs flex-1 min-w-[180px]">
+              <Select
+                options={branchOptions.map((branch) => ({
+                  value: branch.id,
+                  label: branch.name,
+                }))}
+                value={branchId}
+                onChange={setBranchId}
+                leadingIcon={<Shop className="h-4 w-4" />}
+              />
+            </div>
+          ) : null}
+          {canManageTeam && branchId ? (
+            <button
+              type="button"
+              onClick={() => setInviteOpen(true)}
+              className="ml-auto inline-flex h-10 items-center gap-2 rounded-lg border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:bg-surface-3"
+            >
+              <UserPlus className="h-4 w-4" />
+              {t("schedule.roster.button")}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
+      {subscriptionBlocked ? (
+        <SubscriptionRequiredState variant={gateVariant} compact />
+      ) : (
+        <>
       <ScheduleContextBar
         weekIso={weekIso}
         onWeekChange={setWeekIso}
@@ -228,8 +266,11 @@ export default function SchedulePage() {
               data={availabilityQuery.data}
               canReview={canManage}
               reviewingId={review.isPending ? review.variables?.availabilityId ?? null : null}
-              onReview={(availabilityId, status) =>
-                review.mutate({ availabilityId, payload: { status } })
+              onReview={(availabilityId, status, note) =>
+                review.mutate({
+                  availabilityId,
+                  payload: { status, review_note: note || undefined },
+                })
               }
             />
           ) : null}
@@ -254,6 +295,8 @@ export default function SchedulePage() {
           {historyQuery.data ? <HistoryTab weeks={historyQuery.data.weeks} /> : null}
         </TabBody>
       ) : null}
+        </>
+      )}
 
       <AssignShiftModal
         draft={draft}
@@ -269,6 +312,17 @@ export default function SchedulePage() {
           deleteShift.mutate(draft.shift.id, { onSuccess: () => setDraft(null) })
         }
       />
+
+      {inviteOpen && user?.organization_id && branchId ? (
+        <AddToRosterModal
+          open={inviteOpen}
+          orgId={user.organization_id}
+          branchId={branchId}
+          branchName={selectedBranchName}
+          rosterUserIds={(week?.roster ?? []).map((person) => person.id)}
+          onClose={() => setInviteOpen(false)}
+        />
+      ) : null}
     </WorkspaceShell>
   );
 }

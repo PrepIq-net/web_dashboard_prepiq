@@ -3485,7 +3485,9 @@
       "reviewedBy": "Reviewed by {{name}}",
       "note": "Note",
       "empty": "Nobody has submitted availability for this week yet.",
-      "emptyRoster": "This branch has no staff on its roster yet."
+      "emptyRoster": "This branch has no staff on its roster yet.",
+      "reviewNote": "Note: {note}",
+      "message": "Message about this"
     },
     "grid": {
       "employee": "Team member",
@@ -3514,6 +3516,39 @@
     },
     "empty": {
       "noSchedule": "No schedule for this week yet."
+    },
+    "review": {
+      "approveTitle": "Approve availability",
+      "rejectTitle": "Reject availability",
+      "approveDescription": "Approve {name}'s availability for the week of {week}.",
+      "rejectDescription": "Let {name} know why their availability wasn't approved.",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Add a note…",
+      "rejectNotePlaceholder": "Reason for rejecting… (optional)",
+      "confirmApprove": "Approve",
+      "confirmReject": "Reject",
+      "cancel": "Cancel"
+    },
+    "roster": {
+      "button": "Add to roster",
+      "title": "Add to roster",
+      "description": "Add someone to work at {branch}. Pick a teammate who’s already in your org, or invite someone new.",
+      "fromTeam": "From your team",
+      "inviteNew": "Invite someone new",
+      "memberLabel": "Team member",
+      "memberPlaceholder": "Select a person",
+      "roleLabel": "Role",
+      "add": "Add to roster",
+      "adding": "Adding…",
+      "cancel": "Cancel",
+      "loading": "Loading team…",
+      "everyoneAdded": "Everyone in your org is already on this roster — invite someone new instead.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@restaurant.com",
+      "sendInvite": "Send invite",
+      "sending": "Sending…",
+      "inviteHint": "They’ll get an email to join and will appear on the roster at {branch} once they accept.",
+      "noInvitePermission": "You don’t have permission to invite staff to this branch."
     }
   },
   "tasks": {

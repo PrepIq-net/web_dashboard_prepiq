@@ -41,4 +41,10 @@ export const scheduleEndpoints = {
     `${BASE}/shift-templates/${buildQuery({ branch_id: branchId })}`,
 
   roles: (branchId: string) => `${BASE}/roles/${buildQuery({ branch_id: branchId })}`,
+
+  // Roster membership (BranchStaff) is managed via the branch-command staff
+  // action, not labor — assigning an existing org member a branch role is what
+  // puts them on the schedule roster.
+  assignRosterRole: () =>
+    `/api/production-intelligence/home/branch-command/staff-action/`,
 } as const;

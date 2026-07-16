@@ -7,7 +7,8 @@ export type AttachmentKind =
 export type AttachmentStatus = "PENDING" | "READY" | "FAILED" | "UNSUPPORTED";
 export type RefType =
   | "FORECAST" | "RECOMMENDATION" | "RISK" | "INGREDIENT" | "MENU_ITEM"
-  | "PREP_BATCH" | "PREP_ITEM" | "WASTE_EVENT" | "CALENDAR_EVENT" | "NOTIFICATION";
+  | "PREP_BATCH" | "PREP_ITEM" | "WASTE_EVENT" | "CALENDAR_EVENT" | "NOTIFICATION"
+  | "SCHEDULE" | "AVAILABILITY";
 
 export interface HubUser {
   id: string;

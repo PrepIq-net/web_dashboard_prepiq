@@ -78,6 +78,24 @@ function useWeekInvalidator(branchId?: string, week?: string) {
   };
 }
 
+/**
+ * Assign an existing org member a branch role — this is what adds them to the
+ * roster. Invalidates the whole schedule cache for the branch so the roster,
+ * grid and availability all pick up the new person.
+ */
+export function useAssignRosterRole(branchId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { userId: string; roleSlug: string }) =>
+      scheduleService.assignRosterRole({ branchId: branchId ?? "", ...payload }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+      toast.success("Added to the roster.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
 export function useReviewAvailability(branchId?: string, week?: string) {
   const invalidate = useWeekInvalidator(branchId, week);
   return useMutation({
