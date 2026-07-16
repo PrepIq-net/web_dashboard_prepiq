@@ -87,6 +87,9 @@ export const PERMISSIONS = {
   VIEW_TEAM_SCHEDULE: "VIEW_TEAM_SCHEDULE",
   MANAGE_SCHEDULE: "MANAGE_SCHEDULE",
   PUBLISH_SCHEDULE: "PUBLISH_SCHEDULE",
+  // Kitchen execution
+  VIEW_TASK_BOARD: "VIEW_TASK_BOARD",
+  MANAGE_TASKS: "MANAGE_TASKS",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -126,6 +129,8 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   VIEW_TEAM_SCHEDULE: "View Team Schedule",
   MANAGE_SCHEDULE: "Build & Edit Schedules",
   PUBLISH_SCHEDULE: "Publish Schedules",
+  VIEW_TASK_BOARD: "View Kitchen Task Board",
+  MANAGE_TASKS: "Create, Assign & Confirm Kitchen Tasks",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

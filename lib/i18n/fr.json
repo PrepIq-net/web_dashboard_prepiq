@@ -1004,6 +1004,41 @@
       "service": "Service",
       "review": "Bilan",
       "aria": "Progression de la journée"
+    },
+    "ingredients": {
+      "title": "Besoins en ingrédients",
+      "subtitle": "Ce dont votre cuisine a besoin pour le plan du jour",
+      "recalculate": "Recalculer",
+      "calculating": "Calcul en cours…",
+      "countSummary": "{count} ingrédients",
+      "shortSummary": "{count} en rupture",
+      "costSummary": "env. {amount} pour couvrir",
+      "allCovered": "tout est couvert par le stock disponible",
+      "shortHeading": "{count} ingrédient(s) en rupture pour le plan du jour",
+      "need": "Besoin",
+      "onHand": "en stock",
+      "short": "Manque",
+      "covered": "Couvert",
+      "stockUnknown": "Pas d'inventaire",
+      "emptyLocked": "Impossible de calculer les quantités d'ingrédients pour ce plan. Essayez de recalculer.",
+      "emptyUnlocked": "Verrouillez le plan et PrepIQ calculera exactement ce qu'il vous faut — et ce qui manque.",
+      "noRecipeData": "Aucune donnée d'ingrédient trouvée.",
+      "buildRecipes": "Créer des recettes →",
+      "setUpRecipes": "Configurer les recettes →",
+      "missingRecipes": "{count} article(s) sans recette",
+      "missingRecipesHint": "Ces articles sont dans votre plan de préparation mais n'ont aucune recette définie :",
+      "addMissingRecipes": "Ajouter les recettes manquantes →",
+      "error": "Impossible de calculer la demande en ingrédients. Vérifiez que les recettes sont configurées pour vos articles.",
+      "footerFromLock": "Calculé lors du verrouillage du plan",
+      "footerFromManual": "Recalculé manuellement",
+      "goToPurchasing": "Commander ce qui manque →",
+      "uncountedSummary": "{count} non inventorié(s)"
+    },
+    "tasksStrip": {
+      "suggested": "{count} tâche(s) suggérée(s) en attente de votre validation",
+      "review": "Vérifier →",
+      "counts": "Tâches : {todo} à faire · {inProgress} en cours · {done} terminées",
+      "open": "Ouvrir le tableau →"
     }
   },
   "profile": {
@@ -1099,7 +1134,8 @@
       "analytics": "Analytique",
       "management": "Gestion",
       "workspace": "Espace de travail"
-    }
+    },
+    "tasks": "Tâches"
   },
   "command": {
     "placeholder": "Rechercher ou taper une commande…",
@@ -3478,6 +3514,69 @@
     },
     "empty": {
       "noSchedule": "Aucun planning pour cette semaine."
+    }
+  },
+  "tasks": {
+    "eyebrow": "Exécution",
+    "title": "Tâches",
+    "description": "Le plan du jour transformé en travail avec des responsables — vérifiez, confirmez et suivez jusqu'au bout.",
+    "insight": "Les tâches viennent du plan verrouillé. Confirmez les suggestions et chacun sait ce qui lui revient avant le service.",
+    "loadError": "Impossible de charger le tableau des tâches.",
+    "emptyManager": "Pas encore de tâches. Verrouillez le plan du jour et PrepIQ les proposera, ou ajoutez-en une.",
+    "emptyStaff": "Pas encore de tâches pour aujourd'hui.",
+    "filter": {
+      "everyone": "Tout le monde"
+    },
+    "actions": {
+      "generate": "Régénérer",
+      "add": "Ajouter une tâche"
+    },
+    "column": {
+      "todo": "À faire",
+      "in_progress": "En cours",
+      "done": "Terminé",
+      "empty": {
+        "todo": "Rien en attente.",
+        "in_progress": "Rien en cours.",
+        "done": "Rien de terminé pour l'instant."
+      }
+    },
+    "category": {
+      "prep": "Préparation",
+      "setup": "Mise en place",
+      "service": "Service",
+      "cleaning": "Nettoyage",
+      "other": "Autre"
+    },
+    "priority": {
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute"
+    },
+    "card": {
+      "minutes": "{count} min",
+      "unassigned": "Non assignée"
+    },
+    "tray": {
+      "title": "{count} tâche(s) suggérée(s) à vérifier",
+      "confirm": "Confirmer {count} tâche(s)",
+      "confirming": "Confirmation…",
+      "dismiss": "Écarter la suggestion",
+      "unassigned": "Non assignée",
+      "load": "{count} tâche(s)"
+    },
+    "add": {
+      "title": "Ajouter une tâche",
+      "description": "Va directement au tableau — pas d'étape de vérification pour vos propres tâches.",
+      "fieldTitle": "Titre",
+      "titlePlaceholder": "ex. Ranger la chambre froide",
+      "fieldDescription": "Détails (facultatif)",
+      "fieldCategory": "Catégorie",
+      "fieldPriority": "Priorité",
+      "fieldMinutes": "Minutes estimées",
+      "fieldAssignee": "Assigner à",
+      "save": "Ajouter",
+      "saving": "Ajout…"
     }
   }
 }

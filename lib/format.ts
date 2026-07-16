@@ -7,11 +7,29 @@
  * same way.
  */
 
+import { format } from "date-fns";
+
 const moneyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   maximumFractionDigits: 0,
 });
+
+/**
+ * Today's date in the viewer's timezone, as the backend keys days.
+ *
+ * `new Date().toISOString().slice(0, 10)` gives the *UTC* date, so a branch
+ * behind UTC asks for tomorrow's day all evening while the server resolves
+ * `timezone.localdate()`. Always go through here.
+ */
+export function todayIso(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
+/** A Date as a `YYYY-MM-DD` day key, in local time. See `todayIso`. */
+export function toDayIso(date: Date): string {
+  return format(date, "yyyy-MM-dd");
+}
 
 export function formatMoney(value: number): string {
   return moneyFormatter.format(value);

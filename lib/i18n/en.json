@@ -1004,6 +1004,41 @@
       "service": "Service",
       "review": "Review",
       "aria": "Day progress"
+    },
+    "ingredients": {
+      "title": "Ingredient requirements",
+      "subtitle": "What your kitchen needs to prep today's plan",
+      "recalculate": "Recalculate",
+      "calculating": "Calculating…",
+      "countSummary": "{count} ingredients",
+      "shortSummary": "{count} short",
+      "costSummary": "est. {amount} to cover",
+      "allCovered": "all covered by stock on hand",
+      "shortHeading": "{count} ingredient(s) short for today's plan",
+      "need": "Need",
+      "onHand": "on hand",
+      "short": "Short",
+      "covered": "Covered",
+      "stockUnknown": "No stock count",
+      "emptyLocked": "Ingredient quantities could not be calculated for this plan. Try recalculating.",
+      "emptyUnlocked": "Lock the plan and PrepIQ will work out exactly what you need — and what you're short.",
+      "noRecipeData": "No ingredient data found.",
+      "buildRecipes": "Build recipes →",
+      "setUpRecipes": "Set up recipes →",
+      "missingRecipes": "{count} item(s) missing recipes",
+      "missingRecipesHint": "These items are in your prep plan but have no recipe defined:",
+      "addMissingRecipes": "Add missing recipes →",
+      "error": "Could not calculate ingredient demand. Make sure recipes are set up for your menu items.",
+      "footerFromLock": "Calculated when the plan was locked",
+      "footerFromManual": "Recalculated by hand",
+      "goToPurchasing": "Order what's short →",
+      "uncountedSummary": "{count} not counted"
+    },
+    "tasksStrip": {
+      "suggested": "{count} suggested task(s) waiting for your review",
+      "review": "Review →",
+      "counts": "Tasks: {todo} to do · {inProgress} in progress · {done} done",
+      "open": "Open the board →"
     }
   },
   "profile": {
@@ -1099,7 +1134,8 @@
       "analytics": "Analytics",
       "management": "Management",
       "workspace": "Workspace"
-    }
+    },
+    "tasks": "Tasks"
   },
   "command": {
     "placeholder": "Search or type a command…",
@@ -3478,6 +3514,69 @@
     },
     "empty": {
       "noSchedule": "No schedule for this week yet."
+    }
+  },
+  "tasks": {
+    "eyebrow": "Execution",
+    "title": "Tasks",
+    "description": "Today's plan as work with owners — review, confirm, and track it to done.",
+    "insight": "Tasks come from the locked plan. Confirm the suggestions and everyone knows what they own before service starts.",
+    "loadError": "Could not load the task board.",
+    "emptyManager": "No tasks yet. Lock today's plan and PrepIQ will draft them, or add one yourself.",
+    "emptyStaff": "No tasks yet for today.",
+    "filter": {
+      "everyone": "Everyone"
+    },
+    "actions": {
+      "generate": "Regenerate",
+      "add": "Add task"
+    },
+    "column": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done",
+      "empty": {
+        "todo": "Nothing waiting.",
+        "in_progress": "Nothing underway.",
+        "done": "Nothing finished yet."
+      }
+    },
+    "category": {
+      "prep": "Prep",
+      "setup": "Setup",
+      "service": "Service",
+      "cleaning": "Cleaning",
+      "other": "Other"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "card": {
+      "minutes": "{count} min",
+      "unassigned": "Unassigned"
+    },
+    "tray": {
+      "title": "{count} suggested task(s) to review",
+      "confirm": "Confirm {count} task(s)",
+      "confirming": "Confirming…",
+      "dismiss": "Dismiss suggestion",
+      "unassigned": "Unassigned",
+      "load": "{count} task(s)"
+    },
+    "add": {
+      "title": "Add a task",
+      "description": "Goes straight onto the board — no review step for your own tasks.",
+      "fieldTitle": "Title",
+      "titlePlaceholder": "e.g. Break down the walk-in",
+      "fieldDescription": "Details (optional)",
+      "fieldCategory": "Category",
+      "fieldPriority": "Priority",
+      "fieldMinutes": "Estimated minutes",
+      "fieldAssignee": "Assign to",
+      "save": "Add task",
+      "saving": "Adding…"
     }
   }
 }

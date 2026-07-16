@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   Shop,
   StatsReport,
+  TaskList,
 } from "iconoir-react";
 import { PERMISSIONS } from "@/services/organizations/types";
 
@@ -36,6 +37,7 @@ export type NavPageId =
   | "today"
   | "planning"
   | "schedule"
+  | "tasks"
   | "production"
   | "inventory"
   | "history"
@@ -121,6 +123,27 @@ export const NAV_PAGES: NavPage[] = [
       "coverage",
       "labor",
       "who works",
+    ],
+  },
+  {
+    id: "tasks",
+    href: "/workspace/tasks",
+    labelKey: "sidebar.tasks",
+    icon: TaskList,
+    permission: PERMISSIONS.VIEW_TASK_BOARD,
+    sectionKey: "operations",
+    // "prep plan" stays with Today: the plan is quantities, the board is
+    // who is doing what. Mirrors backend ai_assistant/command/pages.py.
+    keywords: [
+      "tasks",
+      "task board",
+      "board",
+      "kanban",
+      "kitchen tasks",
+      "prep tasks",
+      "to do",
+      "todo list",
+      "what needs doing",
     ],
   },
   {
