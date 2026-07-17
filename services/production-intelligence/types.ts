@@ -367,6 +367,23 @@ export const branchDayTodaySchema = z.object({
       })
       .optional(),
   }),
+  // Rich Demand Signals banner: one accurate card per operational variable,
+  // each with the exact parameters behind it. See backend signal_cards.py.
+  signal_cards: z
+    .array(
+      z.object({
+        key: z.string(),
+        status: z.enum(["up", "down", "attention", "neutral"]),
+        active: z.boolean(),
+        headline: z.string().nullable(),
+        value_pct: z.number().nullable(),
+        detail: z.string(),
+        params: z.array(
+          z.object({ label: z.string(), value: z.string() }),
+        ),
+      }),
+    )
+    .optional(),
   morning_overview: z
     .object({
       tracked_items: z.number(),

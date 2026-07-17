@@ -43,22 +43,24 @@ import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavaila
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { InitializationWalkthrough } from "@/components/dashboard/today/initialization-walkthrough";
-import { MorningBriefPanel } from "@/components/dashboard/today/morning-brief-panel";
+import {
+  MorningBriefDrawer,
+  MorningBriefStrip,
+} from "@/components/dashboard/today/morning-brief-drawer";
 import {
   PlanProvenanceDrawer,
   derivePipelineProvenance,
 } from "@/components/dashboard/today/plan-provenance-drawer";
-import { PrepSheetSection } from "@/components/dashboard/today/prep-sheet-section";
 import { DayPhaseStepper } from "@/components/dashboard/today/day-phase-stepper";
+import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
-import { MorningContextFooter } from "@/components/dashboard/today/morning-context-footer";
 import { LiveMonitorSection } from "@/components/dashboard/today/live-monitor-section";
-import { LiveTimelineSection } from "@/components/dashboard/today/live-timeline-section";
 import { ClosedDayReview } from "@/components/dashboard/today/closed-day-review";
 import {
   buildMorningRiskAlerts,
+  computePlanRiskScore,
   deriveDecisionSummary,
   deriveLiveRows,
   tierLiveRows,
@@ -215,9 +217,13 @@ function TodayWorkspacePageContent() {
     title: string;
     unit: string;
   }>(null);
-  const [importantItemsOnly, setImportantItemsOnly] = useState(true);
+  const [briefDrawerOpen, setBriefDrawerOpen] = useState(false);
   const [explainRequest, setExplainRequest] = useState<{
     topic: string;
+    nonce: number;
+  } | null>(null);
+  const [askRequest, setAskRequest] = useState<{
+    question: string;
     nonce: number;
   } | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
@@ -338,14 +344,20 @@ function TodayWorkspacePageContent() {
   ]);
 
   // Seed the editable quantities whenever a new branch day arrives.
+  // "Your Plan" starts EMPTY unless the chef already saved a number: chefs
+  // type their own plan (or press Accept to take the AI's), the input never
+  // pre-fills with the suggestion.
   useEffect(() => {
     if (!branchDay) return;
     const initialPlans: Record<string, number | ""> = {};
     for (const item of branchDay.prep_plan_items) {
-      const seedValue = item.planned_quantity ?? item.suggested_quantity;
-      initialPlans[item.id] = isDiscreteUnit(item.unit)
-        ? Math.round(seedValue)
-        : seedValue;
+      const savedPlan = item.planned_quantity;
+      initialPlans[item.id] =
+        savedPlan == null
+          ? ""
+          : isDiscreteUnit(item.unit)
+            ? Math.round(savedPlan)
+            : savedPlan;
     }
     setPlannedQtyByItem(initialPlans);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -361,18 +373,9 @@ function TodayWorkspacePageContent() {
           : Number(plannedQtyByItem[item.id]);
       const variance = planned == null ? null : planned - item.suggested_quantity;
       const impact = impactByItem[item.id];
-      const baseRisk = Math.max(
-        item.forecast_context.risk_of_stockout,
-        item.forecast_context.risk_of_waste,
-      );
-      const impactRiskBoost =
-        impact == null
-          ? 0
-          : Math.max(
-              Math.max(0, impact.waste_risk_increase) / 100,
-              Math.max(0, impact.stockout_risk_change) / 100,
-            );
-      const riskScore = Math.min(1, baseRisk + impactRiskBoost);
+      // Risk responds to the entered quantity: covering the suggestion lowers
+      // it, deviating raises the relevant side (see computePlanRiskScore).
+      const riskScore = computePlanRiskScore(item, planned, impact);
       return { item, planned, variance, impact, riskScore };
     });
     return preparedRows.sort((a, b) => b.riskScore - a.riskScore);
@@ -387,23 +390,6 @@ function TodayWorkspacePageContent() {
       ),
     [rows],
   );
-  const importantForecastRowIds = useMemo(() => {
-    const topDemand = forecastRowsByDemand.slice(0, 5).map((row) => row.item.id);
-    const highRisk = rows
-      .filter((row) => row.riskScore >= 0.35)
-      .map((row) => row.item.id);
-    const lowConfidence = rows
-      .filter((row) => row.item.forecast_context.confidence_score < 0.6)
-      .map((row) => row.item.id);
-    return new Set([...topDemand, ...highRisk, ...lowConfidence]);
-  }, [forecastRowsByDemand, rows]);
-  const section2Rows = useMemo(() => {
-    if (!importantItemsOnly) return forecastRowsByDemand;
-    const filtered = forecastRowsByDemand.filter((row) =>
-      importantForecastRowIds.has(row.item.id),
-    );
-    return filtered.length ? filtered : forecastRowsByDemand.slice(0, 5);
-  }, [forecastRowsByDemand, importantItemsOnly, importantForecastRowIds]);
   const forecastRankById = useMemo(() => {
     const rankMap: Record<string, number> = {};
     forecastRowsByDemand.forEach((row, index) => {
@@ -950,21 +936,34 @@ function TodayWorkspacePageContent() {
             </div>
           ) : null}
 
+          {/* ── Persistent Demand Signals banner — all three phases ── */}
+          {!walkthroughActive && branchDay ? (
+            <DemandSignalsBanner branchDay={branchDay} />
+          ) : null}
+
           {/* ── MORNING: review and lock the prep plan ── */}
           {!walkthroughActive && isMorning && branchDay ? (
             <>
-              {morningBrief ? (
-                <MorningBriefPanel
-                  brief={morningBrief}
-                  onOpenProvenance={() => setProvenanceOpen(true)}
-                />
-              ) : null}
+              <MorningBriefStrip
+                loading={morningBriefQuery.isLoading}
+                brief={morningBrief}
+                userName={user?.first_name || "Chef"}
+                onOpenBrief={() => setBriefDrawerOpen(true)}
+              />
 
               <MorningOutlook
                 branchDay={branchDay}
                 rows={rows}
                 rowsByDemand={forecastRowsByDemand}
-                hideSignals={Boolean(morningBrief)}
+                onExplainReliability={
+                  canUseAssistant
+                    ? () =>
+                        setExplainRequest({
+                          topic: "what the plan reliability score means for today and whether my inventory buffer is safe",
+                          nonce: Date.now(),
+                        })
+                    : undefined
+                }
               />
 
               <MorningRiskAlerts
@@ -979,12 +978,10 @@ function TodayWorkspacePageContent() {
 
               <PrepPlanSection
                 branchDay={branchDay}
-                rows={section2Rows}
+                rows={forecastRowsByDemand}
                 totalRowCount={forecastRowsByDemand.length}
                 forecastRankById={forecastRankById}
                 decisionSummary={decisionSummary}
-                importantItemsOnly={importantItemsOnly}
-                onToggleImportantOnly={() => setImportantItemsOnly((p) => !p)}
                 isPlanLocked={isPlanLocked}
                 isMorning={isMorning}
                 lockPending={lockPlanMutation.isPending}
@@ -1006,16 +1003,15 @@ function TodayWorkspacePageContent() {
                 readOnly={!canOperateToday}
               />
 
-              {morningBrief?.prep_sheet?.length ? (
-                <PrepSheetSection prepSheet={morningBrief.prep_sheet} />
-              ) : null}
-
+              {/* Single ingredient view: store-room requirement + BOM prep
+                  sheet merged, styled per the Ingredient requirements layout. */}
               <section className="mt-8 mb-4">
                 <IngredientRequirements
                   branchId={safeBranchId}
                   targetDate={targetDate}
                   orgId={user?.organization_id ?? ""}
                   requirement={branchDay?.ingredient_requirement}
+                  prepSheet={morningBrief?.prep_sheet}
                   isPlanLocked={isPlanLocked}
                 />
               </section>
@@ -1024,11 +1020,6 @@ function TodayWorkspacePageContent() {
                 branchId={safeBranchId}
                 targetDate={targetDate}
                 enabled={canFetchData && isPlanLocked}
-              />
-
-              <MorningContextFooter
-                branchDay={branchDay}
-                decisionSummary={decisionSummary}
               />
             </>
           ) : null}
@@ -1048,6 +1039,7 @@ function TodayWorkspacePageContent() {
               okRows={okRows}
               paceSummary={paceSummary}
               paceAlertByProductId={paceAlertByProductId}
+              timeline={timelineQuery.data}
               showCsvImportBanner={showCsvImportBanner}
               onDismissCsvBanner={dismissCsvBanner}
               closePending={updateBranchDayStatusMutation.isPending}
@@ -1057,9 +1049,9 @@ function TodayWorkspacePageContent() {
               onLogWaste={setWasteItem}
               branchId={safeBranchId}
               targetDate={targetDate}
+              orgId={user?.organization_id ?? ""}
               readOnly={!canOperateToday}
             />
-            <LiveTimelineSection timeline={timelineQuery.data} />
             </>
           ) : null}
 
@@ -1170,6 +1162,15 @@ function TodayWorkspacePageContent() {
         </>
       )}
 
+      <MorningBriefDrawer
+        open={briefDrawerOpen}
+        onClose={() => setBriefDrawerOpen(false)}
+        brief={morningBrief}
+        canAsk={canUseAssistant}
+        onAsk={(question) => setAskRequest({ question, nonce: Date.now() })}
+        onOpenProvenance={() => setProvenanceOpen(true)}
+      />
+
       <PlanProvenanceDrawer
         open={provenanceOpen}
         onClose={() => setProvenanceOpen(false)}
@@ -1191,6 +1192,7 @@ function TodayWorkspacePageContent() {
           date={targetDate}
           onActionApplied={handleAssistantActionApplied}
           explainRequest={explainRequest}
+          askRequest={askRequest}
           autoOpen={autoOpenAssistant}
         />
       ) : null}

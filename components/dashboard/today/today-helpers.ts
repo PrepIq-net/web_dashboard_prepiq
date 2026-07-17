@@ -57,6 +57,46 @@ export type LiveRow = {
   remaining: number;
 };
 
+// ── Risk ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Risk for a prep row, responsive to the quantity the chef actually entered.
+ *
+ * The forecast's risk_of_stockout / risk_of_waste describe demand-side
+ * uncertainty, not the chef's plan — showing them raw meant "High Risk"
+ * regardless of the entered quantity, even at the recommended baseline.
+ * Here the plan's coverage of the suggestion scales each side: matching the
+ * suggestion halves the residual risk, under-prepping amplifies stockout
+ * risk, over-prepping amplifies waste risk. The evaluate endpoint's impact
+ * deltas (signed) are layered on top when available.
+ */
+export function computePlanRiskScore(
+  item: PrepPlanItem,
+  planned: number | null,
+  impact: ImpactPreview | undefined,
+): number {
+  const baseStockout = item.forecast_context.risk_of_stockout;
+  const baseWaste = item.forecast_context.risk_of_waste;
+  if (planned == null || Number.isNaN(planned)) {
+    return Math.min(1, Math.max(baseStockout, baseWaste));
+  }
+  const target = Math.max(
+    1,
+    item.net_suggested_quantity ??
+      Math.max(0, item.suggested_quantity - (item.carry_over_qty ?? 0)),
+  );
+  const coverage = planned / target;
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+  // Coverage 1.0 → half the base risk on both sides; deviation grows one side.
+  const stockoutRisk = baseStockout * clamp(1.5 - coverage, 0, 1.5);
+  const wasteRisk = baseWaste * clamp(coverage - 0.5, 0, 1.5);
+  const impactDelta = impact
+    ? Math.max(impact.waste_risk_increase, impact.stockout_risk_change) / 100
+    : 0;
+  return clamp(Math.max(stockoutRisk, wasteRisk) + impactDelta, 0, 1);
+}
+
 // ── Labels & tones ───────────────────────────────────────────────────────────
 
 export function confidenceLabel(t: Translator, score: number) {

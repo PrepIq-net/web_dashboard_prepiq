@@ -428,7 +428,9 @@
       "prioritize": "Gardez un œil attentif sur {items} — {suffix}.",
       "reviewHighDemand": "Examinez les articles à forte demande et ajustez votre plan en conséquence.",
       "sensitiveSuffix": "ce sont ceux qui risquent le plus de manquer",
-      "wasteSuffix": "ce sont ceux qui risquent le plus d'être surproduits"
+      "wasteSuffix": "ce sont ceux qui risquent le plus d'être surproduits",
+      "eyebrow": "Perspective du jour",
+      "noItems": "Aucun article suivi pour le moment."
     },
     "prepPlan": {
       "title": "Plan de préparation",
@@ -557,7 +559,12 @@
       "startBatchNow": "Démarrer le lot maintenant",
       "logWaste": "Déclarer une perte",
       "pctLeft": "{{pct}}% restant",
-      "recordCooked": "Enregistrer ce qui a été cuisiné"
+      "recordCooked": "Enregistrer ce qui a été cuisiné",
+      "soldLabel": "Vendus à ce stade",
+      "ofPlanned": "sur {quantity} préparés",
+      "runoutIn": "Rupture possible dans ~{runoutMin} min",
+      "details": "Détails",
+      "moreActions": "Plus d'actions"
     },
     "closed": {
       "dayComplete": "Journée clôturée",
@@ -932,7 +939,10 @@
       "showLess": "Voir moins",
       "provenanceCta": "Comment ce plan a été construit",
       "llmBadge": "Rédigé par PrepIQ à partir des chiffres audités du pipeline",
-      "templateBadge": "Résumé généré automatiquement à partir des chiffres du pipeline"
+      "templateBadge": "Résumé généré automatiquement à partir des chiffres du pipeline",
+      "greeting": "Bonjour {name}, PrepIQ a préparé votre briefing.",
+      "openBriefing": "Ouvrir le briefing",
+      "unavailable": "Votre briefing apparaîtra ici dès que le plan du jour sera prêt."
     },
     "provenance": {
       "eyebrow": "Derrière le plan",
@@ -1137,6 +1147,100 @@
     "viewOnly": {
       "badge": "Lecture seule",
       "hint": "Vous pouvez suivre la journée en direct ; modifier le plan requiert la permission d'opérations cuisine."
+    },
+    "briefDrawer": {
+      "close": "Fermer le briefing",
+      "watchouts": "Points de vigilance",
+      "pastLearnings": "Ce que PrepIQ a appris ici",
+      "askEyebrow": "Question sur ce briefing",
+      "askPlaceholder": "ex. Pourquoi la demande est-elle en hausse ?",
+      "askCta": "Demander"
+    },
+    "expectedDemandHint": "L'affluence attendue aujourd'hui par rapport à un {typicalDay} typique, d'après votre historique de ventes, la météo, les événements, les jours fériés et d'autres signaux. +8% signifie environ 8% de commandes de plus que la normale.",
+    "reliability": {
+      "verdictSolid": "Solide — le plan suit de près la demande attendue ; votre marge de stock habituelle suffit.",
+      "verdictOkay": "Correct — les prévisions comportent une part d'incertitude ; une petite marge supplémentaire sur les articles signalés est prudente.",
+      "verdictRisky": "Risqué — la journée est difficile à prévoir ; vérifiez les articles signalés et gardez une marge généreuse pour éviter les ruptures."
+    },
+    "signalsBanner": {
+      "title": "Signaux de demande",
+      "modalDescription": "Les paramètres exacts qui alimentent la base du jour.",
+      "noEffectDetail": "Aucun effet mesurable sur la prévision du jour.",
+      "history": "Tendances de vente",
+      "historyDetail": "La base du jour provient de votre historique de ventes sur des jours similaires ({typicalDay}).",
+      "typicalDay": "jour comme celui-ci",
+      "operatingHours": "Horaires d'ouverture",
+      "weather": "Météo",
+      "stockoutHistory": "Historique de ruptures",
+      "stockoutDetailActive": "{count} article(s) présentent un risque de rupture élevé d'après leur historique.",
+      "stockoutDetailQuiet": "Aucun article signalé par son historique de ruptures aujourd'hui.",
+      "dayOfWeek": "Jour de la semaine",
+      "dayOfWeekDetail": "Les habitudes hebdomadaires de votre historique façonnent la base d'un {typicalDay}.",
+      "events": "Événements & fériés",
+      "chefAdjustments": "Ajustements du chef",
+      "chefDetailActive": "{count} article(s) ont été ajustés manuellement par la cuisine aujourd'hui.",
+      "chefDetailQuiet": "Aucun ajustement manuel du plan du jour.",
+      "macroTrends": "Tendances macro",
+      "macroDetailActive": "{item} suit une tendance de {pct} sur le réseau.",
+      "macroDetailQuiet": "Aucune tendance macro validée pour le moment.",
+      "network": "Signaux réseau",
+      "networkDetailActive": "Enseignements transférés depuis {count} établissements PrepIQ.",
+      "networkDetailQuiet": "Aucun signal inter-établissements ne s'applique aujourd'hui.",
+      "param": {
+        "effect": "Effet sur aujourd'hui",
+        "learnedFrom": "Appris sur",
+        "days": "{count} jours",
+        "learnedResponse": "Réponse apprise",
+        "expectedVsTypical": "Attendu vs typique",
+        "forecastConfidence": "Confiance de la prévision",
+        "condition": "Conditions",
+        "rain": "Pluie",
+        "yes": "Oui",
+        "itemsAtRisk": "Articles à risque",
+        "trackedItems": "Articles suivis",
+        "publicHoliday": "Jour férié",
+        "sportsEvent": "Événement sportif",
+        "overriddenItems": "Articles ajustés",
+        "pattern": "Schéma",
+        "confidence": "Confiance",
+        "locations": "Établissements"
+      },
+      "subtitle": "Analysés avant l'ouverture — touchez un signal pour voir les données derrière.",
+      "activeCount": "{active} sur {total} influencent aujourd'hui",
+      "behindThis": "Derrière ce chiffre",
+      "sourceNote": "Calculé à partir de vos ventes, la météo, le calendrier et vos ruptures — pas des estimations."
+    },
+    "wizard": {
+      "title": "Bilan de fin de journée",
+      "step1": "Votre ressenti",
+      "step2": "Observations PrepIQ",
+      "step3": "Perspective de demain",
+      "back": "Retour",
+      "continueToObservations": "Continuer — voir les observations PrepIQ",
+      "continueToTomorrow": "Continuer — perspective de demain",
+      "reflectionIntro": "Avant les chiffres : comment la journée s'est-elle passée de votre point de vue ?",
+      "promptWaste": "Y a-t-il eu du gaspillage en cuisine jamais enregistré ?",
+      "promptStockouts": "Avez-vous remarqué des ruptures avant la fermeture ?",
+      "promptStaffing": "Des absences ou anomalies d'effectif pendant le service ?",
+      "staffCoverage": "Effectifs pour demain",
+      "coverageLine": "Couverture {pct}% — {scheduled} personnes planifiées sur {required}",
+      "coverageUnknown": "Aucun besoin en personnel n'est encore défini pour demain.",
+      "availabilityLine": "{submitted} membres de l'équipe sur {roster} ont soumis leurs disponibilités.",
+      "notifyFlag": "PrepIQ devrait relancer {count} membre(s) de l'équipe sans disponibilités soumises.",
+      "availabilityComplete": "Tout le monde a soumis ses disponibilités.",
+      "openSchedule": "Ouvrir le planning →"
+    },
+    "signalCard": {
+      "sales_trends": "Tendances de ventes",
+      "operating_hours": "Horaires d'ouverture",
+      "weather": "Météo",
+      "stockout_history": "Historique de ruptures",
+      "day_of_week": "Jour de la semaine",
+      "events_holidays": "Événements & fériés",
+      "chef_adjustments": "Ajustements du chef",
+      "macro_trends": "Tendances macro",
+      "network": "Signaux réseau",
+      "quiet": "Aucun effet"
     }
   },
   "profile": {

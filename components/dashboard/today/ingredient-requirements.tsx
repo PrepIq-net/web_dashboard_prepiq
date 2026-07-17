@@ -7,6 +7,7 @@ import { useRecomputeIngredientRequirement } from "@/services/production-intelli
 import type {
   IngredientRequirement,
   IngredientRequirementLine,
+  MorningBrief,
 } from "@/services/production-intelligence/types";
 
 type Props = {
@@ -14,6 +15,9 @@ type Props = {
   targetDate: string;
   orgId: string;
   requirement: IngredientRequirement | null | undefined;
+  /** BOM prep sheet from the morning brief — merged into the same view so the
+   * page shows ONE ingredient section instead of two. */
+  prepSheet?: MorningBrief["prep_sheet"] | null;
   isPlanLocked: boolean;
 };
 
@@ -39,15 +43,36 @@ export function IngredientRequirements({
   targetDate,
   orgId,
   requirement,
+  prepSheet,
   isPlanLocked,
 }: Props) {
   const { t } = useTranslation();
   const recompute = useRecomputeIngredientRequirement();
 
   const recipesHref = `/workspace/inventory?branch=${branchId}&org=${orgId}&tab=recipes`;
-  const lines = requirement?.lines ?? [];
+  const storeLines = requirement?.lines ?? [];
+  // Fold prep-sheet ingredients the stored requirement doesn't know about into
+  // the same list — one ingredient section, one styling system.
+  const knownIds = new Set(storeLines.map((line) => line.ingredient_id));
+  const briefOnlyLines: IngredientRequirementLine[] = (prepSheet ?? [])
+    .filter((entry) => !knownIds.has(entry.ingredient_id))
+    .map((entry) => ({
+      ingredient_id: entry.ingredient_id,
+      ingredient_name: entry.ingredient_name,
+      unit: entry.unit,
+      needed: entry.total_quantity,
+      on_hand: 0,
+      net_need: entry.total_quantity,
+      purchase_qty: null,
+      estimated_cost: null,
+      supplier_name: "",
+      stock_known: false,
+    }));
+  const lines = [...storeLines, ...briefOnlyLines];
   const noRecipeItems = requirement?.items_with_no_recipe ?? [];
-  const shortCount = lines.filter((line) => line.net_need > 0).length;
+  const shortCount = lines.filter(
+    (line) => line.stock_known && line.net_need > 0,
+  ).length;
 
   return (
     <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
@@ -93,7 +118,7 @@ export function IngredientRequirements({
             {t("today.ingredients.setUpRecipes")}
           </Link>
         </div>
-      ) : !requirement ? (
+      ) : !requirement && lines.length === 0 ? (
         <div className="px-5 py-8 text-center">
           <p className="text-sm text-text-muted">
             {isPlanLocked
@@ -160,7 +185,7 @@ export function IngredientRequirements({
 
           <div className="flex items-center justify-between border-t border-surface-4 px-5 py-3">
             <p className="text-xs text-text-muted">
-              {requirement.source === "PLAN_LOCK"
+              {requirement?.source === "PLAN_LOCK"
                 ? t("today.ingredients.footerFromLock")
                 : t("today.ingredients.footerFromManual")}
             </p>

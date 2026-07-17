@@ -1,45 +1,35 @@
 "use client";
 
 import { useMemo } from "react";
+import { InfoCircle } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { percent01, toPercent } from "@/lib/format";
 import type { BranchDayToday } from "@/services/production-intelligence/types";
-import {
-  getFallbackDemandSignals,
-  signalToneClasses,
-  type PrepRow,
-} from "./today-helpers";
+import type { PrepRow } from "./today-helpers";
 
 /**
- * The always-visible morning strip: expected demand vs normal, the signals
- * driving it, an actionable outlook sentence, and how reliable the plan is.
- * All derivations from the branch day live here so the page stays thin.
+ * The always-visible morning strip: expected demand vs normal (with a
+ * plain-language tooltip), an actionable outlook sentence, and how reliable
+ * the plan is — explained without algorithm jargon. The demand-signal chips
+ * moved to the global DemandSignalsBanner.
  */
 export function MorningOutlook({
   branchDay,
   rows,
   rowsByDemand,
-  hideSignals,
+  onExplainReliability,
 }: {
   branchDay: BranchDayToday;
   rows: PrepRow[];
   rowsByDemand: PrepRow[];
-  /** The morning brief already shows audited signals — avoid two signal rows. */
-  hideSignals: boolean;
+  /** Opens the assistant with a conversational explanation of the score. */
+  onExplainReliability?: () => void;
 }) {
   const { t } = useTranslation();
 
   const demandDeltaPct =
     branchDay.demand_signal.expected_demand_delta_pct ??
     (branchDay.demand_signal.expected_demand_index - 1) * 100;
-
-  const demandSignals = useMemo(
-    () =>
-      branchDay.demand_signal.signals?.length
-        ? branchDay.demand_signal.signals
-        : getFallbackDemandSignals(t),
-    [branchDay.demand_signal.signals, t],
-  );
 
   const prepConfidenceGauge = useMemo(() => {
     if (!rows.length) return 0;
@@ -107,14 +97,40 @@ export function MorningOutlook({
     return ((clamped + 20) / 40) * 100;
   })();
 
+  const expectedDemandHint = t("today.expectedDemandHint", {
+    typicalDay:
+      branchDay.demand_signal.typical_day_label ??
+      t("today.signalsBanner.typicalDay"),
+  });
+
+  // Plain-language verdict: is this score fine or does it need a buffer?
+  const reliabilityVerdict =
+    riskLevel === "low"
+      ? t("today.reliability.verdictSolid")
+      : riskLevel === "medium"
+        ? t("today.reliability.verdictOkay")
+        : t("today.reliability.verdictRisky");
+
   return (
     <div className="mb-8 pb-8 border-b border-surface-4/50">
       <div className="flex flex-wrap items-start gap-8">
         {/* Demand KPI + meter */}
         <div className="shrink-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            {t("today.expectedDemand")}
-          </p>
+          <div className="group relative flex items-center gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("today.expectedDemand")}
+            </p>
+            <InfoCircle
+              className="h-3 w-3 cursor-help text-text-muted/70"
+              aria-label={expectedDemandHint}
+            />
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden w-64 rounded-lg border border-surface-4 bg-surface-2 px-3 py-2.5 text-[11px] font-normal normal-case leading-relaxed tracking-normal text-text-secondary shadow-lg group-hover:block"
+            >
+              {expectedDemandHint}
+            </div>
+          </div>
           <div className="mt-1.5 flex items-baseline gap-2">
             <span
               className={`font-display text-4xl font-semibold tracking-[-0.5px] ${
@@ -150,64 +166,26 @@ export function MorningOutlook({
 
         <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-        {/* Signal chips + action sentence */}
+        {/* Outlook action sentence */}
         <div className="flex-1 min-w-[180px]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-            {t("today.demandSignals.title")}
+            {t("today.outlook.eyebrow")}
           </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {(() => {
-              if (hideSignals) return null;
-              const activeSignals = demandSignals.filter(
-                (s) => s.direction !== "neutral",
-              );
-              if (activeSignals.length === 0) {
-                return (
-                  <span className="text-[11px] italic text-text-muted">
-                    {t("today.demandSignals.noStrong")}
-                  </span>
-                );
-              }
-              return activeSignals.slice(0, 4).map((signal) => {
-                const learned = "learned" in signal ? signal.learned : null;
-                return (
-                  <span
-                    key={signal.key}
-                    title={
-                      learned && learned.sample_count > 0
-                        ? t("today.signalLearnedFrom", {
-                            count: learned.sample_count,
-                          })
-                        : undefined
-                    }
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${signalToneClasses(signal.direction, signal.value_pct)}`}
-                  >
-                    {signal.label}
-                    <span className="font-semibold">
-                      {toPercent(signal.value_pct)}
-                    </span>
-                    {learned && learned.sample_count > 0 ? (
-                      <span
-                        className="h-1 w-1 rounded-full bg-brand-gold"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </span>
-                );
-              });
-            })()}
-          </div>
           {outlookActionSentence ? (
-            <p className="mt-3 text-xs text-text-secondary">
+            <p className="mt-2 text-sm text-text-secondary">
               <span className="mr-1 font-semibold text-brand-gold">→</span>
               {outlookActionSentence}
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-2 text-sm text-text-muted">
+              {t("today.outlook.noItems")}
+            </p>
+          )}
         </div>
 
         <div className="hidden sm:block w-px self-stretch bg-surface-4/60" />
 
-        {/* Plan reliability */}
+        {/* Plan reliability — plain language, no algorithm jargon */}
         <div className="shrink-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             {t("today.planReliability")}
@@ -244,7 +222,10 @@ export function MorningOutlook({
               style={{ width: percent01(prepConfidenceGauge) }}
             />
           </div>
-          <div className="mt-2 flex gap-6 text-[11px]">
+          <p className="mt-2 max-w-[210px] text-[11px] leading-snug text-text-secondary">
+            {reliabilityVerdict}
+          </p>
+          <div className="mt-2 flex items-center gap-6 text-[11px]">
             <div>
               <p className="text-text-muted">{t("today.needsAttention")}</p>
               <p className="font-semibold text-text-primary">
@@ -259,16 +240,16 @@ export function MorningOutlook({
                 {branchDay.demand_signal.tracked_items ?? rows.length}
               </p>
             </div>
+            {onExplainReliability ? (
+              <button
+                type="button"
+                onClick={onExplainReliability}
+                className="self-end text-[11px] font-semibold text-brand-gold transition-colors hover:text-brand-gold/80"
+              >
+                {t("today.why")}?
+              </button>
+            ) : null}
           </div>
-          {branchDay.demand_signal.confidence_breakdown &&
-          branchDay.demand_signal.forecast_confidence < 0.75 ? (
-            <p className="mt-2 max-w-[180px] text-[10px] leading-snug text-text-muted">
-              <span className="font-semibold text-status-warning">
-                {t("today.why")}:{" "}
-              </span>
-              {branchDay.demand_signal.confidence_breakdown.limiting_factor}.
-            </p>
-          ) : null}
         </div>
       </div>
     </div>

@@ -428,7 +428,9 @@
       "prioritize": "Keep a close eye on {items} — {suffix}.",
       "reviewHighDemand": "Review high-demand items and adjust your plan accordingly.",
       "sensitiveSuffix": "they're the most likely to run out",
-      "wasteSuffix": "they're the most likely to be over-prepped"
+      "wasteSuffix": "they're the most likely to be over-prepped",
+      "eyebrow": "Today's outlook",
+      "noItems": "No tracked items yet."
     },
     "prepPlan": {
       "title": "Prep Plan",
@@ -557,7 +559,12 @@
       "startBatchNow": "Start batch now",
       "logWaste": "Log waste",
       "pctLeft": "{{pct}}% left",
-      "recordCooked": "Record what you cooked"
+      "recordCooked": "Record what you cooked",
+      "soldLabel": "Sold so far",
+      "ofPlanned": "of {quantity} prepared",
+      "runoutIn": "May run out in ~{runoutMin} min",
+      "details": "Details",
+      "moreActions": "More actions"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -932,7 +939,10 @@
       "showLess": "Show less",
       "provenanceCta": "How this plan was made",
       "llmBadge": "Written by PrepIQ from audited pipeline numbers",
-      "templateBadge": "Auto-generated summary from pipeline numbers"
+      "templateBadge": "Auto-generated summary from pipeline numbers",
+      "greeting": "Hello {name}, PrepIQ has your briefing ready.",
+      "openBriefing": "Open briefing",
+      "unavailable": "Your briefing will appear here once today's plan is ready."
     },
     "provenance": {
       "eyebrow": "Behind the plan",
@@ -1137,6 +1147,100 @@
     "viewOnly": {
       "badge": "View only",
       "hint": "You can follow the day live; changing the plan needs kitchen-operations permission."
+    },
+    "briefDrawer": {
+      "close": "Close briefing",
+      "watchouts": "Watchouts",
+      "pastLearnings": "What PrepIQ has learned here",
+      "askEyebrow": "Ask about this briefing",
+      "askPlaceholder": "e.g. Why is demand up today?",
+      "askCta": "Ask"
+    },
+    "expectedDemandHint": "How busy we expect today to be compared with a typical {typicalDay}, based on your sales history plus weather, events, holidays and other live signals. +8% means roughly 8% more orders than normal.",
+    "reliability": {
+      "verdictSolid": "Solid — the plan tracks expected demand closely; your usual inventory buffer is enough.",
+      "verdictOkay": "Okay — forecasts carry some uncertainty today; a small extra buffer on flagged items is wise.",
+      "verdictRisky": "Risky — today is hard to predict; review flagged items and keep a generous buffer to avoid stockouts."
+    },
+    "signalsBanner": {
+      "title": "Demand signals",
+      "modalDescription": "The exact inputs feeding today's baseline.",
+      "noEffectDetail": "No measurable effect on today's forecast.",
+      "history": "Sales trends",
+      "historyDetail": "Today's baseline comes from your sales history on similar days ({typicalDay}).",
+      "typicalDay": "day like this",
+      "operatingHours": "Operating hours",
+      "weather": "Weather",
+      "stockoutHistory": "Stockout history",
+      "stockoutDetailActive": "{count} item(s) carry an elevated shortage risk based on their track record.",
+      "stockoutDetailQuiet": "No items are flagged by their stockout track record today.",
+      "dayOfWeek": "Day of week",
+      "dayOfWeekDetail": "Weekday patterns from your history shape the baseline for a {typicalDay}.",
+      "events": "Events & holidays",
+      "chefAdjustments": "Chef adjustments",
+      "chefDetailActive": "{count} item(s) were manually adjusted by the kitchen for today.",
+      "chefDetailQuiet": "No manual adjustments to today's plan.",
+      "macroTrends": "Macro trends",
+      "macroDetailActive": "{item} is trending {pct} across the network.",
+      "macroDetailQuiet": "No validated macro trends detected right now.",
+      "network": "Network signals",
+      "networkDetailActive": "Insights transferred from {count} PrepIQ locations.",
+      "networkDetailQuiet": "No cross-location signals apply to today.",
+      "param": {
+        "effect": "Effect on today",
+        "learnedFrom": "Learned from",
+        "days": "{count} days",
+        "learnedResponse": "Learned response",
+        "expectedVsTypical": "Expected vs typical",
+        "forecastConfidence": "Forecast confidence",
+        "condition": "Condition",
+        "rain": "Rain",
+        "yes": "Yes",
+        "itemsAtRisk": "Items at risk",
+        "trackedItems": "Tracked items",
+        "publicHoliday": "Public holiday",
+        "sportsEvent": "Sports event",
+        "overriddenItems": "Adjusted items",
+        "pattern": "Pattern",
+        "confidence": "Confidence",
+        "locations": "Locations"
+      },
+      "subtitle": "Read before the kitchen opens — tap any signal to see the data behind it.",
+      "activeCount": "{active} of {total} shaping today",
+      "behindThis": "Behind this number",
+      "sourceNote": "Computed from your own sales, weather, calendar and stockout records — not estimates."
+    },
+    "wizard": {
+      "title": "Close-day review",
+      "step1": "Your reflection",
+      "step2": "PrepIQ observations",
+      "step3": "Tomorrow's outlook",
+      "back": "Back",
+      "continueToObservations": "Continue — see what PrepIQ observed",
+      "continueToTomorrow": "Continue — tomorrow's outlook",
+      "reflectionIntro": "Before the numbers: how did the day look from where you stood?",
+      "promptWaste": "Was there any kitchen waste that never got recorded?",
+      "promptStockouts": "Did you notice items running out before close?",
+      "promptStaffing": "Any staffing gaps or anomalies during service?",
+      "staffCoverage": "Staffing for tomorrow",
+      "coverageLine": "Coverage {pct}% — {scheduled} of {required} people scheduled",
+      "coverageUnknown": "No staffing requirement is set for tomorrow yet.",
+      "availabilityLine": "{submitted} of {roster} team members have submitted availability.",
+      "notifyFlag": "PrepIQ should nudge {count} team member(s) who haven't submitted availability.",
+      "availabilityComplete": "Everyone has submitted availability.",
+      "openSchedule": "Open the schedule →"
+    },
+    "signalCard": {
+      "sales_trends": "Sales trends",
+      "operating_hours": "Operating hours",
+      "weather": "Weather",
+      "stockout_history": "Stockout history",
+      "day_of_week": "Day of week",
+      "events_holidays": "Events & holidays",
+      "chef_adjustments": "Chef adjustments",
+      "macro_trends": "Macro trends",
+      "network": "Network signals",
+      "quiet": "No effect"
     }
   },
   "profile": {
