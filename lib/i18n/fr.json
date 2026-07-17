@@ -1133,6 +1133,10 @@
     "aiTasksToast": {
       "title": "PrepIQ AI a suggéré de nouvelles tâches pour les shifts du jour.",
       "subtitle": "Cliquez pour les revoir, les modifier et les assigner à votre équipe."
+    },
+    "viewOnly": {
+      "badge": "Lecture seule",
+      "hint": "Vous pouvez suivre la journée en direct ; modifier le plan requiert la permission d'opérations cuisine."
     }
   },
   "profile": {
@@ -3706,7 +3710,7 @@
       "save": "Ajouter",
       "saving": "Ajout…"
     },
-    "descriptionStaff": "Vos tâches assignées pour aujourd'hui. Déplacez une carte quand vous commencez et terminez.",
+    "descriptionStaff": "Vos tâches du jour. Passez sur Équipe pour voir tout le tableau — vous pouvez déplacer vos propres cartes.",
     "aiSuggestedToast": "PrepIQ AI a suggéré {count} nouvelles tâches pour les shifts du jour.",
     "edit": {
       "title": "Modifier la tâche",
@@ -3715,6 +3719,11 @@
       "saving": "Enregistrement…",
       "delete": "Supprimer la tâche",
       "aiRationale": "Pourquoi PrepIQ le suggère"
-    }
+    },
+    "scope": {
+      "team": "Équipe",
+      "mine": "Mes tâches"
+    },
+    "emptyMine": "Aucune tâche ne vous est assignée aujourd'hui."
   }
 }

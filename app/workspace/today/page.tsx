@@ -7,6 +7,8 @@ import { toast } from "react-hot-toast";
 import { Shop, Calendar } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import { isDiscreteUnit, todayIso } from "@/lib/format";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
@@ -75,6 +77,14 @@ function TodayWorkspacePageContent() {
   // ── Context: user, branches, date ─────────────────────────────────────────
   const { user, branchOptions, defaultBranch, isLoading } = useBranchOptions();
   const canAccess = Boolean(user?.has_organization);
+
+  // Mirror of the backend gate on branch-day mutations (status, lock, plan
+  // edits, production logs): either code passes. Users with neither get the
+  // page as a live status board — actions are hidden, data stays visible.
+  const permissions = useMemo(() => resolvePermissions(user), [user]);
+  const canOperateToday =
+    permissions.has(PERMISSIONS.VIEW_INVENTORY) ||
+    permissions.has(PERMISSIONS.OVERRIDE_PREP_PLANS);
 
   const [targetDate, setTargetDate] = useState(todayIso());
   // Branch selection lives in the shared store so it persists across
@@ -556,7 +566,7 @@ function TodayWorkspacePageContent() {
   };
 
   const startLiveService = () => {
-    if (!branchDay?.id || !isPlanLocked) return;
+    if (!branchDay?.id || !isPlanLocked || !canOperateToday) return;
     setConfirmAction(null);
     updateBranchDayStatusMutation.mutate(
       { branchDayId: branchDay.id, payload: { status: "LIVE" } },
@@ -580,12 +590,12 @@ function TodayWorkspacePageContent() {
   };
 
   const lockPlan = () => {
-    if (!branchDay?.id || isPlanLocked) return;
+    if (!branchDay?.id || isPlanLocked || !canOperateToday) return;
     lockPlanMutation.mutate({ branchDayId: branchDay.id, payload: {} });
   };
 
   const closeServiceDay = () => {
-    if (!branchDay?.id) return;
+    if (!branchDay?.id || !canOperateToday) return;
     setConfirmAction(null);
     updateBranchDayStatusMutation.mutate(
       { branchDayId: branchDay.id, payload: { status: "CLOSED" } },
@@ -859,6 +869,14 @@ function TodayWorkspacePageContent() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
+          {!canOperateToday && !loading ? (
+            <span
+              className="inline-flex h-7 items-center rounded-full border border-surface-4 bg-surface-3/60 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
+              title={t("today.viewOnly.hint")}
+            >
+              {t("today.viewOnly.badge")}
+            </span>
+          ) : null}
           {branchDay && !loading ? (
             <DayPhaseStepper status={branchDay.status as "MORNING" | "LIVE" | "CLOSED"} />
           ) : (
@@ -951,7 +969,7 @@ function TodayWorkspacePageContent() {
 
               <MorningRiskAlerts
                 alerts={morningRiskAlerts}
-                isPlanLocked={isPlanLocked}
+                isPlanLocked={isPlanLocked || !canOperateToday}
                 canUseAssistant={canUseAssistant}
                 onExplain={(topic) =>
                   setExplainRequest({ topic, nonce: Date.now() })
@@ -985,6 +1003,7 @@ function TodayWorkspacePageContent() {
                 branchId={safeBranchId}
                 targetDate={targetDate}
                 orgId={user?.organization_id ?? ""}
+                readOnly={!canOperateToday}
               />
 
               {morningBrief?.prep_sheet?.length ? (
@@ -1038,6 +1057,7 @@ function TodayWorkspacePageContent() {
               onLogWaste={setWasteItem}
               branchId={safeBranchId}
               targetDate={targetDate}
+              readOnly={!canOperateToday}
             />
             <LiveTimelineSection timeline={timelineQuery.data} />
             </>

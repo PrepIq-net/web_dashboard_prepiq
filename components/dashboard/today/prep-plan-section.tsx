@@ -66,6 +66,8 @@ export type PrepPlanSectionProps = {
   branchId: string;
   targetDate: string;
   orgId: string;
+  /** View-only mode: the user lacks the plan-editing permissions. */
+  readOnly?: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -391,7 +393,7 @@ function RowLinks({
   orgId: string;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
-  onMarkUnavailable: (item: { id: string; title: string }) => void;
+  onMarkUnavailable?: (item: { id: string; title: string }) => void;
   whyLabelKey: string;
 }) {
   const { t } = useTranslation();
@@ -423,7 +425,7 @@ function RowLinks({
         label={t("today.table.message")}
         className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
       />
-      {isMorning ? (
+      {isMorning && onMarkUnavailable ? (
         <button
           type="button"
           onClick={() =>
@@ -668,9 +670,12 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
     branchId,
     targetDate,
     orgId,
+    readOnly = false,
   } = props;
 
-  const lockStartButtons = (
+  const editingDisabled = isPlanLocked || readOnly;
+
+  const lockStartButtons = readOnly ? null : (
     <>
       <button
         type="button"
@@ -748,9 +753,11 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
       </div>
 
       {!isPlanLocked ? (
-        <p className="mb-4 text-xs text-text-muted">
-          {t("today.prepPlan.lockFirst")}
-        </p>
+        readOnly ? null : (
+          <p className="mb-4 text-xs text-text-muted">
+            {t("today.prepPlan.lockFirst")}
+          </p>
+        )
       ) : branchDay.plan_lock?.locked_at ? (
         <p className="mb-4 text-xs text-status-success">
           {branchDay.plan_lock.locked_by?.name
@@ -830,7 +837,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                     <PlannedInput
                       item={item}
                       value={plannedQtyByItem[item.id] ?? ""}
-                      disabled={isPlanLocked}
+                      disabled={editingDisabled}
                       onChange={(value) => onPlannedChange(item.id, value, item.unit)}
                       widthClass="w-20"
                     />
@@ -849,7 +856,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                   <AcceptKeepButtons
                     item={item}
                     planned={planned}
-                    disabled={isPlanLocked}
+                    disabled={editingDisabled}
                     onAccept={onAcceptSuggestion}
                     onKeep={onKeepMyPlan}
                     size="md"
@@ -863,7 +870,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                   orgId={orgId}
                   isExpanded={isExpanded}
                   onToggleExpand={onToggleExpand}
-                  onMarkUnavailable={onMarkUnavailable}
+                  onMarkUnavailable={readOnly ? undefined : onMarkUnavailable}
                   whyLabelKey="today.table.why"
                 />
               </div>
@@ -877,7 +884,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
               <OverrideReasonChips
                 item={item}
                 planned={planned}
-                disabled={isPlanLocked}
+                disabled={editingDisabled}
                 onOverrideReason={onOverrideReason}
                 className="px-4 pb-3"
               />
@@ -976,7 +983,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                       <PlannedInput
                         item={item}
                         value={plannedQtyByItem[item.id] ?? ""}
-                        disabled={isPlanLocked}
+                        disabled={editingDisabled}
                         onChange={(value) => onPlannedChange(item.id, value, item.unit)}
                         widthClass="w-24"
                       />
@@ -994,7 +1001,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                       <OverrideReasonChips
                         item={item}
                         planned={planned}
-                        disabled={isPlanLocked}
+                        disabled={editingDisabled}
                         onOverrideReason={onOverrideReason}
                         className="mt-1.5 max-w-65"
                       />
@@ -1005,7 +1012,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                         <AcceptKeepButtons
                           item={item}
                           planned={planned}
-                          disabled={isPlanLocked}
+                          disabled={editingDisabled}
                           onAccept={onAcceptSuggestion}
                           onKeep={onKeepMyPlan}
                         />
@@ -1019,7 +1026,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                           orgId={orgId}
                           isExpanded={isExpanded}
                           onToggleExpand={onToggleExpand}
-                          onMarkUnavailable={onMarkUnavailable}
+                          onMarkUnavailable={readOnly ? undefined : onMarkUnavailable}
                           whyLabelKey="today.table.whyDesktop"
                         />
                       </div>
@@ -1065,7 +1072,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
               · {t("today.table.allReviewed")}
             </span>
           )}
-          {!isPlanLocked && (
+          {!isPlanLocked && !readOnly && (
             <span className="ml-3 text-xs text-text-muted">
               {t("today.prepPlan.lockToStart")}
             </span>

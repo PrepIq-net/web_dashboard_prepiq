@@ -41,6 +41,16 @@ import {
 } from "@/components/dashboard/tasks/edit-task-modal";
 import type { BoardStatus, KitchenTask } from "@/services/execution/types";
 
+/**
+ * Board scope for dual-role users. Permissions are additive — a working
+ * manager is also a person on shift with their own cards — so instead of a
+ * manager/staff mode fork, everyone gets the same board behind a Team/Mine
+ * lens. Staff see Team read-only (their own cards stay movable); the last
+ * choice sticks per browser.
+ */
+type BoardScope = "TEAM" | "MINE";
+const SCOPE_STORAGE_KEY = "prepiq.tasks.scope";
+
 function TasksPageContent() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
@@ -73,11 +83,36 @@ function TasksPageContent() {
     if (paramBranch && UUID_PATTERN.test(paramBranch)) {
       setBranchId(paramBranch);
     }
-    setHighlightAi(searchParams.get("highlight") === "ai");
+    // The AI review tray is a Team-scope surface; arriving via the toast
+    // deep-link means "review the suggestions", so flip the lens over there.
+    if (searchParams.get("highlight") === "ai") {
+      setHighlightAi(true);
+      setScope("TEAM");
+    } else {
+      setHighlightAi(false);
+    }
   }, [searchParams, setBranchId]);
 
   const permissions = useMemo(() => resolvePermissions(user), [user]);
   const canManage = permissions.has(PERMISSIONS.MANAGE_TASKS);
+
+  const [scope, setScope] = useState<BoardScope>(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(SCOPE_STORAGE_KEY);
+      if (stored === "TEAM" || stored === "MINE") return stored;
+    }
+    return "TEAM";
+  });
+  const changeScope = (next: BoardScope) => {
+    setScope(next);
+    window.localStorage.setItem(SCOPE_STORAGE_KEY, next);
+  };
+  // Managers land on Team, staff on Mine — but only until they've chosen.
+  useEffect(() => {
+    if (!user) return;
+    if (window.localStorage.getItem(SCOPE_STORAGE_KEY)) return;
+    setScope(canManage ? "TEAM" : "MINE");
+  }, [user, canManage]);
 
   const boardQuery = useTaskBoard(branchId, date, !subscriptionBlocked);
   const generate = useGenerateTasks();
@@ -93,6 +128,7 @@ function TasksPageContent() {
   useTaskBoardRealtime(safeBranchId || undefined, date, (count) => {
     if (!canManage) return;
     setHighlightAi(true);
+    setScope("TEAM");
     toast(t("tasks.aiSuggestedToast", { count }), {
       id: "ai-tasks-suggested",
       icon: "✨",
@@ -112,13 +148,14 @@ function TasksPageContent() {
 
   const filteredBoard = useMemo(() => {
     if (!board) return board;
-    // Staff RBAC, mirrored from the API: without MANAGE_TASKS the page is a
-    // personal surface — only the viewer's own cards render.
+    // Team is the whole kitchen (the backend deliberately lets every member
+    // read the board); Mine is the personal lens. Move rights are unchanged
+    // either way — a card is draggable only by a manager or its assignee.
     const keep = (task: KitchenTask) =>
-      canManage
-        ? !assigneeFilter || task.assigned_to?.id === assigneeFilter
-        : task.assigned_to?.id === user?.id;
-    if (canManage && !assigneeFilter) return board;
+      scope === "MINE"
+        ? task.assigned_to?.id === user?.id
+        : !assigneeFilter || task.assigned_to?.id === assigneeFilter;
+    if (scope === "TEAM" && !assigneeFilter) return board;
     return {
       ...board,
       columns: Object.fromEntries(
@@ -128,7 +165,7 @@ function TasksPageContent() {
         ]),
       ),
     };
-  }, [board, assigneeFilter, canManage, user?.id]);
+  }, [board, assigneeFilter, scope, user?.id]);
 
   if (!branchesLoading && branchOptions.length === 0) {
     return (
@@ -250,7 +287,26 @@ function TasksPageContent() {
           </div>
         ) : null}
 
-        {canManage ? (
+        <div className="inline-flex h-9 items-center rounded-lg border border-surface-4 p-0.5">
+          {(["TEAM", "MINE"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => changeScope(option)}
+              className={`inline-flex h-full items-center rounded-md px-3 text-xs font-semibold transition-colors ${
+                scope === option
+                  ? "bg-surface-3 text-text-primary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {option === "TEAM"
+                ? t("tasks.scope.team")
+                : t("tasks.scope.mine")}
+            </button>
+          ))}
+        </div>
+
+        {canManage && scope === "TEAM" ? (
           <div className="w-48">
             <Select
               options={assigneeOptions}
@@ -301,7 +357,7 @@ function TasksPageContent() {
         </p>
       ) : board ? (
         <>
-          {canManage ? (
+          {canManage && scope === "TEAM" ? (
             <div
               ref={trayRef}
               className={
@@ -337,6 +393,14 @@ function TasksPageContent() {
           Object.values(board.columns).every((column) => column.length === 0) ? (
             <p className="mt-6 text-center text-sm text-text-muted">
               {canManage ? t("tasks.emptyManager") : t("tasks.emptyStaff")}
+            </p>
+          ) : scope === "MINE" &&
+            filteredBoard &&
+            Object.values(filteredBoard.columns).every(
+              (column) => column.length === 0,
+            ) ? (
+            <p className="mt-6 text-center text-sm text-text-muted">
+              {t("tasks.emptyMine")}
             </p>
           ) : null}
         </>

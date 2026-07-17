@@ -38,6 +38,8 @@ export type LiveMonitorSectionProps = {
   onLogWaste: (item: { id: string; title: string; unit: string }) => void;
   branchId: string;
   targetDate: string;
+  /** View-only mode: the user lacks the live-operations permissions. */
+  readOnly?: boolean;
 };
 
 /** Item-level pace note vs the branch's typical curve. */
@@ -159,6 +161,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
     onLogWaste,
     branchId,
     targetDate,
+    readOnly = false,
   } = props;
 
   const [showOkRows, setShowOkRows] = useState(false);
@@ -195,23 +198,25 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
             </h3>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCsvModalOpen(true)}
-            className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
-          >
-            {t("today.live.csvImport")}
-          </button>
-          <button
-            type="button"
-            onClick={onCloseDay}
-            disabled={closePending}
-            className="inline-flex h-9 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {closePending ? t("today.live.closing") : t("today.live.closeDay")}
-          </button>
-        </div>
+        {readOnly ? null : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCsvModalOpen(true)}
+              className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold"
+            >
+              {t("today.live.csvImport")}
+            </button>
+            <button
+              type="button"
+              onClick={onCloseDay}
+              disabled={closePending}
+              className="inline-flex h-9 items-center justify-center rounded-full border border-surface-4 px-5 text-sm font-semibold text-text-secondary transition-all duration-200 hover:border-status-critical/60 hover:text-status-critical active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {closePending ? t("today.live.closing") : t("today.live.closeDay")}
+            </button>
+          </div>
+        )}
       </div>
       <LivePaceBanner pace={paceSummary} />
 
@@ -373,29 +378,31 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                       sellThrough={monitor?.sell_through_probability}
                     />
 
-                    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onRecordProduction({
-                            id: item.id,
-                            title: item.product_title,
-                            unit: item.unit,
-                          })
-                        }
-                        className="inline-flex h-10 items-center rounded-full border border-brand-gold/40 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98]"
-                      >
-                        {t("today.live.recordCooked")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onQuickSale(item.id, item, 1)}
-                        className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
-                      >
-                        {t("today.live.plusOneSold")}
-                      </button>
-                      {wasteButton(item)}
-                    </div>
+                    {readOnly ? null : (
+                      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRecordProduction({
+                              id: item.id,
+                              title: item.product_title,
+                              unit: item.unit,
+                            })
+                          }
+                          className="inline-flex h-10 items-center rounded-full border border-brand-gold/40 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 active:scale-[0.98]"
+                        >
+                          {t("today.live.recordCooked")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onQuickSale(item.id, item, 1)}
+                          className="inline-flex h-10 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3"
+                        >
+                          {t("today.live.plusOneSold")}
+                        </button>
+                        {wasteButton(item)}
+                      </div>
+                    )}
                   </article>
                 );
               },
@@ -465,29 +472,31 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                       {note}
                     </p>
 
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onQuickSale(item.id, item, 1)}
-                        className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3 active:scale-[0.97]"
-                      >
-                        {t("today.live.plusOneSold")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onRecordProduction({
-                            id: item.id,
-                            title: item.product_title,
-                            unit: item.unit,
-                          })
-                        }
-                        className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10 active:scale-[0.97]"
-                      >
-                        {t("today.live.recordCooked")}
-                      </button>
-                      {wasteButton(item)}
-                    </div>
+                    {readOnly ? null : (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onQuickSale(item.id, item, 1)}
+                          className="inline-flex h-8 items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:bg-surface-3 active:scale-[0.97]"
+                        >
+                          {t("today.live.plusOneSold")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRecordProduction({
+                              id: item.id,
+                              title: item.product_title,
+                              unit: item.unit,
+                            })
+                          }
+                          className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-medium text-brand-gold hover:bg-brand-gold/10 active:scale-[0.97]"
+                        >
+                          {t("today.live.recordCooked")}
+                        </button>
+                        {wasteButton(item)}
+                      </div>
+                    )}
                   </div>
                 );
               },
@@ -539,29 +548,31 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                         {formatQuantity(remaining, item.unit)}
                       </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => onQuickSale(item.id, item, 1)}
-                        className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
-                      >
-                        {t("today.live.plusOne")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onRecordProduction({
-                            id: item.id,
-                            title: item.product_title,
-                            unit: item.unit,
-                          })
-                        }
-                        className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
-                      >
-                        {t("today.live.recordCooked")}
-                      </button>
-                      {wasteButton(item, true)}
-                    </div>
+                    {readOnly ? null : (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onQuickSale(item.id, item, 1)}
+                          className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
+                        >
+                          {t("today.live.plusOne")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRecordProduction({
+                              id: item.id,
+                              title: item.product_title,
+                              unit: item.unit,
+                            })
+                          }
+                          className="inline-flex h-7 items-center rounded-full border border-surface-4 px-2.5 text-[11px] text-text-muted hover:bg-surface-3 active:scale-[0.97]"
+                        >
+                          {t("today.live.recordCooked")}
+                        </button>
+                        {wasteButton(item, true)}
+                      </div>
+                    )}
                   </div>
                 );
               })}
