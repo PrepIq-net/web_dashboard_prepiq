@@ -1204,7 +1204,11 @@
         "pattern": "Pattern",
         "confidence": "Confidence",
         "locations": "Locations"
-      }
+      },
+      "subtitle": "Read before the kitchen opens — tap any signal to see the data behind it.",
+      "activeCount": "{active} of {total} shaping today",
+      "behindThis": "Behind this number",
+      "sourceNote": "Computed from your own sales, weather, calendar and stockout records — not estimates."
     },
     "wizard": {
       "title": "Close-day review",
@@ -1225,6 +1229,18 @@
       "notifyFlag": "PrepIQ should nudge {count} team member(s) who haven't submitted availability.",
       "availabilityComplete": "Everyone has submitted availability.",
       "openSchedule": "Open the schedule →"
+    },
+    "signalCard": {
+      "sales_trends": "Sales trends",
+      "operating_hours": "Operating hours",
+      "weather": "Weather",
+      "stockout_history": "Stockout history",
+      "day_of_week": "Day of week",
+      "events_holidays": "Events & holidays",
+      "chef_adjustments": "Chef adjustments",
+      "macro_trends": "Macro trends",
+      "network": "Network signals",
+      "quiet": "No effect"
     }
   },
   "profile": {

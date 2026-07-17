@@ -1,448 +1,283 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType } from "react";
+import {
+  GraphUp,
+  Clock,
+  Cloud,
+  Rain,
+  SunLight,
+  SnowFlake,
+  HistoricShield,
+  Calendar,
+  CalendarPlus,
+  EditPencil,
+  StatsUpSquare,
+  Globe,
+  ArrowUpRight,
+  ArrowDownRight,
+  NavArrowRight,
+} from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
-import { toPercent } from "@/lib/format";
 import { ModalShell } from "@/components/ui/modal-shell";
-import type {
-  BranchDayToday,
-  MorningBrief,
-} from "@/services/production-intelligence/types";
+import type { BranchDayToday } from "@/services/production-intelligence/types";
 import type { Translator } from "./today-helpers";
 
 /**
- * Persistent Demand Signals banner — the same strip across Morning, Service
- * and Review. PrepIQ reads these operational variables before the kitchen
- * opens; this makes that visible. A signal that is actively shaping today's
- * numbers is tinted and clickable: the micro-modal shows the exact
- * parameters feeding the baseline.
+ * Demand Signals — the proof that PrepIQ reads operational variables before
+ * the kitchen opens. One card per signal, each number aggregated from its real
+ * source on the backend (signal_cards.py). Active signals carry status color
+ * and open a micro-modal with the exact parameters behind the baseline;
+ * quiet signals stay legible but muted so the strip reads as evidence, not noise.
  */
 
-type SignalTone = "up" | "down" | "attention" | "neutral";
+type SignalCard = NonNullable<BranchDayToday["signal_cards"]>[number];
+type SignalStatus = SignalCard["status"];
 
-type BannerSignal = {
-  key: string;
-  label: string;
-  valueLabel: string | null;
-  tone: SignalTone;
-  active: boolean;
-  detail: {
-    description: string;
-    params: Array<{ label: string; value: string }>;
-  };
+const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  sales_trends: GraphUp,
+  operating_hours: Clock,
+  weather: Cloud,
+  stockout_history: HistoricShield,
+  day_of_week: Calendar,
+  events_holidays: CalendarPlus,
+  chef_adjustments: EditPencil,
+  macro_trends: StatsUpSquare,
+  network: Globe,
 };
 
-const TONE_CLASSES: Record<SignalTone, string> = {
-  up: "border-status-success/35 bg-status-success/8 text-status-success",
-  down: "border-status-critical/35 bg-status-critical/8 text-status-critical",
-  attention: "border-status-warning/35 bg-status-warning/8 text-status-warning",
-  neutral: "border-surface-4 bg-surface-3/30 text-text-muted",
+/** Weather gets a condition-aware glyph so the card looks like it knows. */
+function weatherIcon(card: SignalCard): ComponentType<{ className?: string }> {
+  const text = `${card.headline ?? ""} ${card.detail}`.toLowerCase();
+  if (text.includes("rain") || text.includes("storm") || text.includes("shower"))
+    return Rain;
+  if (text.includes("snow")) return SnowFlake;
+  if (text.includes("clear") || text.includes("sun")) return SunLight;
+  return Cloud;
+}
+
+function iconFor(card: SignalCard): ComponentType<{ className?: string }> {
+  if (card.key === "weather") return weatherIcon(card);
+  return ICONS[card.key] ?? GraphUp;
+}
+
+const STATUS_TOKENS: Record<
+  SignalStatus,
+  { icon: string; ring: string; headline: string; dot: string }
+> = {
+  up: {
+    icon: "bg-status-success/12 text-status-success",
+    ring: "border-status-success/30",
+    headline: "text-status-success",
+    dot: "bg-status-success",
+  },
+  down: {
+    icon: "bg-status-critical/12 text-status-critical",
+    ring: "border-status-critical/30",
+    headline: "text-status-critical",
+    dot: "bg-status-critical",
+  },
+  attention: {
+    icon: "bg-status-warning/12 text-status-warning",
+    ring: "border-status-warning/30",
+    headline: "text-status-warning",
+    dot: "bg-status-warning",
+  },
+  neutral: {
+    icon: "bg-surface-3 text-text-muted",
+    ring: "border-surface-4",
+    headline: "text-text-secondary",
+    dot: "bg-surface-4",
+  },
 };
 
-function payloadSignal(
-  branchDay: BranchDayToday,
-  keys: string[],
-): NonNullable<BranchDayToday["demand_signal"]["signals"]>[number] | null {
-  for (const signal of branchDay.demand_signal.signals ?? []) {
-    if (keys.includes(signal.key)) return signal;
-  }
+function cardLabel(t: Translator, key: string): string {
+  const localized = t(`today.signalCard.${key}`);
+  return localized.startsWith("today.signalCard.") ? key : localized;
+}
+
+function DirectionArrow({ status }: { status: SignalStatus }) {
+  if (status === "up")
+    return <ArrowUpRight className="h-3.5 w-3.5 text-status-success" />;
+  if (status === "down")
+    return <ArrowDownRight className="h-3.5 w-3.5 text-status-critical" />;
   return null;
 }
 
-function fromPayloadSignal(
-  t: Translator,
-  key: string,
-  label: string,
-  signal: NonNullable<BranchDayToday["demand_signal"]["signals"]>[number] | null,
-): BannerSignal {
-  if (!signal || signal.direction === "neutral") {
-    return {
-      key,
-      label,
-      valueLabel: null,
-      tone: "neutral",
-      active: false,
-      detail: {
-        description:
-          signal?.explanation || t("today.signalsBanner.noEffectDetail"),
-        params: [],
-      },
-    };
-  }
-  const params: Array<{ label: string; value: string }> = [
-    {
-      label: t("today.signalsBanner.param.effect"),
-      value: toPercent(signal.value_pct),
-    },
-  ];
-  if (signal.learned && signal.learned.sample_count > 0) {
-    params.push({
-      label: t("today.signalsBanner.param.learnedFrom"),
-      value: t("today.signalsBanner.param.days", {
-        count: signal.learned.sample_count,
-      }),
-    });
-    if (signal.learned.delta_pct != null) {
-      params.push({
-        label: t("today.signalsBanner.param.learnedResponse"),
-        value: toPercent(signal.learned.delta_pct),
-      });
-    }
-  }
-  return {
-    key,
-    label,
-    valueLabel: toPercent(signal.value_pct),
-    tone: signal.direction === "up" ? "up" : "down",
-    active: true,
-    detail: { description: signal.explanation, params },
-  };
-}
+function SignalTile({
+  card,
+  label,
+  onOpen,
+}: {
+  card: SignalCard;
+  label: string;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  const Icon = iconFor(card);
+  const tokens = STATUS_TOKENS[card.status];
+  const clickable = card.params.length > 0;
 
-function buildSignals(
-  t: Translator,
-  branchDay: BranchDayToday,
-  brief: MorningBrief | null,
-): BannerSignal[] {
-  const signals: BannerSignal[] = [];
-  const demand = branchDay.demand_signal;
-  const briefSignals = brief?.drivers?.signals ?? null;
-
-  // 1. Historical sales trends — the baseline the whole forecast stands on.
-  const demandDeltaPct =
-    demand.expected_demand_delta_pct ?? (demand.expected_demand_index - 1) * 100;
-  signals.push({
-    key: "history",
-    label: t("today.signalsBanner.history"),
-    valueLabel: Math.abs(demandDeltaPct) >= 2 ? toPercent(demandDeltaPct) : null,
-    tone:
-      demandDeltaPct >= 2 ? "up" : demandDeltaPct <= -2 ? "down" : "neutral",
-    active: Math.abs(demandDeltaPct) >= 2,
-    detail: {
-      description: t("today.signalsBanner.historyDetail", {
-        typicalDay:
-          demand.typical_day_label ?? t("today.signalsBanner.typicalDay"),
-      }),
-      params: [
-        {
-          label: t("today.signalsBanner.param.expectedVsTypical"),
-          value: toPercent(demandDeltaPct),
-        },
-        {
-          label: t("today.signalsBanner.param.forecastConfidence"),
-          value: `${Math.round(demand.forecast_confidence * 100)}%`,
-        },
-      ],
-    },
-  });
-
-  // 2. Operating hours (capacity-side signals from the aggregator).
-  signals.push(
-    fromPayloadSignal(
-      t,
-      "operating_hours",
-      t("today.signalsBanner.operatingHours"),
-      payloadSignal(branchDay, ["kitchen_capacity", "staffing"]),
-    ),
+  const inner = (
+    <>
+      <div className="flex items-start justify-between">
+        <span
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tokens.icon}`}
+        >
+          <Icon className="h-4.5 w-4.5" />
+        </span>
+        {card.active ? (
+          <span
+            className={`mt-1 h-1.5 w-1.5 rounded-full ${tokens.dot} ${
+              card.status !== "neutral" ? "animate-pulse" : ""
+            }`}
+            aria-hidden
+          />
+        ) : null}
+      </div>
+      <p className="mt-2.5 text-[11px] font-medium leading-tight text-text-muted">
+        {label}
+      </p>
+      <div className="mt-0.5 flex items-center gap-1">
+        {card.headline ? (
+          <span
+            className={`font-display text-base font-semibold leading-tight ${tokens.headline}`}
+          >
+            {card.headline}
+          </span>
+        ) : (
+          <span className="text-xs text-text-muted">
+            {t("today.signalCard.quiet")}
+          </span>
+        )}
+        <DirectionArrow status={card.status} />
+      </div>
+    </>
   );
 
-  // 3. Weather.
-  const weather = fromPayloadSignal(
-    t,
-    "weather",
-    t("today.signalsBanner.weather"),
-    payloadSignal(branchDay, ["weather"]),
+  const base =
+    "flex flex-col rounded-xl border bg-surface-2 px-3 py-3 text-left shadow-[var(--shadow-level-1)] transition-all duration-150";
+
+  if (!clickable) {
+    return <div className={`${base} ${tokens.ring}`}>{inner}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`${base} ${tokens.ring} hover:-translate-y-0.5 hover:border-brand-gold/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/30`}
+    >
+      {inner}
+    </button>
   );
-  if (briefSignals?.weather_condition) {
-    weather.detail.params.push({
-      label: t("today.signalsBanner.param.condition"),
-      value: briefSignals.weather_condition,
-    });
-    if (briefSignals.is_rain) {
-      weather.detail.params.push({
-        label: t("today.signalsBanner.param.rain"),
-        value: t("today.signalsBanner.param.yes"),
-      });
-    }
-  }
-  signals.push(weather);
-
-  // 4. Stockout history — items whose track record flags a shortage risk.
-  const highRiskItems =
-    branchDay.morning_overview?.high_risk_items ?? demand.high_risk_items ?? 0;
-  signals.push({
-    key: "stockout_history",
-    label: t("today.signalsBanner.stockoutHistory"),
-    valueLabel: highRiskItems > 0 ? String(highRiskItems) : null,
-    tone: highRiskItems > 0 ? "attention" : "neutral",
-    active: highRiskItems > 0,
-    detail: {
-      description:
-        highRiskItems > 0
-          ? t("today.signalsBanner.stockoutDetailActive", {
-              count: highRiskItems,
-            })
-          : t("today.signalsBanner.stockoutDetailQuiet"),
-      params: [
-        {
-          label: t("today.signalsBanner.param.itemsAtRisk"),
-          value: String(highRiskItems),
-        },
-        {
-          label: t("today.signalsBanner.param.trackedItems"),
-          value: String(
-            demand.tracked_items ?? branchDay.prep_plan_items.length,
-          ),
-        },
-      ],
-    },
-  });
-
-  // 5. Day-of-week context.
-  const similarDay = payloadSignal(branchDay, ["similar_day"]);
-  signals.push({
-    key: "day_of_week",
-    label: t("today.signalsBanner.dayOfWeek"),
-    valueLabel: similarDay && similarDay.direction !== "neutral"
-      ? toPercent(similarDay.value_pct)
-      : null,
-    tone:
-      similarDay && similarDay.direction !== "neutral"
-        ? similarDay.direction === "up"
-          ? "up"
-          : "down"
-        : "neutral",
-    active: Boolean(similarDay && similarDay.direction !== "neutral"),
-    detail: {
-      description:
-        similarDay?.explanation ??
-        t("today.signalsBanner.dayOfWeekDetail", {
-          typicalDay:
-            demand.typical_day_label ?? t("today.signalsBanner.typicalDay"),
-        }),
-      params: similarDay
-        ? [
-            {
-              label: t("today.signalsBanner.param.effect"),
-              value: toPercent(similarDay.value_pct),
-            },
-          ]
-        : [],
-    },
-  });
-
-  // 6. Local events & public holidays.
-  const eventSignal = fromPayloadSignal(
-    t,
-    "events",
-    t("today.signalsBanner.events"),
-    payloadSignal(branchDay, ["event", "local_event", "reservation"]),
-  );
-  if (briefSignals?.public_holiday) {
-    eventSignal.active = true;
-    if (eventSignal.tone === "neutral") eventSignal.tone = "attention";
-    eventSignal.detail.params.push({
-      label: t("today.signalsBanner.param.publicHoliday"),
-      value: t("today.signalsBanner.param.yes"),
-    });
-  }
-  if (briefSignals?.sports_event && briefSignals.sports_event_name) {
-    eventSignal.active = true;
-    if (eventSignal.tone === "neutral") eventSignal.tone = "attention";
-    eventSignal.detail.params.push({
-      label: t("today.signalsBanner.param.sportsEvent"),
-      value: briefSignals.sports_event_name,
-    });
-  }
-  signals.push(eventSignal);
-
-  // 7. Active chef adjustments — overrides shaping today's plan.
-  const overrides = branchDay.prep_plan_items.filter(
-    (item) => item.decision === "CHEF_OVERRIDE",
-  ).length;
-  signals.push({
-    key: "chef_adjustments",
-    label: t("today.signalsBanner.chefAdjustments"),
-    valueLabel: overrides > 0 ? String(overrides) : null,
-    tone: overrides > 0 ? "attention" : "neutral",
-    active: overrides > 0,
-    detail: {
-      description:
-        overrides > 0
-          ? t("today.signalsBanner.chefDetailActive", { count: overrides })
-          : t("today.signalsBanner.chefDetailQuiet"),
-      params: [
-        {
-          label: t("today.signalsBanner.param.overriddenItems"),
-          value: String(overrides),
-        },
-      ],
-    },
-  });
-
-  // 8. Live macro-trend detections (validated network patterns).
-  const network = branchDay.kitchen_intelligence_network ?? null;
-  const validatedPatterns = (
-    network?.network_aggregation?.detected_patterns ?? []
-  ).filter((pattern) => pattern.is_validated);
-  const topPattern = [...validatedPatterns].sort(
-    (a, b) => Math.abs(b.effect_pct) - Math.abs(a.effect_pct),
-  )[0];
-  signals.push({
-    key: "macro_trends",
-    label: t("today.signalsBanner.macroTrends"),
-    valueLabel: topPattern ? toPercent(topPattern.effect_pct) : null,
-    tone: topPattern
-      ? topPattern.effect_pct >= 0
-        ? "up"
-        : "down"
-      : "neutral",
-    active: Boolean(topPattern),
-    detail: {
-      description: topPattern
-        ? t("today.signalsBanner.macroDetailActive", {
-            item: topPattern.item_name,
-            pct: toPercent(topPattern.effect_pct),
-          })
-        : t("today.signalsBanner.macroDetailQuiet"),
-      params: topPattern
-        ? [
-            {
-              label: t("today.signalsBanner.param.pattern"),
-              value: `${topPattern.item_name} · ${topPattern.trigger_factor}`,
-            },
-            {
-              label: t("today.signalsBanner.param.confidence"),
-              value: `${Math.round(topPattern.confidence * 100)}%`,
-            },
-          ]
-        : [],
-    },
-  });
-
-  // 9. Live network signals (cross-location transfer).
-  const transfers = network?.knowledge_transfer ?? [];
-  const crossPatterns = network?.network_aggregation?.cross_location_patterns ?? [];
-  const activeLocations = network?.network_aggregation?.active_locations ?? 0;
-  const networkActive = transfers.length > 0 || crossPatterns.length > 0;
-  signals.push({
-    key: "network",
-    label: t("today.signalsBanner.network"),
-    valueLabel: networkActive ? String(activeLocations || transfers.length) : null,
-    tone: networkActive ? "attention" : "neutral",
-    active: networkActive,
-    detail: {
-      description: networkActive
-        ? transfers[0]?.suggested_action ??
-          t("today.signalsBanner.networkDetailActive", {
-            count: activeLocations,
-          })
-        : t("today.signalsBanner.networkDetailQuiet"),
-      params: [
-        {
-          label: t("today.signalsBanner.param.locations"),
-          value: String(activeLocations),
-        },
-        ...(crossPatterns[0]
-          ? [
-              {
-                label: t("today.signalsBanner.param.pattern"),
-                value: `${crossPatterns[0].item_name} (${crossPatterns[0].spread_pct.toFixed(1)}%)`,
-              },
-            ]
-          : []),
-      ],
-    },
-  });
-
-  return signals;
 }
 
 export function DemandSignalsBanner({
   branchDay,
-  brief,
 }: {
   branchDay: BranchDayToday;
-  brief: MorningBrief | null;
 }) {
   const { t } = useTranslation();
-  const [openSignal, setOpenSignal] = useState<BannerSignal | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
-  const signals = useMemo(
-    () => buildSignals(t, branchDay, brief),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [branchDay, brief],
+  const cards = branchDay.signal_cards ?? [];
+  const activeCount = useMemo(
+    () => cards.filter((card) => card.active).length,
+    [cards],
   );
+  const openCard = cards.find((card) => card.key === openKey) ?? null;
+
+  if (cards.length === 0) return null;
+
+  const openTokens = openCard ? STATUS_TOKENS[openCard.status] : null;
+  const OpenIcon = openCard ? iconFor(openCard) : null;
 
   return (
-    <div className="mb-6 rounded-[10px] border border-surface-4 bg-surface-2 px-4 py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="mr-1 shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-          {t("today.signalsBanner.title")}
+    <section className="mb-6">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+            {t("today.signalsBanner.title")}
+          </p>
+          <span className="text-[11px] text-text-muted">
+            {t("today.signalsBanner.activeCount", {
+              active: activeCount,
+              total: cards.length,
+            })}
+          </span>
+        </div>
+        <p className="text-[11px] text-text-muted">
+          {t("today.signalsBanner.subtitle")}
         </p>
-        {signals.map((signal) => {
-          const chip = (
-            <>
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  signal.active ? "bg-current" : "bg-surface-4"
-                }`}
-                aria-hidden
-              />
-              {signal.label}
-              {signal.valueLabel ? (
-                <span className="font-semibold">{signal.valueLabel}</span>
-              ) : null}
-            </>
-          );
-          const chipClass = `inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE_CLASSES[signal.tone]}`;
-          return signal.active ? (
-            <button
-              key={signal.key}
-              type="button"
-              onClick={() => setOpenSignal(signal)}
-              className={`${chipClass} transition-colors hover:brightness-125`}
-            >
-              {chip}
-            </button>
-          ) : (
-            <span key={signal.key} className={chipClass}>
-              {chip}
-            </span>
-          );
-        })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
+        {cards.map((card) => (
+          <SignalTile
+            key={card.key}
+            card={card}
+            label={cardLabel(t, card.key)}
+            onOpen={() => setOpenKey(card.key)}
+          />
+        ))}
       </div>
 
       <ModalShell
-        open={Boolean(openSignal)}
-        title={openSignal?.label ?? ""}
-        description={t("today.signalsBanner.modalDescription")}
-        onClose={() => setOpenSignal(null)}
-        maxWidthClassName="max-w-sm"
+        open={Boolean(openCard)}
+        title={openCard ? cardLabel(t, openCard.key) : ""}
+        onClose={() => setOpenKey(null)}
+        maxWidthClassName="max-w-md"
       >
-        {openSignal ? (
+        {openCard && openTokens && OpenIcon ? (
           <div className="space-y-4">
-            <p className="text-sm leading-relaxed text-text-secondary">
-              {openSignal.detail.description}
-            </p>
-            {openSignal.detail.params.length > 0 ? (
-              <dl className="divide-y divide-surface-4/60 rounded-lg border border-surface-4 bg-surface-3/30">
-                {openSignal.detail.params.map((param) => (
-                  <div
-                    key={param.label}
-                    className="flex items-center justify-between px-3 py-2"
+            <div className="flex items-start gap-3">
+              <span
+                className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${openTokens.icon}`}
+              >
+                <OpenIcon className="h-6 w-6" />
+              </span>
+              <div className="min-w-0">
+                {openCard.headline ? (
+                  <p
+                    className={`font-display text-2xl font-semibold leading-none ${openTokens.headline}`}
                   >
-                    <dt className="text-xs text-text-muted">{param.label}</dt>
-                    <dd className="text-xs font-semibold text-text-primary">
-                      {param.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+                    {openCard.headline}
+                  </p>
+                ) : null}
+                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
+                  {openCard.detail}
+                </p>
+              </div>
+            </div>
+
+            {openCard.params.length > 0 ? (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  <NavArrowRight className="h-3 w-3" />
+                  {t("today.signalsBanner.behindThis")}
+                </p>
+                <dl className="divide-y divide-surface-4/60 overflow-hidden rounded-lg border border-surface-4 bg-surface-3/30">
+                  {openCard.params.map((param) => (
+                    <div
+                      key={param.label}
+                      className="flex items-center justify-between gap-4 px-3.5 py-2.5"
+                    >
+                      <dt className="text-xs text-text-muted">{param.label}</dt>
+                      <dd className="text-right text-xs font-semibold tabular-nums text-text-primary">
+                        {param.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             ) : null}
+
+            <p className="text-[11px] leading-relaxed text-text-muted">
+              {t("today.signalsBanner.sourceNote")}
+            </p>
           </div>
         ) : null}
       </ModalShell>
-    </div>
+    </section>
   );
 }

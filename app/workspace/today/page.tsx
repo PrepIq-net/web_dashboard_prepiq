@@ -938,7 +938,7 @@ function TodayWorkspacePageContent() {
 
           {/* ── Persistent Demand Signals banner — all three phases ── */}
           {!walkthroughActive && branchDay ? (
-            <DemandSignalsBanner branchDay={branchDay} brief={morningBrief} />
+            <DemandSignalsBanner branchDay={branchDay} />
           ) : null}
 
           {/* ── MORNING: review and lock the prep plan ── */}

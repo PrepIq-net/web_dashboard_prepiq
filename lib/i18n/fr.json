@@ -1204,7 +1204,11 @@
         "pattern": "Schéma",
         "confidence": "Confiance",
         "locations": "Établissements"
-      }
+      },
+      "subtitle": "Analysés avant l'ouverture — touchez un signal pour voir les données derrière.",
+      "activeCount": "{active} sur {total} influencent aujourd'hui",
+      "behindThis": "Derrière ce chiffre",
+      "sourceNote": "Calculé à partir de vos ventes, la météo, le calendrier et vos ruptures — pas des estimations."
     },
     "wizard": {
       "title": "Bilan de fin de journée",
@@ -1225,6 +1229,18 @@
       "notifyFlag": "PrepIQ devrait relancer {count} membre(s) de l'équipe sans disponibilités soumises.",
       "availabilityComplete": "Tout le monde a soumis ses disponibilités.",
       "openSchedule": "Ouvrir le planning →"
+    },
+    "signalCard": {
+      "sales_trends": "Tendances de ventes",
+      "operating_hours": "Horaires d'ouverture",
+      "weather": "Météo",
+      "stockout_history": "Historique de ruptures",
+      "day_of_week": "Jour de la semaine",
+      "events_holidays": "Événements & fériés",
+      "chef_adjustments": "Ajustements du chef",
+      "macro_trends": "Tendances macro",
+      "network": "Signaux réseau",
+      "quiet": "Aucun effet"
     }
   },
   "profile": {
