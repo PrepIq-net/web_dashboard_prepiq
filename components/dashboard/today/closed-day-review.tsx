@@ -7,6 +7,7 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpdateBranchDayNotes } from "@/services/production-intelligence/hooks";
 import { DayVarianceCausePrompt } from "./day-variance-cause-prompt";
+import { RemainingAttributionPrompt } from "./remaining-attribution-prompt";
 import type {
   BranchDayToday,
   PipelineStats,
@@ -76,6 +77,7 @@ export function ClosedDayReview({
   const revenueProtected = rp.daily_outcome.metrics.revenue_protected.value;
   const wasteDelta = rp.daily_outcome.metrics.waste_cost.comparison;
   const accDelta = rp.daily_outcome.metrics.forecast_accuracy.comparison;
+  const unaccountedUnits = rp.daily_outcome.metrics.unaccounted?.value ?? 0;
 
   const grade =
     accuracy >= 85 && stockouts === 0
@@ -144,17 +146,24 @@ export function ClosedDayReview({
             : "text-status-critical",
     },
     {
-      label: t("today.closed.wasteCost"),
+      label: t("today.closed.discardedCost"),
       value: formatMoney(wasteCost),
-      sub: wasteDelta
-        ? t("today.closed.wasteDelta", { direction: wasteDelta.direction })
-        : null,
+      sub:
+        unaccountedUnits > 0
+          ? t("today.closed.unaccountedSub", {
+              quantity: formatQuantity(unaccountedUnits, ""),
+            })
+          : wasteDelta
+            ? t("today.closed.wasteDelta", { direction: wasteDelta.direction })
+            : null,
       tone:
-        wasteCost === 0
-          ? "text-status-success"
-          : wasteDelta?.direction === "down"
+        unaccountedUnits > 0
+          ? "text-status-warning"
+          : wasteCost === 0
             ? "text-status-success"
-            : "text-status-warning",
+            : wasteDelta?.direction === "down"
+              ? "text-status-success"
+              : "text-status-warning",
     },
     {
       label: t("today.closed.revenueProtected"),
@@ -281,8 +290,11 @@ export function ClosedDayReview({
             <div className="mt-3 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/60">
               {rp.item_performance.rows.map((row) => {
                 const isStockout = row.stockout;
-                const wasteRatio = row.prepared > 0 ? row.waste / row.prepared : 0;
-                const hasWaste = !isStockout && wasteRatio > 0.08;
+                const discarded = row.discarded ?? row.waste;
+                const unaccounted = row.unaccounted ?? 0;
+                const stored = row.stored ?? 0;
+                // Three-way split: discarded is waste, unaccounted is a
+                // question, stored is tomorrow's stock — never lumped.
                 const outcome = isStockout
                   ? {
                       icon: "⚡",
@@ -294,15 +306,31 @@ export function ClosedDayReview({
                             })
                           : null,
                     }
-                  : hasWaste
+                  : discarded > 0
                     ? {
-                        icon: "○",
-                        cls: "text-status-warning",
-                        sub: t("today.closed.leftover", {
-                          quantity: formatQuantity(row.waste, row.unit),
+                        icon: "✕",
+                        cls: "text-status-critical",
+                        sub: t("today.closed.discardedQty", {
+                          quantity: formatQuantity(discarded, row.unit),
                         }),
                       }
-                    : { icon: "✓", cls: "text-status-success", sub: null };
+                    : unaccounted > 0
+                      ? {
+                          icon: "?",
+                          cls: "text-status-warning",
+                          sub: t("today.closed.unaccountedQty", {
+                            quantity: formatQuantity(unaccounted, row.unit),
+                          }),
+                        }
+                      : stored > 0
+                        ? {
+                            icon: "◷",
+                            cls: "text-text-muted",
+                            sub: t("today.closed.storedQty", {
+                              quantity: formatQuantity(stored, row.unit),
+                            }),
+                          }
+                        : { icon: "✓", cls: "text-status-success", sub: null };
                 return (
                   <div key={row.item_id} className="flex items-center gap-4 px-5 py-3.5">
                     <span className={`shrink-0 w-5 text-center text-base ${outcome.cls}`}>
@@ -512,6 +540,8 @@ export function ClosedDayReview({
         </section>
 
         {/* ── 6.5 WHAT HAPPENED? (only when variance exceeds threshold) ── */}
+        <RemainingAttributionPrompt branchDay={branchDay} />
+
         <DayVarianceCausePrompt branchDay={branchDay} />
 
         {/* ── 7. HOW DID TODAY FEEL + NOTE ── */}

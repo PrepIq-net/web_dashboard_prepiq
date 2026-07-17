@@ -58,6 +58,7 @@ export type PrepPlanSectionProps = {
     plannedQuantity: number | null,
     unit: string,
   ) => void;
+  onOverrideReason?: (prepPlanItemId: string, reason: string) => void;
   actionErrorByItem: Record<string, string>;
   expandedItemIds: Set<string>;
   onToggleExpand: (id: string) => void;
@@ -137,6 +138,16 @@ function ItemIdentity({
   );
 }
 
+/** Net quantity to produce: raw demand suggestion minus usable carry-over. */
+function netSuggestedQty(item: PrepPlanItem) {
+  const carryOver = item.carry_over_qty ?? 0;
+  if (carryOver <= 0) return item.suggested_quantity;
+  return (
+    item.net_suggested_quantity ??
+    Math.max(0, item.suggested_quantity - carryOver)
+  );
+}
+
 /** Suggested quantity, or the supply-constrained pill when availability blocks it. */
 function SuggestedQty({ item }: { item: PrepPlanItem }) {
   const { t } = useTranslation();
@@ -155,10 +166,86 @@ function SuggestedQty({ item }: { item: PrepPlanItem }) {
       </div>
     );
   }
+  const carryOver = item.carry_over_qty ?? 0;
+  if (carryOver > 0) {
+    return (
+      <div>
+        <p className="font-display text-lg font-semibold text-text-primary">
+          {formatQuantity(netSuggestedQty(item), item.unit)}
+        </p>
+        <span
+          className="mt-0.5 inline-flex w-fit items-center rounded-full border border-brand-gold/30 bg-brand-gold/10 px-2 py-0.5 text-[10px] font-semibold text-brand-gold"
+          title={t("today.plan.carryOverTitle", {
+            demand: formatQuantity(item.suggested_quantity, item.unit),
+          })}
+        >
+          {t("today.plan.carryOver", {
+            quantity: formatQuantity(carryOver, item.unit),
+          })}
+        </span>
+      </div>
+    );
+  }
   return (
     <p className="font-display text-lg font-semibold text-text-primary">
       {formatQuantity(item.suggested_quantity, item.unit)}
     </p>
+  );
+}
+
+const OVERRIDE_REASONS = [
+  "LARGE_BOOKING",
+  "EVENT",
+  "WEATHER",
+  "EXPERIENCE",
+  "HOLIDAY",
+  "OTHER",
+] as const;
+
+/** Optional "why the change?" chips — labeled training data, never a gate.
+ * Shown only when the plan meaningfully diverges from the suggestion. */
+function OverrideReasonChips({
+  item,
+  planned,
+  disabled,
+  onOverrideReason,
+  className = "",
+}: {
+  item: PrepPlanItem;
+  planned: number | null;
+  disabled: boolean;
+  onOverrideReason?: PrepPlanSectionProps["onOverrideReason"];
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  if (!onOverrideReason || disabled || planned == null) return null;
+  const suggested = item.suggested_quantity;
+  const diverges =
+    Math.abs(planned - suggested) / Math.max(suggested, 1) >= 0.15;
+  if (!diverges) return null;
+  const selected = item.override_reason || "";
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+        {t("today.override.why")}
+      </span>
+      {OVERRIDE_REASONS.map((reason) => (
+        <button
+          key={reason}
+          type="button"
+          onClick={() =>
+            onOverrideReason(item.id, selected === reason ? "" : reason)
+          }
+          className={`inline-flex h-6 items-center rounded-full border px-2 text-[10px] font-semibold transition-colors active:scale-[0.98] ${
+            selected === reason
+              ? "border-brand-gold/60 bg-brand-gold/15 text-brand-gold"
+              : "border-surface-4 text-text-muted hover:bg-surface-3"
+          }`}
+        >
+          {t(`today.override.${reason.toLowerCase()}`)}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -268,7 +355,7 @@ function AcceptKeepButtons({
     <>
       <button
         type="button"
-        onClick={() => onAccept(item.id, item.suggested_quantity, item.unit)}
+        onClick={() => onAccept(item.id, netSuggestedQty(item), item.unit)}
         disabled={disabled}
         className={`inline-flex ${h} items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30`}
       >
@@ -573,6 +660,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
     onPlannedChange,
     onAcceptSuggestion,
     onKeepMyPlan,
+    onOverrideReason,
     actionErrorByItem,
     expandedItemIds,
     onToggleExpand,
@@ -786,6 +874,14 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                 className="px-4 pb-3"
               />
 
+              <OverrideReasonChips
+                item={item}
+                planned={planned}
+                disabled={isPlanLocked}
+                onOverrideReason={onOverrideReason}
+                className="px-4 pb-3"
+              />
+
               {isExpanded ? (
                 <WhyPanel item={item} planned={planned} impact={impact} layout="stack" />
               ) : null}
@@ -894,6 +990,13 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                         item={item}
                         error={actionErrorByItem[item.id]}
                         className="mt-1"
+                      />
+                      <OverrideReasonChips
+                        item={item}
+                        planned={planned}
+                        disabled={isPlanLocked}
+                        onOverrideReason={onOverrideReason}
+                        className="mt-1.5 max-w-65"
                       />
                     </td>
 

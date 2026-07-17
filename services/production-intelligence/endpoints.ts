@@ -24,6 +24,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branch-day/${branchDayId}/alerts/ignore/`,
   branchDayNotes: (branchDayId: string) =>
     `${BASE}/production-intelligence/branch-day/${branchDayId}/notes/`,
+  branchDayOutcomes: (branchDayId: string) =>
+    `${BASE}/production-intelligence/branch-day/${branchDayId}/outcomes/`,
   branchDayIngredientsRecompute: () =>
     `${BASE}/production-intelligence/branch-day/ingredients/recompute/`,
   prepPlanEvaluate: () => `${BASE}/production-intelligence/prep-plan/evaluate/`,
@@ -51,6 +53,8 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branches/${branchId}/velocity-update/`,
   branchPaceSummary: (branchId: string) =>
     `${BASE}/production-intelligence/branches/${branchId}/pace-summary/`,
+  branchIntradayTimeline: (branchId: string) =>
+    `${BASE}/production-intelligence/branches/${branchId}/intraday-timeline/`,
   branchDayVersion: (branchId: string) =>
     `${BASE}/production-intelligence/branches/${branchId}/today/version/`,
   morningBrief: () =>

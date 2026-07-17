@@ -556,7 +556,8 @@
       "sold": "Sold",
       "startBatchNow": "Start batch now",
       "logWaste": "Log waste",
-      "pctLeft": "{{pct}}% left"
+      "pctLeft": "{{pct}}% left",
+      "recordCooked": "Record what you cooked"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -666,7 +667,12 @@
           "POWER_OUTAGE": "Power outage",
           "OTHER": "Other"
         }
-      }
+      },
+      "discardedCost": "Discarded cost",
+      "unaccountedSub": "{quantity} units still unaccounted",
+      "discardedQty": "Discarded {quantity}",
+      "unaccountedQty": "{quantity} unaccounted — tell us below",
+      "storedQty": "Stored {quantity} for tomorrow"
     },
     "eyebrow": "Today's Operations",
     "expectedDemand": "Expected demand",
@@ -786,10 +792,18 @@
     },
     "override": {
       "foodAtRisk": "~{cost} food at risk if demand falls short",
-      "marginAtRisk": "~{cost} margin at risk if demand holds"
+      "marginAtRisk": "~{cost} margin at risk if demand holds",
+      "why": "Why the change?",
+      "large_booking": "Large booking",
+      "event": "Event",
+      "weather": "Weather",
+      "experience": "Experience",
+      "holiday": "Holiday",
+      "other": "Other"
     },
     "reason": {
-      "demandSpike": "Demand spike"
+      "demandSpike": "Demand spike",
+      "recordedManually": "Recorded manually"
     },
     "prepRisk": {
       "high": "High",
@@ -1039,6 +1053,82 @@
       "review": "Review →",
       "counts": "Tasks: {todo} to do · {inProgress} in progress · {done} done",
       "open": "Open the board →"
+    },
+    "plan": {
+      "carryOver": "− {quantity} stored from yesterday",
+      "carryOverTitle": "Demand forecast is {demand}; stored stock covers part of it, so there is less to produce."
+    },
+    "advisory": {
+      "surgeWindow": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready within the next {window} minutes to reduce stockout risk.",
+      "surge": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready soon to reduce stockout risk.",
+      "runoutSoon": "At the current pace this runs out in about {runoutMin} min, and a batch takes {prepTimeMin} min — worth deciding soon.",
+      "watchPace": "Demand is moving away from the plan — worth keeping an eye on the pace.",
+      "confidence": "Confidence: {confidence}%"
+    },
+    "record": {
+      "title": "Record what you cooked",
+      "description": "Log the batch of {item} the kitchen actually made. This records a fact — it doesn't change any suggestion.",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "submit": "Record batch",
+      "quantityLabel": "Quantity cooked ({unit})",
+      "placeholder": "Enter quantity in {unit}",
+      "hint": "If sales flow in from your POS, CSV or the PIQ Connector, you only need this when a batch isn't captured there."
+    },
+    "timeline": {
+      "title": "How the day is unfolding",
+      "legendSold": "Sold",
+      "legendExpected": "Typical pace",
+      "legendPlanned": "Planned",
+      "allOnPace": "Every dish is tracking its usual pace.",
+      "onPaceCount": "On pace · {count} dishes",
+      "rowNumbers": "{sold} sold of {target} planned",
+      "projected": "heading for {projected}",
+      "planned": "Plan: {quantity}",
+      "batchTooltip": "Batch of {quantity} around {hour}",
+      "hoverSold": "Sold: {quantity}",
+      "hoverExpected": "Typical: {quantity}",
+      "chartAria": "Intraday sales pace for {item}"
+    },
+    "outcomes": {
+      "title": "What happened to the remaining units?",
+      "subtitle": "Unsold food isn't waste until you say so — stored and converted stock re-enters tomorrow's plan.",
+      "allAttributed": "✓ Everything accounted for",
+      "progress": "{attributed} of {total} accounted for",
+      "bulk": "Quick fill",
+      "bulkStore": "Store all in fridge",
+      "bulkUnknown": "Not sure for all",
+      "minorLeftovers": "Minor leftovers · {count} items",
+      "itemQuestion": "{quantity} {item} remaining — what happened?",
+      "itemComplete": "✓ Accounted for",
+      "itemRemaining": "{quantity} unaccounted",
+      "itemContext": "Prepared {prepared} · sold {sold}",
+      "presumedFromPlan": "based on your plan — production wasn't logged",
+      "stockoutQuestion": "{item} sold {sold} of {prepared} prepared — did you actually run out and turn guests away?",
+      "stockoutYes": "Yes, we ran out",
+      "stockoutNo": "No, sold out exactly",
+      "expiredQuestion": "{quantity} {item} ({state}, stored {date}) passed its shelf life — what happened to it?",
+      "state": {
+        "DISCARDED": "Discarded",
+        "REFRIGERATED": "Refrigerated",
+        "FROZEN": "Frozen",
+        "CONVERTED": "Converted",
+        "STAFF_MEAL": "Staff meal",
+        "DISCOUNTED": "Discounted",
+        "UNKNOWN": "Not sure"
+      },
+      "discardReason": {
+        "SPOILED": "Spoiled",
+        "QUALITY_ISSUE": "Quality issue",
+        "DEMAND_DROPPED": "Demand dropped",
+        "LATE_PREP": "Late prep",
+        "OTHER": "Other"
+      },
+      "expired": {
+        "DISCARD": "Discard it",
+        "USED": "We used it",
+        "STILL_GOOD": "Still good"
+      }
     }
   },
   "profile": {
