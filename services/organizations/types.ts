@@ -385,3 +385,55 @@ export type OrganizationFinancialOverviewQuery = {
   end_date?: string;
   branch_id?: string;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff performance — real metrics derived from labor (schedule adherence)
+// and execution (task completion). Mirrors organizations/performance.py.
+// ─────────────────────────────────────────────────────────────────────────────
+export const staffPerformanceRowSchema = z.object({
+  member_id: z.string(),
+  user_id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  role_slug: z.string().nullable(),
+  role_name: z.string().nullable(),
+  branch_id: z.string().nullable(),
+  branch_name: z.string().nullable(),
+  tasks: z.object({
+    assigned: z.number(),
+    completed: z.number(),
+    on_time: z.number(),
+    cancelled: z.number(),
+    completion_rate: z.number().nullable(),
+    on_time_rate: z.number().nullable(),
+  }),
+  schedule: z.object({
+    shifts_total: z.number(),
+    shifts_compared: z.number(),
+    shifts_matching_availability: z.number(),
+    adherence_rate: z.number().nullable(),
+    weeks_expected: z.number(),
+    weeks_submitted: z.number(),
+    weeks_approved: z.number(),
+    submission_rate: z.number().nullable(),
+  }),
+  score: z.number().nullable(),
+  coaching_priority: z.enum(["HIGH", "MEDIUM", "LOW", "NONE"]),
+});
+export type StaffPerformanceRow = z.infer<typeof staffPerformanceRowSchema>;
+
+export const staffPerformanceResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  days: z.number(),
+  branch_id: z.string().nullable(),
+  staff: z.array(staffPerformanceRowSchema),
+});
+export type StaffPerformanceResponse = z.infer<
+  typeof staffPerformanceResponseSchema
+>;
+
+export type StaffPerformanceQuery = {
+  days?: 7 | 30 | 90;
+  branch_id?: string;
+};

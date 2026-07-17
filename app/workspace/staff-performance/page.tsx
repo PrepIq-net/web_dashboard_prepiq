@@ -15,90 +15,44 @@ import { Select } from "@/components/ui/select";
 import {
   useBranches,
   useCurrentUserProfile,
-  useOrganizationMembers,
   useRemoveOrganizationMember,
-  useStaffAssignments,
   useRemoveStaff,
+  useStaffPerformance,
 } from "@/services";
-import { useExecutiveControlTower } from "@/services/production-intelligence/hooks";
+import type { StaffPerformanceRow } from "@/services/organizations/types";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { useTranslation } from "@/lib/i18n";
-
-type StaffPerformanceRow = {
-  id: string;
-  memberId: string;
-  userId: string;
-  staffName: string;
-  role: string;
-  branchId: string | null;
-  branchName: string;
-  productionEfficiency: number;
-  errorRate: number;
-  wasteContribution: number;
-  shiftReliability: number;
-  trendDelta: number;
-  coachingPriority: "HIGH" | "MEDIUM" | "LOW";
-};
 
 const columnHelper = createColumnHelper<StaffPerformanceRow>();
 const TABLE_PAGE_SIZE = 100;
 const CORE_ROW_MODEL = getCoreRowModel();
 const EMPTY_BRANCHES: Array<{ id: string; name: string }> = [];
-const EMPTY_MEMBERS: Array<{
-  id: string;
-  user: string;
-  role: string;
-  is_active: boolean;
-  email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  branch_id?: string | null;
-  branch_name?: string | null;
-}> = [];
-const EMPTY_ASSIGNMENTS: Array<{
-  user: string;
-  branch?: string | null;
-  role?: string;
-  user_details: { first_name?: string | null; last_name?: string | null };
-  branch_details?: { id?: string | null; name?: string | null };
-}> = [];
-const EMPTY_BRANCH_GRID: Array<{
-  branch_id: string;
-  waste_pct?: number | string | null;
-  surplus_pct?: number | string | null;
-  compliance_badge?: string | null;
-}> = [];
+const EMPTY_ROWS: StaffPerformanceRow[] = [];
 
-const STAFF_REMOVE_ROLES = new Set(["STAFF_OPERATOR", "STAFF", "BRANCH_MANAGER", "GM"]);
+// Owners, admins and auditors manage the operation; their rows would only be
+// noise in a table about shift and task execution.
+const HIDDEN_ROLE_SLUGS = new Set(["system-super-admin", "system-admin"]);
 
-function normalizeRole(role: string) {
-  if (role === "STAFF") return "STAFF_OPERATOR";
-  if (role === "OWNER") return "ORG_OWNER";
-  if (role === "ADMIN") return "ORG_ADMIN";
-  return role;
+function isHiddenRole(row: StaffPerformanceRow) {
+  const slug = (row.role_slug ?? "").toLowerCase();
+  const name = (row.role_name ?? "").toLowerCase();
+  return HIDDEN_ROLE_SLUGS.has(slug) || slug.includes("auditor") || name.includes("auditor");
 }
 
-function scoreTone(value: number) {
+function isOrgLevelRole(row: StaffPerformanceRow) {
+  const slug = (row.role_slug ?? "").toLowerCase();
+  return slug.includes("admin") || slug.includes("super");
+}
+
+function scoreTone(value: number | null) {
+  if (value === null) return "text-[#8E8E93]";
   if (value < 55) return "text-[#C44949]";
   if (value < 75) return "text-[#C48B2A]";
   return "text-[#3F8F68]";
 }
 
-function percent(value: number) {
-  return `${value.toFixed(1)}%`;
-}
-
-function hashNumber(input: string) {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function coachingTone(value: StaffPerformanceRow["coachingPriority"]) {
+function coachingTone(value: StaffPerformanceRow["coaching_priority"]) {
   if (value === "HIGH") return "text-[#C44949] bg-[#C44949]/10 border-[#C44949]/30";
   if (value === "MEDIUM") return "text-[#C48B2A] bg-[#C48B2A]/10 border-[#C48B2A]/30";
   return "text-[#3F8F68] bg-[#3F8F68]/10 border-[#3F8F68]/30";
@@ -111,21 +65,24 @@ export default function StaffPerformancePage() {
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
   const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
+  const orgId = user?.organization_id ?? "";
 
-  const branchesQuery = useBranches(user?.organization_id ?? "");
-  const orgMembersQuery = useOrganizationMembers(user?.organization_id ?? "");
-  const staffQuery = useStaffAssignments(user?.organization_id ?? "");
-  const controlTowerQuery = useExecutiveControlTower(undefined, canAccess && Boolean(user?.organization_id));
-  const removeStaffMutation = useRemoveStaff(user?.organization_id ?? "");
-  const removeOrgMemberMutation = useRemoveOrganizationMember(user?.organization_id ?? "");
+  const branchesQuery = useBranches(orgId);
+  const removeStaffMutation = useRemoveStaff(orgId);
+  const removeOrgMemberMutation = useRemoveOrganizationMember(orgId);
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
   const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
+  const days = timeframe === "7d" ? 7 : timeframe === "90d" ? 90 : 30;
   const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
-  const [compareA, setCompareA] = useState("");
-  const [compareB, setCompareB] = useState("");
   const [tablePage, setTablePage] = useState(0);
+
+  const performanceQuery = useStaffPerformance(
+    orgId,
+    { days: days as 7 | 30 | 90, branch_id: activeBranchId },
+    canAccess,
+  );
 
   useEffect(() => {
     if (!isLoading && !canAccess) {
@@ -136,121 +93,11 @@ export default function StaffPerformancePage() {
   const branches = (branchesQuery.data ?? EMPTY_BRANCHES) as typeof branchesQuery.data extends Array<infer T>
     ? T[]
     : typeof EMPTY_BRANCHES;
-  const organizationMembers = (orgMembersQuery.data ?? EMPTY_MEMBERS) as typeof orgMembersQuery.data extends Array<infer T>
-    ? T[]
-    : typeof EMPTY_MEMBERS;
-  const staffAssignments = (staffQuery.data ?? EMPTY_ASSIGNMENTS) as typeof staffQuery.data extends Array<infer T>
-    ? T[]
-    : typeof EMPTY_ASSIGNMENTS;
-  const branchGrid = (controlTowerQuery.data?.branch_grid ?? EMPTY_BRANCH_GRID) as typeof controlTowerQuery.data extends {
-    branch_grid?: Array<infer T>;
-  }
-    ? T[]
-    : typeof EMPTY_BRANCH_GRID;
-
-  const branchSignals = useMemo(() => {
-    return new Map(branchGrid.map((item) => [item.branch_id, item]));
-  }, [branchGrid]);
-
-  const branchMap = useMemo(() => {
-    return new Map(
-      branches.map((branch) => [
-        branch.id,
-        {
-          name: branch.name,
-          wastePct: Number(branchSignals.get(branch.id)?.waste_pct ?? 0),
-          surplusPct: Number(branchSignals.get(branch.id)?.surplus_pct ?? 0),
-          complianceBadge: branchSignals.get(branch.id)?.compliance_badge ?? "GREEN",
-        },
-      ]),
-    );
-  }, [branches, branchSignals]);
-
-  const timeframeMultiplier = timeframe === "7d" ? 0.6 : timeframe === "90d" ? 1.3 : 1;
-
-  const assignmentsByUserId = useMemo(() => {
-    return new Map(staffAssignments.map((assignment) => [String(assignment.user), assignment]));
-  }, [staffAssignments]);
 
   const rows = useMemo<StaffPerformanceRow[]>(() => {
-    return organizationMembers
-      .filter((member) => {
-        if (!member.is_active) return false;
-        const canonicalRole = normalizeRole(member.role);
-        return !["ORG_OWNER", "ORG_ADMIN", "AUDITOR"].includes(canonicalRole);
-      })
-      .map((member) => {
-        const assignment = assignmentsByUserId.get(member.user);
-        const stableKey = `${member.email}-${member.id}`;
-        const entropy = hashNumber(stableKey);
-
-        const branchId = member.branch_id ?? assignment?.branch ?? assignment?.branch_details?.id ?? null;
-        const branchData = branchId
-          ? branchMap.get(branchId)
-          : { name: "Unassigned", wastePct: 0, surplusPct: 0, complianceBadge: "GREEN" };
-
-        const baseEfficiency = 64 + (entropy % 22);
-        const wastePenalty = (branchData?.wastePct ?? 0) * 2.2;
-        const surplusPenalty = (branchData?.surplusPct ?? 0) * 1.2;
-        const badgePenalty =
-          (branchData?.complianceBadge ?? "GREEN") === "RED"
-            ? 8
-            : (branchData?.complianceBadge ?? "GREEN") === "YELLOW"
-              ? 4
-              : 0;
-
-        const productionEfficiency = Math.max(
-          38,
-          Math.min(98, (baseEfficiency - wastePenalty - surplusPenalty - badgePenalty) * timeframeMultiplier),
-        );
-
-        const errorRate = Math.max(
-          0.8,
-          Math.min(12.5, 2.1 + (entropy % 9) * 0.58 + (100 - productionEfficiency) * 0.08),
-        );
-
-        const wasteContribution = Math.max(
-          0.4,
-          Number(((branchData?.wastePct ?? 0) * 0.42 + (entropy % 5) * 0.34).toFixed(1)),
-        );
-
-        const shiftReliability = Math.max(
-          42,
-          Math.min(99, 94 - errorRate * 2.1 - (branchData?.surplusPct ?? 0) * 1.4),
-        );
-
-        const trendDelta = Number((((entropy % 15) - 7) * 0.6).toFixed(1));
-
-        const coachingPriority: StaffPerformanceRow["coachingPriority"] =
-          productionEfficiency < 62 || errorRate > 8 || shiftReliability < 70
-            ? "HIGH"
-            : productionEfficiency < 75 || errorRate > 5.2 || shiftReliability < 82
-              ? "MEDIUM"
-              : "LOW";
-
-        const firstName = member.first_name?.trim() || assignment?.user_details.first_name || "";
-        const lastName = member.last_name?.trim() || assignment?.user_details.last_name || "";
-        const fullName = `${firstName} ${lastName}`.trim() || member.email;
-        const canonicalRole = normalizeRole(member.role || assignment?.role || "STAFF_OPERATOR");
-
-        return {
-          id: member.id,
-          memberId: member.id,
-          userId: member.user,
-          staffName: fullName,
-          role: canonicalRole,
-          branchId,
-          branchName: branchData?.name ?? assignment?.branch_details?.name ?? member.branch_name ?? "Unassigned",
-          productionEfficiency,
-          errorRate,
-          wasteContribution,
-          shiftReliability,
-          trendDelta,
-          coachingPriority,
-        };
-      })
-      .filter((row) => (branchFilter === "ALL" ? true : row.branchId === branchFilter));
-  }, [organizationMembers, assignmentsByUserId, branchMap, timeframeMultiplier, branchFilter]);
+    const staff = performanceQuery.data?.staff ?? EMPTY_ROWS;
+    return staff.filter((row) => !isHiddenRole(row));
+  }, [performanceQuery.data]);
 
   useEffect(() => {
     setTablePage(0);
@@ -263,100 +110,138 @@ export default function StaffPerformancePage() {
     return rows.slice(start, start + TABLE_PAGE_SIZE);
   }, [rows, tablePage, totalPages]);
 
-  const compareMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
-  const compareDelta =
-    compareA && compareB && compareA !== compareB
-      ? (compareMap.get(compareA)?.productionEfficiency ?? 0) -
-        (compareMap.get(compareB)?.productionEfficiency ?? 0)
-      : 0;
+  const percent = (value: number | null) =>
+    value === null ? t("workspace.staffPerformance.noData") : `${value.toFixed(1)}%`;
+
+  const withCompletion = rows.filter((row) => row.tasks.completion_rate !== null);
+  const avgCompletion = withCompletion.length
+    ? withCompletion.reduce((sum, row) => sum + (row.tasks.completion_rate ?? 0), 0) /
+      withCompletion.length
+    : null;
+  const withAdherence = rows.filter((row) => row.schedule.adherence_rate !== null);
+  const avgAdherence = withAdherence.length
+    ? withAdherence.reduce((sum, row) => sum + (row.schedule.adherence_rate ?? 0), 0) /
+      withAdherence.length
+    : null;
+  const highCoachingCount = rows.filter((row) => row.coaching_priority === "HIGH").length;
+  const mediumCoachingCount = rows.filter((row) => row.coaching_priority === "MEDIUM").length;
 
   const coachingNeeds = rows
-    .filter((row) => row.coachingPriority !== "LOW")
-    .sort((a, b) => {
-      const rank = { HIGH: 2, MEDIUM: 1, LOW: 0 };
-      return rank[b.coachingPriority] - rank[a.coachingPriority];
-    })
+    .filter((row) => row.coaching_priority === "HIGH" || row.coaching_priority === "MEDIUM")
+    .sort((a, b) => (a.score ?? 0) - (b.score ?? 0))
     .slice(0, 6);
-
-  const avgEfficiency = rows.length
-    ? rows.reduce((sum, row) => sum + row.productionEfficiency, 0) / rows.length
-    : 0;
-  const avgErrorRate = rows.length
-    ? rows.reduce((sum, row) => sum + row.errorRate, 0) / rows.length
-    : 0;
-  const avgReliability = rows.length
-    ? rows.reduce((sum, row) => sum + row.shiftReliability, 0) / rows.length
-    : 0;
-  const highCoachingCount = rows.filter((row) => row.coachingPriority === "HIGH").length;
-  const mediumCoachingCount = rows.filter((row) => row.coachingPriority === "MEDIUM").length;
 
   const handleRemoveMember = (row: StaffPerformanceRow) => {
     if (!canManageStaff) return;
-    const removeStaffRole = STAFF_REMOVE_ROLES.has(normalizeRole(row.role));
-    const confirmation = window.confirm(t("workspace.staffPerformance.confirmRemove", { name: row.staffName }));
+    const confirmation = window.confirm(
+      t("workspace.staffPerformance.confirmRemove", { name: row.name }),
+    );
     if (!confirmation) return;
 
-    if (removeStaffRole) {
-      removeStaffMutation.mutate({ memberId: row.memberId });
+    if (isOrgLevelRole(row)) {
+      removeOrgMemberMutation.mutate(row.user_id);
       return;
     }
-    removeOrgMemberMutation.mutate(row.userId);
+    removeStaffMutation.mutate({ memberId: row.member_id });
   };
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor("staffName", {
+      columnHelper.accessor("name", {
         header: t("workspace.staffPerformance.columnStaff"),
         cell: (info) => <span className="text-[13px] text-[#F5F5F7]">{info.getValue()}</span>,
       }),
-      columnHelper.accessor("role", {
+      columnHelper.accessor("role_name", {
         header: t("workspace.staffPerformance.columnRole"),
-        cell: (info) => <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">{t(`roles.${info.getValue()}`)}</span>,
-      }),
-      columnHelper.accessor("branchName", {
-        header: t("workspace.staffPerformance.columnBranch"),
-        cell: (info) => <span className="text-[12px] text-[#C7C7CC]">{info.getValue()}</span>,
-      }),
-      columnHelper.accessor("productionEfficiency", {
-        header: t("workspace.staffPerformance.columnProductionEfficiency"),
         cell: (info) => (
-          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
+          <span className="text-[11px] uppercase tracking-[0.08em] text-[#8E8E93]">
+            {info.getValue() ?? t("workspace.staffPerformance.noData")}
+          </span>
         ),
       }),
-      columnHelper.accessor("errorRate", {
-        header: t("workspace.staffPerformance.columnErrorRate"),
+      columnHelper.accessor("branch_name", {
+        header: t("workspace.staffPerformance.columnBranch"),
+        cell: (info) => (
+          <span className="text-[12px] text-[#C7C7CC]">
+            {info.getValue() ?? t("workspace.staffPerformance.noData")}
+          </span>
+        ),
+      }),
+      columnHelper.display({
+        id: "adherence",
+        header: t("workspace.staffPerformance.columnAdherence"),
         cell: (info) => {
-          const value = info.getValue();
-          return <span className={`text-[12px] ${value >= 8 ? "text-[#C44949]" : value >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>{percent(value)}</span>;
+          const rate = info.row.original.schedule.adherence_rate;
+          return <span className={`text-[12px] ${scoreTone(rate)}`}>{percent(rate)}</span>;
         },
       }),
-      columnHelper.accessor("wasteContribution", {
-        header: t("workspace.staffPerformance.columnWasteContribution"),
-        cell: (info) => <span className="text-[12px] text-[#C48B2A]">{percent(info.getValue())}</span>,
-      }),
-      columnHelper.accessor("shiftReliability", {
-        header: t("workspace.staffPerformance.columnShiftReliability"),
-        cell: (info) => (
-          <span className={`text-[12px] ${scoreTone(info.getValue())}`}>{percent(info.getValue())}</span>
-        ),
-      }),
-      columnHelper.accessor("trendDelta", {
-        header: t("workspace.staffPerformance.columnTrend"),
+      columnHelper.display({
+        id: "submission",
+        header: t("workspace.staffPerformance.columnSubmission"),
         cell: (info) => {
-          const value = info.getValue();
+          const schedule = info.row.original.schedule;
           return (
-            <span className={`text-[12px] ${value > 0 ? "text-[#3F8F68]" : value < 0 ? "text-[#C44949]" : "text-[#8E8E93]"}`}>
-              {t("workspace.staffPerformance.trendValue", { value: `${value > 0 ? "+" : ""}${value.toFixed(1)}` })}
+            <span className="text-[12px] text-[#C7C7CC]">
+              {t("workspace.staffPerformance.submissionCell", {
+                submitted: String(schedule.weeks_submitted),
+                expected: String(schedule.weeks_expected),
+              })}
             </span>
           );
         },
       }),
-      columnHelper.accessor("coachingPriority", {
+      columnHelper.display({
+        id: "tasks",
+        header: t("workspace.staffPerformance.columnTasks"),
+        cell: (info) => {
+          const tasks = info.row.original.tasks;
+          return (
+            <span className="text-[12px] text-[#C7C7CC]">
+              {t("workspace.staffPerformance.tasksCell", {
+                completed: String(tasks.completed),
+                assigned: String(tasks.assigned),
+              })}
+            </span>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: "completion",
+        header: t("workspace.staffPerformance.columnCompletion"),
+        cell: (info) => {
+          const rate = info.row.original.tasks.completion_rate;
+          return <span className={`text-[12px] ${scoreTone(rate)}`}>{percent(rate)}</span>;
+        },
+      }),
+      columnHelper.display({
+        id: "onTime",
+        header: t("workspace.staffPerformance.columnOnTime"),
+        cell: (info) => {
+          const rate = info.row.original.tasks.on_time_rate;
+          return <span className={`text-[12px] ${scoreTone(rate)}`}>{percent(rate)}</span>;
+        },
+      }),
+      columnHelper.accessor("score", {
+        header: t("workspace.staffPerformance.columnScore"),
+        cell: (info) => (
+          <span className={`text-[12px] font-semibold ${scoreTone(info.getValue())}`}>
+            {info.getValue() === null
+              ? t("workspace.staffPerformance.noData")
+              : info.getValue()!.toFixed(0)}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("coaching_priority", {
         header: t("workspace.staffPerformance.columnCoaching"),
         cell: (info) => {
           const value = info.getValue();
+          if (value === "NONE") {
+            return <span className="text-[11px] text-[#8E8E93]">{t("workspace.staffPerformance.noData")}</span>;
+          }
           return (
-            <span className={`text-[11px] uppercase tracking-[0.08em] ${value === "HIGH" ? "text-[#C44949]" : value === "MEDIUM" ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}>
+            <span
+              className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(value)}`}
+            >
               {value}
             </span>
           );
@@ -388,23 +273,21 @@ export default function StaffPerformancePage() {
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgEfficiency")}</p>
-          <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgEfficiency)}`}>
-            {percent(avgEfficiency)}
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgCompletion")}</p>
+          <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgCompletion)}`}>
+            {percent(avgCompletion)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.productionQuality")}</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.avgCompletionCaption")}</p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgErrorRate")}</p>
-          <p
-            className={`font-display text-4xl font-semibold tracking-tight ${avgErrorRate >= 8 ? "text-[#C44949]" : avgErrorRate >= 5 ? "text-[#C48B2A]" : "text-[#3F8F68]"}`}
-          >
-            {percent(avgErrorRate)}
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">{t("workspace.staffPerformance.avgAdherence")}</p>
+          <p className={`font-display text-4xl font-semibold tracking-tight ${scoreTone(avgAdherence)}`}>
+            {percent(avgAdherence)}
           </p>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.executionMistakes")}</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.avgAdherenceCaption")}</p>
           </div>
         </article>
         <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
@@ -416,7 +299,7 @@ export default function StaffPerformancePage() {
             <span className="text-sm text-text-muted">{t("workspace.staffPerformance.medium")}</span>
           </div>
           <div className="mt-4 border-t border-surface-4 pt-4">
-            <p className={`text-xs ${scoreTone(avgReliability)}`}>{t("workspace.staffPerformance.reliability")} {percent(avgReliability)}</p>
+            <p className="text-xs text-text-muted">{t("workspace.staffPerformance.coachingCaption")}</p>
           </div>
         </article>
       </section>
@@ -476,10 +359,13 @@ export default function StaffPerformancePage() {
           </p>
         </div>
         <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
-          {orgMembersQuery.isLoading || staffQuery.isLoading ? (
+          {performanceQuery.isLoading ? (
             <p className="px-6 py-6 text-sm text-text-muted">{t("workspace.staffPerformance.loadingStaff")}</p>
           ) : null}
-          {!orgMembersQuery.isLoading && !staffQuery.isLoading && rows.length === 0 ? (
+          {performanceQuery.isError ? (
+            <p className="px-6 py-6 text-sm text-status-critical">{t("workspace.staffPerformance.loadError")}</p>
+          ) : null}
+          {!performanceQuery.isLoading && !performanceQuery.isError && rows.length === 0 ? (
             <p className="px-6 py-6 text-sm text-text-muted">
               {t("workspace.staffPerformance.noStaffRecords")}
             </p>
@@ -494,7 +380,7 @@ export default function StaffPerformancePage() {
                   type="button"
                   disabled={tablePage <= 0}
                   onClick={() => setTablePage((prev) => Math.max(0, prev - 1))}
-                  className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
+                  className="h-8 rounded-lg border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
                   {t("workspace.staffPerformance.previous")}
                 </button>
@@ -505,7 +391,7 @@ export default function StaffPerformancePage() {
                   type="button"
                   disabled={tablePage >= totalPages - 1}
                   onClick={() => setTablePage((prev) => Math.min(totalPages - 1, prev + 1))}
-                  className="h-8 rounded-[8px] border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
+                  className="h-8 rounded-lg border border-[#2E2E33] px-3 text-[11px] text-text-secondary disabled:opacity-40"
                 >
                   {t("workspace.staffPerformance.next")}
                 </button>
@@ -526,63 +412,35 @@ export default function StaffPerformancePage() {
       </section>
 
       <section className="mt-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.compareStaff")}</p>
-            <p className="mt-1 text-sm text-text-muted">
-              {t("workspace.staffPerformance.compareStaffDesc")}
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Select
-                label={t("workspace.staffPerformance.compareA")}
-                value={compareA}
-                onChange={setCompareA}
-                options={[
-                  { value: "", label: t("workspace.staffPerformance.selectStaffA") },
-                  ...rows.map((row) => ({ value: row.id, label: row.staffName })),
-                ]}
-              />
-              <Select
-                label={t("workspace.staffPerformance.compareB")}
-                value={compareB}
-                onChange={setCompareB}
-                options={[
-                  { value: "", label: t("workspace.staffPerformance.selectStaffB") },
-                  ...rows.map((row) => ({ value: row.id, label: row.staffName })),
-                ]}
-              />
-            </div>
-            <p className={`mt-4 text-sm font-medium ${compareDelta > 0 ? "text-[#3F8F68]" : compareDelta < 0 ? "text-[#C44949]" : "text-text-muted"}`}>
-              {t("workspace.staffPerformance.efficiencyDelta", { delta: `${compareDelta > 0 ? "+" : ""}${compareDelta.toFixed(1)}` })}
-            </p>
-          </article>
-
-          <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.coachingNeeds")}</p>
-            <p className="mt-1 text-sm text-text-muted">
-              {t("workspace.staffPerformance.coachingNeedsDesc")}
-            </p>
-            <div className="mt-4 space-y-2.5">
-              {coachingNeeds.length ? (
-                coachingNeeds.map((row) => (
-                  <div key={`coach-${row.id}`} className="rounded-lg border border-surface-4 bg-[#232327] px-3 py-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] text-[#F5F5F7]">{row.staffName}</p>
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(row.coachingPriority)}`}>
-                        {row.coachingPriority}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-[#8E8E93]">
-                      {t("workspace.staffPerformance.coachingRowDetail", { branch: row.branchName, efficiency: percent(row.productionEfficiency), error: percent(row.errorRate) })}
-                    </p>
+        <article className="rounded-xl border border-surface-4 bg-surface-2 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">{t("workspace.staffPerformance.coachingNeeds")}</p>
+          <p className="mt-1 text-sm text-text-muted">
+            {t("workspace.staffPerformance.coachingNeedsDesc")}
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+            {coachingNeeds.length ? (
+              coachingNeeds.map((row) => (
+                <div key={`coach-${row.member_id}`} className="rounded-lg border border-surface-4 bg-[#232327] px-3 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[13px] text-[#F5F5F7]">{row.name}</p>
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${coachingTone(row.coaching_priority)}`}>
+                      {row.coaching_priority}
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-[12px] text-[#8E8E93]">{t("workspace.staffPerformance.noCoachingNeeded")}</p>
-              )}
-            </div>
-          </article>
-        </div>
+                  <p className="text-[12px] text-[#8E8E93]">
+                    {t("workspace.staffPerformance.coachingRowDetail", {
+                      branch: row.branch_name ?? t("workspace.staffPerformance.noData"),
+                      completion: percent(row.tasks.completion_rate),
+                      adherence: percent(row.schedule.adherence_rate),
+                    })}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-[12px] text-[#8E8E93]">{t("workspace.staffPerformance.noCoachingNeeded")}</p>
+            )}
+          </div>
+        </article>
       </section>
 
       <section className="mt-10">
@@ -596,11 +454,11 @@ export default function StaffPerformancePage() {
         <div className="divide-y divide-[#232327] rounded-xl border border-surface-4 bg-surface-2 px-6">
           {rows.length ? (
             rows.slice(0, 16).map((row) => (
-              <div key={`member-${row.memberId}`} className="flex items-center justify-between py-3">
+              <div key={`member-${row.member_id}`} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-[13px] text-text-primary">{row.staffName}</p>
+                  <p className="text-[13px] text-text-primary">{row.name}</p>
                   <p className="text-[12px] text-text-muted">
-                    {t(`roles.${row.role}`)} · {row.branchName}
+                    {row.role_name ?? t("workspace.staffPerformance.noData")} · {row.branch_name ?? t("workspace.staffPerformance.noData")}
                   </p>
                 </div>
                 {canManageStaff ? (

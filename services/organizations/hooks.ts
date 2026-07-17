@@ -292,3 +292,22 @@ export function useDeleteOrganization(id: string) {
     },
   });
 }
+
+export function useStaffPerformance(
+  id: string,
+  query?: { days?: 7 | 30 | 90; branch_id?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      ...organizationKeys.all,
+      "staff-performance",
+      id,
+      query?.days ?? 30,
+      query?.branch_id ?? "",
+    ],
+    queryFn: () => organizationService.getStaffPerformance(id, query),
+    enabled: enabled && !!id,
+    staleTime: 60_000,
+  });
+}

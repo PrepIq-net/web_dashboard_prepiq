@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { Plus, RefreshDouble, Shop } from "iconoir-react";
 import {
   useAssignTask,
@@ -11,7 +13,9 @@ import {
   useGenerateTasks,
   useSetTaskStatus,
   useTaskBoard,
+  useUpdateTask,
 } from "@/services";
+import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSelectedBranch } from "@/services/context/branch-store";
 import { useSubscriptionTier } from "@/services/payment/hooks";
@@ -31,11 +35,26 @@ import {
   AddTaskModal,
   type NewTaskValues,
 } from "@/components/dashboard/tasks/add-task-modal";
-import type { BoardStatus } from "@/services/execution/types";
+import {
+  EditTaskModal,
+  type EditTaskValues,
+} from "@/components/dashboard/tasks/edit-task-modal";
+import type { BoardStatus, KitchenTask } from "@/services/execution/types";
 
-export default function TasksPage() {
+/**
+ * Board scope for dual-role users. Permissions are additive — a working
+ * manager is also a person on shift with their own cards — so instead of a
+ * manager/staff mode fork, everyone gets the same board behind a Team/Mine
+ * lens. Staff see Team read-only (their own cards stay movable); the last
+ * choice sticks per browser.
+ */
+type BoardScope = "TEAM" | "MINE";
+const SCOPE_STORAGE_KEY = "prepiq.tasks.scope";
+
+function TasksPageContent() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
+  const searchParams = useSearchParams();
   const { branchOptions, defaultBranch, isLoading: branchesLoading } =
     useBranchOptions();
   const [branchId, setBranchId] = useSelectedBranch({
@@ -52,10 +71,48 @@ export default function TasksPage() {
   const date = todayIso();
 
   const [addOpen, setAddOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<KitchenTask | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState("");
+  // Set when the manager arrives from the "PrepIQ AI suggested tasks" toast:
+  // AI cards get a gold ring and the review tray scrolls into view.
+  const [highlightAi, setHighlightAi] = useState(false);
+
+  // Deep-link support: /workspace/tasks?branch=<id>&highlight=ai
+  useEffect(() => {
+    const paramBranch = searchParams.get("branch");
+    if (paramBranch && UUID_PATTERN.test(paramBranch)) {
+      setBranchId(paramBranch);
+    }
+    // The AI review tray is a Team-scope surface; arriving via the toast
+    // deep-link means "review the suggestions", so flip the lens over there.
+    if (searchParams.get("highlight") === "ai") {
+      setHighlightAi(true);
+      setScope("TEAM");
+    } else {
+      setHighlightAi(false);
+    }
+  }, [searchParams, setBranchId]);
 
   const permissions = useMemo(() => resolvePermissions(user), [user]);
   const canManage = permissions.has(PERMISSIONS.MANAGE_TASKS);
+
+  const [scope, setScope] = useState<BoardScope>(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(SCOPE_STORAGE_KEY);
+      if (stored === "TEAM" || stored === "MINE") return stored;
+    }
+    return "TEAM";
+  });
+  const changeScope = (next: BoardScope) => {
+    setScope(next);
+    window.localStorage.setItem(SCOPE_STORAGE_KEY, next);
+  };
+  // Managers land on Team, staff on Mine — but only until they've chosen.
+  useEffect(() => {
+    if (!user) return;
+    if (window.localStorage.getItem(SCOPE_STORAGE_KEY)) return;
+    setScope(canManage ? "TEAM" : "MINE");
+  }, [user, canManage]);
 
   const boardQuery = useTaskBoard(branchId, date, !subscriptionBlocked);
   const generate = useGenerateTasks();
@@ -63,22 +120,52 @@ export default function TasksPage() {
   const create = useCreateTask();
   const assign = useAssignTask();
   const remove = useDeleteTask();
+  const update = useUpdateTask();
   const setStatus = useSetTaskStatus();
+
+  // Live sync: another admin's move lands here without a manual refresh. When
+  // the AI drafts new suggestions for this day, managers hear about it in place.
+  useTaskBoardRealtime(safeBranchId || undefined, date, (count) => {
+    if (!canManage) return;
+    setHighlightAi(true);
+    setScope("TEAM");
+    toast(t("tasks.aiSuggestedToast", { count }), {
+      id: "ai-tasks-suggested",
+      icon: "✨",
+      duration: 8000,
+    });
+  });
 
   const board = boardQuery.data;
 
+  const trayRef = useRef<HTMLDivElement | null>(null);
+  const suggestionCount = board?.suggestions.length ?? 0;
+  useEffect(() => {
+    if (highlightAi && suggestionCount > 0) {
+      trayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [highlightAi, suggestionCount]);
+
   const filteredBoard = useMemo(() => {
-    if (!board || !assigneeFilter) return board;
+    if (!board) return board;
+    // Team is the whole kitchen (the backend deliberately lets every member
+    // read the board); Mine is the personal lens. Move rights are unchanged
+    // either way — a card is draggable only by a manager or its assignee.
+    const keep = (task: KitchenTask) =>
+      scope === "MINE"
+        ? task.assigned_to?.id === user?.id
+        : !assigneeFilter || task.assigned_to?.id === assigneeFilter;
+    if (scope === "TEAM" && !assigneeFilter) return board;
     return {
       ...board,
       columns: Object.fromEntries(
         Object.entries(board.columns).map(([column, tasks]) => [
           column,
-          tasks.filter((task) => task.assigned_to?.id === assigneeFilter),
+          tasks.filter(keep),
         ]),
       ),
     };
-  }, [board, assigneeFilter]);
+  }, [board, assigneeFilter, scope, user?.id]);
 
   if (!branchesLoading && branchOptions.length === 0) {
     return (
@@ -131,6 +218,40 @@ export default function TasksPage() {
     );
   };
 
+  const handleEditSave = async (taskId: string, values: EditTaskValues) => {
+    if (!branchId || !editingTask) return;
+    const previousAssignee = editingTask.assigned_to?.id ?? null;
+    await update.mutateAsync({
+      taskId,
+      branchId,
+      date,
+      payload: {
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        priority: values.priority,
+        estimated_minutes: values.estimated_minutes,
+      },
+    });
+    if (values.user_id !== previousAssignee) {
+      await assign.mutateAsync({
+        taskId,
+        branchId,
+        date,
+        userId: values.user_id,
+      });
+    }
+    setEditingTask(null);
+  };
+
+  const handleEditDelete = (taskId: string) => {
+    if (!branchId) return;
+    remove.mutate(
+      { taskId, branchId, date },
+      { onSuccess: () => setEditingTask(null) },
+    );
+  };
+
   const handleMove = (taskId: string, status: BoardStatus) => {
     if (!branchId) return;
     setStatus.mutate({ taskId, branchId, date, status });
@@ -148,7 +269,7 @@ export default function TasksPage() {
     <WorkspaceShell
       eyebrow={t("tasks.eyebrow")}
       title={t("tasks.title")}
-      description={t("tasks.description")}
+      description={canManage ? t("tasks.description") : t("tasks.descriptionStaff")}
       insight={t("tasks.insight")}
     >
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -166,13 +287,34 @@ export default function TasksPage() {
           </div>
         ) : null}
 
-        <div className="w-48">
-          <Select
-            options={assigneeOptions}
-            value={assigneeFilter}
-            onChange={setAssigneeFilter}
-          />
+        <div className="inline-flex h-9 items-center rounded-lg border border-surface-4 p-0.5">
+          {(["TEAM", "MINE"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => changeScope(option)}
+              className={`inline-flex h-full items-center rounded-md px-3 text-xs font-semibold transition-colors ${
+                scope === option
+                  ? "bg-surface-3 text-text-primary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {option === "TEAM"
+                ? t("tasks.scope.team")
+                : t("tasks.scope.mine")}
+            </button>
+          ))}
         </div>
+
+        {canManage && scope === "TEAM" ? (
+          <div className="w-48">
+            <Select
+              options={assigneeOptions}
+              value={assigneeFilter}
+              onChange={setAssigneeFilter}
+            />
+          </div>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           {canManage ? (
@@ -215,16 +357,25 @@ export default function TasksPage() {
         </p>
       ) : board ? (
         <>
-          {canManage ? (
-            <SuggestionsTray
-              suggestions={board.suggestions}
-              assignees={board.assignees}
-              confirming={confirm.isPending || assign.isPending}
-              onConfirm={handleConfirm}
-              onDismiss={(taskId) =>
-                branchId && remove.mutate({ taskId, branchId, date })
+          {canManage && scope === "TEAM" ? (
+            <div
+              ref={trayRef}
+              className={
+                highlightAi && board.suggestions.length > 0
+                  ? "rounded-xl ring-1 ring-brand-gold/40"
+                  : undefined
               }
-            />
+            >
+              <SuggestionsTray
+                suggestions={board.suggestions}
+                assignees={board.assignees}
+                confirming={confirm.isPending || assign.isPending}
+                onConfirm={handleConfirm}
+                onDismiss={(taskId) =>
+                  branchId && remove.mutate({ taskId, branchId, date })
+                }
+              />
+            </div>
           ) : null}
 
           {filteredBoard ? (
@@ -233,6 +384,8 @@ export default function TasksPage() {
               canManage={canManage}
               currentUserId={user?.id}
               onMove={handleMove}
+              onEdit={canManage ? setEditingTask : undefined}
+              highlightAi={highlightAi}
             />
           ) : null}
 
@@ -240,6 +393,14 @@ export default function TasksPage() {
           Object.values(board.columns).every((column) => column.length === 0) ? (
             <p className="mt-6 text-center text-sm text-text-muted">
               {canManage ? t("tasks.emptyManager") : t("tasks.emptyStaff")}
+            </p>
+          ) : scope === "MINE" &&
+            filteredBoard &&
+            Object.values(filteredBoard.columns).every(
+              (column) => column.length === 0,
+            ) ? (
+            <p className="mt-6 text-center text-sm text-text-muted">
+              {t("tasks.emptyMine")}
             </p>
           ) : null}
         </>
@@ -252,6 +413,22 @@ export default function TasksPage() {
         onClose={() => setAddOpen(false)}
         onSave={handleCreate}
       />
+      <EditTaskModal
+        task={editingTask}
+        assignees={board?.assignees ?? []}
+        saving={update.isPending || assign.isPending || remove.isPending}
+        onClose={() => setEditingTask(null)}
+        onSave={handleEditSave}
+        onDelete={handleEditDelete}
+      />
     </WorkspaceShell>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={null}>
+      <TasksPageContent />
+    </Suspense>
   );
 }

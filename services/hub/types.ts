@@ -227,4 +227,20 @@ export type HubSocketEvent =
   | { event: "ai.thinking"; payload: { conversation_id: string } }
   | { event: "subscribed"; payload: { conversation_id: string } }
   | { event: "pong"; payload: Record<string, never> }
-  | { event: "error"; payload: { detail: string; conversation_id?: string } };
+  | { event: "error"; payload: { detail: string; conversation_id?: string } }
+  // Task board signals (backend/execution/realtime.py). Identifier-only
+  // payloads: listeners refetch the board via REST, where permissions live.
+  | {
+      event: "execution.board_changed";
+      payload: {
+        branch_id: string;
+        date: string;
+        action: string;
+        task_id: string | null;
+        actor_id: string | null;
+      };
+    }
+  | {
+      event: "execution.tasks_generated";
+      payload: { branch_id: string; date: string; count: number; generated_by: string };
+    };
