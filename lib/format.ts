@@ -8,12 +8,29 @@
  */
 
 import { format } from "date-fns";
+import { getCurrency } from "@/lib/currencies";
 
-const moneyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+// Currency is branch-scoped; every money value must be rendered in the
+// currency it was measured in (or the summary currency an aggregate endpoint
+// reports), never a hardcoded one.
+const moneyFormatters = new Map<string, Intl.NumberFormat | null>();
+
+function moneyFormatter(code: string): Intl.NumberFormat | null {
+  if (!moneyFormatters.has(code)) {
+    let formatter: Intl.NumberFormat | null = null;
+    try {
+      formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: code,
+        maximumFractionDigits: 0,
+      });
+    } catch {
+      formatter = null; // Intl doesn't know the code — fall back to symbol.
+    }
+    moneyFormatters.set(code, formatter);
+  }
+  return moneyFormatters.get(code) ?? null;
+}
 
 /**
  * Today's date in the viewer's timezone, as the backend keys days.
@@ -31,13 +48,29 @@ export function toDayIso(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
-export function formatMoney(value: number): string {
-  return moneyFormatter.format(value);
+export function formatMoney(value: number, currency: string = "USD"): string {
+  const code = getCurrency(currency).code;
+  const formatter = moneyFormatter(code);
+  if (formatter) return formatter.format(value);
+  const symbol = getCurrency(code).symbol;
+  return `${symbol} ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
-export function formatSignedMoney(value: number): string {
-  const base = formatMoney(Math.abs(value));
+export function formatSignedMoney(value: number, currency: string = "USD"): string {
+  const base = formatMoney(Math.abs(value), currency);
   return value >= 0 ? `+${base}` : `-${base}`;
+}
+
+/**
+ * "USh 1,200,000 · ₦50,000 · $350" — per-currency subtotals for org-level
+ * aggregates that span branches operating in different currencies.
+ */
+export function formatCurrencyBreakdown(
+  entries: Array<{ currency: string; amount: number }>,
+): string {
+  return entries
+    .map((entry) => formatMoney(entry.amount, entry.currency))
+    .join(" · ");
 }
 
 /** Units that only make sense as whole numbers. */

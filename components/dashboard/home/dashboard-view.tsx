@@ -8,7 +8,7 @@ import {
   useExecutiveControlTower,
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatCurrencyBreakdown } from "@/lib/format";
 import { alertCTA, type BranchEntry } from "./alert-cta";
 import { KpiPulseCard } from "./kpi-pulse-card";
 import { KpiDetailModals, type KpiModalKey } from "./kpi-detail-modals";
@@ -193,7 +193,14 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
 
   const highAlerts = alerts.filter((a) => a.severity === "HIGH");
 
-  // Pulse metrics
+  // Pulse metrics. Money arrives in the summary currency: the fleet's shared
+  // branch currency, or USD when branches operate in different currencies
+  // (the backend converts before summing).
+  const towerCurrency = tower?.summary?.currency ?? "USD";
+  const isMultiCurrency = Boolean(tower?.summary?.is_multi_currency);
+  const revenueByCurrency = tower?.summary?.revenue_by_currency ?? [];
+  const marginCurrency = marginReport.data?.summary?.currency ?? "USD";
+
   const revenueToday = Number(tower?.summary?.total_revenue ?? 0);
   const revenueYesterday = Number(ctYesterday.data?.summary?.total_revenue ?? 0);
   const revenueDeltaPct =
@@ -252,12 +259,23 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
       {/* ── Pulse KPIs ─────────────────────────────────────────────────── */}
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
         <KpiPulseCard
-          label="Revenue today"
-          value={formatMoney(revenueToday)}
+          label={isMultiCurrency ? "Revenue today (USD est.)" : "Revenue today"}
+          value={formatMoney(revenueToday, towerCurrency)}
           onOpen={() => setKpiModal("revenue")}
           openAriaLabel="View revenue details"
           footer={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-1">
+              {isMultiCurrency && revenueByCurrency.length > 0 && (
+                <span className="text-xs text-text-muted truncate">
+                  {formatCurrencyBreakdown(
+                    revenueByCurrency.map((row) => ({
+                      currency: row.currency,
+                      amount: row.amount,
+                    })),
+                  )}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
               {revenueDeltaPct !== null ? (
                 <>
                   {revenueDeltaPct >= 0 ? (
@@ -275,6 +293,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
               ) : (
                 <span className="text-xs text-text-muted">No prior-day baseline</span>
               )}
+              </div>
             </div>
           }
         />
@@ -282,7 +301,9 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         <KpiPulseCard
           label={canSeeFinancials ? "Waste cost" : "Waste risk"}
           value={
-            canSeeFinancials ? formatMoney(wasteCost) : `${wasteRiskPct.toFixed(1)}%`
+            canSeeFinancials
+              ? formatMoney(wasteCost, marginCurrency)
+              : `${wasteRiskPct.toFixed(1)}%`
           }
           valueClass={wasteIsBad ? "text-status-critical" : "text-text-primary"}
           hoverBorderClass="hover:border-status-critical/20"
@@ -432,7 +453,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                       </h3>
                     </div>
                     <p className="text-sm font-semibold text-text-primary shrink-0">
-                      {formatMoney(Number(branch.revenue ?? 0))}
+                      {formatMoney(Number(branch.revenue ?? 0), branch.currency ?? towerCurrency)}
                     </p>
                   </div>
 

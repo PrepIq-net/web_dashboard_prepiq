@@ -2818,7 +2818,8 @@
         "margin": "Marge",
         "branch": "Succursale",
         "grossMargin": "Marge brute",
-        "marginPct": "% Marge"
+        "marginPct": "% Marge",
+        "currency": "Devise"
       },
       "branchTable": {
         "branch": "Succursale",
@@ -2839,7 +2840,9 @@
       "filter": {
         "timeframe": "Période",
         "branch": "Succursale",
-        "allBranches": "Toutes les succursales"
+        "allBranches": "Toutes les succursales",
+        "currency": "Devise",
+        "allCurrencies": "Toutes les devises (est. USD)"
       },
       "export": "Exporter",
       "kpi": {
@@ -2899,6 +2902,10 @@
         "chartWasteCost": "Coût du gaspillage",
         "chartMargin": "Marge",
         "notEnoughData": "Données insuffisantes"
+      },
+      "multiCurrency": {
+        "note": "Les succursales opèrent dans des devises différentes — les totaux ci-dessous sont convertis en USD aux taux actuels. Choisissez une devise pour voir les chiffres locaux exacts.",
+        "revenueBreakdown": "Revenu par devise :"
       }
     },
     "items": {
