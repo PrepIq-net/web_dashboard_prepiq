@@ -81,10 +81,7 @@ import {
 } from "@/services/connector/hook";
 import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  ConnectorData,
-  ConnectorList
-} from "@/services/connector/types";
+import { ConnectorData, ConnectorList } from "@/services/connector/types";
 import { Table } from "@/components/ui/table";
 import { useTranslation } from "@/lib/i18n";
 
@@ -257,7 +254,9 @@ function SettingsPageContent() {
           {activeTab === "organization" && (
             <OrganizationSettings orgId={org?.id} />
           )}
-          {activeTab === "branches" && <BranchSettings orgId={org?.id} focusedBranchId={branchFromUrl} />}
+          {activeTab === "branches" && (
+            <BranchSettings orgId={org?.id} focusedBranchId={branchFromUrl} />
+          )}
           {activeTab === "users-roles" && <UserRoleSettings orgId={org?.id} />}
           {activeTab === "integrations" && (
             <IntegrationsSettings
@@ -357,7 +356,9 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
           disabled={updateOrg.isPending}
           className="font-semibold px-6"
         >
-          {updateOrg.isPending ? t("settings.organization.saving") : t("settings.organization.saveChanges")}
+          {updateOrg.isPending
+            ? t("settings.organization.saving")
+            : t("settings.organization.saveChanges")}
         </Button>
       </div>
 
@@ -382,12 +383,36 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
             value={formData.business_type}
             onChange={(val: string) => handleChange("business_type", val)}
             options={[
-              { label: t("settings.organization.businessTypeOptions.restaurant"), value: "RESTAURANT" },
-              { label: t("settings.organization.businessTypeOptions.hotel"), value: "HOTEL" },
-              { label: t("settings.organization.businessTypeOptions.bakery"), value: "BAKERY" },
-              { label: t("settings.organization.businessTypeOptions.cloudKitchen"), value: "CLOUD_KITCHEN" },
-              { label: t("settings.organization.businessTypeOptions.catering"), value: "CATERING" },
-              { label: t("settings.organization.businessTypeOptions.institutional"), value: "INSTITUTIONAL" },
+              {
+                label: t(
+                  "settings.organization.businessTypeOptions.restaurant",
+                ),
+                value: "RESTAURANT",
+              },
+              {
+                label: t("settings.organization.businessTypeOptions.hotel"),
+                value: "HOTEL",
+              },
+              {
+                label: t("settings.organization.businessTypeOptions.bakery"),
+                value: "BAKERY",
+              },
+              {
+                label: t(
+                  "settings.organization.businessTypeOptions.cloudKitchen",
+                ),
+                value: "CLOUD_KITCHEN",
+              },
+              {
+                label: t("settings.organization.businessTypeOptions.catering"),
+                value: "CATERING",
+              },
+              {
+                label: t(
+                  "settings.organization.businessTypeOptions.institutional",
+                ),
+                value: "INSTITUTIONAL",
+              },
             ]}
           />
           <Select
@@ -395,11 +420,26 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
             value={formData.timezone}
             onChange={(val: string) => handleChange("timezone", val)}
             options={[
-              { label: t("settings.organization.timezoneOptions.utc"), value: "UTC" },
-              { label: t("settings.organization.timezoneOptions.eastern"), value: "America/New_York" },
-              { label: t("settings.organization.timezoneOptions.pacific"), value: "America/Los_Angeles" },
-              { label: t("settings.organization.timezoneOptions.london"), value: "Europe/London" },
-              { label: t("settings.organization.timezoneOptions.eastAfrica"), value: "Africa/Nairobi" },
+              {
+                label: t("settings.organization.timezoneOptions.utc"),
+                value: "UTC",
+              },
+              {
+                label: t("settings.organization.timezoneOptions.eastern"),
+                value: "America/New_York",
+              },
+              {
+                label: t("settings.organization.timezoneOptions.pacific"),
+                value: "America/Los_Angeles",
+              },
+              {
+                label: t("settings.organization.timezoneOptions.london"),
+                value: "Europe/London",
+              },
+              {
+                label: t("settings.organization.timezoneOptions.eastAfrica"),
+                value: "Africa/Nairobi",
+              },
             ]}
           />
           <Select
@@ -407,10 +447,22 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
             value={formData.currency}
             onChange={(val: string) => handleChange("currency", val)}
             options={[
-              { label: t("settings.organization.currencyOptions.usd"), value: "USD" },
-              { label: t("settings.organization.currencyOptions.eur"), value: "EUR" },
-              { label: t("settings.organization.currencyOptions.gbp"), value: "GBP" },
-              { label: t("settings.organization.currencyOptions.kes"), value: "KES" },
+              {
+                label: t("settings.organization.currencyOptions.usd"),
+                value: "USD",
+              },
+              {
+                label: t("settings.organization.currencyOptions.eur"),
+                value: "EUR",
+              },
+              {
+                label: t("settings.organization.currencyOptions.gbp"),
+                value: "GBP",
+              },
+              {
+                label: t("settings.organization.currencyOptions.kes"),
+                value: "KES",
+              },
             ]}
           />
         </div>
@@ -569,19 +621,25 @@ function IntegrationsSettings({
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
 
-  const { data: orgConnectors } = usePrepConectors(orgId ?? "");
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    focusedBranchId ?? "",
+  );
+
+  const { data: orgConnectors } = usePrepConectors(
+    orgId ?? "",
+    selectedBranchId ?? "",
+  );
   const baseColumns = generateColumns<ConnectorList>(
     // @ts-expect-error - type
     orgConnectors ?? [],
-  ).filter((col) => col.key !== "id" && col.key!=="machine_id");
+  ).filter((col) => col.key !== "id" && col.key !== "machine_id");
 
   const columns = baseColumns.map((col) => {
     if (col.key === "is_online") {
       return {
         ...col,
         header: "Online",
-        render: (row: ConnectorData) =>
-          row.is_online ? "🟢 Online" : "🔴 Offline",
+        render: (row: ConnectorData) => (row.is_online ? "🟢" : "🔴"),
       };
     }
 
@@ -596,16 +654,12 @@ function IntegrationsSettings({
       return {
         ...col,
         header: "ACTIVE",
-        render: (row: ConnectorData) =>
-          row.is_active ? "🟢 Active" : "🔴 Inactive",
+        render: (row: ConnectorData) => (row.is_active ? "Active" : "Inactive"),
       };
     }
     return col;
   });
 
-  const [selectedBranchId, setSelectedBranchId] = useState(
-    focusedBranchId ?? "",
-  );
   const initDone = useRef(false);
 
   // Initialize exactly once when branches first load — never resets on user changes.
@@ -674,7 +728,9 @@ function IntegrationsSettings({
     } else if (posId === "clover") {
       cloverOAuth.mutate({ branch_id });
     } else {
-      toast.error(t("settings.integrations.connectionNotImplemented", { posId }));
+      toast.error(
+        t("settings.integrations.connectionNotImplemented", { posId }),
+      );
     }
   };
 
@@ -740,7 +796,9 @@ function IntegrationsSettings({
             <div>
               <p className="text-sm font-medium text-text-primary">
                 {selectedBranch?.name ?? "Branch"} —{" "}
-                  {isConnected ? t("settings.integrations.posConnected") : t("settings.integrations.noPosConnected")}
+                {isConnected
+                  ? t("settings.integrations.posConnected")
+                  : t("settings.integrations.noPosConnected")}
               </p>
               {branchStatus.last_sync && (
                 <p className="text-xs text-text-muted mt-0.5">
@@ -765,7 +823,9 @@ function IntegrationsSettings({
       ) : selectedBranch ? (
         <div className="flex items-center gap-3 rounded-2xl border border-surface-4 px-5 py-4 text-sm text-text-muted">
           <span className="h-2 w-2 rounded-full bg-text-muted/30" />
-          {t("settings.integrations.noIntegrationData", { name: selectedBranch.name })}
+          {t("settings.integrations.noIntegrationData", {
+            name: selectedBranch.name,
+          })}
         </div>
       ) : null}
 
@@ -775,7 +835,9 @@ function IntegrationsSettings({
           <InfoCircle className="h-4 w-4 text-status-warning shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-text-primary">
-              {t("settings.integrations.posIssueTitle", { name: selectedBranch?.name ?? "" })}
+              {t("settings.integrations.posIssueTitle", {
+                name: selectedBranch?.name ?? "",
+              })}
             </p>
             <p className="text-xs text-text-muted mt-1 leading-relaxed">
               Sales data isn&apos;t syncing for this branch. Connect a POS
@@ -868,53 +930,6 @@ function IntegrationsSettings({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {PREP_CNECTORON.map((connector) => (
-            <div
-              key={connector.id}
-              className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
-                  <EvPlug className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-medium text-text-primary">
-                    {connector.name}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className="mt-1 text-[10px] opacity-60"
-                  >
-                    {isConnected ? "Connected" : "Not connected"}
-                  </Badge>
-                </div>
-              </div>
-
-              {!isConnected && (
-                <Button
-                  variant="secondary"
-                  onClick={() => handleTokenCreation(selectedBranchId)}
-                  disabled={!selectedBranchId}
-                  className="h-9 px-4 text-xs font-semibold"
-                >
-                  Generate Token
-                </Button>
-              )}
-
-              {openTokenDialog && (
-                <ClipboardModal
-                  open={openTokenDialog}
-                  title="Connector Token Generated"
-                  description="Copy this token and paste it into your Prep Connector setup."
-                  value={generatedToken}
-                  onClose={() => setOpenTokenDialog(false)}
-                  copyLabel="Copy Token"
-                />
-              )}
-            </div>
-          ))}
-        </div>
         <Table
           columns={columns}
           data={orgConnectors}
@@ -1075,7 +1090,13 @@ function NotificationsSettings() {
   );
 }
 
-function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBranchId?: string }) {
+function BranchSettings({
+  orgId,
+  focusedBranchId,
+}: {
+  orgId?: string;
+  focusedBranchId?: string;
+}) {
   const { t } = useTranslation();
   const { data: branches, isLoading: loadingBranches } = useBranches(
     orgId || "",
@@ -1091,9 +1112,10 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
   // Default to focusedBranchId from URL, then first branch
   useEffect(() => {
     if (!branches?.length || selectedBranchId) return;
-    const target = focusedBranchId && branches.some((b) => b.id === focusedBranchId)
-      ? focusedBranchId
-      : branches[0].id;
+    const target =
+      focusedBranchId && branches.some((b) => b.id === focusedBranchId)
+        ? focusedBranchId
+        : branches[0].id;
     setSelectedBranchId(target);
   }, [branches, focusedBranchId, selectedBranchId]);
 
@@ -1167,7 +1189,9 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
             disabled={updateBranch.isPending || !selectedBranchId}
             className="font-semibold px-6"
           >
-            {updateBranch.isPending ? t("settings.branch.saving") : t("settings.branch.saveChanges")}
+            {updateBranch.isPending
+              ? t("settings.branch.saving")
+              : t("settings.branch.saveChanges")}
           </Button>
         </div>
       </div>
@@ -1209,11 +1233,28 @@ function BranchSettings({ orgId, focusedBranchId }: { orgId?: string; focusedBra
                 value={formData.timezone}
                 onChange={(val: string) => handleChange("timezone", val)}
                 options={[
-                  { label: t("settings.organization.timezoneOptions.utc"), value: "UTC" },
-                  { label: t("settings.organization.timezoneOptions.eastern"), value: "America/New_York" },
-                  { label: t("settings.organization.timezoneOptions.pacific"), value: "America/Los_Angeles" },
-                  { label: t("settings.organization.timezoneOptions.london"), value: "Europe/London" },
-                  { label: t("settings.organization.timezoneOptions.eastAfrica"), value: "Africa/Nairobi" },
+                  {
+                    label: t("settings.organization.timezoneOptions.utc"),
+                    value: "UTC",
+                  },
+                  {
+                    label: t("settings.organization.timezoneOptions.eastern"),
+                    value: "America/New_York",
+                  },
+                  {
+                    label: t("settings.organization.timezoneOptions.pacific"),
+                    value: "America/Los_Angeles",
+                  },
+                  {
+                    label: t("settings.organization.timezoneOptions.london"),
+                    value: "Europe/London",
+                  },
+                  {
+                    label: t(
+                      "settings.organization.timezoneOptions.eastAfrica",
+                    ),
+                    value: "Africa/Nairobi",
+                  },
                 ]}
               />
             </div>
@@ -1696,7 +1737,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                             ))}
                             {role.permission_codes.length > 2 && (
                               <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-text-muted">
-                                {t("settings.roles.table.more", { n: role.permission_codes.length - 2 })}
+                                {t("settings.roles.table.more", {
+                                  n: role.permission_codes.length - 2,
+                                })}
                               </span>
                             )}
                           </div>
@@ -1729,7 +1772,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           </div>
         ) : (
           <div className="rounded-xl border border-[#1C1C1F] p-8 text-center">
-            <p className="text-sm text-text-muted">{t("settings.roles.empty.title")}</p>
+            <p className="text-sm text-text-muted">
+              {t("settings.roles.empty.title")}
+            </p>
             <p className="text-xs text-text-muted mt-2">
               {t("settings.roles.empty.description")}
             </p>
@@ -1928,7 +1973,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         }
         description={
           roleToDelete
-            ? t("settings.roles.deleteModal.description", { name: roleToDelete.name })
+            ? t("settings.roles.deleteModal.description", {
+                name: roleToDelete.name,
+              })
             : t("settings.roles.deleteModal.descriptionDefault")
         }
         confirmLabel={t("settings.roles.deleteModal.confirmLabel")}
@@ -1945,12 +1992,16 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         open={isConfirmMemberRemoveOpen}
         title={
           memberToRemove
-            ? t("settings.users.removeModal.title", { label: memberToRemove.label })
+            ? t("settings.users.removeModal.title", {
+                label: memberToRemove.label,
+              })
             : t("settings.users.removeModal.titleDefault")
         }
         description={
           memberToRemove
-            ? t("settings.users.removeModal.description", { label: memberToRemove.label })
+            ? t("settings.users.removeModal.description", {
+                label: memberToRemove.label,
+              })
             : t("settings.users.removeModal.descriptionDefault")
         }
         confirmLabel={t("settings.users.removeModal.confirmLabel")}

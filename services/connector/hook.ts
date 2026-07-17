@@ -24,10 +24,10 @@ export function useCreateConnectorToken() {
   });
 }
 
-export function usePrepConectors(orgId: string) {
+export function usePrepConectors(orgId: string, branchId: string) {
   return useQuery({
-    queryKey: ["connectors", orgId],
-    queryFn: () => tokenConnector.listConnectors(orgId),
-    enabled: !!orgId,
+    queryKey: ["connectors", orgId, branchId],
+    queryFn: () => tokenConnector.listBranchConnectors(orgId, branchId),
+    enabled: !!orgId && !!branchId,
   });
 }

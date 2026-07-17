@@ -3,7 +3,8 @@ const CONNECT = () => `api/connectors`;
 export const PrepConnector = {
   createToken: () => `${CONNECT()}/tokens/`,
   refreshConnectorToken: () => `${CONNECT()}token/refresh/`,
-  listConnector: (orgId: string) => `${CONNECT()}/?org_id=${orgId}`,
+  BranchConnector: (orgId: string, branchId: string) =>
+    `${CONNECT()}/${orgId}/${branchId}`,
 
   connectorDetail: (connectorId: string) => `${CONNECT()}/${connectorId}`,
   connectorLogs: (connectorId: string) => `${CONNECT()}/${connectorId}/logs/`,
