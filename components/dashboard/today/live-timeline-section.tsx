@@ -60,7 +60,7 @@ function buildPath(
     .join(" ");
 }
 
-function Sparkline({ item }: { item: IntradayTimelineItem }) {
+export function Sparkline({ item }: { item: IntradayTimelineItem }) {
   const { yMax, firstActiveHour, lastHour } = seriesBounds(item);
   const width = 120;
   const height = 36;

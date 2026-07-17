@@ -13,6 +13,7 @@ import {
 } from "@/lib/format";
 import type { PrepPlanItem, BranchDayToday } from "@/services/production-intelligence/types";
 import { QuickMessageButton } from "@/components/hub/quick-message-button";
+import { ItemImage } from "./item-image";
 import {
   buildFinancialSnapshot,
   confidenceLabel,
@@ -38,8 +39,6 @@ export type PrepPlanSectionProps = {
   totalRowCount: number;
   forecastRankById: Record<string, number>;
   decisionSummary: DecisionSummary;
-  importantItemsOnly: boolean;
-  onToggleImportantOnly: () => void;
   isPlanLocked: boolean;
   isMorning: boolean;
   lockPending: boolean;
@@ -111,23 +110,11 @@ function ItemIdentity({
       : "h-9 w-9 shrink-0 rounded-lg border border-surface-4";
   return (
     <div className="flex items-center gap-3">
-      {item.product_image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.product_image_url}
-          alt={item.product_title}
-          className={`${imgCls} object-cover`}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
-      ) : (
-        <div
-          className={`${imgCls} flex items-center justify-center bg-surface-3 text-[10px] font-bold text-text-muted`}
-        >
-          {item.product_title.slice(0, 2).toUpperCase()}
-        </div>
-      )}
+      <ItemImage
+        src={item.product_image_url}
+        title={item.product_title}
+        className={imgCls}
+      />
       <div>
         <p className="text-sm font-semibold leading-tight text-text-primary">
           {item.product_title}
@@ -650,8 +637,6 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
     totalRowCount,
     forecastRankById,
     decisionSummary,
-    importantItemsOnly,
-    onToggleImportantOnly,
     isPlanLocked,
     isMorning,
     lockPending,
@@ -738,18 +723,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
             ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleImportantOnly}
-            className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-brand-gold"
-          >
-            {importantItemsOnly
-              ? t("today.prepPlan.priorityItems")
-              : t("today.prepPlan.allItems")}
-          </button>
-          {lockStartButtons}
-        </div>
+        <div className="flex flex-wrap items-center gap-2">{lockStartButtons}</div>
       </div>
 
       {!isPlanLocked ? (

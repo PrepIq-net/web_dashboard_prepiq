@@ -28,6 +28,9 @@ export type AssistantLauncherProps = {
   // host page can refetch the data the action changed.
   onActionApplied?: (action: PendingAction) => void;
   explainRequest?: { topic: string; nonce: number } | null;
+  // A raw question from elsewhere on the page (e.g. the morning-brief drawer's
+  // quick-chat field): opens the drawer and sends it through the normal flow.
+  askRequest?: { question: string; nonce: number } | null;
   // Opens the drawer on mount, e.g. when arriving via a "continue chat" deep link.
   autoOpen?: boolean;
 };
@@ -40,6 +43,7 @@ export function AssistantLauncher({
   date,
   onActionApplied,
   explainRequest,
+  askRequest,
   autoOpen,
 }: AssistantLauncherProps) {
   const [open, setOpen] = useState(false);
@@ -122,6 +126,14 @@ export function AssistantLauncher({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [explainRequest?.nonce]);
+
+  // Open + send a raw question when another surface (brief drawer) asks one.
+  useEffect(() => {
+    if (!askRequest?.question || !branchId) return;
+    setOpen(true);
+    handleSend(askRequest.question);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askRequest?.nonce]);
 
   const appendReply = (reply: AssistantReply) => {
     setConversationId(reply.conversation.id);
