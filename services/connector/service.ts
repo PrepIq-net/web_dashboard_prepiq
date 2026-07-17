@@ -1,6 +1,10 @@
 import { apiClient } from "@/lib/api/client";
 import { PrepConnector } from "./endpoints";
-import { ConnectorList, ConnectorListSchema, ConnectorTokenSchema } from "./types";
+import {
+  ConnectorList,
+  ConnectorListSchema,
+  ConnectorTokenSchema,
+} from "./types";
 
 export async function createConnectorToken(branchId: string) {
   const response = await apiClient<unknown>(PrepConnector.createToken(), {
@@ -17,9 +21,9 @@ export async function createConnectorToken(branchId: string) {
   return parsed.data;
 }
 
-export async function listConnectors(orgId: string) {
+export async function listBranchConnectors(orgId: string, branchId: string) {
   const response = await apiClient<ConnectorList>(
-    PrepConnector.listConnector(orgId),
+    PrepConnector.BranchConnector(orgId, branchId),
     {
       method: "GET",
     },

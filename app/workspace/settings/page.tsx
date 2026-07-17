@@ -89,10 +89,7 @@ import {
 } from "@/services/connector/hook";
 import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  ConnectorData,
-  ConnectorList
-} from "@/services/connector/types";
+import { ConnectorData, ConnectorList } from "@/services/connector/types";
 import { Table } from "@/components/ui/table";
 
 const columnHelper = createColumnHelper<any>();
@@ -670,19 +667,25 @@ function IntegrationsSettings({
   const branchesQuery = useBranches(orgId ?? "");
   const branches = branchesQuery.data ?? [];
 
-  const { data: orgConnectors } = usePrepConectors(orgId ?? "");
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    focusedBranchId ?? "",
+  );
+
+  const { data: orgConnectors } = usePrepConectors(
+    orgId ?? "",
+    selectedBranchId ?? "",
+  );
   const baseColumns = generateColumns<ConnectorList>(
     // @ts-expect-error - type
     orgConnectors ?? [],
-  ).filter((col) => col.key !== "id" && col.key!=="machine_id");
+  ).filter((col) => col.key !== "id" && col.key !== "machine_id");
 
   const columns = baseColumns.map((col) => {
     if (col.key === "is_online") {
       return {
         ...col,
         header: "Online",
-        render: (row: ConnectorData) =>
-          row.is_online ? "🟢 Online" : "🔴 Offline",
+        render: (row: ConnectorData) => (row.is_online ? "🟢" : "🔴"),
       };
     }
 
@@ -697,16 +700,12 @@ function IntegrationsSettings({
       return {
         ...col,
         header: "ACTIVE",
-        render: (row: ConnectorData) =>
-          row.is_active ? "🟢 Active" : "🔴 Inactive",
+        render: (row: ConnectorData) => (row.is_active ? "Active" : "Inactive"),
       };
     }
     return col;
   });
 
-  const [selectedBranchId, setSelectedBranchId] = useState(
-    focusedBranchId ?? "",
-  );
   const initDone = useRef(false);
 
   // Initialize exactly once when branches first load — never resets on user changes.
@@ -987,53 +986,6 @@ function IntegrationsSettings({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {PREP_CNECTORON.map((connector) => (
-            <div
-              key={connector.id}
-              className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
-                  <EvPlug className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-medium text-text-primary">
-                    {connector.name}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className="mt-1 text-[10px] opacity-60"
-                  >
-                    {isConnected ? "Connected" : "Not connected"}
-                  </Badge>
-                </div>
-              </div>
-
-              {!isConnected && (
-                <Button
-                  variant="secondary"
-                  onClick={() => handleTokenCreation(selectedBranchId)}
-                  disabled={!selectedBranchId}
-                  className="h-9 px-4 text-xs font-semibold"
-                >
-                  Generate Token
-                </Button>
-              )}
-
-              {openTokenDialog && (
-                <ClipboardModal
-                  open={openTokenDialog}
-                  title="Connector Token Generated"
-                  description="Copy this token and paste it into your Prep Connector setup."
-                  value={generatedToken}
-                  onClose={() => setOpenTokenDialog(false)}
-                  copyLabel="Copy Token"
-                />
-              )}
-            </div>
-          ))}
-        </div>
         <Table
           columns={columns}
           data={orgConnectors}
