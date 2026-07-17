@@ -2,9 +2,12 @@
 
 import { KpiCard } from "./kpi-card";
 import { useTranslation } from "@/lib/i18n";
+import { formatMoney } from "@/lib/format";
 
 interface BranchManagerViewProps {
   branchName: string;
+  /** ISO 4217 operating currency of the branch (currency is branch-scoped). */
+  branchCurrency?: string;
   currentTimeLabel: string;
   shiftProgress: number;
   salesVsTargetPct: number;
@@ -24,6 +27,7 @@ interface BranchManagerViewProps {
 
 export function BranchManagerView({
   branchName,
+  branchCurrency = "USD",
   currentTimeLabel,
   shiftProgress,
   salesVsTargetPct,
@@ -97,7 +101,7 @@ export function BranchManagerView({
         />
         <KpiCard
           label={t("dashboard.home.wasteToday")}
-          value={`$${wasteTodayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          value={formatMoney(wasteTodayValue, branchCurrency)}
           subtext={`${wasteTodayPct.toFixed(1)}% ${t("dashboard.home.ofProduction")}`}
           status={wasteStatus}
         />
@@ -237,7 +241,7 @@ export function BranchManagerView({
             { label: t("dashboard.home.sold"), value: yesterdaySold.toLocaleString() },
             {
               label: t("dashboard.home.wasteCost"),
-              value: `$${yesterdayWasteCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+              value: formatMoney(yesterdayWasteCost, branchCurrency),
             },
           ].map((item) => (
             <div key={item.label}>

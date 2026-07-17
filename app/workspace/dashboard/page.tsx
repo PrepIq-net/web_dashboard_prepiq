@@ -227,6 +227,7 @@ function DashboardContent() {
       ) : isBranchExecutionMode ? (
         <BranchManagerView
           branchName={activeBranch?.name || "Branch"}
+          branchCurrency={activeBranch?.currency ?? "USD"}
           currentTimeLabel={currentTimeLabel}
           shiftProgress={shiftProgress}
           salesVsTargetPct={salesVsTargetPct}

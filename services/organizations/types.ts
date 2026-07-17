@@ -243,12 +243,26 @@ export type OrganizationRegisterPayload = z.infer<
 // ─────────────────────────────────────────────────────────────────────────────
 // Financial overview
 // ─────────────────────────────────────────────────────────────────────────────
+export const financialOverviewByCurrencySchema = z.object({
+  currency: z.string(),
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  gross_margin: z.number(),
+  revenue_usd: z.number(),
+});
+
 export const financialOverviewSummarySchema = z.object({
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),
   gross_margin: z.number(),
   margin_pct: z.number(),
+  // Summary currency: the scope's shared branch currency, or USD when the
+  // scope mixes currencies (money is converted before summing).
+  currency: z.string().optional(),
+  is_multi_currency: z.boolean().optional(),
+  by_currency: z.array(financialOverviewByCurrencySchema).optional(),
   revenue_delta_pct: z.number().nullable().optional(),
   food_cost_delta_pct: z.number().nullable().optional(),
   waste_cost_delta_pct: z.number().nullable().optional(),
@@ -259,11 +273,14 @@ export const financialOverviewSummarySchema = z.object({
 export const financialOverviewBranchSchema = z.object({
   branch_id: z.string(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),
   gross_margin: z.number(),
   margin_pct: z.number(),
+  revenue_usd: z.number().optional(),
+  gross_margin_usd: z.number().optional(),
   revenue_delta_pct: z.number().nullable().optional(),
   food_cost_delta_pct: z.number().nullable().optional(),
   waste_cost_delta_pct: z.number().nullable().optional(),
@@ -280,6 +297,10 @@ export const organizationFinancialOverviewSchema = z.object({
   scope: z.enum(["ORGANIZATION", "BRANCH"]),
   branch_id: z.string().nullable(),
   branch_name: z.string().nullable(),
+  currency: z.string().optional(),
+  is_multi_currency: z.boolean().optional(),
+  currency_filter: z.string().nullable().optional(),
+  currencies: z.array(z.string()).optional(),
   summary: financialOverviewSummarySchema,
   branches: z.array(financialOverviewBranchSchema),
   waste_analysis: z.object({
@@ -384,6 +405,8 @@ export type OrganizationFinancialOverviewQuery = {
   start_date?: string;
   end_date?: string;
   branch_id?: string;
+  /** ISO 4217 scope: restrict to branches operating in this currency. */
+  currency?: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

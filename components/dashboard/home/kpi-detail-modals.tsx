@@ -118,6 +118,13 @@ export function KpiDetailModals({
   highAlerts: AlertEntry[];
 }) {
   const branchGrid = tower?.branch_grid ?? [];
+  // Branch money is local-currency; org totals arrive in the summary currency
+  // (the shared local currency, or USD when the fleet mixes currencies). Bars
+  // that span branches scale on USD values so lengths stay comparable, while
+  // labels show the branch's own currency.
+  const towerCurrency = tower?.summary?.currency ?? "USD";
+  const marginCurrency = marginReport?.summary?.currency ?? "USD";
+  const isMultiCurrency = Boolean(tower?.summary?.is_multi_currency);
   const {
     revenueToday,
     revenueDeltaPct,
@@ -144,7 +151,7 @@ export function KpiDetailModals({
           <div className="grid grid-cols-3 gap-3">
             <ModalStat
               label="Today"
-              value={formatMoney(revenueToday)}
+              value={formatMoney(revenueToday, towerCurrency)}
               sub={
                 revenueDeltaPct !== null
                   ? `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}% vs yesterday`
@@ -160,7 +167,7 @@ export function KpiDetailModals({
             />
             <ModalStat
               label="Cost saved today"
-              value={formatMoney(Number(tower?.summary?.cost_saved_today ?? 0))}
+              value={formatMoney(Number(tower?.summary?.cost_saved_today ?? 0), towerCurrency)}
               sub="vs unoptimized baseline"
             />
           </div>
@@ -173,13 +180,16 @@ export function KpiDetailModals({
               <HorizontalBars
                 items={[...branchGrid]
                   .filter((b) => Number(b.revenue ?? 0) > 0)
-                  .sort((a, b) => Number(b.revenue ?? 0) - Number(a.revenue ?? 0))
                   .map((b) => ({
                     label: b.branch_name,
-                    value: Number(b.revenue ?? 0),
+                    value: isMultiCurrency
+                      ? Number(b.revenue_usd ?? b.revenue ?? 0)
+                      : Number(b.revenue ?? 0),
                     colorClass: "bg-brand-gold/70",
-                  }))}
-                formatVal={(item) => formatMoney(item.value)}
+                    display: formatMoney(Number(b.revenue ?? 0), b.currency ?? towerCurrency),
+                  }))
+                  .sort((a, b) => b.value - a.value)}
+                formatVal={(item) => item.display ?? formatMoney(item.value, towerCurrency)}
                 emptyText="No revenue data available"
               />
             </div>
@@ -237,7 +247,9 @@ export function KpiDetailModals({
             <ModalStat
               label={canSeeFinancials ? "Total waste cost" : "Waste risk %"}
               value={
-                canSeeFinancials ? formatMoney(wasteCost) : `${wasteRiskPct.toFixed(1)}%`
+                canSeeFinancials
+                  ? formatMoney(wasteCost, marginCurrency)
+                  : `${wasteRiskPct.toFixed(1)}%`
               }
               sub={
                 canSeeFinancials
@@ -313,7 +325,7 @@ export function KpiDetailModals({
                           ? "bg-status-warning"
                           : "bg-chart-baseline",
                     display: mb
-                      ? formatMoney(Number(mb.total_waste_cost ?? "0"))
+                      ? formatMoney(Number(mb.total_waste_cost ?? "0"), mb.currency ?? marginCurrency)
                       : undefined,
                   };
                 })}
@@ -334,17 +346,19 @@ export function KpiDetailModals({
               <HorizontalBars
                 items={[...marginReport.branches]
                   .filter((b) => Number(b.total_waste_cost ?? "0") > 0)
-                  .sort(
-                    (a, b) =>
-                      Number(b.total_waste_cost ?? "0") -
-                      Number(a.total_waste_cost ?? "0"),
-                  )
                   .map((b) => ({
                     label: b.branch_name,
-                    value: Number(b.total_waste_cost ?? "0"),
+                    value: isMultiCurrency
+                      ? Number(b.total_waste_cost_usd ?? b.total_waste_cost ?? "0")
+                      : Number(b.total_waste_cost ?? "0"),
                     colorClass: "bg-chart-baseline",
-                  }))}
-                formatVal={(item) => formatMoney(item.value)}
+                    display: formatMoney(
+                      Number(b.total_waste_cost ?? "0"),
+                      b.currency ?? marginCurrency,
+                    ),
+                  }))
+                  .sort((a, b) => b.value - a.value)}
+                formatVal={(item) => item.display ?? formatMoney(item.value, marginCurrency)}
                 emptyText="No cost data available"
               />
             </div>

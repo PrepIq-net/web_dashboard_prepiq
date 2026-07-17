@@ -187,6 +187,7 @@ export async function getOrganizationFinancialOverview(
   if (params.start_date) searchParams.set("start_date", params.start_date);
   if (params.end_date) searchParams.set("end_date", params.end_date);
   if (params.branch_id) searchParams.set("branch_id", params.branch_id);
+  if (params.currency) searchParams.set("currency", params.currency);
 
   const url = `${organizationsEndpoints.financialOverview(id)}${
     searchParams.toString() ? `?${searchParams.toString()}` : ""

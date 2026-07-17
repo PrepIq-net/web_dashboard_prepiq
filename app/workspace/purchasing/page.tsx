@@ -17,16 +17,9 @@ import { resolvePermissions } from '@/lib/permissions';
 import { PERMISSIONS } from '@/services/organizations/types';
 import { usePurchaseForecast } from '@/services/inventory/hooks';
 import type { PurchaseForecastLine } from '@/services/inventory/types';
+import { formatMoney } from '@/lib/format';
 
 type PurchasingTab = 'SUPPLIERS' | 'TRENDS' | 'VARIANCE' | 'EFFICIENCY' | 'FORECAST';
-
-function toCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function toPercent(value: number) {
   return value >= 0 ? '+' : '' + value.toFixed(1) + '%';
@@ -79,6 +72,14 @@ export default function PurchasingPage() {
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
   const alerts = controlTowerQuery.data?.alerts ?? EMPTY_LIST;
 
+  // Currency is branch-scoped. Org-wide spend figures use the control tower's
+  // summary currency (shared local currency, or USD for mixed fleets — the
+  // backend converts before summing); the forecast tab is single-branch and
+  // renders in that branch's own currency.
+  const towerCurrency = controlTowerQuery.data?.summary?.currency ?? 'USD';
+  const isMultiCurrency = Boolean(controlTowerQuery.data?.summary?.is_multi_currency);
+  const money = (value: number) => formatMoney(value, towerCurrency);
+
   // Branch selector for FORECAST tab
   const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
   const branchOptions = useMemo(() => {
@@ -99,7 +100,14 @@ export default function PurchasingPage() {
   }, [forecastBranchId, defaultBranch?.id]);
 
   const supplierRows = useMemo(() => {
-    const revenueBase = Math.max(1, branchGrid.reduce((s, b) => s + Number(b.revenue ?? 0), 0));
+    const revenueBase = Math.max(
+      1,
+      branchGrid.reduce(
+        (s, b) =>
+          s + (isMultiCurrency ? Number(b.revenue_usd ?? b.revenue ?? 0) : Number(b.revenue ?? 0)),
+        0,
+      ),
+    );
     const suppliers = ['Prime Provisions', 'Sysco Metro', 'US Foods Central', 'Gordon Food Service', "Charlie's Produce"];
     return suppliers.map((supplier, i) => {
       const spend = Math.round((revenueBase * (0.08 + i * 0.015)) / suppliers.length);
@@ -113,7 +121,7 @@ export default function PurchasingPage() {
         contractVariancePct: Math.max(-3, Math.min(9, costChangePct * 0.75)),
       };
     });
-  }, [branchGrid, alerts.length]);
+  }, [branchGrid, alerts.length, isMultiCurrency]);
 
   const itemTrendRows = useMemo(() => {
     const pool = ['Lettuce (Romaine)', 'All-Purpose Flour', 'Chicken Breast', 'Granulated Sugar', 'Arabica Coffee Beans', 'Semi-Sweet Chocolate', 'Sharp Cheddar Cheese'];
@@ -173,6 +181,9 @@ export default function PurchasingPage() {
     forecastTo,
     Boolean(forecastBranchId) && activeTab === 'FORECAST',
   );
+  const forecastCurrency =
+    branches.find((b) => b.id === forecastBranchId)?.currency ?? 'USD';
+  const forecastMoney = (value: number) => formatMoney(value, forecastCurrency);
 
   const supplierMap = useMemo(() => new Map(supplierRows.map((r) => [r.id, r])), [supplierRows]);
   const supplierDelta = supplierA && supplierB && supplierA !== supplierB
@@ -234,7 +245,7 @@ export default function PurchasingPage() {
 
       <section className='grid grid-cols-1 gap-6 border-b border-surface-4/60 pb-8 md:grid-cols-4'>
         {[
-          { label: t('workspace.purchasing.kpiTotalSpend'), value: toCurrency(kpis.totalSpend), cls: '' },
+          { label: t('workspace.purchasing.kpiTotalSpend'), value: money(kpis.totalSpend), cls: '' },
           { label: t('workspace.purchasing.kpiAvgCostChange'), value: toPercent(kpis.avgCostChange), cls: kpis.avgCostChange > 0 ? 'text-status-critical' : 'text-status-success' },
           { label: t('workspace.purchasing.kpiOverpaymentFlags'), value: String(kpis.overpaymentCount), cls: '' },
           { label: t('workspace.purchasing.kpiHighVolatilityItems'), value: String(kpis.highVolatilityCount), cls: '' },
@@ -288,7 +299,7 @@ export default function PurchasingPage() {
                 {supplierRows.map((row) => (
                   <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
                     <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.supplier}</td>
-                    <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.totalSpend)}</td>
+                    <td className='px-4 py-3 text-sm text-text-secondary'>{money(row.totalSpend)}</td>
                     <td className={'px-4 py-3 text-sm ' + (row.costChangePct >= 0 ? 'text-status-critical' : 'text-status-success')}>{toPercent(row.costChangePct)}</td>
                     <td className={'px-4 py-3 text-sm ' + (Math.abs(row.contractVariancePct) >= 4 ? 'text-status-critical' : 'text-text-secondary')}>{toPercent(row.contractVariancePct)}</td>
                   </tr>
@@ -370,8 +381,8 @@ export default function PurchasingPage() {
                   return (
                     <tr key={row.id} className='transition-colors hover:bg-surface-3/20'>
                       <td className='px-4 py-3 text-sm font-semibold text-text-primary'>{row.item}</td>
-                      <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.expectedCost)}</td>
-                      <td className='px-4 py-3 text-sm text-text-secondary'>{toCurrency(row.actualCost)}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>{money(row.expectedCost)}</td>
+                      <td className='px-4 py-3 text-sm text-text-secondary'>{money(row.actualCost)}</td>
                       <td className='px-4 py-3 text-sm'>
                         {row.overpaymentFlag && (
                           <span className='mr-2 inline-flex items-center rounded-full border border-status-critical/30 bg-status-critical/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-status-critical'>{t('workspace.purchasing.flagOverpayment')}</span>
@@ -452,7 +463,7 @@ export default function PurchasingPage() {
               </div>
               <div className='mt-6'>
                 <p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>{t('workspace.purchasing.spendDeltaLabel')}</p>
-                <p className='mt-1 font-display text-[26px] text-text-primary'>{toCurrency(supplierDelta)}</p>
+                <p className='mt-1 font-display text-[26px] text-text-primary'>{money(supplierDelta)}</p>
               </div>
               <button type='button'
                 className='mt-4 inline-flex h-10 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold'>
@@ -508,7 +519,7 @@ export default function PurchasingPage() {
                 Total Estimated Cost
               </p>
               <p className='font-display text-2xl font-semibold text-brand-gold'>
-                {toCurrency(forecastQuery.data.total_estimated_cost)}
+                {forecastMoney(forecastQuery.data.total_estimated_cost)}
               </p>
             </div>
           )}
@@ -600,7 +611,7 @@ export default function PurchasingPage() {
                         {row.purchase_qty.toFixed(2)} <span className='text-[11px] font-normal uppercase text-text-muted'>{row.pack_unit || row.unit}</span>
                       </td>
                       <td className='px-4 py-3 text-sm text-text-secondary'>
-                        {row.estimated_cost != null ? toCurrency(row.estimated_cost) : '—'}
+                        {row.estimated_cost != null ? forecastMoney(row.estimated_cost) : '—'}
                       </td>
                     </tr>
                   ))}

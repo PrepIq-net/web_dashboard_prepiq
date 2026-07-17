@@ -2817,6 +2817,7 @@
         "wasteCost": "Waste Cost",
         "margin": "Margin",
         "branch": "Branch",
+        "currency": "Currency",
         "grossMargin": "Gross Margin",
         "marginPct": "Margin Pct"
       },
@@ -2839,7 +2840,13 @@
       "filter": {
         "timeframe": "Timeframe",
         "branch": "Branch",
-        "allBranches": "All Branches"
+        "allBranches": "All Branches",
+        "currency": "Currency",
+        "allCurrencies": "All currencies (USD est.)"
+      },
+      "multiCurrency": {
+        "note": "Branches operate in different currencies — totals below are converted to USD at current rates. Pick a currency to see exact local figures.",
+        "revenueBreakdown": "Revenue by currency:"
       },
       "export": "Export",
       "kpi": {

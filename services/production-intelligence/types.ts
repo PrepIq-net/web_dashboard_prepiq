@@ -1257,10 +1257,18 @@ export const executiveControlTowerAlertSchema = z.object({
   actions: z.array(z.string()).optional(),
 });
 
+export const currencyAmountSchema = z.object({
+  currency: z.string(),
+  amount: z.number(),
+  amount_usd: z.number().optional(),
+});
+
 export const executiveControlTowerBranchSchema = z.object({
   branch_id: z.string().uuid(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   revenue: z.number().optional(),
+  revenue_usd: z.number().optional(),
   prepared: z.number().optional(),
   sold: z.number().optional(),
   remaining: z.number().optional(),
@@ -1284,6 +1292,11 @@ export const executiveControlTowerSnapshotSchema = z.object({
     waste_risk_pct: z.number().optional(),
     forecast_accuracy_rolling_7d: z.number().optional(),
     cost_saved_today: z.number().optional(),
+    // Summary currency: the shared branch currency, or USD when the fleet is
+    // multi-currency (money is converted before summing).
+    currency: z.string().optional(),
+    is_multi_currency: z.boolean().optional(),
+    revenue_by_currency: z.array(currencyAmountSchema).optional(),
   }),
   alerts: z.array(executiveControlTowerAlertSchema),
   branch_grid: z.array(executiveControlTowerBranchSchema),
@@ -1296,9 +1309,11 @@ export type ExecutiveControlTowerSnapshot = z.infer<
 export const ownerMarginProtectionBranchSchema = z.object({
   branch_id: z.string().uuid(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   margin_signal_status: z.string().optional(),
   margin_deviation_pct: z.number().optional(),
   total_waste_cost: z.string(),
+  total_waste_cost_usd: z.string().optional(),
   money_protected_vs_baseline: z.string().optional(),
   forecast_accuracy_summary: z.number().optional(),
 });
@@ -1309,6 +1324,8 @@ export const ownerMarginProtectionReportSchema = z.object({
   summary: z.object({
     total_waste_cost: z.string(),
     total_money_protected_vs_baseline: z.string(),
+    currency: z.string().optional(),
+    is_multi_currency: z.boolean().optional(),
     forecast_accuracy_avg_pct: z.number().optional(),
     margin_reliability: z
       .object({
