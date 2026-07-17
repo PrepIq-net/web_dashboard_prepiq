@@ -293,7 +293,7 @@ export function OpsView({
       )}
 
       <section>
-        <Link href="/setup/branch/create">
+        <Link href="/workspace/branches/new">
           <button className="h-11 rounded-button bg-brand-gold hover:bg-brand-gold-hover active:bg-brand-gold-pressed text-background px-5 inline-flex items-center gap-2 text-sm font-semibold transition-colors duration-150">
             <Shop />
             {t("dashboard.home.addBranch")}

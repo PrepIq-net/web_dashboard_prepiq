@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { toast } from "react-hot-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
 
@@ -117,6 +118,7 @@ export default function CreateBranchPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("UTC");
+  const [currency, setCurrency] = useState("USD");
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -257,6 +259,7 @@ export default function CreateBranchPage() {
         name: name.trim(),
         address: address.trim(),
         timezone,
+        currency,
         operating_hours: schedule.map((d) => ({
           day_of_week: d.day,
           is_closed: !d.isOpen,
@@ -319,16 +322,28 @@ export default function CreateBranchPage() {
           </div>
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A8821F] bg-[#A8821F]/10 border border-[#A8821F]/25 rounded-full px-3 py-1">
             <Sparks className="h-3 w-3" />
-            30-day Intelligence trial
+            {t("setup.branch.trialBadge")}
           </span>
         </div>
 
         <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
           {t("setup.branch.title")}
         </h1>
-        <p className="text-[14px] text-[#8E8E93] mb-10">
+        <p className="text-[14px] text-[#8E8E93] mb-6">
           {t("setup.branch.description")}
         </p>
+
+        <div className="mb-10 flex items-start gap-3 rounded-[10px] border border-[#A8821F]/20 bg-[#A8821F]/5 p-4">
+          <Sparks className="h-4 w-4 shrink-0 text-[#A8821F] mt-0.5" />
+          <div>
+            <p className="text-[13px] font-semibold text-[#F5F5F7]">
+              {t("setup.branch.trialNoticeTitle")}
+            </p>
+            <p className="text-[12px] text-[#8E8E93] mt-1 leading-relaxed">
+              {t("setup.branch.trialNoticeDescription")}
+            </p>
+          </div>
+        </div>
 
         {isOrgsLoading && (
           <div className="mb-6 p-3 rounded-[8px] bg-[#3A6EA5]/10 border border-[#3A6EA5]/20">
@@ -440,13 +455,24 @@ export default function CreateBranchPage() {
               ) : null}
             </div>
 
-            <div className="space-y-1.5 md:col-span-2">
+            <div className="space-y-1.5">
               <Select
                 label={t("setup.branch.timezoneLabel")}
                 value={timezone}
                 onChange={setTimezone}
                 options={TIMEZONES}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <CurrencySelect
+                label={t("setup.branch.currencyLabel")}
+                value={currency}
+                onChange={setCurrency}
+              />
+              <p className="text-xs text-[#5A5A60]">
+                {t("setup.branch.currencyHelp")}
+              </p>
             </div>
           </div>
 

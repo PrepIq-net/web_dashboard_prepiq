@@ -20,6 +20,7 @@ import {
   runChatThreadAutomation,
 } from "./service";
 import type {
+  ChatThreadMessage,
   CreateThreadPayload,
   CreateMessagePayload,
   AssignThreadPayload,
@@ -108,7 +109,17 @@ export function useCreateChatThreadMessage() {
       payload: CreateMessagePayload; 
       attachment?: File;
     }) => createChatThreadMessage(threadId, payload, attachment),
-    onSuccess: (_, variables) => {
+    onSuccess: (message, variables) => {
+      // Write the sent message straight into the cache so it renders immediately,
+      // instead of relying on the invalidated query's refetch to land in time.
+      queryClient.setQueryData<ChatThreadMessage[]>(
+        chatQueryKeys.threadMessages(variables.threadId),
+        (previous) => {
+          const list = Array.isArray(previous) ? previous : [];
+          if (list.some((existing) => existing.id === message.id)) return list;
+          return [...list, message];
+        },
+      );
       queryClient.invalidateQueries({ queryKey: chatQueryKeys.threadMessages(variables.threadId) });
       queryClient.invalidateQueries({ queryKey: chatQueryKeys.thread(variables.threadId) });
       queryClient.invalidateQueries({ queryKey: chatQueryKeys.threads() });

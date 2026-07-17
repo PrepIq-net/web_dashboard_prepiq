@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle,
+  CoinsSwap,
   InfoCircle,
   ShieldCheck,
 } from "iconoir-react";
@@ -15,9 +16,12 @@ import { useTranslation } from "@/lib/i18n";
 import {
   useBranches,
   useCheckoutPayment,
+  useCurrentSubscription,
   useCurrentUserProfile,
+  useFxRates,
   useSubscriptionPlanPricing,
 } from "@/services";
+import { convertFromUsd, formatMoney, getCurrency } from "@/lib/currencies";
 
 function toNum(v: unknown): number {
   if (typeof v === "number") return v;
@@ -77,12 +81,37 @@ export default function WorkspaceCheckoutPage() {
   const selectedPlan = plans.find((p) => p.id === planIdFromUrl);
   const selectedBranch = branches.find((b) => b.id === branchIdFromUrl);
 
+  const currentSubscriptionQuery = useCurrentSubscription(
+    branchIdFromUrl ? { branch_id: branchIdFromUrl } : undefined,
+  );
+  const branchSub = currentSubscriptionQuery.data;
+  // Paying while a free trial is still running doesn't cut the trial short —
+  // the backend defers the paid period to start once the trial ends.
+  const isActiveTrial =
+    Boolean(branchSub) && branchSub!.status === "ACTIVE" && Boolean(branchSub!.is_trial);
+  const trialEndsAtLabel = branchSub?.trial_ends_at
+    ? new Date(branchSub.trial_ends_at).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
   const price = useMemo(() => {
     if (!selectedPlan) return 0;
     return cycleFromUrl === "MONTHLY"
       ? toNum(selectedPlan.monthly_price)
       : toNum(selectedPlan.yearly_price);
   }, [selectedPlan, cycleFromUrl]);
+
+  // Branches operate in a local currency; the subscription is priced in USD and
+  // charged in the branch currency. Show the branch-currency total so the page
+  // matches what the gateway will charge.
+  const fxQuery = useFxRates();
+  const branchCurrency = (selectedBranch?.currency ?? "USD").toUpperCase();
+  const localPrice = convertFromUsd(price, branchCurrency, fxQuery.data?.rates);
+  const isConverted = branchCurrency !== "USD";
+  const displayPrice = (v: number) => formatMoney(v, branchCurrency);
 
   const features = asStrings(selectedPlan?.features);
 
@@ -110,13 +139,14 @@ export default function WorkspaceCheckoutPage() {
         business_name: businessName.trim(),
         billing_email: billingEmail.trim(),
         phone_number: phoneNumber.trim(),
+        checkout_source: "workspace",
       },
       {
         onSuccess: (res) => {
           if (res.payment_link) {
             window.location.href = res.payment_link;
           } else {
-            router.push("/workspace/billing?payment=success");
+            router.push(`/workspace/billing/checkout/success?paymentId=${res.payment.id}`);
           }
         },
         onError: (err: unknown) => {
@@ -175,6 +205,25 @@ export default function WorkspaceCheckoutPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           {/* ── Left: form ── */}
           <div className="lg:col-span-3 space-y-8">
+
+            {/* Trial Deferral Notice — paying mid-trial doesn't cut the trial short */}
+            {isActiveTrial && (
+              <div className="flex items-start gap-4 rounded-xl border border-brand-gold/30 bg-brand-gold/5 p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gold/10">
+                  <CoinsSwap className="h-5 w-5 text-brand-gold" />
+                </div>
+                <div>
+                  <h4 className="font-display text-[15px] font-semibold text-brand-gold">
+                    {t("setup.checkout.trialDeferralDetected")}
+                  </h4>
+                  <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+                    {trialEndsAtLabel
+                      ? t("setup.checkout.trialDeferralDescWithDate", { date: trialEndsAtLabel })
+                      : t("setup.checkout.trialDeferralDesc")}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Billing details */}
             <section className="rounded-xl border border-surface-4 bg-surface-2 p-6">
@@ -272,7 +321,7 @@ export default function WorkspaceCheckoutPage() {
                     </p>
                   </div>
                   <p className="shrink-0 text-[14px] font-semibold text-text-primary">
-                    {fmtCurrency(price)}
+                    {displayPrice(localPrice)}
                   </p>
                 </div>
 
@@ -295,12 +344,20 @@ export default function WorkspaceCheckoutPage() {
                       {t("setup.checkout.totalDueToday")}
                     </p>
                     <p className="text-[28px] font-semibold text-text-primary leading-none">
-                      {fmtCurrency(price)}
+                      {displayPrice(localPrice)}
                     </p>
                   </div>
                   <p className="mt-1 text-[11px] text-text-muted text-right">
                     {t(cycleFromUrl === "MONTHLY" ? "setup.checkout.billedMonthly" : "setup.checkout.billedYearly")}
                   </p>
+                  {isConverted && (
+                    <p className="mt-1 text-[11px] text-text-muted text-right">
+                      {t("setup.checkout.convertedFromUsd", {
+                        amount: fmtCurrency(price),
+                        currency: getCurrency(branchCurrency).code,
+                      })}
+                    </p>
+                  )}
                 </div>
 
                 {/* Pay button */}
@@ -315,7 +372,7 @@ export default function WorkspaceCheckoutPage() {
                       {t("setup.checkout.processing")}
                     </span>
                   ) : (
-                    t("setup.checkout.pay", { amount: fmtCurrency(price) })
+                    t("setup.checkout.pay", { amount: displayPrice(localPrice) })
                   )}
                 </button>
 

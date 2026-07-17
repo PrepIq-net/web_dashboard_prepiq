@@ -27,8 +27,11 @@ export default function CSVUploadPage() {
   const [branchId, setBranchId] = useState("");
   const [error, setError] = useState("");
   const setSession = useCSVUploadSessionStore((state) => state.setSession);
-  const { data: scope, isLoading: scopeLoading, error: scopeError } =
-    useProductionIntelligenceAccessScope();
+  const {
+    data: scope,
+    isLoading: scopeLoading,
+    error: scopeError,
+  } = useProductionIntelligenceAccessScope();
 
   const branches = useMemo(() => scope?.accessible_branches ?? [], [scope]);
   const selectedBranchId =
@@ -99,7 +102,7 @@ export default function CSVUploadPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "manna_pos_sales_import_template.csv";
+      link.download = "prepiq_pos_sales_import_template.csv";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -284,7 +287,9 @@ export default function CSVUploadPage() {
         {/* CTA */}
         <button
           onClick={handleContinue}
-          disabled={!file || !selectedBranchId || branches.length === 0 || scopeLoading}
+          disabled={
+            !file || !selectedBranchId || branches.length === 0 || scopeLoading
+          }
           className="w-full h-12 bg-[#A8821F] hover:bg-[#B8962E] active:bg-[#8F6F18] disabled:opacity-40 disabled:cursor-not-allowed text-[#141416] text-sm font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-colors duration-150"
         >
           {t("setup.csv.mapSubmit")}

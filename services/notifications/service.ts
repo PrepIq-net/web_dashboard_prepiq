@@ -6,8 +6,10 @@ import {
   notificationsResponseSchema,
   notificationPreferenceSchema,
   notificationPreferencesResponseSchema,
+  notificationQuietHoursSchema,
   type MarkNotificationsPayload,
   type NotificationPreference,
+  type NotificationQuietHours,
 } from "@/services/notifications/types";
 
 export async function getNotificationPreferences() {
@@ -34,6 +36,7 @@ export async function updateNotificationPreferences(preferences: Partial<Notific
 export async function getNotifications(params?: {
   status?: string;
   domain?: string;
+  category?: string;
   urgency?: string;
   escalation?: string;
   is_today?: boolean;
@@ -42,6 +45,7 @@ export async function getNotifications(params?: {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.domain) search.set("domain", params.domain);
+  if (params?.category) search.set("category", params.category);
   if (params?.urgency) search.set("urgency", params.urgency);
   if (params?.escalation) search.set("escalation", params.escalation);
   if (params?.is_today) search.set("is_today", "true");
@@ -54,6 +58,29 @@ export async function getNotifications(params?: {
   return apiClientWithSchema(endpoint, notificationsResponseSchema, {
     method: "GET",
   });
+}
+
+export async function getNotificationQuietHours() {
+  return apiClientWithSchema(
+    notificationEndpoints.quietHours(),
+    notificationQuietHoursSchema,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function updateNotificationQuietHours(
+  payload: Partial<NotificationQuietHours>,
+) {
+  return apiClientWithSchema(
+    notificationEndpoints.quietHours(),
+    notificationQuietHoursSchema,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
 }
 
 export async function markNotificationsAsRead(payload?: MarkNotificationsPayload) {

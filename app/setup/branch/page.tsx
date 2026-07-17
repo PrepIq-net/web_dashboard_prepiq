@@ -47,7 +47,8 @@ export default function BranchSetupPromptPage() {
             <p className="text-[13px] leading-[20px] text-[#C7C7CC]">
               Your first branch unlocks the full Intelligence plan: AI
               forecasting, waste attribution, margin protection, and executive
-              reports — at no cost for 30 days.
+              reports — at no cost for 30 days. If you choose to subscribe to
+              a paid plan, billing starts after your trial ends — not before.
             </p>
           </div>
         </div>

@@ -33,6 +33,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const previousMessageCountRef = useRef(0);
   const readRequestSentForThreadRef = useRef<string | null>(null);
   
@@ -89,13 +90,15 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   }, [threadId, thread?.unread_count, markReadMutation.isPending]);
 
   const handleSendMessage = async (content: string, attachment?: File) => {
-    if (!content.trim() && !attachment) return;
+    const submittedContent = content.trimEnd();
+    if (!submittedContent.trim() && !attachment) return;
 
+    setSendError(null);
     try {
       await createMessageMutation.mutateAsync({
         threadId,
         payload: {
-          content: content.trim(),
+          content: submittedContent,
           message_type: attachment ? "ATTACHMENT" : "TEXT",
         },
         attachment,
@@ -104,6 +107,8 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       setIsAtBottom(true);
     } catch (error) {
       console.error("Failed to send message:", error);
+      setSendError("Message failed to send. Please try again.");
+      throw error;
     }
   };
 
@@ -163,7 +168,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
       {/* Messages */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]"
+        className="flex-1 overflow-y-auto p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
         onScroll={handleScroll}
       >
         {messagesQuery.isLoading ? (
@@ -241,6 +246,11 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
       {/* Message Input */}
       <div className="border-t border-surface-4 p-4">
+        {sendError && (
+          <div className="mb-3 rounded-lg border border-status-critical/30 bg-status-critical/10 px-3 py-2 text-xs text-status-critical">
+            {sendError}
+          </div>
+        )}
         <ChatMessageInput
           onSend={handleSendMessage}
           disabled={createMessageMutation.isPending}

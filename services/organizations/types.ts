@@ -82,6 +82,14 @@ export const PERMISSIONS = {
   // Planning calendar
   VIEW_CALENDAR: "VIEW_CALENDAR",
   MANAGE_CALENDAR: "MANAGE_CALENDAR",
+  // Labor & scheduling
+  SUBMIT_AVAILABILITY: "SUBMIT_AVAILABILITY",
+  VIEW_TEAM_SCHEDULE: "VIEW_TEAM_SCHEDULE",
+  MANAGE_SCHEDULE: "MANAGE_SCHEDULE",
+  PUBLISH_SCHEDULE: "PUBLISH_SCHEDULE",
+  // Kitchen execution
+  VIEW_TASK_BOARD: "VIEW_TASK_BOARD",
+  MANAGE_TASKS: "MANAGE_TASKS",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -117,6 +125,12 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   VIEW_DONATION_HISTORY: "View Donation History",
   VIEW_CALENDAR: "View Planning Calendar",
   MANAGE_CALENDAR: "Manage Planning Calendar Events",
+  SUBMIT_AVAILABILITY: "Submit Own Availability",
+  VIEW_TEAM_SCHEDULE: "View Team Schedule",
+  MANAGE_SCHEDULE: "Build & Edit Schedules",
+  PUBLISH_SCHEDULE: "Publish Schedules",
+  VIEW_TASK_BOARD: "View Kitchen Task Board",
+  MANAGE_TASKS: "Create, Assign & Confirm Kitchen Tasks",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,12 +243,26 @@ export type OrganizationRegisterPayload = z.infer<
 // ─────────────────────────────────────────────────────────────────────────────
 // Financial overview
 // ─────────────────────────────────────────────────────────────────────────────
+export const financialOverviewByCurrencySchema = z.object({
+  currency: z.string(),
+  revenue: z.number(),
+  food_cost: z.number(),
+  waste_cost: z.number(),
+  gross_margin: z.number(),
+  revenue_usd: z.number(),
+});
+
 export const financialOverviewSummarySchema = z.object({
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),
   gross_margin: z.number(),
   margin_pct: z.number(),
+  // Summary currency: the scope's shared branch currency, or USD when the
+  // scope mixes currencies (money is converted before summing).
+  currency: z.string().optional(),
+  is_multi_currency: z.boolean().optional(),
+  by_currency: z.array(financialOverviewByCurrencySchema).optional(),
   revenue_delta_pct: z.number().nullable().optional(),
   food_cost_delta_pct: z.number().nullable().optional(),
   waste_cost_delta_pct: z.number().nullable().optional(),
@@ -245,11 +273,14 @@ export const financialOverviewSummarySchema = z.object({
 export const financialOverviewBranchSchema = z.object({
   branch_id: z.string(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),
   gross_margin: z.number(),
   margin_pct: z.number(),
+  revenue_usd: z.number().optional(),
+  gross_margin_usd: z.number().optional(),
   revenue_delta_pct: z.number().nullable().optional(),
   food_cost_delta_pct: z.number().nullable().optional(),
   waste_cost_delta_pct: z.number().nullable().optional(),
@@ -266,6 +297,10 @@ export const organizationFinancialOverviewSchema = z.object({
   scope: z.enum(["ORGANIZATION", "BRANCH"]),
   branch_id: z.string().nullable(),
   branch_name: z.string().nullable(),
+  currency: z.string().optional(),
+  is_multi_currency: z.boolean().optional(),
+  currency_filter: z.string().nullable().optional(),
+  currencies: z.array(z.string()).optional(),
   summary: financialOverviewSummarySchema,
   branches: z.array(financialOverviewBranchSchema),
   waste_analysis: z.object({
@@ -369,5 +404,59 @@ export type OrganizationFinancialOverviewQuery = {
   timeframe?: "7d" | "30d" | "90d";
   start_date?: string;
   end_date?: string;
+  branch_id?: string;
+  /** ISO 4217 scope: restrict to branches operating in this currency. */
+  currency?: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff performance — real metrics derived from labor (schedule adherence)
+// and execution (task completion). Mirrors organizations/performance.py.
+// ─────────────────────────────────────────────────────────────────────────────
+export const staffPerformanceRowSchema = z.object({
+  member_id: z.string(),
+  user_id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  role_slug: z.string().nullable(),
+  role_name: z.string().nullable(),
+  branch_id: z.string().nullable(),
+  branch_name: z.string().nullable(),
+  tasks: z.object({
+    assigned: z.number(),
+    completed: z.number(),
+    on_time: z.number(),
+    cancelled: z.number(),
+    completion_rate: z.number().nullable(),
+    on_time_rate: z.number().nullable(),
+  }),
+  schedule: z.object({
+    shifts_total: z.number(),
+    shifts_compared: z.number(),
+    shifts_matching_availability: z.number(),
+    adherence_rate: z.number().nullable(),
+    weeks_expected: z.number(),
+    weeks_submitted: z.number(),
+    weeks_approved: z.number(),
+    submission_rate: z.number().nullable(),
+  }),
+  score: z.number().nullable(),
+  coaching_priority: z.enum(["HIGH", "MEDIUM", "LOW", "NONE"]),
+});
+export type StaffPerformanceRow = z.infer<typeof staffPerformanceRowSchema>;
+
+export const staffPerformanceResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  days: z.number(),
+  branch_id: z.string().nullable(),
+  staff: z.array(staffPerformanceRowSchema),
+});
+export type StaffPerformanceResponse = z.infer<
+  typeof staffPerformanceResponseSchema
+>;
+
+export type StaffPerformanceQuery = {
+  days?: 7 | 30 | 90;
   branch_id?: string;
 };

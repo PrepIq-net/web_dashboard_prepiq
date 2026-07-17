@@ -3,6 +3,7 @@ const BASE = "/api/payment";
 export const paymentEndpoints = {
   plans: () => `${BASE}/plans/`,
   plansPricing: () => `${BASE}/plans/pricing/`,
+  fxRates: () => `${BASE}/fx-rates/`,
 
   subscriptions: () => `${BASE}/subscriptions/`,
   subscriptionDetail: (subscriptionId: string) =>

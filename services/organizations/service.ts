@@ -6,6 +6,8 @@ import {
   organizationMemberSchema,
   organizationRegisterPayloadSchema,
   organizationFinancialOverviewSchema,
+  staffPerformanceResponseSchema,
+  type StaffPerformanceQuery,
   permissionSchema,
   roleSchema,
   roleCreateUpdatePayloadSchema,
@@ -185,6 +187,7 @@ export async function getOrganizationFinancialOverview(
   if (params.start_date) searchParams.set("start_date", params.start_date);
   if (params.end_date) searchParams.set("end_date", params.end_date);
   if (params.branch_id) searchParams.set("branch_id", params.branch_id);
+  if (params.currency) searchParams.set("currency", params.currency);
 
   const url = `${organizationsEndpoints.financialOverview(id)}${
     searchParams.toString() ? `?${searchParams.toString()}` : ""
@@ -268,5 +271,70 @@ export async function deleteOrganizationRole(
     {
       method: "DELETE",
     },
+  );
+}
+
+export type LifecycleReason = {
+  reason_choice?: string;
+  reason_details?: string;
+};
+
+export async function leaveOrganization(
+  id: string,
+  reason?: LifecycleReason,
+): Promise<{ message: string }> {
+  return apiClientWithSchema(
+    organizationsEndpoints.leave(id),
+    z.object({ message: z.string() }),
+    {
+      method: "POST",
+      body: reason ?? {},
+    },
+  );
+}
+
+export async function transferOrganizationOwnership(
+  id: string,
+  userId: string,
+  reason?: LifecycleReason,
+): Promise<{ message: string }> {
+  return apiClientWithSchema(
+    organizationsEndpoints.transferOwnership(id),
+    z.object({ message: z.string() }),
+    {
+      method: "POST",
+      body: { user_id: userId, ...(reason ?? {}) },
+    },
+  );
+}
+
+export async function deleteOrganization(
+  id: string,
+  reason?: LifecycleReason,
+): Promise<void> {
+  // 204 No Content — no body to validate. The reason travels in the DELETE body
+  // (the proxy forwards it and DRF reads request.data on DELETE).
+  await apiClientWithSchema(
+    organizationsEndpoints.detail(id),
+    z.any(),
+    {
+      method: "DELETE",
+      body: reason ?? {},
+    },
+  );
+}
+
+export async function getStaffPerformance(
+  id: string,
+  query?: StaffPerformanceQuery,
+) {
+  const params = new URLSearchParams();
+  if (query?.days) params.set("days", String(query.days));
+  if (query?.branch_id) params.set("branch_id", query.branch_id);
+  const suffix = params.size > 0 ? `?${params.toString()}` : "";
+  return apiClientWithSchema(
+    `${organizationsEndpoints.staffPerformance(id)}${suffix}`,
+    staffPerformanceResponseSchema,
+    { method: "GET" },
   );
 }

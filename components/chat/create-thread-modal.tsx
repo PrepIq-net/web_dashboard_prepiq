@@ -11,7 +11,7 @@ import type { ThreadType } from "@/services/chat/types";
 interface CreateThreadModalProps {
   user?: UserProfile | null;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (threadId: string) => void;
 }
 
 export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModalProps) {
@@ -103,7 +103,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
     if (!canSubmit || !user?.organization_id) return;
 
     try {
-      await createThreadMutation.mutateAsync({
+      const thread = await createThreadMutation.mutateAsync({
         thread_type: formData.thread_type,
         business: user.organization_id,
         branch: formData.branch || undefined,
@@ -112,7 +112,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
         initial_message: formData.initial_message.trim() || undefined,
         participant_ids: selectedParticipantIds,
       });
-      onSuccess();
+      onSuccess(thread.id);
     } catch (error) {
       console.error("Failed to create thread:", error);
     }

@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
-import { ArrowRight } from "iconoir-react";
+import { ArrowRight, Sparks } from "iconoir-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
+import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
@@ -90,6 +91,7 @@ export default function NewBranchPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("UTC");
+  const [currency, setCurrency] = useState("USD");
   const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -216,6 +218,7 @@ export default function NewBranchPage() {
         name: name.trim(),
         address: address.trim(),
         timezone,
+        currency,
         operating_hours: schedule.map((d) => ({
           day_of_week: d.day,
           is_closed: !d.isOpen,
@@ -248,6 +251,18 @@ export default function NewBranchPage() {
       description={t("workspace.branches.new.description")}
       insight=""
     >
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-gold/20 bg-brand-gold/5 px-4 py-3.5">
+        <Sparks className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold" />
+        <div>
+          <p className="text-[13px] font-semibold text-text-primary">
+            {t("workspace.branches.new.trialNoticeTitle")}
+          </p>
+          <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+            {t("workspace.branches.new.trialNoticeDescription")}
+          </p>
+        </div>
+      </div>
+
       {isOrgsLoading && (
         <div className="mb-6 rounded-xl border border-surface-4 bg-surface-2/60 px-4 py-3">
           <p className="text-xs text-text-muted">{t("workspace.branches.new.loadingOrg")}</p>
@@ -353,12 +368,20 @@ export default function NewBranchPage() {
             ) : null}
           </div>
 
-          <div className="space-y-1.5 md:col-span-2">
+          <div className="space-y-1.5">
             <Select
               label={t("workspace.branches.new.timezoneLabel")}
               value={timezone}
               onChange={setTimezone}
               options={TIMEZONES}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <CurrencySelect
+              label={t("workspace.branches.new.currencyLabel")}
+              value={currency}
+              onChange={setCurrency}
             />
           </div>
         </div>

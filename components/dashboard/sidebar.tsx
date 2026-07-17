@@ -4,27 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { memo, useMemo } from "react";
-import {
-  Home,
-  Settings,
-  Clock,
-  NavArrowLeft,
-  ChatBubble,
-  Shop,
-  GraphUp,
-  Cart,
-  Coins,
-  ShieldAlert,
-  CreditCard,
-  ClockRotateRight,
-  Package,
-  StatsReport,
-  Group,
-  Calendar,
-} from "iconoir-react";
+import { NavArrowLeft } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { resolvePermissions } from "@/lib/permissions";
-import { PERMISSIONS } from "@/services/organizations/types";
+import { NAV_PAGES, NAV_SECTION_TITLES } from "@/lib/command/navigation";
 import { useTranslation } from "@/lib/i18n";
 import type { UserProfile } from "@/services/users/types";
 
@@ -34,7 +17,6 @@ import type { UserProfile } from "@/services/users/types";
 
 interface NavItem {
   label: string;
-  labelKey?: string;
   href: string;
   icon: React.ReactNode;
   permission?: string;
@@ -42,144 +24,8 @@ interface NavItem {
 
 interface NavSection {
   title: string;
-  titleKey?: string;
   items: NavItem[];
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Navigation definition — single source of truth for all users.
-// Items are filtered at render time based on the user's permission codes.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    title: "Operations",
-    titleKey: "dashboard.sidebar.operations",
-    items: [
-      {
-        label: "Dashboard",
-        labelKey: "sidebar.dashboard",
-        href: "/",
-        icon: <Home className="h-4 w-4" />,
-      },
-      {
-        label: "Today",
-        labelKey: "sidebar.today",
-        href: "/workspace/today",
-        icon: <Clock className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_FORECASTS,
-      },
-      {
-        label: "Planning",
-        labelKey: "sidebar.planning",
-        href: "/workspace/planning",
-        icon: <Calendar className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_CALENDAR,
-      },
-      {
-        label: "Production",
-        labelKey: "sidebar.production",
-        href: "/workspace/production",
-        icon: <GraphUp className="h-4 w-4" />,
-        permission: PERMISSIONS.CREATE_PRODUCTION_BATCH,
-      },
-      {
-        label: "Inventory",
-        labelKey: "sidebar.inventory",
-        href: "/workspace/inventory",
-        icon: <Package className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_INVENTORY,
-      },
-      {
-        label: "History",
-        labelKey: "sidebar.history",
-        href: "/workspace/history",
-        icon: <ClockRotateRight className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
-      },
-    ],
-  },
-  {
-    title: "Analytics",
-    titleKey: "sidebar.section.analytics",
-    items: [
-      {
-        label: "Sales & Waste",
-        labelKey: "sidebar.salesWaste",
-        href: "/workspace/sales-waste",
-        icon: <StatsReport className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
-      },
-      {
-        label: "Financial",
-        labelKey: "sidebar.financial",
-        href: "/workspace/financial",
-        icon: <Coins className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_FINANCIAL_DATA,
-      },
-      {
-        label: "Staff",
-        labelKey: "sidebar.staff",
-        href: "/workspace/staff-performance",
-        icon: <Group className="h-4 w-4" />,
-        permission: PERMISSIONS.MANAGE_TEAM,
-      },
-    ],
-  },
-  {
-    title: "Management",
-    titleKey: "sidebar.section.management",
-    items: [
-      {
-        label: "Branches",
-        labelKey: "sidebar.branches",
-        href: "/workspace/branches",
-        icon: <Shop className="h-4 w-4" />,
-        permission: PERMISSIONS.MANAGE_BRANCHES,
-      },
-      {
-        label: "Purchasing",
-        labelKey: "sidebar.purchasing",
-        href: "/workspace/purchasing",
-        icon: <Cart className="h-4 w-4" />,
-        permission: PERMISSIONS.MANAGE_INVENTORY,
-      },
-      {
-        label: "Risk",
-        labelKey: "sidebar.risk",
-        href: "/workspace/risk",
-        icon: <ShieldAlert className="h-4 w-4" />,
-        permission: PERMISSIONS.VIEW_COMPLIANCE,
-      },
-      {
-        label: "Billing",
-        labelKey: "sidebar.billing",
-        href: "/workspace/billing",
-        icon: <CreditCard className="h-4 w-4" />,
-        permission: PERMISSIONS.MANAGE_BILLING,
-      },
-    ],
-  },
-  {
-    title: "Workspace",
-    titleKey: "sidebar.section.workspace",
-    items: [
-      {
-        label: "Chat",
-        labelKey: "sidebar.chat",
-        href: "/workspace/chat",
-        icon: <ChatBubble className="h-4 w-4" />,
-        permission: PERMISSIONS.ACCESS_GLOBAL_CHAT,
-      },
-      {
-        label: "Settings",
-        labelKey: "sidebar.settings",
-        href: "/workspace/settings",
-        icon: <Settings className="h-4 w-4" />,
-      },
-    ],
-  },
-];
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,7 +45,6 @@ function SidebarLink({
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
-      prefetch={false}
       scroll={false}
       className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150
         ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
@@ -257,18 +102,19 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
   }
 
   const visibleSections = useMemo(
-    () =>
-      NAV_SECTIONS.map((section) => ({
-        ...section,
-        title: section.titleKey ? t(section.titleKey) : section.title,
-        items: section.items
-          .filter(
-            (item) => !item.permission || permissions.has(item.permission),
-          )
-          .map((item) => ({
-            ...item,
-            label: item.labelKey ? t(item.labelKey) : item.label,
-          })),
+    (): NavSection[] =>
+      NAV_SECTION_TITLES.map((section) => ({
+        title: t(section.titleKey),
+        items: NAV_PAGES.filter(
+          (page) =>
+            page.sectionKey === section.key &&
+            (!page.permission || permissions.has(page.permission)),
+        ).map((page) => ({
+          label: t(page.labelKey),
+          href: page.href,
+          icon: <page.icon className="h-4 w-4" />,
+          permission: page.permission,
+        })),
       })).filter((section) => section.items.length > 0),
     [permissions, t],
   );
@@ -286,7 +132,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       <div className="border-b border-[#1C1C1F] px-4 py-5">
         <div className="relative flex items-center">
           <Link
-            href="/"
+            href="/workspace/dashboard"
             className={`inline-flex min-w-0 items-center ${
               collapsed ? "mx-auto justify-center" : "gap-3 pr-8"
             }`}

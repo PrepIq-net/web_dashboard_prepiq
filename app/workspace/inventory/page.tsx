@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, EditPencil, ArrowRight, MediaImage } from "iconoir-react";
+import { Plus, EditPencil, ArrowRight, MediaImage, SparksSolid, Check } from "iconoir-react";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -19,6 +19,7 @@ import {
 } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
+import { useSelectedBranch } from "@/services/context/branch-store";
 import {
   useIngredients,
   useMenuItems,
@@ -33,10 +34,12 @@ import {
   useUpsertBatchRule,
   useAvailabilityOverrides,
   useDeactivateAvailabilityOverride,
+  useConfirmMenuItemReview,
 } from "@/services/inventory/hooks";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { IngredientModal } from "@/components/dashboard/inventory/ingredient-modal";
 import { MenuItemModal } from "@/components/dashboard/inventory/menu-item-modal";
 import { SupplierModal } from "@/components/dashboard/inventory/supplier-modal";
@@ -93,18 +96,16 @@ function InventoryPageContent() {
     scopedBranches[0] ??
     null;
 
-  const [branchId, setBranchId] = useState(defaultBranch?.id ?? "");
+  // Branch selection is shared across workspace pages (persists over navigation
+  // and full reloads) via the branch store.
+  const [branchId, setBranchId] = useSelectedBranch({
+    branches: scopedBranches,
+    defaultBranchId: defaultBranch?.id,
+    urlBranchId,
+  });
   const [activeTab, setActiveTab] = useState<TabId>(
     urlTab && TAB_IDS.some((id) => id === urlTab) ? urlTab : "ingredients"
   );
-
-  useEffect(() => {
-    if (urlBranchId && scopedBranches.some((b) => b.id === urlBranchId)) {
-      setBranchId(urlBranchId);
-    } else if (!branchId && defaultBranch?.id) {
-      setBranchId(defaultBranch.id);
-    }
-  }, [urlBranchId, scopedBranches, defaultBranch?.id, branchId]);
 
   useEffect(() => {
     if (!isLoading && !canAccess) router.replace("/");
@@ -325,14 +326,22 @@ function IngredientsTab({
         id: "actions",
         header: "",
         cell: (info) => (
-          <button
-            type="button"
-            onClick={() => openEdit(info.row.original)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
-            aria-label={t("workspace.inventory.ingredients.editAria", { name: info.row.original.name })}
-          >
-            <EditPencil className="h-4 w-4" />
-          </button>
+          <div className="flex items-center justify-end gap-1.5">
+            <QuickMessageButton
+              refType="INGREDIENT"
+              objectId={info.row.original.id}
+              title={info.row.original.name}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            />
+            <button
+              type="button"
+              onClick={() => openEdit(info.row.original)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-4 text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+              aria-label={t("workspace.inventory.ingredients.editAria", { name: info.row.original.name })}
+            >
+              <EditPencil className="h-4 w-4" />
+            </button>
+          </div>
         ),
       }),
     ],
@@ -748,8 +757,17 @@ function RecipesTab({
                       </p>
                     </div>
 
-                    {/* Status badge only — edit is in the detail panel */}
-                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {/* Status badges only — edit is in the detail panel */}
+                    <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {item.needs_review && (
+                        <span
+                          className="inline-flex h-5 items-center gap-1 rounded-full border border-status-warning/30 bg-status-warning/10 px-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-status-warning"
+                          title={t("workspace.inventory.recipes.aiReviewTooltip")}
+                        >
+                          <SparksSolid className="h-3 w-3" />
+                          {t("workspace.inventory.recipes.aiReviewBadge")}
+                        </span>
+                      )}
                       <span
                         className={`inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.06em] ${
                           item.is_active
@@ -821,14 +839,76 @@ function ItemDetailPanel({
   const [days, setDays] = useState(30);
   const historyQuery = useItemHistory(menuItem.id, { branch_id: branchId, days });
   const recipesQuery = useRecipes(menuItem.id, Boolean(menuItem.id));
+  const confirmReview = useConfirmMenuItemReview(branchId);
 
   const summary = historyQuery.data?.summary ?? null;
   const insights = historyQuery.data?.ai_insights ?? null;
   const timeSeries = historyQuery.data?.time_series ?? EMPTY_LIST;
   const recipes = recipesQuery.data ?? EMPTY_LIST;
+  const aiReview = menuItem.needs_review ? menuItem.ai_review ?? null : null;
 
   return (
     <div className="space-y-4">
+      {/* AI-review banner — connector matched or created this item; a human
+          confirms (or edits/deletes) before it's considered settled. */}
+      {menuItem.needs_review && (
+        <div className="rounded-xl border border-status-warning/30 bg-status-warning/5 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-status-warning">
+                <SparksSolid className="h-4 w-4 shrink-0" />
+                {aiReview?.ai_provisioned
+                  ? t("workspace.inventory.detail.aiReviewCreatedTitle")
+                  : t("workspace.inventory.detail.aiReviewMatchedTitle")}
+              </p>
+              <p className="mt-1 text-xs text-text-secondary">
+                {aiReview?.source_pos_name && (
+                  <>
+                    {t("workspace.inventory.detail.aiReviewSource")}{" "}
+                    <span className="font-semibold text-text-primary">
+                      &ldquo;{aiReview.source_pos_name}&rdquo;
+                    </span>
+                    {" · "}
+                  </>
+                )}
+                {typeof aiReview?.confidence === "number" && (
+                  <>
+                    {Math.round(aiReview.confidence * 100)}%{" "}
+                    {t("workspace.inventory.detail.aiReviewConfidence")}
+                  </>
+                )}
+              </p>
+              {(aiReview?.pending_aliases?.length ?? 0) > 0 && (
+                <p className="mt-1 text-xs text-text-muted">
+                  {t("workspace.inventory.detail.aiReviewAliases")}:{" "}
+                  {aiReview!.pending_aliases!
+                    .map((a) =>
+                      typeof a.confidence === "number"
+                        ? `"${a.name}" (${Math.round(a.confidence * 100)}%)`
+                        : `"${a.name}"`
+                    )
+                    .join(", ")}
+                </p>
+              )}
+              <p className="mt-1.5 text-[11px] text-text-muted">
+                {t("workspace.inventory.detail.aiReviewHint")}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={confirmReview.isPending}
+              onClick={() => confirmReview.mutate(menuItem.id)}
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-status-warning px-3 text-xs font-semibold text-[#141416] transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {confirmReview.isPending
+                ? t("workspace.inventory.detail.aiReviewConfirming")
+                : t("workspace.inventory.detail.aiReviewConfirm")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Item header card — clearly separated from recipe actions */}
       <div className="rounded-xl border border-surface-4 bg-surface-2 p-4">
         <div className="flex items-start gap-4">

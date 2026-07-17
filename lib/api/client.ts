@@ -1,6 +1,7 @@
 import type { ZodType } from "zod";
 import { ApiError } from "@/lib/api/errors";
 import type { ApiClientConfig, ApiRequestOptions } from "@/lib/api/types";
+import { clearPersistedCache } from "@/lib/api/persist";
 
 const runtimeConfig: ApiClientConfig = {};
 
@@ -58,6 +59,9 @@ async function forceClientLogoutAndRedirect(): Promise<void> {
     // Ignore; proxy may have already cleared cookies.
   }
 
+  // Drop any persisted React Query cache so the login page (which reloads) does
+  // not restore the expired session's data.
+  clearPersistedCache();
   window.location.replace("/login");
 }
 

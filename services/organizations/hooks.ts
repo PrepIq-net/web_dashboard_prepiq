@@ -228,3 +228,86 @@ export function useDeleteOrganizationRole(id: string) {
     },
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Danger zone — leave / transfer ownership / delete organization
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useLeaveOrganization(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reason?: { reason_choice?: string; reason_details?: string }) =>
+      organizationService.leaveOrganization(id, reason),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to leave organization.");
+    },
+  });
+}
+
+export function useTransferOrganizationOwnership(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      userId: string;
+      reason_choice?: string;
+      reason_details?: string;
+    }) =>
+      organizationService.transferOrganizationOwnership(id, vars.userId, {
+        reason_choice: vars.reason_choice,
+        reason_details: vars.reason_details,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) }),
+        queryClient.invalidateQueries({ queryKey: organizationKeys.details(id) }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+      toast.success("Ownership transferred.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to transfer ownership.");
+    },
+  });
+}
+
+export function useDeleteOrganization(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reason?: { reason_choice?: string; reason_details?: string }) =>
+      organizationService.deleteOrganization(id, reason),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete organization.");
+    },
+  });
+}
+
+export function useStaffPerformance(
+  id: string,
+  query?: { days?: 7 | 30 | 90; branch_id?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      ...organizationKeys.all,
+      "staff-performance",
+      id,
+      query?.days ?? 30,
+      query?.branch_id ?? "",
+    ],
+    queryFn: () => organizationService.getStaffPerformance(id, query),
+    enabled: enabled && !!id,
+    staleTime: 60_000,
+  });
+}

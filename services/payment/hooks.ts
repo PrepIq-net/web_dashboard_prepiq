@@ -17,6 +17,7 @@ import {
   failPayment,
   getAvailableSubscriptionAddOns,
   getCurrentSubscription,
+  getFxRates,
   getInvoiceDetail,
   getPaymentDetail,
   getSubscriptionDetail,
@@ -55,6 +56,12 @@ export const paymentQueryKeys = {
     [...paymentQueryKeys.subscriptions(), subscriptionId] as const,
   currentSubscription: (params?: SubscriptionQuery) =>
     [...paymentQueryKeys.subscriptions(), "current", params] as const,
+  // Prefix (no params slot) so invalidation matches EVERY current-subscription
+  // query — the org-level one AND the per-branch useSubscriptionTier(branchId)
+  // ones. Invalidating currentSubscription() alone pins params to `undefined`
+  // and would miss the branch-scoped gates.
+  currentSubscriptions: () =>
+    [...paymentQueryKeys.subscriptions(), "current"] as const,
   subscriptionAddOns: (subscriptionId: string) =>
     [
       ...paymentQueryKeys.subscriptionDetail(subscriptionId),
@@ -95,6 +102,14 @@ export function useSubscriptionPlanPricing(params?: SubscriptionQuery) {
   });
 }
 
+export function useFxRates() {
+  return useQuery({
+    queryKey: [...paymentQueryKeys.root, "fx-rates"] as const,
+    queryFn: getFxRates,
+    staleTime: 1000 * 60 * 60, // rates change slowly; refetch hourly at most
+  });
+}
+
 export function useSubscriptions(params?: SubscriptionQuery) {
   return useQuery({
     queryKey: paymentQueryKeys.subscriptions(params),
@@ -130,15 +145,19 @@ const PLAN_TIER_MAP: Record<string, number> = {
  */
 export function useSubscriptionTier(branchId?: string) {
   const params = branchId ? ({ branch_id: branchId } satisfies SubscriptionQuery) : undefined;
-  // staleTime:0 + refetchOnMount:true overrides global cache settings — subscription status must
-  // always be fresh so the access gate reflects the real DB state, not a 5-min stale cache hit.
-  // retry:false so a 404 (no active subscription) is detected immediately, not after 3 retries.
+  // The access gate must reflect real subscription state, but staleTime:0 made
+  // it a blocking network round-trip on EVERY page mount. A short 60s staleTime
+  // keeps it effectively live (a cancellation shows within a minute) while
+  // reusing the cache within a navigation burst, and every subscription-changing
+  // mutation invalidates paymentQueryKeys.currentSubscriptions() for instant
+  // reflection. retry:false so a 404 (no active subscription) is detected
+  // immediately, not after retries.
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: paymentQueryKeys.currentSubscription(params),
     queryFn: () => getCurrentSubscription(params),
     retry: false,
     throwOnError: false,
-    staleTime: 0,
+    staleTime: 60_000,
     refetchOnMount: true,
   });
   const planType = data?.plan?.plan_type?.toUpperCase() ?? null;
@@ -182,7 +201,7 @@ export function useCreateSubscription() {
         queryKey: paymentQueryKeys.subscriptions(),
       });
       queryClient.invalidateQueries({
-        queryKey: paymentQueryKeys.currentSubscription(),
+        queryKey: paymentQueryKeys.currentSubscriptions(),
       });
     },
   });
@@ -202,7 +221,7 @@ export function useCancelSubscription(subscriptionId: string) {
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
       queryClient.invalidateQueries({
-        queryKey: paymentQueryKeys.currentSubscription(),
+        queryKey: paymentQueryKeys.currentSubscriptions(),
       });
     },
   });
@@ -221,7 +240,7 @@ export function useActivateSubscription(subscriptionId: string) {
         queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
       });
       queryClient.invalidateQueries({
-        queryKey: paymentQueryKeys.currentSubscription(),
+        queryKey: paymentQueryKeys.currentSubscriptions(),
       });
     },
   });
@@ -271,11 +290,17 @@ export function usePayments(params?: SubscriptionQuery) {
   });
 }
 
-export function usePaymentDetail(paymentId: string) {
+export function usePaymentDetail(
+  paymentId: string,
+  options?: { refetchInterval?: (data: { status: string } | undefined) => number | false },
+) {
   return useQuery({
     queryKey: paymentQueryKeys.paymentDetail(paymentId),
     queryFn: () => getPaymentDetail(paymentId),
     enabled: Boolean(paymentId),
+    refetchInterval: options?.refetchInterval
+      ? (query) => options.refetchInterval!(query.state.data)
+      : undefined,
   });
 }
 
@@ -296,6 +321,9 @@ export function useCreatePayment() {
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptions(),
       });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.currentSubscriptions(),
+      });
     },
   });
 }
@@ -311,7 +339,7 @@ export function useCheckoutPayment() {
         queryKey: paymentQueryKeys.subscriptions(),
       });
       queryClient.invalidateQueries({
-        queryKey: paymentQueryKeys.currentSubscription(),
+        queryKey: paymentQueryKeys.currentSubscriptions(),
       });
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.invoices() });
     },
@@ -331,6 +359,9 @@ export function useCompletePayment(paymentId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptions(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.currentSubscriptions(),
       });
       queryClient.invalidateQueries({ queryKey: paymentQueryKeys.invoices() });
     },

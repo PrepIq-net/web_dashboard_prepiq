@@ -38,7 +38,7 @@
     "reports": "Reports",
     "purchasing": "Purchasing",
     "billing": "Billing",
-    "chat": "Chat",
+    "chat": "Operations Hub",
     "production": "Production",
     "salesWaste": "Sales & Waste",
     "financial": "Financial",
@@ -53,7 +53,8 @@
     "dayFri": "Fri",
     "daySat": "Sat",
     "daySun": "Sun",
-    "optional": "optional"
+    "optional": "optional",
+    "processing": "Processing…"
   },
   "auth": {
     "welcomeBack": "Welcome Back.",
@@ -90,6 +91,9 @@
     "agreeToTerms": "By clicking “Create Account” you agree to the PrepIQ Terms of Service and Privacy Policy.",
     "otpVerified": "OTP verified. You can now sign in.",
     "sessionSwitched": "Session switched, refreshing workspace…",
+    "accountReactivated": "Welcome back! Your account has been reactivated.",
+    "googleLoading": "Google sign-in is still loading. Please try again.",
+    "googleFailed": "Google sign-in failed. Please try again.",
     "authenticating": "Authenticating...",
     "unverifiedMessage": "Your account isn't verified yet. To continue, please verify your email.",
     "verifyEmail": "verify your email",
@@ -172,7 +176,7 @@
       "command": "Command",
       "purchasing": "Purchasing",
       "billing": "Billing",
-      "chat": "Chat",
+      "chat": "Operations Hub",
       "history": "History",
       "salesWaste": "Sales & Waste",
       "risk": "Risk",
@@ -416,7 +420,17 @@
       "needsAttention": "Needs attention",
       "tracked": "Tracked",
       "forecastConfidence": "Forecast confidence",
-      "vsTypical": "vs typical {day}"
+      "vsTypical": "vs typical {day}",
+      "and": " and ",
+      "maintainBaselineAll": "Demand looks steady — stick with your baseline plan today.",
+      "maintainBaselineWatch": "Demand looks steady — keep an eye on {items}.",
+      "planAcrossAll": "Plan {delta} across all items.",
+      "prioritize": "Keep a close eye on {items} — {suffix}.",
+      "reviewHighDemand": "Review high-demand items and adjust your plan accordingly.",
+      "sensitiveSuffix": "they're the most likely to run out",
+      "wasteSuffix": "they're the most likely to be over-prepped",
+      "eyebrow": "Today's outlook",
+      "noItems": "No tracked items yet."
     },
     "prepPlan": {
       "title": "Prep Plan",
@@ -431,7 +445,13 @@
       "locking": "Locking...",
       "startService": "Start service",
       "starting": "Starting...",
-      "lockedAt": "Locked at {time} by {user}"
+      "lockedAt": "Locked at {time} by {user}",
+      "lockFirst": "Lock your plan before starting service.",
+      "lockToStart": "Lock the plan to start service",
+      "lockedAtBy": "Locked at {time} by {user}",
+      "lockedAtTime": "Locked at {time}",
+      "ofCount": "of {total} items reviewed",
+      "pending": "pending"
     },
     "table": {
       "item": "Item",
@@ -468,7 +488,12 @@
       "trackRecord": "Track record",
       "why": "Why?",
       "whyDesktop": "Why this quantity?",
-      "yourPlan": "Your plan"
+      "yourPlan": "Your plan",
+      "supplyConstrained": "Supply Constrained",
+      "markUnavailable": "Mark Unavailable",
+      "batchRule": "Batch rule: {{raw}} → {{rounded}}",
+      "batchSize": "(batch size {{size}})",
+      "message": "Message"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",
@@ -493,7 +518,9 @@
       "mayRunOut": "May run out of {item}",
       "stockoutRiskWithMargin": "May run out — ~{cost} margin at risk",
       "wasteRiskWithCost": "~{cost} in waste if demand does not pick up",
-      "marginRiskWithImpact": "Margin impact: ~{cost}"
+      "marginRiskWithImpact": "Margin impact: ~{cost}",
+      "why": "Why?",
+      "fixTo": "Fix → {{quantity}}"
     },
     "live": {
       "status": "Service is live",
@@ -529,7 +556,15 @@
       "runningSteady": "Running steady",
       "slowSales": "Slow sales",
       "sold": "Sold",
-      "startBatchNow": "Start batch now"
+      "startBatchNow": "Start batch now",
+      "logWaste": "Log waste",
+      "pctLeft": "{{pct}}% left",
+      "recordCooked": "Record what you cooked",
+      "soldLabel": "Sold so far",
+      "ofPlanned": "of {quantity} prepared",
+      "runoutIn": "May run out in ~{runoutMin} min",
+      "details": "Details",
+      "moreActions": "More actions"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -567,15 +602,15 @@
       "previewTomorrow": "Preview tomorrow",
       "preparingSummary": "Review summary is being prepared...",
       "howItPlayed": "Here is how today played out.",
-      "demandExpectedToBe": "Demand expected to be {demand}",
-      "vsTypical": "{pct}% vs typical",
+      "demandExpectedToBe": "Demand expected to be",
+      "vsTypical": "vs typical {day}",
       "vsBaseline": "{pct}% vs baseline",
       "sold": "Sold",
-      "ofPrepped": "of {total} prepped",
+      "ofPrepped": "of {quantity} prepped",
       "wasteCost": "Waste cost",
-      "wasteLine": "{pct}% waste rate",
+      "wasteLine": "{amount} waste",
       "revenueProtected": "Revenue protected",
-      "missedRevenue": "Missed revenue",
+      "missedRevenue": "{amount} missed revenue",
       "stockouts": "Stockouts",
       "itemsRanOut": "items ran out",
       "ranShort": "We ran short on {count} items",
@@ -587,7 +622,7 @@
       "saved": "Saved",
       "fromAvoidingStockouts": "from avoiding stockouts",
       "aiAccuracy": "AI accuracy",
-      "accuracyDelta": "Accuracy delta",
+      "accuracyDelta": "{arrow} {pct}% vs last {day}",
       "aiWasCloser": "AI was closer on {count} items",
       "you": "You",
       "ai": "AI",
@@ -600,14 +635,14 @@
       "toughSub": "Variance was higher than usual. The model will learn from this.",
       "goodSubNoStockouts": "No stockouts. Waste was minimal.",
       "goodSubStockouts": "A few stockouts, but overall execution was solid.",
-      "missedLine": "Missed revenue line by {pct}%",
+      "missedLine": "{amount} missed revenue",
       "leftover": "Leftover",
       "basedOn": "Based on {count} items tracked",
       "contextMakesSharper": "More context makes tomorrow sharper.",
       "modelImproves": "Every shift trains the model.",
       "wasteEvents": "Waste events",
-      "wasteDelta": "{pct}% waste, {pct2}% vs forecast",
-      "soldQuantity": "Sold {qty} of {total}",
+      "wasteDelta": "Trending {direction} vs typical",
+      "soldQuantity": "Sold {quantity}",
       "none": "None",
       "anythingWorthNoting": "Anything worth noting about today?",
       "notePlaceholder": "e.g. Short-staffed at lunch, ran out of salmon...",
@@ -616,11 +651,42 @@
       "noteSaved": "Note saved",
       "aiWasCloserWithCount": "AI was closer on {count} items",
       "revenueProtectedAmount": "{amount} protected",
-      "missedRevenueAmount": "{amount} missed"
+      "missedRevenueAmount": "{amount} missed",
+      "variance": {
+        "title": "Today missed forecast",
+        "subtitleBelow": "Sales came in below what we expected. Telling us why keeps the model from learning the wrong lesson.",
+        "subtitleAbove": "Sales came in above what we expected. Telling us why keeps the model from learning the wrong lesson.",
+        "expected": "Expected",
+        "actual": "Actual",
+        "difference": "Difference",
+        "whatHappened": "What happened?",
+        "otherPlaceholder": "Briefly, what happened?",
+        "saved": "Recorded. Tonight's training will account for it.",
+        "cause": {
+          "HEAVY_RAIN": "Heavy rain",
+          "PUBLIC_HOLIDAY": "Public holiday",
+          "ROAD_CLOSURE": "Road closure",
+          "EVENT_CANCELLED": "Event cancelled",
+          "PRIVATE_EVENT": "Private event",
+          "STAFF_SHORTAGE": "Staff shortage",
+          "SUPPLIER_ISSUE": "Supplier issue",
+          "EQUIPMENT_FAILURE": "Equipment failure",
+          "POWER_OUTAGE": "Power outage",
+          "OTHER": "Other"
+        }
+      },
+      "discardedCost": "Discarded cost",
+      "unaccountedSub": "{quantity} units still unaccounted",
+      "discardedQty": "Discarded {quantity}",
+      "unaccountedQty": "{quantity} unaccounted — tell us below",
+      "storedQty": "Stored {quantity} for tomorrow"
     },
     "eyebrow": "Today's Operations",
     "expectedDemand": "Expected demand",
-    "demandSignals": "Demand signals",
+    "demandSignals": {
+      "title": "Demand signals",
+      "noStrong": "No strong demand signals detected today."
+    },
     "statusIs": "Status",
     "tracked": "Tracked",
     "planReliability": "Plan reliability",
@@ -733,10 +799,18 @@
     },
     "override": {
       "foodAtRisk": "~{cost} food at risk if demand falls short",
-      "marginAtRisk": "~{cost} margin at risk if demand holds"
+      "marginAtRisk": "~{cost} margin at risk if demand holds",
+      "why": "Why the change?",
+      "large_booking": "Large booking",
+      "event": "Event",
+      "weather": "Weather",
+      "experience": "Experience",
+      "holiday": "Holiday",
+      "other": "Other"
     },
     "reason": {
-      "demandSpike": "Demand spike"
+      "demandSpike": "Demand spike",
+      "recordedManually": "Recorded manually"
     },
     "prepRisk": {
       "high": "High",
@@ -824,185 +898,349 @@
         "It was a tough shift. Rest now."
       ]
     },
-    "csvMap": {
-      "errors": {
-        "noHeader": "No Header",
-        "saleDateRequired": "Sale Date Required",
-        "itemRequired": "Item Required",
-        "quantityRequired": "Quantity Required",
-        "duplicateColumn": "Duplicate Column",
-        "columnNotInHeaders": "Column Not In Headers",
-        "fixMapping": "Fix Mapping",
-        "previewFailed": "Preview Failed",
-        "noRowsImported": "No Rows Imported",
-        "importFailed": "Import Failed"
+    "init": {
+      "eyebrow": "PrepIQ is thinking",
+      "title": "Building today's plan",
+      "stage": {
+        "read": "Reading your sales history…",
+        "clean": "Setting aside unusual days…",
+        "signals": "Checking weather, holidays & local events…",
+        "blend": "Blending forecasting models…",
+        "targets": "Setting prep targets with your waste-vs-stockout balance…"
       },
-      "unmapped": "Unmapped",
-      "toast": {
-        "imported": "Imported",
-        "importComplete": "Import Complete",
-        "noRows": "No Rows"
+      "recap": {
+        "done": "Done",
+        "historyDays": "{days} days of history loaded",
+        "excludedDays": "{count} unusual day(s) set aside",
+        "noExclusions": "No unusual days found",
+        "rain": "Rain expected",
+        "event": "Nearby event",
+        "holiday": "Public holiday",
+        "noSignals": "No unusual signals today",
+        "models": "{count} models blended",
+        "items": "Targets set for {count} items"
       },
-      "back": "Back",
-      "backToLive": "Back To Live",
-      "title": "Column Mapping",
-      "heading": "Heading",
-      "description": "Map your CSV columns to PrepIQ fields to import sales data.",
-      "requiredData": "Required Data",
-      "yourCsvColumn": "Your Csv Column",
-      "csvColumn": "Csv Column",
-      "autoCreateItems": "Auto Create Items",
-      "preview": "Preview",
-      "validating": "Validating",
-      "validateMapping": "Validate Mapping",
-      "importing": "Importing",
-      "importSalesData": "Import Sales Data"
+      "skip": "Skip the walkthrough",
+      "showPlan": "Show my plan",
+      "failedTitle": "We couldn't finish building the plan",
+      "retry": "Try again"
     },
-    "itemDetail": {
-      "confidenceNarrative": {
-        "noHistory": "No History",
-        "high": "High",
-        "moderate": "Moderate",
-        "lower": "Lower",
-        "low": "Low"
-      },
-      "trendNarrative": {
-        "improving": "Improving",
-        "degrading": "Degrading",
-        "stable": "Stable"
-      },
-      "varianceLabel": {
-        "matches": "Matches",
-        "aboveSuggestion": "Above Suggestion",
-        "belowSuggestion": "Below Suggestion"
-      },
-      "financial": {
-        "whatCouldYouMake": "What Could You Make",
-        "revenueEstimates": "Revenue Estimates",
-        "relativeOutcomes": "Relative Outcomes",
-        "aiPick": "Ai Pick",
-        "revenue": "Revenue",
-        "wasteCost": "Waste Cost",
-        "net": "Net"
-      },
-      "trackRecord": {
-        "title": "Track Record",
-        "lastSimilar": "Last Similar",
-        "prepped": "Prepped",
-        "sold": "Sold",
-        "ranOut": "Ran Out",
-        "leftover": "Leftover",
-        "soldClean": "Sold Clean",
-        "overrodeModel": "Overrode Model",
-        "colDate": "Col Date",
-        "colAiSaid": "Col Ai Said",
-        "colPrepped": "Col Prepped",
-        "colSold": "Col Sold",
-        "colOutcome": "Col Outcome",
-        "wasted": "Wasted",
-        "clean": "Clean",
-        "sameDay": "Same Day",
-        "override": "Override"
-      },
-      "defaultTitle": "Default Title",
-      "upside": {
-        "coversHighRunOutRisk": "Covers High Run Out Risk",
-        "goodCoverageDemandSpikes": "Good Coverage Demand Spikes",
-        "lowerWasteSoftDemand": "Lower Waste Soft Demand"
-      },
-      "downside": {
-        "mayGoUnsold": "May Go Unsold",
-        "smallWasteRisk": "Small Waste Risk",
-        "runningShort": "Running Short",
-        "mayMissLateDemand": "May Miss Late Demand"
-      },
-      "scenario": {
-        "conservative": "Conservative",
-        "followAi": "Follow Ai",
-        "extraBuffer": "Extra Buffer",
-        "yourPlan": "Your Plan",
-        "lowerWasteRisk": "Lower Waste Risk",
-        "coversDemandSpikes": "Covers Demand Spikes"
-      },
+    "brief": {
+      "eyebrow": "Morning brief",
+      "signalsEyebrow": "Today's signals",
       "signal": {
-        "reservation": "Reservation",
-        "event": "Event",
-        "weather": "Weather",
-        "staffing": "Staffing",
-        "kitchenCapacity": "Kitchen Capacity",
-        "deliveryMix": "Delivery Mix",
-        "traffic": "Traffic"
+        "rain": "Rain expected",
+        "holiday": "Public holiday",
+        "event": "Nearby event",
+        "traffic": "Traffic {pct}"
       },
-      "eyebrow": "Item Detail",
-      "description": "Forecast signals, risk analysis, and history for this item.",
-      "insight": "Your decisions on this item train the model for future shifts.",
-      "backToPrepPlan": "Back To Prep Plan",
-      "loading": "Loading",
-      "whyThisNumber": "Why This Number",
-      "howForecastBuilt": "How Forecast Built",
-      "howForecastBuiltDesc": "How Forecast Built Desc",
-      "confidence": "Confidence",
-      "chefWeight": {
-        "overrideWeight": "Override Weight",
-        "trustChef": "Trust Chef",
-        "blended": "Blended",
-        "modelLed": "Model Led"
+      "learnedTag": "learned · {count} days",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "provenanceCta": "How this plan was made",
+      "llmBadge": "Written by PrepIQ from audited pipeline numbers",
+      "templateBadge": "Auto-generated summary from pipeline numbers",
+      "greeting": "Hello {name}, PrepIQ has your briefing ready.",
+      "openBriefing": "Open briefing",
+      "unavailable": "Your briefing will appear here once today's plan is ready."
+    },
+    "provenance": {
+      "eyebrow": "Behind the plan",
+      "title": "How this plan was made",
+      "close": "Close",
+      "unavailable": "Provenance details are not available for this plan yet.",
+      "askWhy": "Ask PrepIQ why",
+      "model": {
+        "prophet": "Seasonal trends",
+        "xgb": "Machine learning",
+        "seasonalNaive": "Same day last week",
+        "movingAverage": "Recent average"
       },
-      "whatIf": "What If",
-      "comparePrepQuantities": "Compare Prep Quantities",
-      "metrics": {
-        "pastAccuracy": "Past Accuracy",
-        "wasteRate": "Waste Rate",
-        "stockoutRate": "Stockout Rate",
-        "daysTracked": "Days Tracked"
+      "step": {
+        "read": {
+          "title": "Read your sales history",
+          "body": "Every forecast starts from your own POS records — day by day, item by item."
+        },
+        "clean": {
+          "title": "Set aside unusual days",
+          "body": "Closures, outages, sellouts and one-off spikes are detected and kept from distorting the forecast.",
+          "fact": "{count} day(s) set aside across {items} item(s)"
+        },
+        "signals": {
+          "title": "Checked outside signals",
+          "body": "Weather, public holidays and nearby events are weighed against how your kitchen responded to them before."
+        },
+        "blend": {
+          "title": "Blended forecasting models",
+          "body": "Several models forecast independently; the blend favors whichever has been most accurate here recently."
+        },
+        "targets": {
+          "title": "Set prep targets",
+          "body": "Quantities balance the cost of running out against the cost of waste for each item.",
+          "fact": "Service level: {pct}%"
+        },
+        "taught": {
+          "title": "What this branch has taught us",
+          "body": "Not rules we set — patterns your branch proved over time, each measured from your own results.",
+          "empty": "No learned patterns yet. PrepIQ builds these as your branch racks up days."
+        }
       },
-      "ingredients": {
-        "whatYouNeed": "What You Need",
-        "description": "Ingredients required to match your planned quantity.",
-        "yourPlannedQty": "Your Planned Qty",
-        "calculating": "Calculating",
-        "noRecipe": "No Recipe",
-        "addRecipe": "Add Recipe",
-        "buildRecipe": "Build Recipe",
-        "emptyRecipe": "Empty Recipe",
-        "editRecipe": "Edit Recipe",
-        "perServing": "Per Serving",
-        "wasteBuffer": "Waste Buffer",
-        "basedOn": "Based On",
-        "plannedQuantity": "Planned Quantity"
+      "learnedFrom": "{count} days",
+      "activeToday": "Firing today"
+    },
+    "prepSheet": {
+      "eyebrow": "Ingredients",
+      "title": "Ingredient prep sheet · {count} ingredients",
+      "perishable": "Perishable"
+    },
+    "pace": {
+      "headline": "By {time} you're at {actualPct} of today's plan — a typical day like this is at {expectedPct}.",
+      "typicalTick": "typical",
+      "projectedClose": "Projected close: {projected} of {planned} planned ({gap}).",
+      "onPace": "On pace",
+      "surge": "Running hot",
+      "slowdown": "Running slow",
+      "tooEarly": "Pace tracking starts once the day's rhythm is established.",
+      "itemSurge": "Pacing {pct} vs typical — projected {projected} by close",
+      "itemSlowdown": "Pacing {pct} vs typical — projected {projected} by close"
+    },
+    "signalType": {
+      "RAIN": "Rain",
+      "TEMP_HOT": "Hot day",
+      "TEMP_COLD": "Cold day",
+      "PUBLIC_HOLIDAY": "Public holiday",
+      "PAYDAY": "Payday",
+      "SCHOOL_HOLIDAY": "School holiday",
+      "RELIGIOUS_RAMADAN": "Ramadan",
+      "RELIGIOUS_LENT": "Lent",
+      "SPORTS_BROADCAST": "Sports on TV"
+    },
+    "signalLearnedFrom": "learned from {count} days",
+    "learned": {
+      "rainResponse": "Today was a rainy day — tomorrow's forecast now weighs how your kitchen responded to rain.",
+      "eventResponse": "A nearby event ran today — its real impact on your sales feeds the event model.",
+      "overrides": "{count} override(s) recorded; {won} beat the forecast — the model shifts its trust on those items.",
+      "wasteRows": "{count} waste event(s) feed tomorrow's buffer calculation.",
+      "stockoutRows": "{count} sellout(s) marked as censored demand — estimated from pace before selling out, not ignored."
+    },
+    "phase": {
+      "plan": "Plan",
+      "service": "Service",
+      "review": "Review",
+      "aria": "Day progress"
+    },
+    "ingredients": {
+      "title": "Ingredient requirements",
+      "subtitle": "What your kitchen needs to prep today's plan",
+      "recalculate": "Recalculate",
+      "calculating": "Calculating…",
+      "countSummary": "{count} ingredients",
+      "shortSummary": "{count} short",
+      "costSummary": "est. {amount} to cover",
+      "allCovered": "all covered by stock on hand",
+      "shortHeading": "{count} ingredient(s) short for today's plan",
+      "need": "Need",
+      "onHand": "on hand",
+      "short": "Short",
+      "covered": "Covered",
+      "stockUnknown": "No stock count",
+      "emptyLocked": "Ingredient quantities could not be calculated for this plan. Try recalculating.",
+      "emptyUnlocked": "Lock the plan and PrepIQ will work out exactly what you need — and what you're short.",
+      "noRecipeData": "No ingredient data found.",
+      "buildRecipes": "Build recipes →",
+      "setUpRecipes": "Set up recipes →",
+      "missingRecipes": "{count} item(s) missing recipes",
+      "missingRecipesHint": "These items are in your prep plan but have no recipe defined:",
+      "addMissingRecipes": "Add missing recipes →",
+      "error": "Could not calculate ingredient demand. Make sure recipes are set up for your menu items.",
+      "footerFromLock": "Calculated when the plan was locked",
+      "footerFromManual": "Recalculated by hand",
+      "goToPurchasing": "Order what's short →",
+      "uncountedSummary": "{count} not counted"
+    },
+    "tasksStrip": {
+      "suggested": "{count} suggested task(s) waiting for your review",
+      "review": "Review →",
+      "counts": "Tasks: {todo} to do · {inProgress} in progress · {done} done",
+      "open": "Open the board →"
+    },
+    "plan": {
+      "carryOver": "− {quantity} stored from yesterday",
+      "carryOverTitle": "Demand forecast is {demand}; stored stock covers part of it, so there is less to produce."
+    },
+    "advisory": {
+      "surgeWindow": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready within the next {window} minutes to reduce stockout risk.",
+      "surge": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready soon to reduce stockout risk.",
+      "runoutSoon": "At the current pace this runs out in about {runoutMin} min, and a batch takes {prepTimeMin} min — worth deciding soon.",
+      "watchPace": "Demand is moving away from the plan — worth keeping an eye on the pace.",
+      "confidence": "Confidence: {confidence}%"
+    },
+    "record": {
+      "title": "Record what you cooked",
+      "description": "Log the batch of {item} the kitchen actually made. This records a fact — it doesn't change any suggestion.",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "submit": "Record batch",
+      "quantityLabel": "Quantity cooked ({unit})",
+      "placeholder": "Enter quantity in {unit}",
+      "hint": "If sales flow in from your POS, CSV or the PIQ Connector, you only need this when a batch isn't captured there."
+    },
+    "timeline": {
+      "title": "How the day is unfolding",
+      "legendSold": "Sold",
+      "legendExpected": "Typical pace",
+      "legendPlanned": "Planned",
+      "allOnPace": "Every dish is tracking its usual pace.",
+      "onPaceCount": "On pace · {count} dishes",
+      "rowNumbers": "{sold} sold of {target} planned",
+      "projected": "heading for {projected}",
+      "planned": "Plan: {quantity}",
+      "batchTooltip": "Batch of {quantity} around {hour}",
+      "hoverSold": "Sold: {quantity}",
+      "hoverExpected": "Typical: {quantity}",
+      "chartAria": "Intraday sales pace for {item}"
+    },
+    "outcomes": {
+      "title": "What happened to the remaining units?",
+      "subtitle": "Unsold food isn't waste until you say so — stored and converted stock re-enters tomorrow's plan.",
+      "allAttributed": "✓ Everything accounted for",
+      "progress": "{attributed} of {total} accounted for",
+      "bulk": "Quick fill",
+      "bulkStore": "Store all in fridge",
+      "bulkUnknown": "Not sure for all",
+      "minorLeftovers": "Minor leftovers · {count} items",
+      "itemQuestion": "{quantity} {item} remaining — what happened?",
+      "itemComplete": "✓ Accounted for",
+      "itemRemaining": "{quantity} unaccounted",
+      "itemContext": "Prepared {prepared} · sold {sold}",
+      "presumedFromPlan": "based on your plan — production wasn't logged",
+      "stockoutQuestion": "{item} sold {sold} of {prepared} prepared — did you actually run out and turn guests away?",
+      "stockoutYes": "Yes, we ran out",
+      "stockoutNo": "No, sold out exactly",
+      "expiredQuestion": "{quantity} {item} ({state}, stored {date}) passed its shelf life — what happened to it?",
+      "state": {
+        "DISCARDED": "Discarded",
+        "REFRIGERATED": "Refrigerated",
+        "FROZEN": "Frozen",
+        "CONVERTED": "Converted",
+        "STAFF_MEAL": "Staff meal",
+        "DISCOUNTED": "Discounted",
+        "UNKNOWN": "Not sure"
       },
-      "decision": {
-        "yourDecision": "Your Decision",
-        "aiRecommends": "Ai Recommends",
-        "yourPlan": "Your Plan",
-        "notSet": "Not Set",
-        "status": "Status",
-        "acceptedAi": "Accepted Ai",
-        "yourOverride": "Your Override",
-        "pending": "Pending",
-        "planSaved": "Plan Saved",
-        "couldNotSave": "Could Not Save",
-        "saving": "Saving",
-        "accept": "Accept",
-        "qtyPlaceholder": "Qty Placeholder",
-        "setOverride": "Set Override",
-        "planLocked": "Plan Locked"
+      "discardReason": {
+        "SPOILED": "Spoiled",
+        "QUALITY_ISSUE": "Quality issue",
+        "DEMAND_DROPPED": "Demand dropped",
+        "LATE_PREP": "Late prep",
+        "OTHER": "Other"
       },
-      "risk": {
-        "riskToday": "Risk Today",
-        "runOutRisk": "Run Out Risk",
-        "wasteRisk": "Waste Risk",
-        "highRunOut": "High Run Out",
-        "highWaste": "High Waste"
+      "expired": {
+        "DISCARD": "Discard it",
+        "USED": "We used it",
+        "STILL_GOOD": "Still good"
+      }
+    },
+    "aiTasksToast": {
+      "title": "PrepIQ AI has suggested new tasks for today's shifts.",
+      "subtitle": "Click to review, edit and assign them to your team."
+    },
+    "viewOnly": {
+      "badge": "View only",
+      "hint": "You can follow the day live; changing the plan needs kitchen-operations permission."
+    },
+    "briefDrawer": {
+      "close": "Close briefing",
+      "watchouts": "Watchouts",
+      "pastLearnings": "What PrepIQ has learned here",
+      "askEyebrow": "Ask about this briefing",
+      "askPlaceholder": "e.g. Why is demand up today?",
+      "askCta": "Ask"
+    },
+    "expectedDemandHint": "How busy we expect today to be compared with a typical {typicalDay}, based on your sales history plus weather, events, holidays and other live signals. +8% means roughly 8% more orders than normal.",
+    "reliability": {
+      "verdictSolid": "Solid — the plan tracks expected demand closely; your usual inventory buffer is enough.",
+      "verdictOkay": "Okay — forecasts carry some uncertainty today; a small extra buffer on flagged items is wise.",
+      "verdictRisky": "Risky — today is hard to predict; review flagged items and keep a generous buffer to avoid stockouts."
+    },
+    "signalsBanner": {
+      "title": "Demand signals",
+      "modalDescription": "The exact inputs feeding today's baseline.",
+      "noEffectDetail": "No measurable effect on today's forecast.",
+      "history": "Sales trends",
+      "historyDetail": "Today's baseline comes from your sales history on similar days ({typicalDay}).",
+      "typicalDay": "day like this",
+      "operatingHours": "Operating hours",
+      "weather": "Weather",
+      "stockoutHistory": "Stockout history",
+      "stockoutDetailActive": "{count} item(s) carry an elevated shortage risk based on their track record.",
+      "stockoutDetailQuiet": "No items are flagged by their stockout track record today.",
+      "dayOfWeek": "Day of week",
+      "dayOfWeekDetail": "Weekday patterns from your history shape the baseline for a {typicalDay}.",
+      "events": "Events & holidays",
+      "chefAdjustments": "Chef adjustments",
+      "chefDetailActive": "{count} item(s) were manually adjusted by the kitchen for today.",
+      "chefDetailQuiet": "No manual adjustments to today's plan.",
+      "macroTrends": "Macro trends",
+      "macroDetailActive": "{item} is trending {pct} across the network.",
+      "macroDetailQuiet": "No validated macro trends detected right now.",
+      "network": "Network signals",
+      "networkDetailActive": "Insights transferred from {count} PrepIQ locations.",
+      "networkDetailQuiet": "No cross-location signals apply to today.",
+      "param": {
+        "effect": "Effect on today",
+        "learnedFrom": "Learned from",
+        "days": "{count} days",
+        "learnedResponse": "Learned response",
+        "expectedVsTypical": "Expected vs typical",
+        "forecastConfidence": "Forecast confidence",
+        "condition": "Condition",
+        "rain": "Rain",
+        "yes": "Yes",
+        "itemsAtRisk": "Items at risk",
+        "trackedItems": "Tracked items",
+        "publicHoliday": "Public holiday",
+        "sportsEvent": "Sports event",
+        "overriddenItems": "Adjusted items",
+        "pattern": "Pattern",
+        "confidence": "Confidence",
+        "locations": "Locations"
       },
-      "quickStats": {
-        "past60Days": "Past60 Days",
-        "aiAccuracy": "Ai Accuracy",
-        "stockouts": "Stockouts",
-        "wasteRate": "Waste Rate",
-        "daysTracked": "Days Tracked"
-      },
-      "viewFullHistory": "View Full History"
+      "subtitle": "Read before the kitchen opens — tap any signal to see the data behind it.",
+      "activeCount": "{active} of {total} shaping today",
+      "behindThis": "Behind this number",
+      "sourceNote": "Computed from your own sales, weather, calendar and stockout records — not estimates."
+    },
+    "wizard": {
+      "title": "Close-day review",
+      "step1": "Your reflection",
+      "step2": "PrepIQ observations",
+      "step3": "Tomorrow's outlook",
+      "back": "Back",
+      "continueToObservations": "Continue — see what PrepIQ observed",
+      "continueToTomorrow": "Continue — tomorrow's outlook",
+      "reflectionIntro": "Before the numbers: how did the day look from where you stood?",
+      "promptWaste": "Was there any kitchen waste that never got recorded?",
+      "promptStockouts": "Did you notice items running out before close?",
+      "promptStaffing": "Any staffing gaps or anomalies during service?",
+      "staffCoverage": "Staffing for tomorrow",
+      "coverageLine": "Coverage {pct}% — {scheduled} of {required} people scheduled",
+      "coverageUnknown": "No staffing requirement is set for tomorrow yet.",
+      "availabilityLine": "{submitted} of {roster} team members have submitted availability.",
+      "notifyFlag": "PrepIQ should nudge {count} team member(s) who haven't submitted availability.",
+      "availabilityComplete": "Everyone has submitted availability.",
+      "openSchedule": "Open the schedule →"
+    },
+    "signalCard": {
+      "sales_trends": "Sales trends",
+      "operating_hours": "Operating hours",
+      "weather": "Weather",
+      "stockout_history": "Stockout history",
+      "day_of_week": "Day of week",
+      "events_holidays": "Events & holidays",
+      "chef_adjustments": "Chef adjustments",
+      "macro_trends": "Macro trends",
+      "network": "Network signals",
+      "quiet": "No effect"
     }
   },
   "profile": {
@@ -1044,6 +1282,8 @@
     "security": {
       "changePasswordTitle": "Change Password",
       "changePasswordDescription": "Update your password. You will need your current password to make changes.",
+      "setPasswordTitle": "Set a Password",
+      "setPasswordDescription": "You signed up with Google. Add a password so you can also sign in with your email.",
       "currentPassword": "Current password",
       "currentPasswordPlaceholder": "Enter your current password",
       "newPassword": "New password",
@@ -1076,6 +1316,7 @@
     "dashboard": "Dashboard",
     "today": "Today",
     "planning": "Planning",
+    "schedule": "Schedule",
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
@@ -1086,18 +1327,63 @@
     "purchasing": "Purchasing",
     "risk": "Risk",
     "billing": "Billing",
-    "chat": "Chat",
+    "chat": "Operations Hub",
     "settings": "Settings",
+    "notifications": "Notifications",
+    "profile": "My Profile",
+    "support": "Support",
     "section": {
       "analytics": "Analytics",
       "management": "Management",
       "workspace": "Workspace"
-    }
+    },
+    "tasks": "Tasks"
+  },
+  "command": {
+    "placeholder": "Search or type a command…",
+    "close": "Close",
+    "sectionNavigation": "Navigation",
+    "sectionRecent": "Recent",
+    "sectionSearch": "Workspace search",
+    "sectionAsk": "Ask PrepIQ",
+    "ask": "Ask PrepIQ:",
+    "thinking": "PrepIQ is thinking…",
+    "open": "Open",
+    "applied": "Applied",
+    "declined": "Declined",
+    "failed": "Failed",
+    "audited": "Audited",
+    "backHint": "Press Esc to go back",
+    "empty": "No matching pages.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorNoBranch": "Select a branch to run commands.",
+    "errorUnavailable": "The assistant is unreachable — navigation still works."
   },
   "settings": {
+    "sessions": {
+      "title": "Active sessions",
+      "subtitle": "Devices currently signed in to your account. Revoke any you don't recognize.",
+      "thisDevice": "This device",
+      "activePrefix": "Active",
+      "revoke": "Revoke",
+      "revokeTitle": "Sign out this device?",
+      "revokeConfirm": "This will sign {device} out of your account immediately.",
+      "signOutOthers": "Sign out other devices",
+      "signOutOthersConfirm": "This signs you out everywhere except this device. You'll stay signed in here.",
+      "signedOutOthers": "Signed out of all other devices",
+      "revoked": "Device signed out",
+      "revokeFailed": "Could not sign out that device. Please try again.",
+      "loadFailed": "Could not load your active sessions.",
+      "empty": "No other active sessions."
+    },
     "organization": {
       "title": "Organization Settings",
       "description": "Manage global business identity and operational defaults.",
+      "noOrg": {
+        "title": "You don't have an organization yet",
+        "description": "Create an organization to set up branches, connect your POS, and start planning.",
+        "cta": "Create organization"
+      },
       "saving": "Saving...",
       "saveChanges": "Save Changes",
       "general": "General",
@@ -1149,6 +1435,8 @@
       "saving": "Saving...",
       "saveChanges": "Save Changes",
       "noBranchSelected": "Select a branch to configure its settings.",
+      "noBranchesYet": "You haven't created a branch yet. Add one to configure its settings.",
+      "createFirstBranch": "Create your first branch",
       "general": "General",
       "kitchenConfiguration": "Kitchen Configuration",
       "demandContext": "Demand Context",
@@ -1168,7 +1456,24 @@
       "demandContextBefore": "Advanced demand patterns (nearby venues, events) are currently managed via the",
       "intelligenceEngine": "PrepIQ Intelligence Engine",
       "demandContextAfter": "automatically.",
-      "updated": "Branch settings updated"
+      "updated": "Branch settings updated",
+      "delete": {
+        "title": "Delete this branch",
+        "description": "Removes this location from operations. Its history is retained, then purged after 90 days.",
+        "lastBranch": "You can't delete your only active branch. Add another branch first.",
+        "button": "Delete branch",
+        "confirm": "Delete “{name}”? This removes it from operations. This cannot be undone from here.",
+        "dataNote": "Its sales, production, inventory, and staff data are hidden immediately, recoverable for 90 days, then purged. Any POS connector on this branch is disconnected.",
+        "reasonLabel": "Why are you deleting this branch?"
+      },
+      "deleteReasons": {
+        "locationClosed": "Location closed permanently",
+        "seasonal": "Temporary / seasonal closure",
+        "consolidating": "Consolidating into another branch",
+        "testDuplicate": "Was a test or duplicate",
+        "switchedTool": "Moving this location to another tool",
+        "other": "Other"
+      }
     },
     "tabs": {
       "organization": "Organization",
@@ -1226,20 +1531,42 @@
         "type": "Notification Type",
         "inApp": "In-App",
         "email": "Email",
-        "push": "Push"
+        "push": "Push",
+        "digest": "Daily Digest"
       },
       "types": {
-        "production": "Production & Prep",
-        "productionDesc": "Prep plan updates and completion alerts",
-        "inventory": "Inventory & Waste",
-        "inventoryDesc": "Stockout risks and high-waste threshold alerts",
-        "supplier": "Supplier & Purchasing",
-        "supplierDesc": "Order reminders and delivery status",
-        "staff": "Staff & Performance",
-        "staffDesc": "Shift assignments and daily summaries"
+        "operational": "Operational",
+        "operationalDesc": "System events: connectors, imports, invoices, backups",
+        "planning": "Planning",
+        "planningDesc": "Pre-service alerts: forecasts, inventory checks, events",
+        "liveService": "Live Service",
+        "liveServiceDesc": "In-service alerts: stockouts, demand spikes, production risk",
+        "learning": "Learning",
+        "learningDesc": "End-of-day insights: forecast accuracy, waste trends",
+        "executive": "Executive",
+        "executiveDesc": "Owner summaries: revenue trends, branch ranking, cost anomalies"
       },
+      "digestRequiresEmail": "Turn on Email for this type to receive it as a daily digest instead.",
       "escalationTitle": "Operational Escalation",
-      "escalationDescription": "Critical system alerts (like server downtime or major inventory discrepancies) bypass these settings and are always sent via all available channels to ensure operational continuity."
+      "escalationDescription": "Critical alerts (like connector outages or stockout risk) always keep an in-app record even if In-App is turned off for that type, so nothing business-critical goes unseen. Email and push preferences are still fully respected.",
+      "quietHours": {
+        "title": "Quiet Hours",
+        "description": "Silence push notifications during a set window each night. In-app notifications are never affected, so nothing is missed — you just won't be buzzed while it's on.",
+        "enable": "Enable quiet hours",
+        "start": "Starts at",
+        "end": "Ends at"
+      },
+      "webPush": {
+        "title": "Get alerts in your browser",
+        "description": "Turn on browser notifications to catch time-sensitive alerts even when this tab isn't open. We only push what needs a decision now, and you control which categories above.",
+        "enable": "Enable browser notifications",
+        "enabling": "Enabling…",
+        "enabled": "Browser notifications enabled.",
+        "denied": "Notifications were blocked. You can allow them in your browser settings.",
+        "blocked": "Notifications are blocked for this site — allow them in your browser settings to enable.",
+        "unconfigured": "Browser push isn't configured on the server yet.",
+        "error": "Couldn't enable browser notifications. Please try again."
+      }
     },
     "roles": {
       "title": "Custom Roles",
@@ -1319,6 +1646,89 @@
         "descriptionDefault": "This action will remove the member from the organization.",
         "confirmLabel": "Remove member"
       }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "subtitle": "Irreversible actions. Please be certain before continuing.",
+      "soleOwner": {
+        "title": "You're the sole owner",
+        "body": "Before deleting your account, transfer ownership or delete these organizations:"
+      },
+      "leave": {
+        "title": "Leave organization",
+        "description": "Remove yourself from this organization. Your work stays with the org; you keep your account.",
+        "button": "Leave",
+        "confirm": "You'll lose access to this organization until you're re-invited. Your account stays yours.",
+        "reasonLabel": "Why are you leaving? (optional)",
+        "done": "You left the organization."
+      },
+      "leaveReasons": {
+        "leftCompany": "Left the company / no longer work here",
+        "roleChanged": "Changed roles — don't need access",
+        "wrongOrg": "Joined the wrong organization",
+        "teamIssue": "Problem with the team"
+      },
+      "transfer": {
+        "title": "Transfer ownership",
+        "description": "Hand the owner role to another member. You'll be downgraded to admin.",
+        "button": "Transfer ownership",
+        "modalDescription": "Choose the member who will become the new owner.",
+        "selectLabel": "New owner",
+        "selectPlaceholder": "Select a member…",
+        "reasonLabel": "Reason (optional)"
+      },
+      "transferReasons": {
+        "delegating": "Delegating day-to-day management",
+        "sellingBusiness": "Selling / handing over the business",
+        "leaving": "I'm leaving / role change"
+      },
+      "org": {
+        "title": "Delete organization",
+        "description": "Permanently deletes the organization, cancels billing, and removes every member's access.",
+        "button": "Delete organization",
+        "modalTitle": "Delete organization",
+        "modalDescription": "This cancels your subscription and removes all branches and members.",
+        "warning": "This is irreversible. All members lose access and billing is cancelled. Data is retained briefly, then purged.",
+        "reasonLabel": "Why are you deleting this organization?",
+        "detailsLabel": "Anything else? (optional)",
+        "detailsPlaceholder": "Tell us more…",
+        "typeName": "Type “{name}” to confirm",
+        "confirmButton": "Delete organization",
+        "deleted": "Organization deleted."
+      },
+      "account": {
+        "title": "Delete account",
+        "description": "Permanently deletes your personal account and profile. This can't be undone.",
+        "button": "Delete account",
+        "modalTitle": "Delete your account",
+        "modalDescription": "Your profile is scheduled for deletion and anonymized after 30 days.",
+        "reasonLabel": "Why are you leaving?",
+        "detailsLabel": "Anything else? (optional)",
+        "detailsPlaceholder": "Tell us more…",
+        "typeToConfirm": "Type DELETE to confirm",
+        "confirmButton": "Delete my account",
+        "deleted": "Your account has been deleted.",
+        "failed": "Failed to delete account.",
+        "soleMemberTitle": "This also deletes your organization",
+        "soleMemberWarning": "You're the only member of {org}. Deleting your account will also permanently delete it, all of its branches ({count}), and cancel its subscription."
+      },
+      "reasons": {
+        "notUseful": "Not useful for me",
+        "tooComplicated": "Too complicated",
+        "privacy": "Privacy concerns",
+        "startingOver": "Starting over — want a new organization",
+        "noLongerHere": "No longer at this company / changed jobs",
+        "other": "Other"
+      },
+      "orgReasons": {
+        "switchedTool": "Switching to another tool",
+        "tooExpensive": "Too expensive / not worth the price",
+        "missingFeatures": "Missing features we needed",
+        "businessClosed": "Business closed / no longer operating",
+        "justTesting": "Just testing / created by mistake",
+        "tooHard": "Too hard to set up / never got value",
+        "pausing": "Pausing — seasonal or temporary"
+      }
     }
   },
   "roles": {
@@ -1354,6 +1764,8 @@
       "emailLabel": "Email",
       "emailPlaceholder": "e.g. manager@branch.com",
       "timezoneLabel": "Time zone",
+      "currencyLabel": "Operating currency",
+      "currencyHelp": "Sales, inventory value, and reports for this branch show in this currency. Subscriptions are priced in USD and converted at checkout.",
       "scheduleLabel": "Operating schedule",
       "scheduleDescription": "Toggle open days and set hours for each day.",
       "weekdayTemplate": "Weekday template",
@@ -1370,7 +1782,10 @@
       "skip": "Skip for now",
       "optional": "(optional)",
       "limitReached": "Branch limit reached on current plan.",
-      "upgradePlan": "Upgrade plan"
+      "upgradePlan": "Upgrade plan",
+      "trialBadge": "30-day Intelligence trial",
+      "trialNoticeTitle": "Your 30-day free trial starts now",
+      "trialNoticeDescription": "Creating this branch automatically activates a 30-day free trial of the Intelligence plan — full access, no card required. If you choose to subscribe to a paid plan, billing only starts after your trial ends."
     },
     "branchPrompt": {
       "orgCreated": "Organization created",
@@ -1442,6 +1857,7 @@
       "currentTier": "Current Tier",
       "getStarted": "Get Started",
       "upgradeNow": "Upgrade Now",
+      "downgradeNow": "Downgrade",
       "downgradeRestricted": "Downgrade Restricted",
       "secureInfra": "Secure Infrastructure",
       "secureInfraDesc": "PropIQ uses enterprise-grade encryption for all POS integrations and operational data. Verified PCI-DSS compliant transactions.",
@@ -1460,6 +1876,10 @@
       "detailsTitle": "Subscription Details",
       "transitioning": "Transitioning your {branch} branch to the {plan} plan.",
       "settingUp": "Setting up {plan} for your organization.",
+      "trialDeferralSubtitle": "Locking in {plan} — your free trial keeps running.",
+      "trialDeferralDetected": "Your Trial Continues Uninterrupted",
+      "trialDeferralDesc": "You're currently on a free trial. Your card is charged today to lock in this plan, but your trial isn't cut short — you keep full access, and this plan's billing period only begins once your trial ends.",
+      "trialDeferralDescWithDate": "You're currently on a free trial. Your card is charged today to lock in this plan, but your trial isn't cut short — you keep full access until {date}, when this plan's billing period begins.",
       "upgradeTransitionDetected": "Upgrade Transition Detected",
       "upgradeTransitionDesc": "You are currently on the {currentPlan} plan. By proceeding, your new {newPlan} tier will activate immediately, replacing your existing subscription window for this branch.",
       "selectedTier": "Your selected operations tier",
@@ -1478,10 +1898,6 @@
       "primary": "(Primary)",
       "paymentMethod": "Payment Method",
       "card": "Credit / Debit Card",
-      "cardDesc": "Secure payment via Stripe",
-      "mpesa": "M-Pesa / Mobile",
-      "mobileMoney": "Mobile Money",
-      "mobileMoneyDesc": "Pay via PawaPay",
       "orderSummary": "Order Summary",
       "planPlan": "{plan} plan",
       "billingCycleLabel": "Billing cycle",
@@ -1491,6 +1907,7 @@
       "perYear": "per year",
       "processing": "Processing...",
       "pay": "Pay {amount}",
+      "convertedFromUsd": "Converted from {amount} USD at today's rate. Charged in {currency}.",
       "termsPrivacy": "By proceeding, you agree to PrepIQ's Terms of Service and Privacy Policy. Payments are non-refundable.",
       "pciCompliant": "PCI Compliant",
       "shieldTitle": "Intelligence Shield",
@@ -1508,7 +1925,26 @@
       "cardAccepted": "Visa, Mastercard, and all major cards accepted",
       "securePayment": "Secure, encrypted payment — you will be redirected to complete payment.",
       "monthlyLabel": "Monthly",
-      "yearlyLabel": "Yearly"
+      "yearlyLabel": "Yearly",
+      "success": {
+        "title": "Payment successful",
+        "description": "Your subscription is now active. A receipt has been sent to your billing email.",
+        "loading": "Confirming your payment...",
+        "plan": "Plan",
+        "amountPaid": "Amount paid",
+        "date": "Date",
+        "reference": "Reference",
+        "goToDashboard": "Go to Dashboard",
+        "backToBilling": "Back to Billing",
+        "pendingTitle": "Confirming your payment",
+        "pendingDesc": "This usually takes a few seconds. This page will update automatically once your payment is confirmed.",
+        "failedTitle": "Payment didn't go through",
+        "failedDesc": "Your payment couldn't be completed. No charge was made — please try again.",
+        "tryAgain": "Try again",
+        "notFoundTitle": "We couldn't find that payment",
+        "notFoundDesc": "This link may have expired or is missing information. Please return to checkout and try again.",
+        "backToCheckout": "Back to checkout"
+      }
     },
     "forecast": {
       "title": "Forecast & Demand",
@@ -1766,6 +2202,14 @@
     "fixed_amount": "Fixed amount",
     "forecast_boost_explanation": "The forecast engine will boost predicted demand for these items when this promotion is active.",
     "forecast_impact": "Forecast impact",
+    "conversations": "Conversations",
+    "conversation_empty": "Empty conversation",
+    "conversation_live": "Today's conversation is still live.",
+    "conversation_continue": "Continue it on the Today page →",
+    "auto_detected": "Already detected",
+    "auto_detected_hint": "We already knew about these — no data entry needed.",
+    "learned_label": "learned",
+    "learned_days": "{count} days",
     "free_item": "Free item",
     "fri": "Fri",
     "full_day_closure": "Full-day closure",
@@ -1842,14 +2286,25 @@
     "update_details": "Update details",
     "update_note": "Update note (optional)",
     "wed": "Wed",
-    "wedding": "Wedding"
+    "wedding": "Wedding",
+    "today": "Today",
+    "previous_month": "Previous month",
+    "next_month": "Next month",
+    "month_events": "{{count}} events this month",
+    "month_guests": "{{count}} expected guests",
+    "month_promos": "{{count}} promotions",
+    "menu_availability": "Menu Availability",
+    "manage_link": "Manage →",
+    "no_unavailable_items": "No items marked unavailable for this day.",
+    "off_menu": "Off Menu",
+    "supply": "Supply"
   },
   "workspace": {
     "chat": {
-      "eyebrow": "Chat",
-      "title": "Chat",
-      "description": "Team communication",
-      "insight": "Real-time messaging for your kitchen team."
+      "eyebrow": "Operations Hub",
+      "title": "Operations Hub",
+      "description": "Work-centric team communication",
+      "insight": "Conversations, live kitchen events, shared operational data and PrepIQ — one stream."
     },
     "notifications": {
       "eyebrow": "Notifications",
@@ -1862,7 +2317,16 @@
       },
       "domainSystem": "System",
       "markAsRead": "Mark As Read",
-      "resolve": "Resolve"
+      "resolve": "Resolve",
+      "tab": {
+        "operational": "Operational",
+        "planning": "Planning",
+        "liveService": "Live Service",
+        "learning": "Learning",
+        "executive": "Executive"
+      },
+      "explain": "Explain",
+      "explainLoading": "Thinking..."
     },
     "branches": {
       "status": {
@@ -1924,6 +2388,7 @@
         "emailLabel": "Email Label",
         "emailPlaceholder": "Email Placeholder",
         "timezoneLabel": "Timezone Label",
+        "currencyLabel": "Operating currency",
         "operatingHours": "Operating Hours",
         "operatingHoursDescription": "Operating Hours Description",
         "weekdaysOnly": "Weekdays Only",
@@ -1938,7 +2403,9 @@
         "managePlan": "Manage Plan",
         "noOrgWarning": "No Org Warning",
         "creating": "Creating",
-        "submit": "Submit"
+        "submit": "Submit",
+        "trialNoticeTitle": "30-day free trial included",
+        "trialNoticeDescription": "This branch will automatically start a 30-day free trial of the Intelligence plan — full access, no card required. If you subscribe to a paid plan, billing starts after the trial ends, not before."
       }
     },
     "billing": {
@@ -1969,6 +2436,7 @@
         "upToLocations": "Up To Locations",
         "currentPlan": "Current Plan",
         "downgradeDisabled": "Downgrade Disabled",
+        "downgradeTo": "Downgrade",
         "renew": "Renew",
         "upgradeTo": "Upgrade To",
         "select": "Select",
@@ -2212,66 +2680,63 @@
       "loadingFallback": "Loading Fallback"
     },
     "staffPerformance": {
-      "confirmRemove": "Confirm Remove",
-      "columnStaff": "Column Staff",
-      "columnRole": "Column Role",
-      "columnBranch": "Column Branch",
-      "columnProductionEfficiency": "Column Production Efficiency",
-      "columnErrorRate": "Column Error Rate",
-      "columnWasteContribution": "Column Waste Contribution",
-      "columnShiftReliability": "Column Shift Reliability",
-      "columnTrend": "Column Trend",
-      "trendValue": "Trend Value",
-      "columnCoaching": "Column Coaching",
-      "eyebrow": "Staff Performance",
+      "eyebrow": "Team",
       "title": "Staff Performance",
-      "description": "Track staff efficiency, quality, and coaching needs.",
-      "insight": "Identify top performers and coaching opportunities.",
-      "staffTracked": "Staff Tracked",
-      "activeOperators": "Active Operators",
-      "avgEfficiency": "Avg Efficiency",
-      "productionQuality": "Production Quality",
-      "avgErrorRate": "Avg Error Rate",
-      "executionMistakes": "Execution Mistakes",
-      "coachingQueue": "Coaching Queue",
-      "high": "High",
-      "medium": "Medium",
-      "reliability": "Reliability",
+      "description": "Performance derived from real records: schedule adherence from the labor app and task completion from the kitchen board.",
+      "insight": "Every number traces back to a published shift, an availability submission, or a task event — nothing is estimated.",
+      "confirmRemove": "Remove {name} from the team?",
+      "loadError": "Could not load staff performance.",
+      "staffTracked": "Staff tracked",
+      "activeOperators": "Active operational team members",
+      "avgCompletion": "Avg task completion",
+      "avgCompletionCaption": "Assigned kitchen tasks that reached Done",
+      "avgAdherence": "Avg schedule adherence",
+      "avgAdherenceCaption": "Shifts inside submitted availability",
+      "coachingQueue": "Coaching queue",
+      "high": "high",
+      "medium": "medium",
+      "coachingCaption": "Blend of completion, adherence and submissions",
       "scope": "Scope",
-      "scopeDescription": "Performance scope and filters",
+      "scopeDescription": "Pick the window and branch these metrics cover.",
       "timeframe": "Timeframe",
-      "last7Days": "Last7 Days",
-      "last30Days": "Last30 Days",
-      "last90Days": "Last90 Days",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "last90Days": "Last 90 days",
       "branch": "Branch",
-      "allBranches": "All Branches",
-      "scopeNote": "Scope Note",
-      "performanceTable": "Performance Table",
-      "performanceTableDesc": "Performance Table Desc",
-      "totalRecord": "Total Record",
-      "totalRecords": "Total Records",
-      "loadingStaff": "Loading Staff",
-      "noStaffRecords": "No Staff Records",
-      "showingRecords": "Showing Records",
+      "allBranches": "All branches",
+      "scopeNote": "Schedule adherence compares each published shift with the availability the person submitted for that week. Task completion counts assigned kitchen tasks that reached Done; cancelled tasks are excluded. A dash means there is no data in this window.",
+      "performanceTable": "Performance table",
+      "performanceTableDesc": "One row per team member across the selected window.",
+      "totalRecord": "{count} record",
+      "totalRecords": "{count} records",
+      "loadingStaff": "Loading staff metrics…",
+      "noStaffRecords": "No staff activity in this window yet. Metrics appear once schedules are published and tasks are assigned.",
+      "showingRecords": "Showing {showing} of {total}",
       "previous": "Previous",
-      "pageIndicator": "Page Indicator",
+      "pageIndicator": "Page {page} of {total}",
       "next": "Next",
-      "compareStaff": "Compare Staff",
-      "compareStaffDesc": "Compare Staff Desc",
-      "compareA": "Compare A",
-      "selectStaffA": "Select Staff A",
-      "compareB": "Compare B",
-      "selectStaffB": "Select Staff B",
-      "efficiencyDelta": "Efficiency Delta",
-      "coachingNeeds": "Coaching Needs",
-      "coachingNeedsDesc": "Areas where coaching may be beneficial",
-      "coachingRowDetail": "Coaching Row Detail",
-      "noCoachingNeeded": "No Coaching Needed",
-      "staffManagement": "Staff Management",
-      "staffManagementDesc": "Manage team members and roles",
-      "adminControlsEnabled": "Admin Controls Enabled",
+      "columnStaff": "Staff",
+      "columnRole": "Role",
+      "columnBranch": "Branch",
+      "columnAdherence": "Schedule adherence",
+      "columnSubmission": "Availability",
+      "columnTasks": "Tasks",
+      "columnCompletion": "Completion",
+      "columnOnTime": "On time",
+      "columnScore": "Score",
+      "columnCoaching": "Coaching",
+      "submissionCell": "{submitted}/{expected} wks",
+      "tasksCell": "{completed}/{assigned} done",
+      "noData": "—",
+      "coachingNeeds": "Coaching needs",
+      "coachingNeedsDesc": "People whose blended score fell below target in this window.",
+      "coachingRowDetail": "{branch} · completion {completion} · adherence {adherence}",
+      "noCoachingNeeded": "Nobody needs coaching in this window.",
+      "staffManagement": "Staff management",
+      "staffManagementDesc": "Manage team members and roles.",
+      "adminControlsEnabled": "Admin controls enabled",
       "remove": "Remove",
-      "noActiveMembers": "No Active Members"
+      "noActiveMembers": "No active members."
     },
     "history": {
       "gradeGreat": "Grade Great",
@@ -2456,6 +2921,7 @@
         "wasteCost": "Waste Cost",
         "margin": "Margin",
         "branch": "Branch",
+        "currency": "Currency",
         "grossMargin": "Gross Margin",
         "marginPct": "Margin Pct"
       },
@@ -2478,7 +2944,13 @@
       "filter": {
         "timeframe": "Timeframe",
         "branch": "Branch",
-        "allBranches": "All Branches"
+        "allBranches": "All Branches",
+        "currency": "Currency",
+        "allCurrencies": "All currencies (USD est.)"
+      },
+      "multiCurrency": {
+        "note": "Branches operate in different currencies — totals below are converted to USD at current rates. Pick a currency to see exact local figures.",
+        "revenueBreakdown": "Revenue by currency:"
       },
       "export": "Export",
       "kpi": {
@@ -2646,7 +3118,9 @@
         "statusActive": "Status Active",
         "statusInactive": "Status Inactive",
         "selectHint": "Select an ingredient",
-        "selectDescription": "Choose from available ingredients"
+        "selectDescription": "Choose from available ingredients",
+        "aiReviewBadge": "AI",
+        "aiReviewTooltip": "Added or matched by AI from your POS — needs confirmation"
       },
       "page": {
         "eyebrow": "Inventory",
@@ -2722,7 +3196,15 @@
         "perishableLabel": "Perishable Label",
         "wastePercent": "Waste Percent",
         "perishableCount": "Perishable Count",
-        "avgWaste": "Avg Waste"
+        "avgWaste": "Avg Waste",
+        "aiReviewCreatedTitle": "AI added this item from your POS",
+        "aiReviewMatchedTitle": "AI matched POS names to this item",
+        "aiReviewSource": "POS name",
+        "aiReviewConfidence": "confidence",
+        "aiReviewAliases": "Matched POS names",
+        "aiReviewHint": "If this looks right, confirm it. If not, edit or delete the item — sales already recorded against it will follow your fix.",
+        "aiReviewConfirm": "Confirm",
+        "aiReviewConfirming": "Confirming…"
       },
       "sparkline": {
         "soldValue": "Sold Value",
@@ -2936,6 +3418,423 @@
         "stockout_abbr": "Stockout abbr",
         "waste_abbr": "Waste abbr"
       }
+    },
+    "today": {
+      "itemDetail": {
+        "eyebrow": "Item Detail",
+        "description": "Forecast signals, risk analysis, and history for this item — {date}.",
+        "insight": "Your decisions on this item train the model for future shifts.",
+        "defaultTitle": "This item",
+        "backToPrepPlan": "Back to prep plan",
+        "loading": "Loading…",
+        "whyThisNumber": "Why this number",
+        "howForecastBuilt": "How the forecast was built",
+        "howForecastBuiltDesc": "Starting from a baseline, here's how each signal shaped the final quantity.",
+        "confidence": "Confidence",
+        "confidenceNarrative": {
+          "noHistory": "Not enough history yet to gauge confidence — the model will learn from today's outcome.",
+          "high": "High confidence — this forecast closely matches proven patterns.",
+          "moderate": "Moderate confidence — the forecast is fairly reliable, but worth a second look.",
+          "lower": "Lower confidence — treat this forecast as a starting point, not a certainty.",
+          "low": "Low confidence — limited or inconsistent history means this forecast could be off."
+        },
+        "chefWeight": {
+          "overrideWeight": "Your override weight is {weight} —",
+          "trustChef": "we're trusting your judgment on this one.",
+          "blended": "blended with the model's own forecast.",
+          "modelLed": "the model is leading this call."
+        },
+        "whatIf": "What if?",
+        "comparePrepQuantities": "Compare outcomes across different prep quantities.",
+        "financial": {
+          "whatCouldYouMake": "What could you make?",
+          "revenueEstimates": "Estimated revenue based on your pricing.",
+          "relativeOutcomes": "Relative outcomes — pricing data isn't reliable enough for dollar estimates yet.",
+          "aiPick": "AI pick",
+          "revenue": "{amount} revenue",
+          "wasteCost": "{amount} waste cost",
+          "net": "{amount} net"
+        },
+        "trackRecord": {
+          "title": "Track record",
+          "lastSimilar": "Last {weekday} ({date})",
+          "prepped": "Prepped",
+          "sold": "Sold",
+          "ranOut": "Ran out",
+          "leftover": "{qty} leftover",
+          "soldClean": "Sold clean",
+          "overrodeModel": "You overrode the model",
+          "colDate": "Date",
+          "colAiSaid": "AI said",
+          "colPrepped": "Prepped",
+          "colSold": "Sold",
+          "colOutcome": "Outcome",
+          "wasted": "{qty} wasted",
+          "clean": "Clean",
+          "sameDay": "Same day",
+          "override": "override"
+        },
+        "ingredients": {
+          "whatYouNeed": "What you'll need",
+          "description": "Ingredients needed to prep {qty} of {item}.",
+          "yourPlannedQty": "your planned quantity",
+          "calculating": "Calculating ingredient needs…",
+          "noRecipe": "No recipe linked to this item yet.",
+          "addRecipe": "Add a recipe to see ingredient requirements and auto-calculate what you'll need.",
+          "buildRecipe": "Build recipe",
+          "emptyRecipe": "This recipe doesn't have any ingredients yet.",
+          "editRecipe": "Edit recipe",
+          "perServing": "{amount} {unit} per serving",
+          "wasteBuffer": "{pct}% waste buffer",
+          "basedOn": "Based on {qty} of {name}",
+          "plannedQuantity": "planned quantity"
+        },
+        "decision": {
+          "yourDecision": "Your decision",
+          "aiRecommends": "AI recommends",
+          "yourPlan": "Your plan",
+          "notSet": "Not set",
+          "status": "Status",
+          "acceptedAi": "Accepted AI",
+          "yourOverride": "Your override",
+          "pending": "Pending",
+          "planSaved": "Plan saved.",
+          "couldNotSave": "Couldn't save — try again.",
+          "saving": "Saving…",
+          "accept": "Accept {qty}",
+          "qtyPlaceholder": "Qty",
+          "setOverride": "Set override",
+          "planLocked": "Plan is locked — no further changes."
+        },
+        "risk": {
+          "riskToday": "Risk today",
+          "runOutRisk": "Run-out risk",
+          "wasteRisk": "Waste risk",
+          "highRunOut": "High risk of running out — consider prepping more.",
+          "highWaste": "High risk of waste — consider prepping less."
+        },
+        "quickStats": {
+          "past60Days": "Past 60 days",
+          "aiAccuracy": "AI accuracy",
+          "stockouts": "Stockouts",
+          "wasteRate": "Waste rate",
+          "daysTracked": "Days tracked"
+        },
+        "metrics": {
+          "pastAccuracy": "Past accuracy",
+          "wasteRate": "Waste rate",
+          "stockoutRate": "Stockout rate",
+          "daysTracked": "Days tracked"
+        },
+        "viewFullHistory": "View full forecast history",
+        "upside": {
+          "coversHighRunOutRisk": "Covers high run-out risk",
+          "goodCoverageDemandSpikes": "Good coverage if demand spikes",
+          "lowerWasteSoftDemand": "Lower waste if demand is soft"
+        },
+        "downside": {
+          "mayGoUnsold": "{qty} may go unsold",
+          "smallWasteRisk": "Small waste risk",
+          "runningShort": "Risk of running short",
+          "mayMissLateDemand": "May miss late demand"
+        },
+        "scenario": {
+          "conservative": "Conservative",
+          "followAi": "Follow AI",
+          "extraBuffer": "Extra buffer",
+          "yourPlan": "Your plan",
+          "lowerWasteRisk": "Lower waste risk",
+          "coversDemandSpikes": "Covers demand spikes"
+        },
+        "signal": {
+          "reservation": "Reservations",
+          "event": "Local events",
+          "weather": "Weather",
+          "staffing": "Staffing",
+          "kitchenCapacity": "Kitchen capacity",
+          "deliveryMix": "Delivery mix",
+          "traffic": "Foot traffic"
+        },
+        "trendNarrative": {
+          "improving": "Your forecast accuracy for this item has been improving.",
+          "degrading": "Your forecast accuracy for this item has been slipping.",
+          "stable": "Your forecast accuracy for this item has stayed steady."
+        },
+        "varianceLabel": {
+          "matches": "Matches AI suggestion",
+          "aboveSuggestion": "{qty} above AI suggestion",
+          "belowSuggestion": "{qty} below AI suggestion"
+        }
+      },
+      "csvMap": {
+        "back": "Back",
+        "backToLive": "Back to Today",
+        "title": "Column Mapping",
+        "heading": "Map your sales columns",
+        "description": "Match your CSV's {count} columns to PrepIQ fields to import sales data.",
+        "requiredData": "Required data",
+        "yourCsvColumn": "Your CSV column",
+        "csvColumn": "CSV column",
+        "autoCreateItems": "Automatically create new items",
+        "preview": "{valid} valid rows, {failed} failed — will create {create} and update {update}.",
+        "validating": "Validating…",
+        "validateMapping": "Validate mapping",
+        "importing": "Importing…",
+        "importSalesData": "Import sales data",
+        "unmapped": "Unmapped",
+        "field": {
+          "saleDate": {
+            "label": "Date",
+            "description": "When the sale occurred (e.g., date, timestamp)"
+          },
+          "item": {
+            "label": "Item name or POS item id",
+            "description": "Item title or provider item identifier from your export"
+          },
+          "quantity": {
+            "label": "Quantity sold",
+            "description": "How many units (e.g., qty, amount)"
+          },
+          "revenue": {
+            "label": "Revenue (optional)",
+            "description": "Total sale value for margin analysis."
+          },
+          "unit": {
+            "label": "Unit (optional)",
+            "description": "PCS, KG, LTR, etc."
+          },
+          "externalRef": {
+            "label": "External ref (optional)",
+            "description": "Order/receipt identifier for dedupe."
+          }
+        },
+        "errors": {
+          "noHeader": "This CSV file has no column headers.",
+          "saleDateRequired": "Sale date is required",
+          "itemRequired": "Item is required",
+          "quantityRequired": "Quantity is required",
+          "duplicateColumn": "The same column is mapped more than once.",
+          "columnNotInHeaders": "\"{name}\" isn't one of your CSV columns.",
+          "fixMapping": "Fix the column mapping before continuing.",
+          "previewFailed": "Couldn't preview the import — try again.",
+          "noRowsImported": "No rows were imported. Check your file and mapping.",
+          "importFailed": "Import failed. Please try again."
+        },
+        "toast": {
+          "imported": "Imported {created} rows ({failed} failed)",
+          "importComplete": "Imported {count} rows",
+          "noRows": "No rows imported"
+        }
+      }
     }
+  },
+  "schedule": {
+    "title": "Schedule",
+    "eyebrow": "Operational capacity",
+    "description": "Approve availability, build the week, and check the team can execute the plan.",
+    "tabs": {
+      "availability": "Availability",
+      "schedule": "Schedule",
+      "coverage": "Coverage",
+      "history": "History"
+    },
+    "actions": {
+      "generate": "Generate",
+      "generating": "Generating…",
+      "publish": "Publish",
+      "publishing": "Publishing…",
+      "copyPrevious": "Copy last week",
+      "recompute": "Recalculate staffing",
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "thisWeek": "This week",
+      "approve": "Approve",
+      "reject": "Reject",
+      "addShift": "Add shift",
+      "removeShift": "Remove shift",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "notSubmitted": "Not submitted",
+      "under": "Understaffed",
+      "ok": "Adequate",
+      "over": "Overstaffed",
+      "unknown": "No forecast"
+    },
+    "coverage": {
+      "title": "Coverage",
+      "score": "Coverage",
+      "noRequirement": "No staffing requirement for this day yet.",
+      "estimatedMeals": "Forecast covers",
+      "estimatedHours": "Labor hours needed",
+      "required": "Required",
+      "scheduled": "Scheduled",
+      "role": "Role",
+      "people": "people",
+      "hours": "hours",
+      "understaffedDays": "{{count}} day(s) understaffed",
+      "standard": "Productivity standard",
+      "perLaborHour": "{{value}} covers per labor hour"
+    },
+    "availability": {
+      "title": "Availability",
+      "submitted": "{{count}} submitted",
+      "missing": "{{count}} missing",
+      "pendingReview": "{{count}} awaiting review",
+      "notSubmittedYet": "Has not submitted availability for this week.",
+      "reviewedBy": "Reviewed by {{name}}",
+      "note": "Note",
+      "empty": "Nobody has submitted availability for this week yet.",
+      "emptyRoster": "This branch has no staff on its roster yet.",
+      "reviewNote": "Note: {note}",
+      "message": "Message about this"
+    },
+    "grid": {
+      "employee": "Team member",
+      "off": "Off",
+      "unassignedRole": "No role",
+      "empty": "No shifts yet. Use Generate, copy last week, or click a cell to add one.",
+      "clickToAdd": "Add shift"
+    },
+    "generation": {
+      "title": "Generated draft",
+      "summary": "Summary",
+      "warnings": "Unfilled slots",
+      "rejectedSwaps": "Adjustments the AI suggested that were not applied",
+      "sourceAllocator": "Built from approved availability",
+      "sourceLlm": "Built from approved availability, reviewed by AI",
+      "reviewBeforePublish": "Review the draft, then publish when it looks right."
+    },
+    "history": {
+      "title": "History",
+      "week": "Week",
+      "coverage": "Coverage",
+      "forecastAccuracy": "Forecast accuracy",
+      "laborHours": "Labor hours",
+      "understaffed": "Short days",
+      "empty": "No completed weeks yet. History fills in as days are closed."
+    },
+    "empty": {
+      "noSchedule": "No schedule for this week yet."
+    },
+    "review": {
+      "approveTitle": "Approve availability",
+      "rejectTitle": "Reject availability",
+      "approveDescription": "Approve {name}'s availability for the week of {week}.",
+      "rejectDescription": "Let {name} know why their availability wasn't approved.",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Add a note…",
+      "rejectNotePlaceholder": "Reason for rejecting… (optional)",
+      "confirmApprove": "Approve",
+      "confirmReject": "Reject",
+      "cancel": "Cancel"
+    },
+    "roster": {
+      "button": "Add to roster",
+      "title": "Add to roster",
+      "description": "Add someone to work at {branch}. Pick a teammate who’s already in your org, or invite someone new.",
+      "fromTeam": "From your team",
+      "inviteNew": "Invite someone new",
+      "memberLabel": "Team member",
+      "memberPlaceholder": "Select a person",
+      "roleLabel": "Role",
+      "add": "Add to roster",
+      "adding": "Adding…",
+      "cancel": "Cancel",
+      "loading": "Loading team…",
+      "everyoneAdded": "Everyone in your org is already on this roster — invite someone new instead.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@restaurant.com",
+      "sendInvite": "Send invite",
+      "sending": "Sending…",
+      "inviteHint": "They’ll get an email to join and will appear on the roster at {branch} once they accept.",
+      "noInvitePermission": "You don’t have permission to invite staff to this branch."
+    }
+  },
+  "tasks": {
+    "eyebrow": "Execution",
+    "title": "Tasks",
+    "description": "Today's plan as work with owners — review, confirm, and track it to done.",
+    "insight": "Tasks come from the locked plan. Confirm the suggestions and everyone knows what they own before service starts.",
+    "loadError": "Could not load the task board.",
+    "emptyManager": "No tasks yet. Lock today's plan and PrepIQ will draft them, or add one yourself.",
+    "emptyStaff": "No tasks yet for today.",
+    "filter": {
+      "everyone": "Everyone"
+    },
+    "actions": {
+      "generate": "Regenerate",
+      "add": "Add task"
+    },
+    "column": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done",
+      "empty": {
+        "todo": "Nothing waiting.",
+        "in_progress": "Nothing underway.",
+        "done": "Nothing finished yet."
+      }
+    },
+    "category": {
+      "prep": "Prep",
+      "setup": "Setup",
+      "service": "Service",
+      "cleaning": "Cleaning",
+      "other": "Other"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "card": {
+      "minutes": "{count} min",
+      "unassigned": "Unassigned",
+      "edit": "Edit task",
+      "aiBadge": "PrepIQ AI"
+    },
+    "tray": {
+      "title": "{count} suggested task(s) to review",
+      "confirm": "Confirm {count} task(s)",
+      "confirming": "Confirming…",
+      "dismiss": "Dismiss suggestion",
+      "unassigned": "Unassigned",
+      "load": "{count} task(s)"
+    },
+    "add": {
+      "title": "Add a task",
+      "description": "Goes straight onto the board — no review step for your own tasks.",
+      "fieldTitle": "Title",
+      "titlePlaceholder": "e.g. Break down the walk-in",
+      "fieldDescription": "Details (optional)",
+      "fieldCategory": "Category",
+      "fieldPriority": "Priority",
+      "fieldMinutes": "Estimated minutes",
+      "fieldAssignee": "Assign to",
+      "save": "Add task",
+      "saving": "Adding…"
+    },
+    "descriptionStaff": "Your tasks for today. Flip to Team to see the whole board — you can move your own cards.",
+    "aiSuggestedToast": "PrepIQ AI has suggested {count} new tasks for today's shifts.",
+    "edit": {
+      "title": "Edit task",
+      "description": "Changes apply immediately; the assignee is notified when it changes.",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "delete": "Delete task",
+      "aiRationale": "Why PrepIQ suggested this"
+    },
+    "scope": {
+      "team": "Team",
+      "mine": "My tasks"
+    },
+    "emptyMine": "Nothing assigned to you today."
   }
 }

@@ -22,6 +22,7 @@ import {
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { useTranslation } from "@/lib/i18n";
+import { formatMoney, formatCurrencyBreakdown } from "@/lib/format";
 
 const EMPTY_LIST: never[] = [];
 const CORE_ROW_MODEL = getCoreRowModel();
@@ -30,6 +31,7 @@ const branchColumnHelper = createColumnHelper<FinancialBranchRow>();
 type FinancialBranchRow = {
   id: string;
   branch: string;
+  currency: string;
   revenue: number;
   foodCost: number;
   wasteCost: number;
@@ -43,10 +45,6 @@ type FinancialBranchRow = {
 };
 
 type FinancialTab = "OVERVIEW" | "BRANCHES" | "ACCURACY" | "TRENDS";
-
-function toCurrency(value: number) {
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
 
 function toPercent(value: number) {
   return `${value.toFixed(1)}%`;
@@ -95,6 +93,7 @@ export default function FinancialPage() {
 
   const [timeframe, setTimeframe] = useState("30d");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const [currencyFilter, setCurrencyFilter] = useState("ALL");
   const activeBranchId = branchFilter && branchFilter !== "ALL" ? branchFilter : undefined;
   const { tier, planType, isLoading: tierLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(activeBranchId);
   const [activeTab, setActiveTab] = useState<FinancialTab>("OVERVIEW");
@@ -105,6 +104,12 @@ export default function FinancialPage() {
     {
       timeframe: timeframe as "7d" | "30d" | "90d",
       branch_id: branchFilter !== "ALL" ? branchFilter : undefined,
+      // A branch is already single-currency; the currency scope only applies
+      // to the org-wide view.
+      currency:
+        branchFilter === "ALL" && currencyFilter !== "ALL"
+          ? currencyFilter
+          : undefined,
     },
     canAccess && Boolean(user?.organization_id),
   );
@@ -145,6 +150,23 @@ export default function FinancialPage() {
     );
   }, [branches, financialData]);
 
+  // Every branch operates in its own currency: single-branch / single-currency
+  // scopes render local money, mixed org-wide scopes are USD-normalized by the
+  // backend and flagged via is_multi_currency.
+  const displayCurrency = financialData?.summary?.currency ?? "USD";
+  const isMultiCurrency = Boolean(financialData?.summary?.is_multi_currency);
+  const byCurrency = financialData?.summary?.by_currency ?? [];
+  const money = (value: number) => formatMoney(value, displayCurrency);
+
+  const orgCurrencies = useMemo(() => {
+    const codes = new Set<string>();
+    for (const branch of branchesQuery.data ?? []) {
+      codes.add((branch.currency ?? "USD").toUpperCase());
+    }
+    for (const code of financialData?.currencies ?? []) codes.add(code.toUpperCase());
+    return [...codes].sort();
+  }, [branchesQuery.data, financialData?.currencies]);
+
   const summary = financialData?.summary;
   const wasteAnalysis = financialData?.waste_analysis;
   const stockoutImpact = financialData?.stockout_impact;
@@ -167,6 +189,7 @@ export default function FinancialPage() {
     return (financialData?.branches ?? []).map((branch) => ({
       id: branch.branch_id,
       branch: branch.branch_name,
+      currency: (branch.currency ?? "USD").toUpperCase(),
       revenue: branch.revenue,
       foodCost: branch.food_cost,
       wasteCost: branch.waste_cost,
@@ -223,7 +246,7 @@ export default function FinancialPage() {
         header: t("workspace.financial.branchTable.revenue"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
-            {toCurrency(info.getValue())}
+            {formatMoney(info.getValue(), info.row.original.currency)}
           </span>
         ),
       }),
@@ -231,7 +254,7 @@ export default function FinancialPage() {
         header: t("workspace.financial.branchTable.foodCost"),
         cell: (info) => (
           <span className="text-sm text-text-secondary">
-            {toCurrency(info.getValue())}
+            {formatMoney(info.getValue(), info.row.original.currency)}
           </span>
         ),
       }),
@@ -239,7 +262,7 @@ export default function FinancialPage() {
         header: t("workspace.financial.branchTable.wasteCost"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-warning">
-            {toCurrency(info.getValue())}
+            {formatMoney(info.getValue(), info.row.original.currency)}
           </span>
         ),
       }),
@@ -247,7 +270,7 @@ export default function FinancialPage() {
         header: t("workspace.financial.branchTable.grossMargin"),
         cell: (info) => (
           <span className="text-sm font-semibold text-status-success">
-            {toCurrency(info.getValue())}
+            {formatMoney(info.getValue(), info.row.original.currency)}
           </span>
         ),
       }),
@@ -279,6 +302,7 @@ export default function FinancialPage() {
   const exportReport = () => {
     const rows = branchRows.map((row) => [
       row.branch,
+      row.currency,
       row.revenue.toFixed(2),
       row.foodCost.toFixed(2),
       row.wasteCost.toFixed(2),
@@ -289,6 +313,7 @@ export default function FinancialPage() {
       `financials-${timeframe}.csv`,
       [
         t("workspace.financial.csv.branch"),
+        t("workspace.financial.csv.currency"),
         t("workspace.financial.csv.revenue"),
         t("workspace.financial.csv.foodCost"),
         t("workspace.financial.csv.wasteCost"),
@@ -332,10 +357,25 @@ export default function FinancialPage() {
             disabled={financialData?.scope === "BRANCH"}
           />
         </div>
+        {orgCurrencies.length > 1 ? (
+          <div className="min-w-45">
+            <Select
+              label={t("workspace.financial.filter.currency")}
+              options={[
+                { value: "ALL", label: t("workspace.financial.filter.allCurrencies") },
+                ...orgCurrencies.map((code) => ({ value: code, label: code })),
+              ]}
+              value={branchFilter === "ALL" ? currencyFilter : "ALL"}
+              onChange={setCurrencyFilter}
+              disabled={branchFilter !== "ALL"}
+            />
+          </div>
+        ) : null}
         {financialData ? (
           <p className="pb-3 text-xs text-text-muted">
             {financialData.start_date} → {financialData.end_date}
             {financialData.branch_name ? ` · ${financialData.branch_name}` : ""}
+            {financialData.currency_filter ? ` · ${financialData.currency_filter}` : ""}
           </p>
         ) : null}
         <button
@@ -359,13 +399,13 @@ export default function FinancialPage() {
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <span className="text-text-muted">
             <span className="font-semibold text-status-success">
-              {toCurrency(summary?.revenue ?? 0)}
+              {money(summary?.revenue ?? 0)}
             </span>{" "}
             {t("workspace.financial.kpi.revenue")}
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-status-success">
-              {toCurrency(summary?.gross_margin ?? 0)}
+              {money(summary?.gross_margin ?? 0)}
             </span>{" "}
             {t("workspace.financial.kpi.grossMargin")}
           </span>
@@ -377,10 +417,28 @@ export default function FinancialPage() {
           </span>
           <span className="text-text-muted">
             <span className="font-semibold text-status-critical">
-              {toCurrency(summary?.waste_cost ?? 0)}
+              {money(summary?.waste_cost ?? 0)}
             </span>{" "}
             {t("workspace.financial.kpi.wasted")}
           </span>
+        </div>
+      ) : null}
+
+      {isMultiCurrency ? (
+        <div className="mb-6 rounded-lg border border-brand-gold/25 bg-brand-gold/5 px-4 py-3 text-xs text-text-secondary">
+          <p className="font-semibold text-brand-gold">
+            {t("workspace.financial.multiCurrency.note")}
+          </p>
+          {byCurrency.length ? (
+            <p className="mt-1">
+              {t("workspace.financial.multiCurrency.revenueBreakdown")}{" "}
+              <span className="font-semibold text-text-primary">
+                {formatCurrencyBreakdown(
+                  byCurrency.map((row) => ({ currency: row.currency, amount: row.revenue })),
+                )}
+              </span>
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -420,7 +478,7 @@ export default function FinancialPage() {
                 })}
               </p>
               <p className="mt-3 font-display text-4xl font-semibold text-status-success tracking-tight">
-                {toCurrency(summary?.revenue ?? 0)}
+                {money(summary?.revenue ?? 0)}
               </p>
               <p className="mt-3 text-xs text-text-muted">{formatDelta(summary?.revenue_delta_pct)}</p>
             </article>
@@ -430,7 +488,7 @@ export default function FinancialPage() {
                 {toPercent(summary?.margin_pct ?? 0)}
               </p>
               <p className="mt-1 text-sm text-text-secondary">
-                {toCurrency(summary?.gross_margin ?? 0)} {t("workspace.financial.overview.gross")}
+                {money(summary?.gross_margin ?? 0)} {t("workspace.financial.overview.gross")}
               </p>
               <p className="mt-2 text-xs text-text-muted">
                 {summary?.margin_pct_delta != null
@@ -444,7 +502,7 @@ export default function FinancialPage() {
             <span className="text-text-muted">
               {t("workspace.financial.overview.foodCost")}{" "}
               <span className="font-semibold text-text-primary">
-                {toCurrency(summary?.food_cost ?? 0)}
+                {money(summary?.food_cost ?? 0)}
               </span>
               <span className="ml-1.5 text-text-muted/70 text-xs">
                 {formatDelta(summary?.food_cost_delta_pct)}
@@ -453,7 +511,7 @@ export default function FinancialPage() {
             <span className="text-text-muted">
               {t("workspace.financial.overview.waste")}{" "}
               <span className="font-semibold text-status-critical">
-                {toCurrency(summary?.waste_cost ?? 0)}
+                {money(summary?.waste_cost ?? 0)}
               </span>
               <span className="ml-1.5 text-text-muted/70 text-xs">
                 {formatDelta(summary?.waste_cost_delta_pct)}
@@ -462,7 +520,7 @@ export default function FinancialPage() {
             <span className="text-text-muted">
               {t("workspace.financial.overview.grossMarginLabel")}{" "}
               <span className="font-semibold text-status-success">
-                {toCurrency(summary?.gross_margin ?? 0)}
+                {money(summary?.gross_margin ?? 0)}
               </span>
               <span className="ml-1.5 text-text-muted/70 text-xs">
                 {formatDelta(summary?.gross_margin_delta_pct)}
@@ -483,7 +541,7 @@ export default function FinancialPage() {
               </span>
               <span className="text-text-muted">
                 <span className="font-semibold text-status-success">
-                  {toCurrency(impactReport?.waste_reduced ?? 0)}
+                  {money(impactReport?.waste_reduced ?? 0)}
                 </span>{" "}
                 {t("workspace.financial.overview.wasteReduced")}
               </span>
@@ -495,7 +553,7 @@ export default function FinancialPage() {
               </span>
               <span className="text-text-muted">
                 <span className="font-semibold text-status-success">
-                  {toCurrency(impactReport?.revenue_protected ?? 0)}
+                  {money(impactReport?.revenue_protected ?? 0)}
                 </span>{" "}
                 {t("workspace.financial.overview.revenueProtected")}
               </span>
@@ -504,7 +562,7 @@ export default function FinancialPage() {
               <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-surface-4/50 pt-3 text-sm">
                 <span className="text-text-muted">
                   <span className="font-semibold text-status-critical">
-                    {toCurrency(stockoutImpact?.lost_revenue ?? 0)}
+                    {money(stockoutImpact?.lost_revenue ?? 0)}
                   </span>{" "}
                   {t("workspace.financial.overview.lostToStockouts")}
                 </span>
@@ -540,7 +598,7 @@ export default function FinancialPage() {
                     >
                       <span className="text-sm text-text-secondary">{item.item_title}</span>
                       <span className="text-sm font-semibold text-status-warning">
-                        {toCurrency(item.waste_cost)}
+                        {money(item.waste_cost)}
                       </span>
                     </div>
                   ))
@@ -563,7 +621,7 @@ export default function FinancialPage() {
                     >
                       <span className="text-sm text-text-secondary">{row.item_title}</span>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm text-text-muted">{toCurrency(row.revenue)}</span>
+                        <span className="text-sm text-text-muted">{money(row.revenue)}</span>
                         <span className="text-xs font-semibold text-brand-gold">
                           {toPercent(row.margin_pct)}
                         </span>
@@ -588,7 +646,7 @@ export default function FinancialPage() {
                   {branch.branch}
                 </p>
                 <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                  {toCurrency(branch.revenue)}
+                  {formatMoney(branch.revenue, branch.currency)}
                 </p>
                 <p className="mt-2 text-xs text-text-muted">
                   {toPercent(branch.marginPct)} {t("workspace.financial.branches.margin")}
@@ -644,14 +702,14 @@ export default function FinancialPage() {
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.accuracy.wastePrevented")}</p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toCurrency(forecastImpact?.waste_prevented ?? 0)}
+                {money(forecastImpact?.waste_prevented ?? 0)}
               </p>
               <p className="mt-2 text-xs text-text-muted">{t("workspace.financial.accuracy.comparedToPrior")}</p>
             </article>
             <article className="rounded-xl border border-surface-4 bg-surface-2 p-5">
               <p className="text-[11px] uppercase tracking-[0.14em] text-text-muted">{t("workspace.financial.accuracy.stockoutRevenueSaved")}</p>
               <p className="mt-2 font-display text-2xl font-semibold text-status-success">
-                {toCurrency(forecastImpact?.stockouts_avoided ?? 0)}
+                {money(forecastImpact?.stockouts_avoided ?? 0)}
               </p>
               <p className="mt-2 text-xs text-text-muted">{t("workspace.financial.accuracy.revenueNotLost")}</p>
             </article>
@@ -710,7 +768,7 @@ export default function FinancialPage() {
                           <div key={`${chart.label}-${label}-${index}`}>
                             <p>{label}</p>
                             <p className="font-semibold text-text-secondary">
-                              {toCurrency(
+                              {money(
                                 chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0,
                               )}
                             </p>

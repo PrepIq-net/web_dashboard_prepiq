@@ -89,7 +89,9 @@ export const subscriptionListSchema = z
     plan_type: z.string().optional(),
     status: z.string(),
     billing_cycle: z.string(),
-    start_date: z.string(),
+    // Null while the subscription is PENDING (created at checkout, activated
+    // once payment completes) or when a mid-trial purchase defers activation.
+    start_date: z.string().nullable().optional(),
     end_date: z.string().nullable().optional(),
     next_billing_date: z.string().nullable().optional(),
     contract_start: z.string().nullable().optional(),
@@ -116,7 +118,9 @@ export const subscriptionDetailSchema = z
     plan: subscriptionPlanSchema,
     status: z.string(),
     billing_cycle: z.string(),
-    start_date: z.string(),
+    // Null while the subscription is PENDING (created at checkout, activated
+    // once payment completes) or when a mid-trial purchase defers activation.
+    start_date: z.string().nullable().optional(),
     end_date: z.string().nullable().optional(),
     next_billing_date: z.string().nullable().optional(),
     contract_start: z.string().nullable().optional(),
@@ -222,6 +226,7 @@ export const paymentCheckoutPayloadSchema = z.object({
   business_name: z.string().min(1),
   billing_email: z.string().email(),
   phone_number: z.string().min(1),
+  checkout_source: z.enum(["setup", "workspace"]).optional(),
 });
 export type PaymentCheckoutPayload = z.infer<
   typeof paymentCheckoutPayloadSchema
@@ -233,6 +238,7 @@ export const paymentCheckoutResponseSchema = z
     payment: paymentSchema,
     invoice: z.unknown(),
     total_amount: moneyValueSchema,
+    currency: z.string().optional(),
     payment_link: z.string().url().or(z.string()),
     message: z.string(),
   })

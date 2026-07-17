@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { CommandPaletteProvider } from "@/components/command/command-palette-provider";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { DashboardSidebarWrapper } from "@/components/dashboard/sidebar-wrapper";
 import { DashboardTopNavWrapper } from "@/components/dashboard/top-nav-wrapper";
@@ -16,11 +17,32 @@ import {
   useSalesDataValidation,
 } from "@/services/production-intelligence/hooks";
 
-// Pages that must always be accessible regardless of subscription state.
+// Pages that must always be accessible regardless of subscription state. These
+// are account/tenant-management surfaces — you must be able to reach them to fix
+// billing, manage/create/delete an org, view sessions, or get help — so paywalling
+// them would be a dead end. Kitchen-work pages stay subscription-gated. Tabs inside
+// these pages that DO need a subscription/branch render their own inline gate.
 const SUBSCRIPTION_EXEMPT_PATHS = [
   "/workspace/billing",
   "/workspace/profile",
   "/workspace/support",
+  "/workspace/settings",
+  "/workspace/notifications",
+];
+
+// Pages that must render WITHOUT an org-level branch. These are either where you
+// create/manage the first branch (so gating them behind "create a branch" would
+// be a dead end) or account-level areas that simply don't operate on branch
+// data. Everything else is real kitchen work and stays branch-gated. Tabs inside
+// these pages that DO need a branch (e.g. connecting a POS under Settings →
+// Integrations) render their own inline empty state instead of blocking the page.
+const BRANCH_EXEMPT_PATHS = [
+  "/workspace/branches",
+  "/workspace/settings",
+  "/workspace/profile",
+  "/workspace/billing",
+  "/workspace/support",
+  "/workspace/notifications",
 ];
 
 export default function WorkspaceLayout({
@@ -77,7 +99,14 @@ export default function WorkspaceLayout({
       : "expired";
   // ──────────────────────────────────────────────────────────────────────────
 
+  // Account-level and branch-management pages opt out of the branch/sales gates
+  // so they stay reachable before any branch exists (see BRANCH_EXEMPT_PATHS).
+  const isBranchExemptPath = BRANCH_EXEMPT_PATHS.some((p) =>
+    pathname.startsWith(p),
+  );
+
   const shouldShowBranchRequiredState =
+    !isBranchExemptPath &&
     Boolean(user?.has_organization) &&
     !branchesQuery.isLoading &&
     !branchesQuery.isError &&
@@ -86,6 +115,7 @@ export default function WorkspaceLayout({
     branch_id: activeBranchId,
   });
   const shouldShowSalesSourceRequiredState =
+    !isBranchExemptPath &&
     Boolean(user?.has_organization) &&
     !shouldShowBranchRequiredState &&
     Boolean(activeBranchId) &&
@@ -93,43 +123,47 @@ export default function WorkspaceLayout({
     !salesValidationQuery.isError &&
     salesValidationQuery.data?.sales_source_connected === false;
 
-  const renderChildren = shouldShowBranchRequiredState ? (
+  // Branch-required always wins: an org with zero branches must always be
+  // able to create one, even with no active subscription — the first branch
+  // is what unlocks the trial in the first place, so gating branch creation
+  // behind a subscription check would be a dead end.
+  const mainContent = shouldShowBranchRequiredState ? (
     <div className="mt-8">
       <BranchRequiredState compact />
+    </div>
+  ) : shouldBlockAccess ? (
+    <div className="mt-8">
+      <SubscriptionRequiredState variant={gateVariant} compact />
     </div>
   ) : shouldShowSalesSourceRequiredState ? (
     <div className="mt-8">
       <SalesSourceRequiredState compact />
     </div>
   ) : (
-    children
+    <>
+      {isTrial && (
+        <TrialBanner daysLeft={typeof daysLeft === "number" ? daysLeft : null} />
+      )}
+      {isPastDue && <PaymentFailedBanner />}
+      {children}
+    </>
   );
 
   return (
-    <div className="flex min-h-screen bg-surface-1">
-      <DashboardSidebarWrapper user={memoizedUser} />
-      <main
-        className={`flex-1 py-8 transition-[margin-left] duration-200 ${
-          collapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
-          <DashboardTopNavWrapper />
-          {shouldBlockAccess ? (
-            <div className="mt-8">
-              <SubscriptionRequiredState variant={gateVariant} compact />
-            </div>
-          ) : (
-            <>
-              {isTrial && (
-                <TrialBanner daysLeft={typeof daysLeft === "number" ? daysLeft : null} />
-              )}
-              {isPastDue && <PaymentFailedBanner />}
-              {renderChildren}
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+    <CommandPaletteProvider>
+      <div className="flex min-h-screen bg-surface-1">
+        <DashboardSidebarWrapper user={memoizedUser} />
+        <main
+          className={`flex-1 py-8 transition-[margin-left] duration-200 ${
+            collapsed ? "ml-20" : "ml-64"
+          }`}
+        >
+          <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">
+            <DashboardTopNavWrapper />
+            {mainContent}
+          </div>
+        </main>
+      </div>
+    </CommandPaletteProvider>
   );
 }

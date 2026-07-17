@@ -110,6 +110,18 @@ export async function getSubscriptionPlanPricing(params?: SubscriptionQuery) {
   return response.data;
 }
 
+const fxRatesResponseSchema = z.object({
+  base: z.string(),
+  rates: z.record(z.string(), z.string()),
+});
+export type FxRates = z.infer<typeof fxRatesResponseSchema>;
+
+export async function getFxRates() {
+  return apiClientWithSchema(paymentEndpoints.fxRates(), fxRatesResponseSchema, {
+    method: "GET",
+  });
+}
+
 export type SubscriptionQuery = {
   branch_id?: string;
 };

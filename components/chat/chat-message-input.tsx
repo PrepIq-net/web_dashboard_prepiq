@@ -4,31 +4,39 @@ import { useState, useRef, KeyboardEvent } from "react";
 import { Send, Attachment, Xmark } from "iconoir-react";
 
 interface ChatMessageInputProps {
-  onSend: (content: string, attachment?: File) => void;
+  onSend: (content: string, attachment?: File) => Promise<void>;
   disabled?: boolean;
   placeholder?: string;
 }
 
-export function ChatMessageInput({ 
-  onSend, 
-  disabled = false, 
-  placeholder = "Type a message..." 
+export function ChatMessageInput({
+  onSend,
+  disabled = false,
+  placeholder = "Type a message..."
 }: ChatMessageInputProps) {
   const [message, setMessage] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = () => {
-    if ((!message.trim() && !attachment) || disabled) return;
+  const handleSend = async () => {
+    if ((!message.trim() && !attachment) || disabled || isSending) return;
 
-    onSend(message, attachment || undefined);
-    setMessage("");
-    setAttachment(null);
-    
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+    setIsSending(true);
+    try {
+      await onSend(message, attachment || undefined);
+      setMessage("");
+      setAttachment(null);
+
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    } catch {
+      // Keep the typed text/attachment so the user doesn't lose their message.
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -104,7 +112,7 @@ export function ChatMessageInput({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled}
+          disabled={disabled || isSending}
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-surface-4 bg-surface-3 text-text-muted transition-all duration-200 hover:border-brand-gold hover:bg-brand-gold/10 hover:text-brand-gold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Attachment className="h-4 w-4" />
@@ -121,7 +129,7 @@ export function ChatMessageInput({
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={disabled}
+            disabled={disabled || isSending}
             rows={1}
             className="w-full resize-none rounded-lg border border-surface-4 bg-surface-3 px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ minHeight: "44px", maxHeight: "120px" }}
@@ -130,7 +138,7 @@ export function ChatMessageInput({
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={(!message.trim() && !attachment) || disabled}
+            disabled={(!message.trim() && !attachment) || disabled || isSending}
             className="absolute right-2 bottom-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gold text-surface-1 transition-all duration-200 hover:bg-brand-gold-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-gold"
           >
             <Send className="h-4 w-4" />

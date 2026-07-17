@@ -20,6 +20,7 @@ import {
   Edit,
   HelpCircle,
   EvPlug,
+  Clock,
 } from "iconoir-react";
 import Link from "next/link";
 import {
@@ -39,6 +40,7 @@ import {
   useBranches,
   useBranch,
   useUpdateBranch,
+  useDeleteBranch,
 } from "@/services/branches/hooks";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
@@ -51,6 +53,8 @@ import {
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
+  useNotificationQuietHours,
+  useUpdateNotificationQuietHours,
 } from "@/services/notifications/hooks";
 import { Switch } from "@/components/ui/switch";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -75,15 +79,13 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
-import {
-  useCreateConnectorToken,
-  usePrepConectors,
-} from "@/services/connector/hook";
-import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
-import { Spinner } from "@/components/ui/spinner";
-import { ConnectorData, ConnectorList } from "@/services/connector/types";
-import { Table } from "@/components/ui/table";
+import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
+import { DangerZone } from "@/components/dashboard/settings/danger-zone";
+import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
 import { useTranslation } from "@/lib/i18n";
+import { Table } from "@/components/ui/table";
+import { usePrepConectors } from "@/services/connector/hook";
+import { ConnectorData, ConnectorList } from "@/services/connector/types";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -199,8 +201,15 @@ function SettingsPageContent() {
     },
   ];
 
+  // A user with no organization (e.g. they just deleted their only one) keeps
+  // the Organization tab so they can create a new one from its empty state,
+  // even though they hold no org-settings permission yet.
+  const hasNoOrg = user != null && !user.has_organization;
   const filteredTabs = tabs.filter(
-    (tab) => !tab.permission || userPermissions.has(tab.permission),
+    (tab) =>
+      !tab.permission ||
+      userPermissions.has(tab.permission) ||
+      (tab.id === "organization" && hasNoOrg),
   );
 
   // Once permissions resolve, snap activeTab to the first tab the user can see.
@@ -266,6 +275,12 @@ function SettingsPageContent() {
             />
           )}
           {activeTab === "notifications" && <NotificationsSettings />}
+          {activeTab === "security" && (
+            <div className="space-y-10">
+              <ActiveSessions />
+              <DangerZone orgId={org?.id} />
+            </div>
+          )}
           {activeTab === "support" && <SupportTabContent />}
           {/* Placeholder for tabs not yet built */}
           {![
@@ -274,6 +289,7 @@ function SettingsPageContent() {
             "users-roles",
             "integrations",
             "notifications",
+            "security",
             "support",
           ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -319,6 +335,31 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
       });
     }
   }, [org, formData]);
+
+  // No org yet (fresh account, or just deleted the last one): offer a way back
+  // in instead of spinning forever on an org detail that will never load.
+  if (!orgId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl px-6">
+        <div className="h-12 w-12 rounded-full bg-[#1C1C1F] flex items-center justify-center mb-4">
+          <Building className="h-6 w-6 text-brand-gold" />
+        </div>
+        <h3 className="text-lg font-medium text-text-primary">
+          {t("settings.organization.noOrg.title")}
+        </h3>
+        <p className="text-sm text-text-muted mt-1 max-w-sm">
+          {t("settings.organization.noOrg.description")}
+        </p>
+        <Link
+          href="/onboarding"
+          className="mt-4 inline-flex h-10 items-center gap-2 rounded-[8px] bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-colors hover:bg-[#B8962E]"
+        >
+          <Plus className="h-4 w-4" />
+          {t("settings.organization.noOrg.cta")}
+        </Link>
+      </div>
+    );
+  }
 
   if (isLoading || !formData) {
     return (
@@ -694,22 +735,12 @@ function IntegrationsSettings({
   const isFocusedBranchWithIssue =
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
 
-  const createConnectorToken = useCreateConnectorToken();
-
   const [generatedToken, setGeneratedToken] = useState<string | "">("");
   const [openTokenDialog, setOpenTokenDialog] = useState(false);
 
   function handleBranchChange(branchId: string) {
     setSelectedBranchId(branchId);
     onBranchChange?.(branchId);
-  }
-
-  async function handleTokenCreation(branchId: string) {
-    const response = await createConnectorToken.mutateAsync(branchId);
-    toast.loading(<Spinner />);
-
-    setGeneratedToken(response.data.token);
-    setOpenTokenDialog(true);
   }
 
   const handleConnect = (posId: string) => {
@@ -940,11 +971,22 @@ function IntegrationsSettings({
   );
 }
 
+const DIGEST_ELIGIBLE_CATEGORIES = ["LEARNING", "EXECUTIVE"];
+
 function NotificationsSettings() {
   const { t } = useTranslation();
   const { data: preferences, isLoading } = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
   const [localPrefs, setLocalPrefs] = useState<any[]>([]);
+
+  const { data: quietHours, isLoading: quietHoursLoading } =
+    useNotificationQuietHours();
+  const updateQuietHours = useUpdateNotificationQuietHours();
+  const [localQuietHours, setLocalQuietHours] = useState<{
+    enabled: boolean;
+    start_time: string;
+    end_time: string;
+  } | null>(null);
 
   useEffect(() => {
     if (preferences) {
@@ -952,12 +994,56 @@ function NotificationsSettings() {
     }
   }, [preferences]);
 
-  const handleToggle = (domain: string, channel: string, enabled: boolean) => {
+  useEffect(() => {
+    if (quietHours && !localQuietHours) {
+      setLocalQuietHours({
+        enabled: quietHours.enabled,
+        start_time: quietHours.start_time.slice(0, 5),
+        end_time: quietHours.end_time.slice(0, 5),
+      });
+    }
+  }, [quietHours, localQuietHours]);
+
+  const handleToggle = (
+    notificationCategory: string,
+    channel: string,
+    enabled: boolean,
+  ) => {
     const updated = localPrefs.map((p) =>
-      p.domain === domain ? { ...p, [`${channel}_enabled`]: enabled } : p,
+      p.notification_category === notificationCategory
+        ? { ...p, [`${channel}_enabled`]: enabled }
+        : p,
     );
     setLocalPrefs(updated);
     updatePreferences.mutate(updated);
+  };
+
+  const handleDigestToggle = (
+    notificationCategory: string,
+    enabled: boolean,
+  ) => {
+    const updated = localPrefs.map((p) =>
+      p.notification_category === notificationCategory
+        ? { ...p, digest_mode: enabled }
+        : p,
+    );
+    setLocalPrefs(updated);
+    updatePreferences.mutate(updated);
+  };
+
+  const handleQuietHoursChange = (
+    patch: Partial<{ enabled: boolean; start_time: string; end_time: string }>,
+  ) => {
+    const updated = {
+      ...(localQuietHours ?? {
+        enabled: false,
+        start_time: "23:00",
+        end_time: "07:00",
+      }),
+      ...patch,
+    };
+    setLocalQuietHours(updated);
+    updateQuietHours.mutate(updated);
   };
 
   if (isLoading) {
@@ -970,24 +1056,29 @@ function NotificationsSettings() {
 
   const notificationTypes = [
     {
-      domain: "PRODUCTION",
-      label: t("settings.notifications.types.production"),
-      description: t("settings.notifications.types.productionDesc"),
+      notification_category: "OPERATIONAL",
+      label: t("settings.notifications.types.operational"),
+      description: t("settings.notifications.types.operationalDesc"),
     },
     {
-      domain: "INVENTORY",
-      label: t("settings.notifications.types.inventory"),
-      description: t("settings.notifications.types.inventoryDesc"),
+      notification_category: "PLANNING",
+      label: t("settings.notifications.types.planning"),
+      description: t("settings.notifications.types.planningDesc"),
     },
     {
-      domain: "PROCUREMENT",
-      label: t("settings.notifications.types.supplier"),
-      description: t("settings.notifications.types.supplierDesc"),
+      notification_category: "LIVE_SERVICE",
+      label: t("settings.notifications.types.liveService"),
+      description: t("settings.notifications.types.liveServiceDesc"),
     },
     {
-      domain: "STAFF",
-      label: t("settings.notifications.types.staff"),
-      description: t("settings.notifications.types.staffDesc"),
+      notification_category: "LEARNING",
+      label: t("settings.notifications.types.learning"),
+      description: t("settings.notifications.types.learningDesc"),
+    },
+    {
+      notification_category: "EXECUTIVE",
+      label: t("settings.notifications.types.executive"),
+      description: t("settings.notifications.types.executiveDesc"),
     },
   ];
 
@@ -1001,6 +1092,8 @@ function NotificationsSettings() {
           {t("settings.notifications.description")}
         </p>
       </div>
+
+      <WebPushPrimingCard />
 
       <div className="rounded-2xl border border-[#1C1C1F] overflow-hidden">
         <table className="w-full text-left border-collapse">
@@ -1018,20 +1111,29 @@ function NotificationsSettings() {
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
                 {t("settings.notifications.tableHeader.push")}
               </th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
+                {t("settings.notifications.tableHeader.digest")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#1C1C1F]/50">
             {notificationTypes.map((type) => {
-              const pref = localPrefs.find((p) => p.domain === type.domain) || {
-                domain: type.domain,
+              const pref = localPrefs.find(
+                (p) => p.notification_category === type.notification_category,
+              ) || {
+                notification_category: type.notification_category,
                 in_app_enabled: true,
                 email_enabled: true,
                 push_enabled: true,
+                digest_mode: false,
               };
+              const digestEligible = DIGEST_ELIGIBLE_CATEGORIES.includes(
+                type.notification_category,
+              );
 
               return (
                 <tr
-                  key={type.domain}
+                  key={type.notification_category}
                   className="hover:bg-[#1C1C1F]/20 transition-colors"
                 >
                   <td className="px-6 py-5">
@@ -1046,7 +1148,7 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.in_app_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "in_app", val)
+                        handleToggle(type.notification_category, "in_app", val)
                       }
                     />
                   </td>
@@ -1054,7 +1156,7 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.email_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "email", val)
+                        handleToggle(type.notification_category, "email", val)
                       }
                     />
                   </td>
@@ -1062,9 +1164,30 @@ function NotificationsSettings() {
                     <Switch
                       checked={pref.push_enabled}
                       onCheckedChange={(val) =>
-                        handleToggle(type.domain, "push", val)
+                        handleToggle(type.notification_category, "push", val)
                       }
                     />
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    {digestEligible ? (
+                      <span
+                        title={
+                          !pref.email_enabled
+                            ? t("settings.notifications.digestRequiresEmail")
+                            : undefined
+                        }
+                      >
+                        <Switch
+                          checked={!!pref.digest_mode}
+                          disabled={!pref.email_enabled}
+                          onCheckedChange={(val) =>
+                            handleDigestToggle(type.notification_category, val)
+                          }
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-text-muted">—</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -1086,6 +1209,58 @@ function NotificationsSettings() {
           </p>
         </div>
       </div>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
+          <Clock className="h-4 w-4 text-brand-gold" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
+            {t("settings.notifications.quietHours.title")}
+          </h3>
+        </div>
+        <p className="text-xs text-text-muted">
+          {t("settings.notifications.quietHours.description")}
+        </p>
+
+        {quietHoursLoading || !localQuietHours ? (
+          <div className="flex items-center justify-center h-24">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-gold" />
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row md:items-end gap-4 p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F]">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={localQuietHours.enabled}
+                onCheckedChange={(val) =>
+                  handleQuietHoursChange({ enabled: val })
+                }
+              />
+              <span className="text-sm text-text-primary">
+                {t("settings.notifications.quietHours.enable")}
+              </span>
+            </div>
+            <Input
+              label={t("settings.notifications.quietHours.start")}
+              type="time"
+              value={localQuietHours.start_time}
+              disabled={!localQuietHours.enabled}
+              onChange={(e) =>
+                handleQuietHoursChange({ start_time: e.target.value })
+              }
+              className="max-w-[140px]"
+            />
+            <Input
+              label={t("settings.notifications.quietHours.end")}
+              type="time"
+              value={localQuietHours.end_time}
+              disabled={!localQuietHours.enabled}
+              onChange={(e) =>
+                handleQuietHoursChange({ end_time: e.target.value })
+              }
+              className="max-w-[140px]"
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -1107,7 +1282,26 @@ function BranchSettings({
     selectedBranchId,
   );
   const updateBranch = useUpdateBranch(orgId || "", selectedBranchId);
+  const deleteBranch = useDeleteBranch(orgId || "");
+  const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
+  const [branchReasonChoice, setBranchReasonChoice] =
+    useState("LOCATION_CLOSED");
   const [formData, setFormData] = useState<any>(null);
+
+  const isLastBranch = (branches?.length ?? 0) <= 1;
+
+  const handleDeleteBranch = () => {
+    if (!selectedBranchId) return;
+    deleteBranch.mutate(
+      { branchId: selectedBranchId, reason_choice: branchReasonChoice },
+      {
+        onSuccess: () => {
+          setDeleteBranchOpen(false);
+          setSelectedBranchId("");
+        },
+      },
+    );
+  };
 
   // Default to focusedBranchId from URL, then first branch
   useEffect(() => {
@@ -1196,7 +1390,21 @@ function BranchSettings({
         </div>
       </div>
 
-      {!selectedBranchId ? (
+      {branchOptions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
+          <Shop className="h-8 w-8 text-text-muted mb-3" />
+          <p className="text-sm text-text-muted">
+            {t("settings.branch.noBranchesYet")}
+          </p>
+          <Link
+            href="/workspace/branches/new"
+            className="mt-4 inline-flex h-10 items-center gap-2 rounded-[8px] bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-colors hover:bg-[#B8962E]"
+          >
+            <Plus className="h-4 w-4" />
+            {t("settings.branch.createFirstBranch")}
+          </Link>
+        </div>
+      ) : !selectedBranchId ? (
         <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#1C1C1F] rounded-2xl">
           <Shop className="h-8 w-8 text-text-muted mb-3" />
           <p className="text-sm text-text-muted">
@@ -1374,8 +1582,97 @@ function BranchSettings({
               />
             </div>
           </section>
+
+          {/* Danger zone — delete this branch */}
+          <section className="space-y-4">
+            <div className="border-l-4 border-status-critical/60 bg-[#141416] rounded-r-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Trash className="h-5 w-5 text-status-critical mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-text-primary">
+                    {t("settings.branch.delete.title")}
+                  </h3>
+                  <p className="text-sm text-text-muted mt-1">
+                    {isLastBranch
+                      ? t("settings.branch.delete.lastBranch")
+                      : t("settings.branch.delete.description")}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                disabled={isLastBranch}
+                onClick={() => setDeleteBranchOpen(true)}
+                className="shrink-0"
+              >
+                {t("settings.branch.delete.button")}
+              </Button>
+            </div>
+          </section>
         </div>
       )}
+
+      <ModalShell
+        open={deleteBranchOpen}
+        title={t("settings.branch.delete.title")}
+        description={t("settings.branch.delete.confirm", {
+          name: branch?.name ?? "",
+        })}
+        onClose={() => setDeleteBranchOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteBranchOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteBranch.isPending}
+              onClick={handleDeleteBranch}
+            >
+              {deleteBranch.isPending
+                ? t("common.processing")
+                : t("settings.branch.delete.button")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            {t("settings.branch.delete.dataNote")}
+          </p>
+          <Select
+            label={t("settings.branch.delete.reasonLabel")}
+            value={branchReasonChoice}
+            onChange={(v: string) => setBranchReasonChoice(v)}
+            options={[
+              {
+                value: "LOCATION_CLOSED",
+                label: t("settings.branch.deleteReasons.locationClosed"),
+              },
+              {
+                value: "SEASONAL",
+                label: t("settings.branch.deleteReasons.seasonal"),
+              },
+              {
+                value: "CONSOLIDATING",
+                label: t("settings.branch.deleteReasons.consolidating"),
+              },
+              {
+                value: "TEST_DUPLICATE",
+                label: t("settings.branch.deleteReasons.testDuplicate"),
+              },
+              {
+                value: "SWITCHED_TOOL",
+                label: t("settings.branch.deleteReasons.switchedTool"),
+              },
+              {
+                value: "OTHER",
+                label: t("settings.branch.deleteReasons.other"),
+              },
+            ]}
+          />
+        </div>
+      </ModalShell>
     </div>
   );
 }

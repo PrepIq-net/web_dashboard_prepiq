@@ -27,6 +27,11 @@ export function ChatThreadList({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
+  const handleThreadCreated = (threadId: string) => {
+    setShowCreateModal(false);
+    onThreadSelect(threadId);
+  };
+
   // Filter threads based on search and status
   // Handle different possible data structures from the API
   let threadsArray: ChatThread[] = [];
@@ -60,14 +65,7 @@ export function ChatThreadList({
       return bTimestamp - aTimestamp;
     });
 
-  const canCreateThread = user?.organization_role && [
-    "STAFF_OPERATOR",
-    "BRANCH_MANAGER", 
-    "GM", 
-    "OPS_DIRECTOR", 
-    "ORG_OWNER", 
-    "ORG_ADMIN"
-  ].includes(user.organization_role);
+  const canCreateThread = Boolean(user?.organization_id);
 
   return (
     <>
@@ -116,7 +114,7 @@ export function ChatThreadList({
       </div>
 
       {/* Thread List */}
-      <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
+      <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]">
         {isLoading ? (
           <div className="p-4 space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -166,10 +164,7 @@ export function ChatThreadList({
         <CreateThreadModal
           user={user}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            // The thread list will automatically refresh via React Query
-          }}
+          onSuccess={handleThreadCreated}
         />
       )}
     </>

@@ -1,14 +1,22 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createProductionLog,
   createSalesManualQuickEntry,
   getBranchDayToday,
+  getBranchDayVersion,
+  getBranchPaceSummary,
+  getBranchDayOutcomes,
+  attributeBranchDayOutcomes,
+  getIntradayTimeline,
+  getMorningBrief,
   getBranchCommandView,
   initializeBranchDay,
   ignoreBranchDayLiveAlert,
   lockBranchDayPlan,
+  recomputeIngredientRequirement,
   createPrepRecommendationDecision,
   evaluatePrepPlan,
   getExecutiveControlTower,
@@ -95,6 +103,7 @@ import type {
   UpdatePrepPlanItemPayload,
   UpdateStaffShiftChecklistPayload,
   IntegrationsSyncRetryQuery,
+  AttributeOutcomesPayload,
 } from "@/services/production-intelligence/types";
 
 export const productionIntelligenceQueryKeys = {
@@ -119,6 +128,39 @@ export const productionIntelligenceQueryKeys = {
       "branch-day-today",
       params?.branch_id ?? "",
       params?.date ?? "",
+    ] as const,
+  morningBrief: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "morning-brief",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  branchPaceSummary: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-pace-summary",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  branchDayOutcomes: (branchDayId?: string) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-day-outcomes",
+      branchDayId ?? "",
+    ] as const,
+  intradayTimeline: (params?: { branch_id?: string; date?: string }) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "intraday-timeline",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  branchDayVersion: (branchId?: string) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "branch-day-version",
+      branchId ?? "",
     ] as const,
   branchCommandView: (params: BranchCommandViewQuery) =>
     [
@@ -335,6 +377,87 @@ export function useBranchDayToday(
   });
 }
 
+export function useMorningBrief(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.morningBrief(params),
+    queryFn: () => getMorningBrief(params ?? {}),
+    enabled: enabled && Boolean(params?.branch_id),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useBranchPaceSummary(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchPaceSummary(params),
+    queryFn: () =>
+      getBranchPaceSummary({
+        branch_id: params?.branch_id ?? "",
+        date: params?.date,
+      }),
+    enabled: enabled && Boolean(params?.branch_id),
+    refetchInterval: 180_000,
+    retry: false,
+  });
+}
+
+/**
+ * Version-cursor realtime for the Today page.
+ *
+ * Polls a tiny no-DB endpoint (one Redis GET server-side) every `intervalMs`
+ * and, whenever the branch's change counter increases — connector sales
+ * reconciled, a co-worker's quick-tap, a production log — invalidates the
+ * heavy branch-day + pace queries so react-query refetches them. Invalidation
+ * (not setQueryData) deliberately preserves the caller's optimistic updates.
+ *
+ * A version of 0 means Redis is unavailable or nothing has happened yet; the
+ * hook stays quiet and the caller's slow safety poll remains the fallback.
+ */
+export function useBranchDayLiveVersion(
+  branchId?: string,
+  enabled = true,
+  intervalMs = 5_000,
+) {
+  const queryClient = useQueryClient();
+  const lastSeenRef = useRef<number | null>(null);
+
+  const versionQuery = useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchDayVersion(branchId),
+    queryFn: () => getBranchDayVersion({ branch_id: branchId ?? "" }),
+    enabled: enabled && Boolean(branchId),
+    refetchInterval: enabled && Boolean(branchId) ? intervalMs : false,
+    refetchIntervalInBackground: false,
+    staleTime: 0,
+    gcTime: 60_000,
+    retry: false,
+  });
+
+  const version = versionQuery.data?.version;
+
+  useEffect(() => {
+    if (version === undefined || !branchId) return;
+    const lastSeen = lastSeenRef.current;
+    lastSeenRef.current = version;
+    // First observation is a baseline, not a change; 0 = no signal.
+    if (lastSeen === null || version === 0 || version <= lastSeen) return;
+
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today", branchId],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-pace-summary", branchId],
+    });
+  }, [version, branchId, queryClient]);
+
+  return versionQuery;
+}
+
 export function useInitializeBranchDay() {
   const queryClient = useQueryClient();
 
@@ -342,12 +465,15 @@ export function useInitializeBranchDay() {
     mutationFn: (payload: BranchDayInitializePayload) =>
       initializeBranchDay(payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: productionIntelligenceQueryKeys.branchDayToday({
-          branch_id: data.branch_id,
-          date: data.date,
-        }),
+      const queryKey = productionIntelligenceQueryKeys.branchDayToday({
+        branch_id: data.branch_id,
+        date: data.date,
       });
+      // The response is the same payload the today query serves, so seed the
+      // cache with it. Callers then read the day from one place, and a later
+      // lock/status refetch can actually replace it.
+      queryClient.setQueryData(queryKey, data);
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 }
@@ -385,8 +511,84 @@ export function useUpdateBranchDayNotes() {
     mutationFn: ({
       branchDayId,
       ...payload
-    }: { branchDayId: string; notes?: string; reaction?: string }) =>
-      updateBranchDayNotes(branchDayId, payload),
+    }: {
+      branchDayId: string;
+      notes?: string;
+      reaction?: string;
+      variance_cause?: string;
+      variance_cause_note?: string;
+    }) => updateBranchDayNotes(branchDayId, payload),
+  });
+}
+
+export function useBranchDayOutcomes(branchDayId?: string, enabled = true) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.branchDayOutcomes(branchDayId),
+    queryFn: () => getBranchDayOutcomes(branchDayId ?? ""),
+    enabled: enabled && Boolean(branchDayId),
+    retry: false,
+  });
+}
+
+export function useAttributeOutcomes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      branchDayId,
+      payload,
+    }: {
+      branchDayId: string;
+      payload: AttributeOutcomesPayload;
+    }) => attributeBranchDayOutcomes(branchDayId, payload),
+    onSuccess: (_data, variables) => {
+      // Attribution re-derives the review phase server-side, so the whole
+      // day payload is stale, not just the outcomes list.
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayOutcomes(
+          variables.branchDayId,
+        ),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today"],
+      });
+    },
+  });
+}
+
+export function useIntradayTimeline(
+  params?: { branch_id?: string; date?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.intradayTimeline(params),
+    queryFn: () =>
+      getIntradayTimeline({
+        branch_id: params?.branch_id ?? "",
+        date: params?.date,
+      }),
+    enabled: enabled && Boolean(params?.branch_id),
+    refetchInterval: 180_000,
+    retry: false,
+  });
+}
+
+export function useRecomputeIngredientRequirement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { branch_id: string; date: string }) =>
+      recomputeIngredientRequirement(payload),
+    onSuccess: (_data, variables) => {
+      // The requirement is served inside the today payload, so refetch that
+      // rather than caching it separately and having two versions of the truth.
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.branchDayToday({
+          branch_id: variables.branch_id,
+          date: variables.date,
+        }),
+      });
+    },
   });
 }
 

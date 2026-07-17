@@ -36,6 +36,8 @@ export const branchSchema = z.object({
   phone: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
   timezone: z.string().optional(),
+  /** ISO 4217 currency the branch operates in (defaults USD). */
+  currency: z.string().optional(),
   is_primary: z.boolean(),
   is_active: z.boolean(),
   capacity: z.number().nullable().optional(),
@@ -72,6 +74,7 @@ export const createBranchPayloadSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   timezone: z.string().optional(),
+  currency: z.string().optional(),
   is_primary: z.boolean().optional(),
   is_active: z.boolean().optional(),
   capacity: z.number().int().positive().optional(),

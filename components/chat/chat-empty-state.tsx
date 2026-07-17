@@ -7,19 +7,18 @@ import type { UserProfile } from "@/services/users/types";
 
 interface ChatEmptyStateProps {
   user?: UserProfile | null;
+  onThreadSelect?: (threadId: string) => void;
 }
 
-export function ChatEmptyState({ user }: ChatEmptyStateProps) {
+export function ChatEmptyState({ user, onThreadSelect }: ChatEmptyStateProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
-  const canCreateThread = user?.organization_role && [
-    "STAFF_OPERATOR",
-    "BRANCH_MANAGER", 
-    "GM", 
-    "OPS_DIRECTOR", 
-    "ORG_OWNER", 
-    "ORG_ADMIN"
-  ].includes(user.organization_role);
+
+  const canCreateThread = Boolean(user?.organization_id);
+
+  const handleThreadCreated = (threadId: string) => {
+    setShowCreateModal(false);
+    onThreadSelect?.(threadId);
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center p-8">
@@ -115,10 +114,7 @@ export function ChatEmptyState({ user }: ChatEmptyStateProps) {
         <CreateThreadModal
           user={user}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            // The thread list will automatically refresh via React Query
-          }}
+          onSuccess={handleThreadCreated}
         />
       )}
     </div>

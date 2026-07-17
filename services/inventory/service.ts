@@ -120,6 +120,14 @@ export async function updateMenuItem(branchId: string, menuItemId: string, data:
   );
 }
 
+export async function confirmMenuItemReview(branchId: string, menuItemId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.confirmReview(branchId, menuItemId),
+    menuItemSchema,
+    { method: "POST" }
+  );
+}
+
 // ============================================================================
 // SERVICE FUNCTIONS - RECIPE INTELLIGENCE
 // ============================================================================

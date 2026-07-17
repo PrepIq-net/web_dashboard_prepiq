@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Xmark, 
-  MoreHoriz, 
-  User, 
-  Settings,
+import {
+  Xmark,
+  MoreHoriz,
+  User,
   Archive,
-  UserPlus,
   Bookmark
 } from "iconoir-react";
 import { format } from "date-fns";
 import type { ChatThread } from "@/services/chat/types";
 import type { UserProfile } from "@/services/users/types";
+import { useUpdateChatThreadStatus } from "@/services";
 
 interface ChatThreadHeaderProps {
   thread: ChatThread;
@@ -22,6 +21,15 @@ interface ChatThreadHeaderProps {
 
 export function ChatThreadHeader({ thread, user, onClose }: ChatThreadHeaderProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const updateStatusMutation = useUpdateChatThreadStatus();
+
+  const handleArchive = () => {
+    setShowMenu(false);
+    updateStatusMutation.mutate(
+      { threadId: thread.id, payload: { status: "ARCHIVED" } },
+      { onError: (error) => console.error("Failed to archive thread:", error) },
+    );
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -57,13 +65,7 @@ export function ChatThreadHeader({ thread, user, onClose }: ChatThreadHeaderProp
     }
   };
 
-  const canManageThread = user?.organization_role && [
-    "BRANCH_MANAGER", 
-    "GM", 
-    "OPS_DIRECTOR", 
-    "ORG_OWNER", 
-    "ORG_ADMIN"
-  ].includes(user.organization_role);
+  const canManageThread = Boolean(user?.permissions?.includes("MANAGE_TEAM"));
 
   const currentUserId = user?.id ? String(user.id) : "";
   const otherParticipant = (thread.participants || []).find(
@@ -176,18 +178,13 @@ export function ChatThreadHeader({ thread, user, onClose }: ChatThreadHeaderProp
 
               {showMenu && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-surface-4 bg-surface-2 p-1 shadow-lg z-10">
-                  <button className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-secondary hover:bg-surface-3 hover:text-text-primary">
-                    <UserPlus className="h-4 w-4" />
-                    Add Members
-                  </button>
-                  <button className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-secondary hover:bg-surface-3 hover:text-text-primary">
-                    <Settings className="h-4 w-4" />
-                    Thread Settings
-                  </button>
-                  <div className="h-px bg-surface-4 my-1" />
-                  <button className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-status-warning hover:bg-surface-3">
+                  <button
+                    onClick={handleArchive}
+                    disabled={updateStatusMutation.isPending || thread.status === "ARCHIVED"}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-status-warning hover:bg-surface-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Archive className="h-4 w-4" />
-                    Archive Thread
+                    {thread.status === "ARCHIVED" ? "Archived" : "Archive Thread"}
                   </button>
                 </div>
               )}

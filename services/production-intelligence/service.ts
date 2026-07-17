@@ -9,6 +9,7 @@ import {
   branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
   createProductionLogPayloadSchema,
+  ingredientRequirementSchema,
   prepPlanEvaluatePayloadSchema,
   prepPlanEvaluateResponseSchema,
   branchCommandViewSchema,
@@ -55,8 +56,15 @@ import {
   chefSkillScoreResponseSchema,
   dataQualityReportSchema,
   velocityUpdateResponseSchema,
+  branchPaceSummarySchema,
+  branchDayVersionSchema,
+  morningBriefSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
+  branchDayOutcomesResponseSchema,
+  attributeOutcomesPayloadSchema,
+  intradayTimelineSchema,
+  type AttributeOutcomesPayload,
   type SalesWasteReport,
   type CreatePrepRecommendationDecisionPayload,
   type CreateProductionLogPayload,
@@ -374,6 +382,45 @@ export async function updateRealTimeVelocity(payload: VelocityUpdatePayload) {
   );
 }
 
+export async function getBranchPaceSummary(params: {
+  branch_id: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(
+      productionIntelligenceEndpoints.branchPaceSummary(safeBranchId),
+      { date: params.date },
+    ),
+    branchPaceSummarySchema,
+    { method: "GET" },
+  );
+}
+
+export async function getBranchDayVersion(params: { branch_id: string }) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayVersion(safeBranchId),
+    branchDayVersionSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getMorningBrief(params: {
+  branch_id?: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id);
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.morningBrief(), {
+      branch_id: safeBranchId,
+      date: params.date,
+    }),
+    morningBriefSchema,
+    { method: "GET" },
+  );
+}
+
 export async function initializeBranchDay(payload: BranchDayInitializePayload) {
   const body = branchDayInitializePayloadSchema.parse(payload);
   return apiClientWithSchema(
@@ -415,12 +462,55 @@ export async function updateBranchDayStatus(
 
 export async function updateBranchDayNotes(
   branchDayId: string,
-  payload: { notes?: string; reaction?: string },
+  payload: {
+    notes?: string;
+    reaction?: string;
+    variance_cause?: string;
+    variance_cause_note?: string;
+  },
 ) {
   return apiClient(productionIntelligenceEndpoints.branchDayNotes(branchDayId), {
     method: "PATCH",
     body: payload,
   });
+}
+
+export async function getBranchDayOutcomes(branchDayId: string) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayOutcomes(branchDayId),
+    branchDayOutcomesResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function attributeBranchDayOutcomes(
+  branchDayId: string,
+  payload: AttributeOutcomesPayload,
+) {
+  const body = attributeOutcomesPayloadSchema.parse(payload);
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayOutcomes(branchDayId),
+    branchDayOutcomesResponseSchema.partial().passthrough(),
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export async function getIntradayTimeline(params: {
+  branch_id: string;
+  date?: string;
+}) {
+  const safeBranchId = normalizeBranchId(params.branch_id) ?? params.branch_id;
+  return apiClientWithSchema(
+    withQuery(
+      productionIntelligenceEndpoints.branchIntradayTimeline(safeBranchId),
+      { date: params.date },
+    ),
+    intradayTimelineSchema,
+    { method: "GET" },
+  );
 }
 
 export async function lockBranchDayPlan(
@@ -435,6 +525,17 @@ export async function lockBranchDayPlan(
       method: "POST",
       body,
     },
+  );
+}
+
+export async function recomputeIngredientRequirement(payload: {
+  branch_id: string;
+  date: string;
+}) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.branchDayIngredientsRecompute(),
+    ingredientRequirementSchema,
+    { method: "POST", body: payload },
   );
 }
 

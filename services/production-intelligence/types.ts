@@ -1,6 +1,37 @@
 import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Learned demand signals (per-branch "what this branch taught us")
+// ─────────────────────────────────────────────────────────────────────────────
+// A signal's learned response: what it has historically meant for THIS branch,
+// with how many days back that up and how confident the model is.
+export const learnedResponseSchema = z.object({
+  delta_pct: z.number().nullable(),
+  confidence: z.number(),
+  confidence_label: z.string(),
+  sample_count: z.number(),
+});
+export type LearnedResponse = z.infer<typeof learnedResponseSchema>;
+
+export const learnedPatternSchema = learnedResponseSchema.extend({
+  signal_type: z.string(),
+  label: z.string(),
+  avg_demand_delta: z.number().nullable(),
+});
+export type LearnedPattern = z.infer<typeof learnedPatternSchema>;
+
+// A signal that actually fired on a given day, enriched with its learned
+// response when the branch has one.
+export const activeSignalSchema = z.object({
+  signal_type: z.string(),
+  label: z.string(),
+  name: z.string(),
+  active: z.boolean(),
+  learned: learnedResponseSchema.nullish(),
+});
+export type ActiveSignal = z.infer<typeof activeSignalSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Prep Recommendation Decision
 // ─────────────────────────────────────────────────────────────────────────────
 export const prepRecommendationDecisionSchema = z.object({
@@ -53,6 +84,10 @@ export const prepPlanItemSchema = z.object({
   chef_final_qty: z.number().nullable().optional(),
   variance: z.number().optional(),
   decision: z.enum(["ACCEPTED_AI", "CHEF_OVERRIDE"]).nullable().optional(),
+  override_reason: z.string().optional(),
+  override_reason_note: z.string().optional(),
+  carry_over_qty: z.number().optional(),
+  net_suggested_quantity: z.number().optional(),
   final_quantity: z.number(),
   unit: z.string(),
   suggestion_reason_json: z.record(z.string(), z.unknown()),
@@ -143,6 +178,150 @@ export type PrepPlanItem = z.infer<typeof prepPlanItemSchema>;
 
 export const liveMonitorSchema = prepPlanItemSchema.shape.live_monitor;
 
+// Honest summary of what the forecasting pipeline did during day
+// initialization — powers the walkthrough recap and provenance drawer.
+export const pipelineStatsSchema = z.object({
+  history_days_loaded: z.number().nullable().optional(),
+  excluded_days_max: z.number().nullable().optional(),
+  items_with_exclusions: z.number().nullable().optional(),
+  models_used: z.array(z.string()).nullable().optional(),
+  service_level_avg: z.number().nullable().optional(),
+  weather_event_signals: z
+    .object({
+      is_rain: z.boolean().optional(),
+      special_event: z.boolean().optional(),
+      public_holiday: z.boolean().optional(),
+      temperature_bucket: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  item_count: z.number().nullable().optional(),
+  generated_at: z.string().nullable().optional(),
+});
+export type PipelineStats = z.infer<typeof pipelineStatsSchema>;
+
+/** One ingredient the day's plan needs, measured against what's in the store room. */
+export const ingredientRequirementLineSchema = z.object({
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  unit: z.string(),
+  needed: z.number(),
+  on_hand: z.number(),
+  net_need: z.number(),
+  purchase_qty: z.number().nullable().optional(),
+  estimated_cost: z.number().nullable().optional(),
+  supplier_name: z.string().optional(),
+  /** False when no stock count exists — `net_need` is then the full requirement,
+   *  not a shortfall, and must not be shown as one. */
+  stock_known: z.boolean(),
+});
+export type IngredientRequirementLine = z.infer<
+  typeof ingredientRequirementLineSchema
+>;
+
+export const ingredientRequirementSchema = z.object({
+  date: z.string(),
+  status: z.enum(["OK", "SHORT", "NO_RECIPES", "NO_DATA"]),
+  source: z.enum(["PLAN_LOCK", "MANUAL"]),
+  ingredient_count: z.number(),
+  shortfall_count: z.number(),
+  coverage_pct: z.number().nullable(),
+  total_estimated_cost: z.number().nullable(),
+  items_with_no_recipe: z.array(z.string()),
+  lines: z.array(ingredientRequirementLineSchema),
+  computed_at: z.string().nullable(),
+});
+export type IngredientRequirement = z.infer<typeof ingredientRequirementSchema>;
+
+// ── Production outcomes (the EOD "what happened to the remaining N?" flow) ──
+// Waste is only ever an attributed discard; everything else the chef reports
+// (stored / frozen / converted / staff meal / discounted) is an outcome, and
+// what nobody explains stays "unaccounted".
+export const outcomeStateSchema = z.enum([
+  "DISCARDED",
+  "REFRIGERATED",
+  "FROZEN",
+  "CONVERTED",
+  "STAFF_MEAL",
+  "DISCOUNTED",
+  "UNKNOWN",
+]);
+export type OutcomeState = z.infer<typeof outcomeStateSchema>;
+
+export const discardReasonSchema = z.enum([
+  "SPOILED",
+  "QUALITY_ISSUE",
+  "DEMAND_DROPPED",
+  "LATE_PREP",
+  "OTHER",
+]);
+export type DiscardReason = z.infer<typeof discardReasonSchema>;
+
+export const outcomeAttributionRowSchema = z.object({
+  prep_plan_item_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  item_title: z.string(),
+  unit: z.string(),
+  prepared: z.number(),
+  prepared_basis: z.enum(["LOGGED", "PLANNED", "NONE"]),
+  sold: z.number(),
+  remaining: z.number(),
+  attributed: z.record(z.string(), z.number()),
+  attributed_total: z.number(),
+  discarded: z.number(),
+  unaccounted: z.number(),
+  carry_over_out: z.number(),
+  complete: z.boolean(),
+  cost_impact: z.number(),
+  minor: z.boolean().optional(),
+});
+export type OutcomeAttributionRow = z.infer<typeof outcomeAttributionRowSchema>;
+
+export const expiredCarryOverRowSchema = z.object({
+  outcome_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  item_title: z.string(),
+  state: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+  stored_on: z.string(),
+  expired_at: z.string().nullable(),
+});
+export type ExpiredCarryOverRow = z.infer<typeof expiredCarryOverRowSchema>;
+
+export const branchDayOutcomesResponseSchema = z.object({
+  items: z.array(outcomeAttributionRowSchema.omit({ minor: true })),
+  expired_carry_over: z.array(expiredCarryOverRowSchema),
+});
+export type BranchDayOutcomesResponse = z.infer<
+  typeof branchDayOutcomesResponseSchema
+>;
+
+export const attributeOutcomesPayloadSchema = z.object({
+  item_id: z.string().uuid().optional(),
+  entries: z
+    .array(
+      z.object({
+        state: outcomeStateSchema,
+        quantity: z.number(),
+        discard_reason: discardReasonSchema.optional(),
+        note: z.string().optional(),
+        converted_to_item_id: z.string().uuid().optional(),
+      }),
+    )
+    .optional(),
+  stockout_confirmed: z.boolean().optional(),
+  expired_resolution: z
+    .object({
+      outcome_id: z.string().uuid(),
+      resolution: z.enum(["DISCARD", "USED", "STILL_GOOD"]),
+    })
+    .optional(),
+});
+export type AttributeOutcomesPayload = z.infer<
+  typeof attributeOutcomesPayloadSchema
+>;
+
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
@@ -164,14 +343,18 @@ export const branchDayTodaySchema = z.object({
     signals: z
       .array(
         z.object({
-          key: z.enum(["similar_day", "reservation", "weather", "local_event"]),
+          key: z.string(),
           label: z.string(),
           value_pct: z.number(),
           direction: z.enum(["up", "down", "neutral"]),
           explanation: z.string(),
+          // Present when this signal maps to a learned per-branch pattern.
+          learned: learnedResponseSchema.nullish(),
         }),
       )
       .optional(),
+    // The branch's whole learned signal profile ("what this branch taught us").
+    learned_patterns: z.array(learnedPatternSchema).optional(),
     high_risk_items: z.number().optional(),
     tracked_items: z.number().optional(),
     confidence_breakdown: z
@@ -184,6 +367,23 @@ export const branchDayTodaySchema = z.object({
       })
       .optional(),
   }),
+  // Rich Demand Signals banner: one accurate card per operational variable,
+  // each with the exact parameters behind it. See backend signal_cards.py.
+  signal_cards: z
+    .array(
+      z.object({
+        key: z.string(),
+        status: z.enum(["up", "down", "attention", "neutral"]),
+        active: z.boolean(),
+        headline: z.string().nullable(),
+        value_pct: z.number().nullable(),
+        detail: z.string(),
+        params: z.array(
+          z.object({ label: z.string(), value: z.string() }),
+        ),
+      }),
+    )
+    .optional(),
   morning_overview: z
     .object({
       tracked_items: z.number(),
@@ -541,6 +741,13 @@ export const branchDayTodaySchema = z.object({
             unit: z.enum(["CURRENCY"]),
             comparison: z.unknown().nullable().optional(),
           }),
+          unaccounted: z
+            .object({
+              value: z.number(),
+              unit: z.enum(["COUNT"]),
+              comparison: z.unknown().nullable().optional(),
+            })
+            .optional(),
         }),
         demand_vs_production: z.array(
           z.object({
@@ -581,7 +788,13 @@ export const branchDayTodaySchema = z.object({
             forecast: z.number(),
             prepared: z.number(),
             sold: z.number(),
+            // waste = attributed discards only; the unsold remainder is
+            // split into unaccounted / discarded / stored.
             waste: z.number(),
+            remaining: z.number().optional(),
+            unaccounted: z.number().optional(),
+            discarded: z.number().optional(),
+            stored: z.number().optional(),
             stockout: z.boolean(),
             impact: z.number(),
             lost_revenue_estimate: z.number(),
@@ -656,6 +869,49 @@ export const branchDayTodaySchema = z.object({
         weekday: z.string().optional(),
         sample_size: z.number().optional(),
       }),
+      // exceeds_threshold is decided server-side; the client never re-derives it.
+      variance_review: z
+        .object({
+          forecast_total: z.number(),
+          actual_total: z.number(),
+          variance_ratio: z.number().nullable(),
+          exceeds_threshold: z.boolean(),
+          threshold: z.number(),
+          cause: z.string(),
+          cause_note: z.string(),
+          cause_recorded_at: z.string().nullable(),
+          suggested_cause: z
+            .object({
+              cause: z.string(),
+              reason: z.string(),
+            })
+            .nullable()
+            .optional(),
+        })
+        .optional(),
+      outcome_attribution: z
+        .object({
+          rows: z.array(outcomeAttributionRowSchema),
+          summary: z.object({
+            items_with_remaining: z.number(),
+            total_remaining: z.number(),
+            attributed_remaining: z.number(),
+            complete: z.boolean(),
+          }),
+        })
+        .optional(),
+      stockout_questions: z
+        .array(
+          z.object({
+            item_id: z.string().uuid(),
+            item_title: z.string(),
+            unit: z.string(),
+            prepared: z.number(),
+            sold: z.number(),
+          }),
+        )
+        .optional(),
+      expired_carry_over: z.array(expiredCarryOverRowSchema).optional(),
     })
     .nullable()
     .optional(),
@@ -687,6 +943,11 @@ export const branchDayTodaySchema = z.object({
         ),
         suggested_action: z.string(),
         suggested_prepare_qty: z.number(),
+        advisory_kind: z
+          .enum(["PREPARE_SOON", "SLOW_DOWN", "INFO"])
+          .optional(),
+        confidence: z.number().nullable().optional(),
+        window_minutes: z.number().nullable().optional(),
       }),
     )
     .optional(),
@@ -700,6 +961,7 @@ export const branchDayTodaySchema = z.object({
       note: z.string(),
     })
     .optional(),
+  ingredient_requirement: ingredientRequirementSchema.nullable().optional(),
   session_notes: z.string().optional(),
   day_reaction: z.enum(["FIRED_UP", "GOOD", "MEH", "ROUGH", ""]).optional(),
   created_at: z.string(),
@@ -707,6 +969,7 @@ export const branchDayTodaySchema = z.object({
     .object({
       created_branch_day: z.boolean(),
       created_prep_plan_items: z.number(),
+      pipeline_stats: pipelineStatsSchema.nullable().optional(),
     })
     .optional(),
 });
@@ -774,9 +1037,21 @@ export type PrepPlanEvaluateResponse = z.infer<
   typeof prepPlanEvaluateResponseSchema
 >;
 
+export const overrideReasonSchema = z.enum([
+  "LARGE_BOOKING",
+  "EVENT",
+  "WEATHER",
+  "EXPERIENCE",
+  "HOLIDAY",
+  "OTHER",
+]);
+export type OverrideReason = z.infer<typeof overrideReasonSchema>;
+
 export const updatePrepPlanItemPayloadSchema = z.object({
   planned_quantity: z.number().min(0).optional(),
   accepted_suggestion: z.boolean().optional(),
+  override_reason: z.union([overrideReasonSchema, z.literal("")]).optional(),
+  override_reason_note: z.string().optional(),
 });
 export type UpdatePrepPlanItemPayload = z.infer<
   typeof updatePrepPlanItemPayloadSchema
@@ -999,10 +1274,18 @@ export const executiveControlTowerAlertSchema = z.object({
   actions: z.array(z.string()).optional(),
 });
 
+export const currencyAmountSchema = z.object({
+  currency: z.string(),
+  amount: z.number(),
+  amount_usd: z.number().optional(),
+});
+
 export const executiveControlTowerBranchSchema = z.object({
   branch_id: z.string().uuid(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   revenue: z.number().optional(),
+  revenue_usd: z.number().optional(),
   prepared: z.number().optional(),
   sold: z.number().optional(),
   remaining: z.number().optional(),
@@ -1026,6 +1309,11 @@ export const executiveControlTowerSnapshotSchema = z.object({
     waste_risk_pct: z.number().optional(),
     forecast_accuracy_rolling_7d: z.number().optional(),
     cost_saved_today: z.number().optional(),
+    // Summary currency: the shared branch currency, or USD when the fleet is
+    // multi-currency (money is converted before summing).
+    currency: z.string().optional(),
+    is_multi_currency: z.boolean().optional(),
+    revenue_by_currency: z.array(currencyAmountSchema).optional(),
   }),
   alerts: z.array(executiveControlTowerAlertSchema),
   branch_grid: z.array(executiveControlTowerBranchSchema),
@@ -1038,9 +1326,11 @@ export type ExecutiveControlTowerSnapshot = z.infer<
 export const ownerMarginProtectionBranchSchema = z.object({
   branch_id: z.string().uuid(),
   branch_name: z.string(),
+  currency: z.string().optional(),
   margin_signal_status: z.string().optional(),
   margin_deviation_pct: z.number().optional(),
   total_waste_cost: z.string(),
+  total_waste_cost_usd: z.string().optional(),
   money_protected_vs_baseline: z.string().optional(),
   forecast_accuracy_summary: z.number().optional(),
 });
@@ -1051,6 +1341,8 @@ export const ownerMarginProtectionReportSchema = z.object({
   summary: z.object({
     total_waste_cost: z.string(),
     total_money_protected_vs_baseline: z.string(),
+    currency: z.string().optional(),
+    is_multi_currency: z.boolean().optional(),
     forecast_accuracy_avg_pct: z.number().optional(),
     margin_reliability: z
       .object({
@@ -1726,6 +2018,20 @@ export const velocityComparisonSchema = z.object({
   forecast_velocity_per_hour: z.number().optional(),
 });
 
+// Cumulative intraday position: actuals vs the historical hour-of-day CDF
+// ("at 1:30pm we're normally at 62% of the day; today we're at 78%").
+export const cumulativePositionSchema = z.object({
+  expected_fraction: z.number(),
+  expected_qty_by_now: z.number(),
+  sold_so_far: z.number(),
+  cumulative_ratio: z.number(),
+  projected_total_at_close: z.number(),
+  projected_gap_units: z.number(),
+  status: z.enum(["SURGE", "SLOWDOWN", "ON_PACE"]),
+  alert_level: z.enum(["NONE", "WARNING", "CRITICAL"]),
+});
+export type CumulativePosition = z.infer<typeof cumulativePositionSchema>;
+
 export const velocityUpdateResponseSchema = z.object({
   sales_velocity: velocitySnapshotSchema.nullable().optional(),
   forecast_velocity: z
@@ -1738,12 +2044,144 @@ export const velocityUpdateResponseSchema = z.object({
     .nullable()
     .optional(),
   comparison: velocityComparisonSchema.optional(),
+  cumulative_position: cumulativePositionSchema.nullable().optional(),
+  should_alert: z.boolean().optional(),
+  alert_reason: z.string().optional(),
   forecast_qty: z.number().optional(),
   window_minutes: z.number().optional(),
 });
 export type VelocityUpdateResponse = z.infer<
   typeof velocityUpdateResponseSchema
 >;
+
+export const branchPaceSummarySchema = z.object({
+  as_of: z.string(),
+  date: z.string(),
+  branch: cumulativePositionSchema
+    .omit({ projected_gap_units: true })
+    .extend({
+      forecast_total: z.number(),
+      projected_gap_units: z.number(),
+    })
+    .nullable(),
+  items: z.array(
+    z.object({
+      item_id: z.string(),
+      item_title: z.string(),
+      unit: z.string(),
+      forecast_qty: z.number(),
+      sold_so_far: z.number(),
+      cumulative_position: cumulativePositionSchema.nullable(),
+      should_alert: z.boolean(),
+      alert_reason: z.string(),
+    }),
+  ),
+});
+export type BranchPaceSummary = z.infer<typeof branchPaceSummarySchema>;
+
+export const branchDayVersionSchema = z.object({
+  version: z.number(),
+});
+export type BranchDayVersion = z.infer<typeof branchDayVersionSchema>;
+
+// Per-dish intraday series for the live timeline: cumulative sold vs the
+// expected pace curve, with production batches as steps. Read-only —
+// situational awareness, never commands.
+export const intradayTimelineItemSchema = z.object({
+  item_id: z.string(),
+  item_title: z.string(),
+  unit: z.string(),
+  forecast_qty: z.number(),
+  planned_qty: z.number().nullable(),
+  prepared_qty: z.number(),
+  sold_so_far: z.number(),
+  pace_status: z.string().nullable().optional(),
+  projected_total_at_close: z.number().nullable().optional(),
+  sold_series: z.array(z.object({ hour: z.number(), cumulative: z.number() })),
+  expected_series: z.array(
+    z.object({ hour: z.number(), cumulative: z.number() }),
+  ),
+  production_steps: z.array(
+    z.object({
+      hour: z.number(),
+      quantity: z.number(),
+      event_type: z.string(),
+    }),
+  ),
+});
+export type IntradayTimelineItem = z.infer<typeof intradayTimelineItemSchema>;
+
+export const intradayTimelineSchema = z.object({
+  as_of: z.string(),
+  date: z.string(),
+  current_hour: z.number(),
+  items: z.array(intradayTimelineItemSchema),
+});
+export type IntradayTimeline = z.infer<typeof intradayTimelineSchema>;
+
+export const morningBriefSchema = z.object({
+  branch_id: z.string(),
+  target_date: z.string(),
+  headline: z.string(),
+  narrative: z.string(),
+  watchouts: z.array(z.string()).catch([]),
+  generated_by: z.enum(["llm", "template"]).catch("template"),
+  drivers: z
+    .object({
+      target_date: z.string().optional(),
+      total_recommended_quantity: z.number().optional(),
+      item_count: z.number().optional(),
+      top_movers: z
+        .array(
+          z.object({
+            item_id: z.string(),
+            item_title: z.string(),
+            recommended_quantity: z.number(),
+            unit: z.string(),
+            delta_vs_forecast_pct: z.number().nullable(),
+            confidence: z.number(),
+          }),
+        )
+        .optional(),
+      signals: z
+        .object({
+          is_rain: z.boolean().optional(),
+          weather_condition: z.string().optional(),
+          temperature_bucket: z.string().optional(),
+          special_event: z.boolean().optional(),
+          public_holiday: z.boolean().optional(),
+          expected_traffic_multiplier: z.number().optional(),
+          is_religious_observance: z.boolean().optional(),
+          religious_observance_name: z.string().optional(),
+          sports_event: z.boolean().optional(),
+          sports_event_name: z.string().optional(),
+          sports_match_importance: z.number().optional(),
+          is_payday: z.boolean().optional(),
+        })
+        .optional(),
+      // Signals that actually fired today + the branch's learned profile.
+      active_signals: z.array(activeSignalSchema).optional(),
+      learned_patterns: z.array(learnedPatternSchema).optional(),
+    })
+    .nullable(),
+  prep_sheet: z
+    .array(
+      z.object({
+        ingredient_id: z.string(),
+        ingredient_name: z.string(),
+        category: z.string(),
+        unit: z.string(),
+        total_quantity: z.number(),
+        is_perishable: z.boolean(),
+        items: z.array(
+          z.object({ menu_item: z.string(), quantity: z.number() }),
+        ),
+      }),
+    )
+    .catch([]),
+  updated_at: z.string(),
+});
+export type MorningBrief = z.infer<typeof morningBriefSchema>;
 
 export const advancedForecastPayloadSchema = z.object({
   branch_id: z.string().uuid(),
@@ -1828,6 +2266,8 @@ export const salesWastePeriodSummarySchema = z.object({
     total_waste_value: z.number(),
     waste_rate_pct: z.number(),
     top_waste_item: salesWasteTopWasteItemSchema.nullable(),
+    total_unaccounted_units: z.number().optional(),
+    total_stored_units: z.number().optional(),
   }),
 });
 
@@ -1838,7 +2278,11 @@ export const salesWasteItemRowSchema = z.object({
   forecasted: z.number(),
   produced: z.number(),
   sold: z.number(),
+  // waste = attributed discards; remaining is split into unaccounted/stored.
   waste: z.number(),
+  remaining: z.number().optional(),
+  unaccounted: z.number().optional(),
+  stored: z.number().optional(),
   revenue: z.number(),
   food_cost: z.number(),
   waste_cost: z.number(),

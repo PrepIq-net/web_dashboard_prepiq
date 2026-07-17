@@ -21,7 +21,7 @@ const CONTENT: Record<
     description:
       "Your PrepIQ workspace is ready. Activate your free trial to access daily prep forecasts, production workflow, inventory intelligence, and waste tracking — no credit card required.",
     cta: "Start Free Trial",
-    href: "/setup/pricing",
+    href: "/workspace/billing/upgrade",
   },
   trial_expired: {
     eyebrow: "Trial Ended",

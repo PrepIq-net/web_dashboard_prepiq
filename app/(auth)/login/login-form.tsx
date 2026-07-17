@@ -10,30 +10,9 @@ import { Honeypot } from "@/components/auth/honeypot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
+import { useGoogleIdentity } from "@/lib/auth/use-google-identity";
 import { useSessionGoogleLogin, useSessionLoginUser } from "@/services";
 import { useTranslation } from "@/lib/i18n";
-
-type GoogleCredentialResponse = {
-  credential?: string;
-};
-
-type GoogleAccounts = {
-  id: {
-    initialize: (options: {
-      client_id: string;
-      callback: (response: GoogleCredentialResponse) => void;
-      auto_select?: boolean;
-      use_fedcm_for_prompt?: boolean;
-    }) => void;
-    prompt: () => void;
-  };
-};
-
-type GoogleWindow = Window & {
-  google?: {
-    accounts?: GoogleAccounts;
-  };
-};
 
 export function LoginForm() {
   const router = useRouter();
@@ -44,8 +23,6 @@ export function LoginForm() {
   const [nickname, setNickname] = useState(""); // Honeypot field
   const [isUnverified, setIsUnverified] = useState(false);
   const [isSessionSwitching, setIsSessionSwitching] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
-  const [googleReady, setGoogleReady] = useState(false);
 
   const loginMutation = useSessionLoginUser();
   const googleLoginMutation = useSessionGoogleLogin();
@@ -66,114 +43,40 @@ export function LoginForm() {
 
     if (verified === "1") {
       toast.success(t("auth.otpVerified"));
-    }
-  }, [searchParams, t]);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadGoogleConfig() {
-      try {
-        const response = await fetch("/api/auth/google/config", {
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as {
-          clientId?: string;
-          message?: string;
-        };
-
-        if (!response.ok || !payload.clientId) {
-          throw new Error(
-            payload.message ?? "Google sign-in is not configured.",
-          );
-        }
-
-        if (active) {
-          setGoogleClientId(payload.clientId);
-        }
-      } catch (error) {
-        if (active) {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : "Failed to initialize Google login.",
-          );
-        }
-      }
-    }
-
-    loadGoogleConfig();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!googleClientId) {
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[src="https://accounts.google.com/gsi/client"]',
-    );
-
-    const initializeGoogle = () => {
-      const gWindow = window as GoogleWindow;
-      const accounts = gWindow.google?.accounts;
-
-      if (!accounts?.id) {
-        toast.error("Google Identity script did not load correctly.");
-        return;
-      }
-
-      accounts.id.initialize({
-        client_id: googleClientId,
-        use_fedcm_for_prompt: true,
-        callback: async (response) => {
-          if (!response.credential) {
-            toast.error("Google sign-in failed. Missing credential token.");
-            return;
-          }
-
-          try {
-            await googleLoginMutation.mutateAsync({
-              id_token: response.credential,
-            });
-            setIsSessionSwitching(true);
-            toast.success(t("auth.sessionSwitched"));
-            router.replace("/");
-            router.refresh();
-          } catch (error) {
-            setIsSessionSwitching(false);
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : "Google login failed. Please try again.",
-            );
-          }
-        },
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("verified");
+      router.replace(`/login${params.toString() ? `?${params.toString()}` : ""}`, {
+        scroll: false,
       });
-
-      setGoogleReady(true);
-    };
-
-    if (existingScript) {
-      initializeGoogle();
-      return;
     }
+    // `t` is intentionally omitted: useTranslation() returns a new `t` reference
+    // on every render, which would re-run this effect (and re-toast) on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, router]);
 
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGoogle;
-    script.onerror = () => {
-      toast.error("Unable to load Google Identity script.");
-    };
-
-    document.head.appendChild(script);
-  }, [googleClientId, googleLoginMutation, router]);
+  const googleIdentity = useGoogleIdentity({
+    onCredential: async (idToken) => {
+      try {
+        const result = await googleLoginMutation.mutateAsync({
+          id_token: idToken,
+        });
+        setIsSessionSwitching(true);
+        toast.success(
+          result.user.restored
+            ? t("auth.accountReactivated")
+            : t("auth.sessionSwitched"),
+        );
+        router.replace("/");
+        router.refresh();
+      } catch (error) {
+        setIsSessionSwitching(false);
+        toast.error(
+          error instanceof Error ? error.message : t("auth.googleFailed"),
+        );
+      }
+    },
+    onError: (message) => toast.error(message),
+  });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -220,13 +123,9 @@ export function LoginForm() {
   }
 
   function handleGoogleSignIn() {
-    if (!googleReady) {
-      toast.error("Google sign-in is still loading. Please try again.");
-      return;
+    if (!googleIdentity.prompt()) {
+      toast.error(t("auth.googleLoading"));
     }
-
-    const accounts = (window as GoogleWindow).google?.accounts;
-    accounts?.id.prompt();
   }
 
   return (
@@ -359,7 +258,7 @@ export function LoginForm() {
               />
             }
             onClick={handleGoogleSignIn}
-            disabled={isBusy || !googleClientId}
+            disabled={isBusy || !googleIdentity.configured}
           >
             {googleLoginMutation.isPending
               ? t("common.loading")

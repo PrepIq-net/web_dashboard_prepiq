@@ -7,46 +7,59 @@ import {
   useMarkNotificationsAsRead,
   useMarkNotificationsAsResolved,
 } from "@/services";
+import { useExplainAlert } from "@/services/assistant/hooks";
+import {
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_CATEGORY_COLORS,
+  NOTIFICATION_CATEGORY_LABELS,
+  type NotificationCategory,
+} from "@/services/notifications/types";
 import {
   Check,
   CheckCircle,
   WarningTriangle,
   InfoCircle,
   Clock,
-  Menu,
+  Sparks,
 } from "iconoir-react";
 import { format, isToday, isYesterday, startOfDay } from "date-fns";
 
 const TAB_KEYS = [
   { id: "all", labelKey: "common.all" },
   { id: "today", labelKey: "common.today" },
-  { id: "risks", labelKey: "workspace.notifications.tab.risks" },
-  { id: "demand", labelKey: "workspace.notifications.tab.demand" },
-  { id: "waste", labelKey: "workspace.notifications.tab.waste" },
-  { id: "insights", labelKey: "workspace.notifications.tab.insights" },
-  { id: "system", labelKey: "workspace.notifications.tab.system" },
+  { id: "OPERATIONAL", labelKey: "workspace.notifications.tab.operational" },
+  { id: "PLANNING", labelKey: "workspace.notifications.tab.planning" },
+  { id: "LIVE_SERVICE", labelKey: "workspace.notifications.tab.liveService" },
+  { id: "LEARNING", labelKey: "workspace.notifications.tab.learning" },
+  { id: "EXECUTIVE", labelKey: "workspace.notifications.tab.executive" },
 ] as const;
 
 type TabId = (typeof TAB_KEYS)[number]["id"];
 
+const getCategoryStyles = (category: string | null | undefined) => {
+  const color = NOTIFICATION_CATEGORY_COLORS[category as NotificationCategory] ?? "#8E8E93";
+  const label = NOTIFICATION_CATEGORY_LABELS[category as NotificationCategory] ?? category ?? "Operational";
+  return { color, label };
+};
+
 export default function NotificationsPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>("all");
+  const [explainingId, setExplainingId] = useState<string | null>(null);
 
   const queryParams = useMemo(() => {
     const params: any = {};
     if (activeTab === "today") params.is_today = true;
-    if (activeTab === "risks") params.urgency = "CRITICAL";
-    if (activeTab === "demand") params.domain = "PRODUCTION";
-    if (activeTab === "waste") params.domain = "PRODUCTION";
-    if (activeTab === "insights") params.domain = "SYSTEM";
-    if (activeTab === "system") params.domain = "SYSTEM";
+    if ((NOTIFICATION_CATEGORIES as readonly string[]).includes(activeTab)) {
+      params.category = activeTab;
+    }
     return params;
   }, [activeTab]);
 
   const notificationsQuery = useNotifications(queryParams);
   const markAsReadMutation = useMarkNotificationsAsRead();
   const markAsResolvedMutation = useMarkNotificationsAsResolved();
+  const explainAlertMutation = useExplainAlert();
 
   const notifications = notificationsQuery.data ?? [];
 
@@ -169,6 +182,10 @@ export default function NotificationsPage() {
                     const styles = getUrgencyStyles(
                       notification.escalation_level,
                     );
+                    const categoryStyles = getCategoryStyles(
+                      notification.notification_category,
+                    );
+                    const isExplaining = explainingId === notification.id;
                     return (
                       <div
                         key={notification.id}
@@ -196,9 +213,15 @@ export default function NotificationsPage() {
                           </p>
 
                           <div className="mt-4 flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-1.5 rounded-full bg-[#141416] px-2.5 py-1 text-[11px] font-medium text-[#A8821F]">
-                              <Menu className="h-3 w-3" />
-                              {notification.domain || t("workspace.notifications.domainSystem")}
+                            <div
+                              className="flex items-center gap-1.5 rounded-full bg-[#141416] px-2.5 py-1 text-[11px] font-medium"
+                              style={{ color: categoryStyles.color }}
+                            >
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: categoryStyles.color }}
+                              />
+                              {categoryStyles.label}
                             </div>
 
                             {notification.recommended_action && (
@@ -208,9 +231,36 @@ export default function NotificationsPage() {
                               </div>
                             )}
                           </div>
+
+                          {isExplaining && (
+                            <div className="mt-4 rounded-[8px] border border-[#2A2A2E] bg-[#141416] p-4 text-[13px] leading-relaxed text-[#C7C7CC]">
+                              {explainAlertMutation.isPending ? (
+                                <p className="animate-pulse text-[#8E8E93]">
+                                  {t("workspace.notifications.explainLoading")}
+                                </p>
+                              ) : (
+                                <p>{explainAlertMutation.data?.message.content}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                          {notification.branch && (
+                            <button
+                              onClick={() => {
+                                setExplainingId(notification.id);
+                                explainAlertMutation.mutate({
+                                  branch_id: notification.branch as string,
+                                  topic: `${notification.title}: ${notification.body || notification.message}`,
+                                });
+                              }}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#A8821F]"
+                              title={t("workspace.notifications.explain")}
+                            >
+                              <Sparks className="h-4 w-4" />
+                            </button>
+                          )}
                           {notification.status === "UNREAD" && (
                             <button
                               onClick={() =>

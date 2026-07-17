@@ -5,6 +5,7 @@ import {
   getMenuItems,
   createMenuItem,
   updateMenuItem,
+  confirmMenuItemReview,
   getRecipes,
   createRecipe,
   deleteRecipe,
@@ -149,6 +150,18 @@ export function useUpdateMenuItem(branchId: string) {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<MenuItemPayload> }) =>
       updateMenuItem(branchId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.menuItems(branchId),
+      });
+    },
+  });
+}
+
+export function useConfirmMenuItemReview(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (menuItemId: string) => confirmMenuItemReview(branchId, menuItemId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: inventoryQueryKeys.menuItems(branchId),

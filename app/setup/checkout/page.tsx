@@ -9,7 +9,6 @@ import {
   CreditCard,
   MultiplePages,
   InfoCircle,
-  DoubleCheck,
   CoinsSwap,
 } from "iconoir-react";
 import { ApiError } from "@/lib/api/errors";
@@ -20,9 +19,11 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   useCurrentSubscription,
   useCheckoutPayment,
+  useFxRates,
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
 import { useBranches, useCurrentUserProfile } from "@/services";
+import { convertFromUsd, formatMoney, getCurrency } from "@/lib/currencies";
 import { useTranslation } from "@/lib/i18n";
 import type { Branch } from "@/services/branches/types";
 import type { SubscriptionPlan } from "@/services/payment/types";
@@ -60,7 +61,7 @@ export default function CheckoutPage() {
     "MONTHLY",
   );
   const [selectedBranchId, setSelectedBranchId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("CARD");
+  const paymentMethod = "CARD";
   const [businessName, setBusinessName] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -94,10 +95,11 @@ export default function CheckoutPage() {
     [plans, selectedPlanId],
   );
 
-  const selectedBranchName = useMemo(
-    () => branches.find((b) => b.id === selectedBranchId)?.name || "selected",
+  const selectedBranch = useMemo(
+    () => branches.find((b) => b.id === selectedBranchId),
     [branches, selectedBranchId],
   );
+  const selectedBranchName = selectedBranch?.name || "selected";
 
   useEffect(() => {
     if (userLoading || !user) return;
@@ -110,12 +112,24 @@ export default function CheckoutPage() {
     selectedBranchId ? { branch_id: selectedBranchId } : undefined,
   );
   const branchSub = currentSubscriptionQuery.data;
+  // Paying while a free trial is still running doesn't cut the trial short —
+  // the backend defers the paid period to start once the trial ends.
+  const isActiveTrial =
+    Boolean(branchSub) && branchSub!.status === "ACTIVE" && Boolean(branchSub!.is_trial);
   const isTransition =
+    !isActiveTrial &&
     branchSub &&
     branchSub.status === "ACTIVE" &&
     (branchSub.plan?.id !== selectedPlanId ||
       branchSub.billing_cycle !== billingCycle);
   const currentSubPlanName = branchSub?.plan?.name;
+  const trialEndsAtLabel = branchSub?.trial_ends_at
+    ? new Date(branchSub.trial_ends_at).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   useEffect(() => {
     if (!branches.length) return;
@@ -130,6 +144,14 @@ export default function CheckoutPage() {
       ? toNumber(selectedPlan.monthly_price)
       : toNumber(selectedPlan.yearly_price);
   }, [selectedPlan, billingCycle]);
+
+  // Subscription is priced in USD, charged in the branch's local currency —
+  // show the branch-currency total so the page matches the gateway charge.
+  const fxQuery = useFxRates();
+  const branchCurrency = (selectedBranch?.currency ?? "USD").toUpperCase();
+  const localPrice = convertFromUsd(price, branchCurrency, fxQuery.data?.rates);
+  const isConverted = branchCurrency !== "USD";
+  const displayPrice = (v: number) => formatMoney(v, branchCurrency);
 
   function handleCheckout() {
     setSubmitError("");
@@ -155,12 +177,15 @@ export default function CheckoutPage() {
         business_name: businessName,
         billing_email: billingEmail,
         phone_number: phoneNumber,
+        checkout_source: "setup",
       },
       {
         onSuccess: (response) => {
           const redirect = response.payment_link;
           if (redirect) {
             window.location.href = redirect;
+          } else {
+            router.push(`/setup/checkout/success?paymentId=${response.payment.id}`);
           }
         },
         onError: (error: any) => {
@@ -216,11 +241,32 @@ export default function CheckoutPage() {
                   {isTransition ? t("setup.checkout.completeUpgrade") : t("setup.checkout.detailsTitle")}
                 </h1>
                 <p className="text-text-muted text-[15px]">
-                  {isTransition
-                    ? t("setup.checkout.transitioning", { branch: selectedBranchName, plan: selectedPlan?.name ?? "" })
-                    : t("setup.checkout.settingUp", { plan: selectedPlan?.name || "your plan" })}
+                  {isActiveTrial
+                    ? t("setup.checkout.trialDeferralSubtitle", { plan: selectedPlan?.name ?? "" })
+                    : isTransition
+                      ? t("setup.checkout.transitioning", { branch: selectedBranchName, plan: selectedPlan?.name ?? "" })
+                      : t("setup.checkout.settingUp", { plan: selectedPlan?.name || "your plan" })}
                 </p>
               </div>
+
+              {/* Trial Deferral Notice — paying mid-trial doesn't cut the trial short */}
+              {isActiveTrial && (
+                <div className="p-5 rounded-xl border border-brand-gold/30 bg-brand-gold/5 flex items-start gap-4 animate-fade-in">
+                  <div className="h-10 w-10 rounded-full bg-brand-gold/10 flex items-center justify-center shrink-0">
+                    <CoinsSwap className="h-5 w-5 text-brand-gold" />
+                  </div>
+                  <div>
+                    <h4 className="text-[15px] font-semibold text-brand-gold font-display">
+                      {t("setup.checkout.trialDeferralDetected")}
+                    </h4>
+                    <p className="text-[13px] text-text-secondary leading-relaxed mt-1">
+                      {trialEndsAtLabel
+                        ? t("setup.checkout.trialDeferralDescWithDate", { date: trialEndsAtLabel })
+                        : t("setup.checkout.trialDeferralDesc")}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Upgrade Transition Notice */}
               {isTransition && (
@@ -250,7 +296,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[24px] font-semibold text-brand-gold">
-                        {formatCurrency(price)}
+                        {displayPrice(localPrice)}
                       </p>
                       <p className="text-text-muted text-[12px] uppercase tracking-wider">
                         {billingCycle === "MONTHLY"
@@ -342,58 +388,22 @@ export default function CheckoutPage() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("CARD")}
-                  className={`p-6 rounded-card border text-left flex flex-col gap-4 transition-all ${
-                    paymentMethod === "CARD"
-                      ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
-                      : "border-border-default bg-surface-2 hover:bg-surface-3"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <CreditCard
-                      className={`h-6 w-6 ${paymentMethod === "CARD" ? "text-brand-gold" : "text-text-muted"}`}
-                    />
-                    {paymentMethod === "CARD" && (
-                      <DoubleCheck className="h-4 w-4 text-brand-gold" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[15px]">
-                      {t("setup.checkout.card")}
-                    </p>
-                    <p className="text-[12px] text-text-muted mt-0.5">
-                      {t("setup.checkout.cardDesc")}
-                    </p>
-                  </div>
-                </button>
+              <div className="p-6 rounded-card border border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)] flex items-center gap-4">
+                <CreditCard className="h-6 w-6 text-brand-gold shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-[15px]">
+                    {t("setup.checkout.card")}
+                  </p>
+                  <p className="text-[12px] text-text-muted mt-0.5">
+                    {t("setup.checkout.cardAccepted")}
+                  </p>
+                </div>
+                <CheckCircle className="h-4 w-4 text-brand-gold shrink-0" />
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("MOBILE_MONEY")}
-                  className={`p-6 rounded-card border text-left flex flex-col gap-4 transition-all ${
-                    paymentMethod === "MOBILE_MONEY"
-                      ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
-                      : "border-border-default bg-surface-2 hover:bg-surface-3"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="h-6 flex items-center text-[10px] font-bold uppercase tracking-widest text-[#B8962E]">
-                      {t("setup.checkout.mpesa")}
-                    </div>
-                    {paymentMethod === "MOBILE_MONEY" && (
-                      <DoubleCheck className="h-4 w-4 text-brand-gold" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[15px]">{t("setup.checkout.mobileMoney")}</p>
-                    <p className="text-[12px] text-text-muted mt-0.5">
-                      {t("setup.checkout.mobileMoneyDesc")}
-                    </p>
-                  </div>
-                </button>
+              <div className="flex items-center gap-2 text-[11px] text-text-muted">
+                <ShieldCheck className="h-3.5 w-3.5 text-brand-gold" />
+                {t("setup.checkout.securePayment")}
               </div>
             </section>
           </div>
@@ -415,7 +425,7 @@ export default function CheckoutPage() {
                         {t("setup.checkout.planPlan", { plan: selectedPlan?.name ?? "" })}
                       </span>
                       <span className="font-medium">
-                        {formatCurrency(price)}
+                        {displayPrice(localPrice)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px]">
@@ -437,13 +447,21 @@ export default function CheckoutPage() {
                           {t("setup.checkout.totalDueToday")}
                         </p>
                         <p className="text-[34px] font-semibold text-text-primary leading-none mt-2 font-display">
-                          {formatCurrency(price)}
+                          {displayPrice(localPrice)}
                         </p>
                       </div>
                       <p className="text-[12px] text-text-muted pb-1">
                         {billingCycle === "MONTHLY" ? t("setup.checkout.perMonth") : t("setup.checkout.perYear")}
                       </p>
                     </div>
+                    {isConverted && (
+                      <p className="mt-2 text-[11px] text-text-muted">
+                        {t("setup.checkout.convertedFromUsd", {
+                          amount: formatCurrency(price),
+                          currency: getCurrency(branchCurrency).code,
+                        })}
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-6">
@@ -468,7 +486,7 @@ export default function CheckoutPage() {
                           {t("setup.checkout.processing")}
                         </span>
                       ) : (
-                        t("setup.checkout.pay", { amount: formatCurrency(price) })
+                        t("setup.checkout.pay", { amount: displayPrice(localPrice) })
                       )}
                     </Button>
 
