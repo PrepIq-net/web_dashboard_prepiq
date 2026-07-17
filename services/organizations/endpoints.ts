@@ -14,6 +14,8 @@ export const organizationsEndpoints = {
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,
   financialOverview: (id: string) =>
     `/api/organizations/${id}/financial/overview/`,
+  staffPerformance: (id: string) =>
+    `/api/organizations/${id}/staff-performance/`,
   // RBAC endpoints
   permissions: (id: string) => `/api/organizations/${id}/permissions/`,
   roles: (id: string) => `/api/organizations/${id}/roles/`,

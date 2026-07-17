@@ -31,12 +31,16 @@ function BoardColumn({
   canDrag,
   canDragTask,
   onOpen,
+  onEdit,
+  highlightAi,
 }: {
   status: BoardStatus;
   tasks: KitchenTask[];
   canDrag: boolean;
   canDragTask: (task: KitchenTask) => boolean;
   onOpen?: (task: KitchenTask) => void;
+  onEdit?: (task: KitchenTask) => void;
+  highlightAi?: boolean;
 }) {
   const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -66,6 +70,8 @@ function BoardColumn({
               task={task}
               draggable={canDrag && canDragTask(task)}
               onOpen={onOpen}
+              onEdit={onEdit}
+              highlightAi={highlightAi}
             />
           ))
         )}
@@ -85,12 +91,16 @@ export function TaskBoard({
   currentUserId,
   onMove,
   onOpen,
+  onEdit,
+  highlightAi,
 }: {
   board: TaskBoardData;
   canManage: boolean;
   currentUserId?: string;
   onMove: (taskId: string, status: BoardStatus) => void;
   onOpen?: (task: KitchenTask) => void;
+  onEdit?: (task: KitchenTask) => void;
+  highlightAi?: boolean;
 }) {
   const sensors = useSensors(
     // The activation distance is what keeps a plain tap working as a click.
@@ -123,6 +133,8 @@ export function TaskBoard({
             canDrag
             canDragTask={canDragTask}
             onOpen={onOpen}
+            onEdit={onEdit}
+            highlightAi={highlightAi}
           />
         ))}
       </div>

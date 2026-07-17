@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Clock, User } from "iconoir-react";
+import { Clock, EditPencil, SparksSolid, User } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import type { KitchenTask } from "@/services/execution/types";
 
@@ -22,10 +22,14 @@ export function TaskCard({
   task,
   draggable,
   onOpen,
+  onEdit,
+  highlightAi = false,
 }: {
   task: KitchenTask;
   draggable: boolean;
   onOpen?: (task: KitchenTask) => void;
+  onEdit?: (task: KitchenTask) => void;
+  highlightAi?: boolean;
 }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -39,6 +43,8 @@ export function TaskCard({
     ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
     : undefined;
 
+  const isAi = task.source === "AI_PLAN" || task.source === "AI_LIVE";
+
   return (
     <div
       ref={setNodeRef}
@@ -46,17 +52,37 @@ export function TaskCard({
       {...attributes}
       {...listeners}
       onClick={() => onOpen?.(task)}
-      className={`rounded-lg border border-surface-4 bg-surface-2 p-3 text-left transition-colors ${
-        draggable ? "cursor-grab touch-none" : ""
-      } ${isDragging ? "z-10 opacity-80" : "hover:border-brand-gold/40"}`}
+      className={`rounded-lg border bg-surface-2 p-3 text-left transition-colors ${
+        highlightAi && isAi
+          ? "border-brand-gold/60 ring-1 ring-brand-gold/30"
+          : "border-surface-4"
+      } ${draggable ? "cursor-grab touch-none" : ""} ${
+        isDragging ? "z-10 opacity-80" : "hover:border-brand-gold/40"
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium leading-snug text-text-primary">
           {task.title}
         </p>
-        {task.priority === "HIGH" ? (
-          <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-status-critical" />
-        ) : null}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {task.priority === "HIGH" ? (
+            <span className="mt-0.5 h-2 w-2 rounded-full bg-status-critical" />
+          ) : null}
+          {onEdit ? (
+            <button
+              type="button"
+              aria-label={t("tasks.card.edit")}
+              title={t("tasks.card.edit")}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(task);
+              }}
+              className="rounded p-0.5 text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
+            >
+              <EditPencil className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </span>
       </div>
 
       {task.links.length > 0 ? (
@@ -77,6 +103,12 @@ export function TaskCard({
         >
           {t(`tasks.category.${task.category.toLowerCase()}`)}
         </span>
+        {isAi ? (
+          <span className="inline-flex h-5 items-center gap-1 rounded border border-brand-gold/40 bg-brand-gold/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-gold">
+            <SparksSolid className="h-2.5 w-2.5" />
+            {t("tasks.card.aiBadge")}
+          </span>
+        ) : null}
         {task.estimated_minutes ? (
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3 w-3" />

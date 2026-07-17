@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { Shop, Calendar } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
@@ -30,6 +31,8 @@ import {
   useUpdatePrepPlanItem,
   productionIntelligenceQueryKeys,
 } from "@/services/production-intelligence/hooks";
+import { useGenerateTasks } from "@/services";
+import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
 import { useBranchStore } from "@/services/context/branch-store";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSubscriptionTier } from "@/services/payment/hooks";
@@ -140,6 +143,36 @@ function TodayWorkspacePageContent() {
     skipInvalidate: true,
   });
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
+  const generateTasksMutation = useGenerateTasks();
+
+  // ── AI task suggestions: persistent, clickable notice ─────────────────────
+  // Shown when PrepIQ drafts tasks for this day — either from this manager's
+  // "start service", or out-of-band (Celery after a plan lock, another admin).
+  const showAiTasksToast = useCallback(() => {
+    if (!safeBranchId) return;
+    toast(
+      (activeToast) => (
+        <button
+          type="button"
+          className="text-left"
+          onClick={() => {
+            toast.dismiss(activeToast.id);
+            router.push(`/workspace/tasks?branch=${safeBranchId}&highlight=ai`);
+          }}
+        >
+          <span className="block text-sm font-semibold">
+            {t("today.aiTasksToast.title")}
+          </span>
+          <span className="mt-0.5 block text-xs opacity-75">
+            {t("today.aiTasksToast.subtitle")}
+          </span>
+        </button>
+      ),
+      { id: "ai-tasks-suggested", icon: "✨", duration: Infinity },
+    );
+  }, [router, safeBranchId, t]);
+
+  useTaskBoardRealtime(safeBranchId || undefined, targetDate, showAiTasksToast);
 
   const branchDay = todayQuery.data;
   const pipelineStats = initializeMutation.data?.meta?.pipeline_stats ?? null;
@@ -527,7 +560,22 @@ function TodayWorkspacePageContent() {
     setConfirmAction(null);
     updateBranchDayStatusMutation.mutate(
       { branchDayId: branchDay.id, payload: { status: "LIVE" } },
-      {},
+      {
+        onSuccess: () => {
+          // Service is starting: have PrepIQ (re)draft task suggestions from
+          // the locked plan, then point the manager at the review tray. The
+          // WebSocket broadcast raises the same toast for other admins.
+          if (!safeBranchId) return;
+          generateTasksMutation.mutate(
+            { branchId: safeBranchId, date: targetDate },
+            {
+              onSuccess: (data) => {
+                if (data.tasks.length > 0) showAiTasksToast();
+              },
+            },
+          );
+        },
+      },
     );
   };
 

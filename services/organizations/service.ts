@@ -6,6 +6,8 @@ import {
   organizationMemberSchema,
   organizationRegisterPayloadSchema,
   organizationFinancialOverviewSchema,
+  staffPerformanceResponseSchema,
+  type StaffPerformanceQuery,
   permissionSchema,
   roleSchema,
   roleCreateUpdatePayloadSchema,
@@ -318,5 +320,20 @@ export async function deleteOrganization(
       method: "DELETE",
       body: reason ?? {},
     },
+  );
+}
+
+export async function getStaffPerformance(
+  id: string,
+  query?: StaffPerformanceQuery,
+) {
+  const params = new URLSearchParams();
+  if (query?.days) params.set("days", String(query.days));
+  if (query?.branch_id) params.set("branch_id", query.branch_id);
+  const suffix = params.size > 0 ? `?${params.toString()}` : "";
+  return apiClientWithSchema(
+    `${organizationsEndpoints.staffPerformance(id)}${suffix}`,
+    staffPerformanceResponseSchema,
+    { method: "GET" },
   );
 }

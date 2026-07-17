@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { Plus, RefreshDouble, Shop } from "iconoir-react";
 import {
   useAssignTask,
@@ -11,7 +13,9 @@ import {
   useGenerateTasks,
   useSetTaskStatus,
   useTaskBoard,
+  useUpdateTask,
 } from "@/services";
+import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSelectedBranch } from "@/services/context/branch-store";
 import { useSubscriptionTier } from "@/services/payment/hooks";
@@ -31,11 +35,16 @@ import {
   AddTaskModal,
   type NewTaskValues,
 } from "@/components/dashboard/tasks/add-task-modal";
-import type { BoardStatus } from "@/services/execution/types";
+import {
+  EditTaskModal,
+  type EditTaskValues,
+} from "@/components/dashboard/tasks/edit-task-modal";
+import type { BoardStatus, KitchenTask } from "@/services/execution/types";
 
-export default function TasksPage() {
+function TasksPageContent() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
+  const searchParams = useSearchParams();
   const { branchOptions, defaultBranch, isLoading: branchesLoading } =
     useBranchOptions();
   const [branchId, setBranchId] = useSelectedBranch({
@@ -52,7 +61,20 @@ export default function TasksPage() {
   const date = todayIso();
 
   const [addOpen, setAddOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<KitchenTask | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState("");
+  // Set when the manager arrives from the "PrepIQ AI suggested tasks" toast:
+  // AI cards get a gold ring and the review tray scrolls into view.
+  const [highlightAi, setHighlightAi] = useState(false);
+
+  // Deep-link support: /workspace/tasks?branch=<id>&highlight=ai
+  useEffect(() => {
+    const paramBranch = searchParams.get("branch");
+    if (paramBranch && UUID_PATTERN.test(paramBranch)) {
+      setBranchId(paramBranch);
+    }
+    setHighlightAi(searchParams.get("highlight") === "ai");
+  }, [searchParams, setBranchId]);
 
   const permissions = useMemo(() => resolvePermissions(user), [user]);
   const canManage = permissions.has(PERMISSIONS.MANAGE_TASKS);
@@ -63,22 +85,50 @@ export default function TasksPage() {
   const create = useCreateTask();
   const assign = useAssignTask();
   const remove = useDeleteTask();
+  const update = useUpdateTask();
   const setStatus = useSetTaskStatus();
+
+  // Live sync: another admin's move lands here without a manual refresh. When
+  // the AI drafts new suggestions for this day, managers hear about it in place.
+  useTaskBoardRealtime(safeBranchId || undefined, date, (count) => {
+    if (!canManage) return;
+    setHighlightAi(true);
+    toast(t("tasks.aiSuggestedToast", { count }), {
+      id: "ai-tasks-suggested",
+      icon: "✨",
+      duration: 8000,
+    });
+  });
 
   const board = boardQuery.data;
 
+  const trayRef = useRef<HTMLDivElement | null>(null);
+  const suggestionCount = board?.suggestions.length ?? 0;
+  useEffect(() => {
+    if (highlightAi && suggestionCount > 0) {
+      trayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [highlightAi, suggestionCount]);
+
   const filteredBoard = useMemo(() => {
-    if (!board || !assigneeFilter) return board;
+    if (!board) return board;
+    // Staff RBAC, mirrored from the API: without MANAGE_TASKS the page is a
+    // personal surface — only the viewer's own cards render.
+    const keep = (task: KitchenTask) =>
+      canManage
+        ? !assigneeFilter || task.assigned_to?.id === assigneeFilter
+        : task.assigned_to?.id === user?.id;
+    if (canManage && !assigneeFilter) return board;
     return {
       ...board,
       columns: Object.fromEntries(
         Object.entries(board.columns).map(([column, tasks]) => [
           column,
-          tasks.filter((task) => task.assigned_to?.id === assigneeFilter),
+          tasks.filter(keep),
         ]),
       ),
     };
-  }, [board, assigneeFilter]);
+  }, [board, assigneeFilter, canManage, user?.id]);
 
   if (!branchesLoading && branchOptions.length === 0) {
     return (
@@ -131,6 +181,40 @@ export default function TasksPage() {
     );
   };
 
+  const handleEditSave = async (taskId: string, values: EditTaskValues) => {
+    if (!branchId || !editingTask) return;
+    const previousAssignee = editingTask.assigned_to?.id ?? null;
+    await update.mutateAsync({
+      taskId,
+      branchId,
+      date,
+      payload: {
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        priority: values.priority,
+        estimated_minutes: values.estimated_minutes,
+      },
+    });
+    if (values.user_id !== previousAssignee) {
+      await assign.mutateAsync({
+        taskId,
+        branchId,
+        date,
+        userId: values.user_id,
+      });
+    }
+    setEditingTask(null);
+  };
+
+  const handleEditDelete = (taskId: string) => {
+    if (!branchId) return;
+    remove.mutate(
+      { taskId, branchId, date },
+      { onSuccess: () => setEditingTask(null) },
+    );
+  };
+
   const handleMove = (taskId: string, status: BoardStatus) => {
     if (!branchId) return;
     setStatus.mutate({ taskId, branchId, date, status });
@@ -148,7 +232,7 @@ export default function TasksPage() {
     <WorkspaceShell
       eyebrow={t("tasks.eyebrow")}
       title={t("tasks.title")}
-      description={t("tasks.description")}
+      description={canManage ? t("tasks.description") : t("tasks.descriptionStaff")}
       insight={t("tasks.insight")}
     >
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -166,13 +250,15 @@ export default function TasksPage() {
           </div>
         ) : null}
 
-        <div className="w-48">
-          <Select
-            options={assigneeOptions}
-            value={assigneeFilter}
-            onChange={setAssigneeFilter}
-          />
-        </div>
+        {canManage ? (
+          <div className="w-48">
+            <Select
+              options={assigneeOptions}
+              value={assigneeFilter}
+              onChange={setAssigneeFilter}
+            />
+          </div>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           {canManage ? (
@@ -216,15 +302,24 @@ export default function TasksPage() {
       ) : board ? (
         <>
           {canManage ? (
-            <SuggestionsTray
-              suggestions={board.suggestions}
-              assignees={board.assignees}
-              confirming={confirm.isPending || assign.isPending}
-              onConfirm={handleConfirm}
-              onDismiss={(taskId) =>
-                branchId && remove.mutate({ taskId, branchId, date })
+            <div
+              ref={trayRef}
+              className={
+                highlightAi && board.suggestions.length > 0
+                  ? "rounded-xl ring-1 ring-brand-gold/40"
+                  : undefined
               }
-            />
+            >
+              <SuggestionsTray
+                suggestions={board.suggestions}
+                assignees={board.assignees}
+                confirming={confirm.isPending || assign.isPending}
+                onConfirm={handleConfirm}
+                onDismiss={(taskId) =>
+                  branchId && remove.mutate({ taskId, branchId, date })
+                }
+              />
+            </div>
           ) : null}
 
           {filteredBoard ? (
@@ -233,6 +328,8 @@ export default function TasksPage() {
               canManage={canManage}
               currentUserId={user?.id}
               onMove={handleMove}
+              onEdit={canManage ? setEditingTask : undefined}
+              highlightAi={highlightAi}
             />
           ) : null}
 
@@ -252,6 +349,22 @@ export default function TasksPage() {
         onClose={() => setAddOpen(false)}
         onSave={handleCreate}
       />
+      <EditTaskModal
+        task={editingTask}
+        assignees={board?.assignees ?? []}
+        saving={update.isPending || assign.isPending || remove.isPending}
+        onClose={() => setEditingTask(null)}
+        onSave={handleEditSave}
+        onDelete={handleEditDelete}
+      />
     </WorkspaceShell>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={null}>
+      <TasksPageContent />
+    </Suspense>
   );
 }
