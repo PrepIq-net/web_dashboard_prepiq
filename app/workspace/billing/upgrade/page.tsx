@@ -267,17 +267,17 @@ export default function BillingUpgradePage() {
                       </p>
                     </div>
 
-                    {/* Capacity */}
-                    {plan.plan_limits?.MAX_BRANCHES && (
-                      <div className="mb-5 flex items-center gap-2 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-2">
-                        <MultiplePages className="h-3.5 w-3.5 text-text-muted" />
-                        <span className="text-[12px] text-text-secondary">
-                          {plan.plan_limits.MAX_BRANCHES === 1
-                            ? t("workspace.billing.upgrade.upToLocation", { count: plan.plan_limits.MAX_BRANCHES })
-                            : t("workspace.billing.upgrade.upToLocations", { count: plan.plan_limits.MAX_BRANCHES })}
-                        </span>
-                      </div>
-                    )}
+                    {/* Capacity — a plan covers one location; its cap is staff. */}
+                    <div className="mb-5 flex items-center gap-2 rounded-lg border border-surface-4 bg-surface-3/40 px-3 py-2">
+                      <MultiplePages className="h-3.5 w-3.5 text-text-muted" />
+                      <span className="text-[12px] text-text-secondary">
+                        {plan.plan_limits?.MAX_STAFF_PER_BRANCH
+                          ? t("workspace.billing.upgrade.upToStaff", {
+                              count: plan.plan_limits.MAX_STAFF_PER_BRANCH,
+                            })
+                          : t("workspace.billing.upgrade.unlimitedStaff")}
+                      </span>
+                    </div>
 
                     {/* Features */}
                     <ul className="mb-6 flex-1 space-y-2.5">

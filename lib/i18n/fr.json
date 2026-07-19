@@ -197,7 +197,9 @@
       "signingOut": "Déconnexion...",
       "noAlertsToday": "Aucune nouvelle alerte aujourd'hui.",
       "alertsDescription": "Les risques opérationnels et les informations IA apparaîtront ici en temps réel.",
-      "viewAllNotifications": "Voir toutes les notifications"
+      "viewAllNotifications": "Voir toutes les notifications",
+      "switchLocation": "Changer d'emplacement",
+      "selectLocation": "Sélectionner un emplacement"
     },
     "overview": {
       "eyebrow": "Tableau de bord",
@@ -1645,6 +1647,20 @@
         "description": "Cela supprimera {label} de l’organisation et révoquera immédiatement l’accès.",
         "descriptionDefault": "Cette action supprimera le membre de l’organisation.",
         "confirmLabel": "Supprimer le membre"
+      },
+      "manageBranchRoles": "Gérer les emplacements et rôles",
+      "branchRolesModal": {
+        "title": "Emplacements et rôles",
+        "description": "Choisissez les emplacements où {name} travaille, et le rôle occupé à chacun.",
+        "loading": "Chargement des affectations…",
+        "empty": "Aucun emplacement assigné pour le moment.",
+        "inheritsOrgRole": "Hérite du rôle de l'organisation",
+        "addTitle": "Assigner à un emplacement",
+        "branchLabel": "Emplacement",
+        "roleLabel": "Rôle à cet emplacement",
+        "save": "Assigner",
+        "saving": "Affectation…",
+        "remove": "Retirer de l'emplacement"
       }
     },
     "danger": {
@@ -1830,7 +1846,10 @@
       "roleLabel": "Rôle",
       "sending": "Envoi de l'invitation...",
       "submit": "Envoyer l'invitation & Continuer",
-      "skipToPlans": "Passer — choisir le plan d'abord"
+      "skipToPlans": "Passer — choisir le plan d'abord",
+      "branchLabel": "Emplacement",
+      "branchHint": "Cette personne travaillera à l'emplacement sélectionné.",
+      "branchRequired": "Sélectionnez un emplacement pour ce rôle."
     },
     "pricing": {
       "title": "Sélectionnez votre plan",
@@ -1864,7 +1883,10 @@
       "uptime": "Disponibilité des prévisions de 99,9%",
       "uptimeDesc": "Nos modèles de prévision fonctionnent sur des clusters HA dédiés pour garantir que votre cuisine ne soit jamais sans intelligence, même pendant les pics de charge.",
       "prioritySupport": "Assistance prioritaire",
-      "prioritySupportDesc": "Les niveaux Intelligence et Commande bénéficient d'un accès prioritaire à nos analystes des opérations de cuisine pour optimiser votre déploiement."
+      "prioritySupportDesc": "Les niveaux Intelligence et Commande bénéficient d'un accès prioritaire à nos analystes des opérations de cuisine pour optimiser votre déploiement.",
+      "upToStaff": "Jusqu'à {limit} employés",
+      "unlimitedStaff": "Employés illimités",
+      "staffCapacity": "Capacité d'employés"
     },
     "checkout": {
       "title": "Terminez votre configuration",
@@ -1887,6 +1909,9 @@
       "billedYearly": "Facturé annuellement",
       "branchCapacity": "Capacité de succursales",
       "upToBranches": "Jusqu'à {limit} succursales",
+      "staffCapacity": "Capacité d'employés",
+      "upToStaff": "Jusqu'à {limit} employés",
+      "unlimitedStaff": "Employés illimités",
       "businessInfo": "Informations sur l'entreprise",
       "businessNameLabel": "Nom de l'entreprise",
       "businessNamePlaceholder": "ex. PrepIQ Kitchens",
@@ -1908,6 +1933,7 @@
       "processing": "Traitement...",
       "pay": "Payer {amount}",
       "convertedFromUsd": "Converti depuis {amount} USD au taux du jour. Facturé en {currency}.",
+      "billedInUsd": "Tous les abonnements sont facturés en USD.",
       "termsPrivacy": "En continuant, vous acceptez les Conditions d'utilisation et la Politique de confidentialité de PrepIQ. Les paiements ne sont pas remboursables.",
       "pciCompliant": "Conforme PCI",
       "shieldTitle": "Bouclier d'intelligence",
@@ -2440,7 +2466,9 @@
         "renew": "Renouveler",
         "upgradeTo": "Passer à",
         "select": "Sélectionner",
-        "footer": "Pied de page"
+        "footer": "Pied de page",
+        "upToStaff": "Jusqu'à {count} employés",
+        "unlimitedStaff": "Employés illimités"
       },
       "unlimited": "Illimité",
       "invoice": {
@@ -2539,7 +2567,8 @@
       "paymentMethod": "Mode de paiement",
       "noPaymentMethod": "Aucun mode de paiement",
       "lastCharge": "Dernier prélèvement",
-      "updatePaymentMethod": "Mettre à jour le mode de paiement"
+      "updatePaymentMethod": "Mettre à jour le mode de paiement",
+      "unlimitedLocationsNote": "Emplacements illimités — chacun a son propre forfait."
     },
     "salesWaste": {
       "tableItem": "Article",

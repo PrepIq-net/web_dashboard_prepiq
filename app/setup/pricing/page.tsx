@@ -262,12 +262,14 @@ export default function PricingStepPage() {
                     <MultiplePages className="h-4 w-4 text-text-muted" />
                     <div className="flex flex-col">
                       <span className="text-[14px] font-medium">
-                        {plan.plan_limits?.MAX_BRANCHES
-                          ? t("setup.pricing.upToBranches", { limit: plan.plan_limits.MAX_BRANCHES })
-                          : t("setup.pricing.unlimitedBranches")}
+                        {plan.plan_limits?.MAX_STAFF_PER_BRANCH
+                          ? t("setup.pricing.upToStaff", {
+                              limit: plan.plan_limits.MAX_STAFF_PER_BRANCH,
+                            })
+                          : t("setup.pricing.unlimitedStaff")}
                       </span>
                       <span className="text-[11px] text-text-muted uppercase tracking-wider">
-                        {t("setup.pricing.enterpriseCapacity")}
+                        {t("setup.pricing.staffCapacity")}
                       </span>
                     </div>
                   </div>

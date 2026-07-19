@@ -197,7 +197,9 @@
       "signingOut": "Signing out...",
       "noAlertsToday": "No new alerts today.",
       "alertsDescription": "Operational risks and AI insights will appear here in real-time.",
-      "viewAllNotifications": "View all notifications"
+      "viewAllNotifications": "View all notifications",
+      "switchLocation": "Switch location",
+      "selectLocation": "Select location"
     },
     "overview": {
       "eyebrow": "Dashboard",
@@ -1645,6 +1647,20 @@
         "description": "This will remove {label} from the organization and revoke access immediately.",
         "descriptionDefault": "This action will remove the member from the organization.",
         "confirmLabel": "Remove member"
+      },
+      "manageBranchRoles": "Manage locations & roles",
+      "branchRolesModal": {
+        "title": "Locations & roles",
+        "description": "Choose which locations {name} works at, and the role they hold at each one.",
+        "loading": "Loading assignments…",
+        "empty": "Not assigned to any location yet.",
+        "inheritsOrgRole": "Inherits organization role",
+        "addTitle": "Assign to a location",
+        "branchLabel": "Location",
+        "roleLabel": "Role at this location",
+        "save": "Assign",
+        "saving": "Assigning…",
+        "remove": "Remove from location"
       }
     },
     "danger": {
@@ -1830,7 +1846,10 @@
       "roleLabel": "Role",
       "sending": "Sending invite...",
       "submit": "Send Invite & Continue",
-      "skipToPlans": "Skip — choose plan first"
+      "skipToPlans": "Skip — choose plan first",
+      "branchLabel": "Location",
+      "branchHint": "This person will work at the selected location.",
+      "branchRequired": "Select a location for this role."
     },
     "pricing": {
       "title": "Select your plan",
@@ -1864,7 +1883,10 @@
       "uptime": "99.9% Forecast Uptime",
       "uptimeDesc": "Our forecasting models run on dedicated HA clusters to ensure your kitchen is never without intelligence, even during peak loads.",
       "prioritySupport": "Priority Support",
-      "prioritySupportDesc": "Intelligence and Command tiers receive priority access to our kitchen operations analysts to optimize your deployment."
+      "prioritySupportDesc": "Intelligence and Command tiers receive priority access to our kitchen operations analysts to optimize your deployment.",
+      "upToStaff": "Up to {limit} staff",
+      "unlimitedStaff": "Unlimited staff",
+      "staffCapacity": "Staff Capacity"
     },
     "checkout": {
       "title": "Complete your setup",
@@ -1887,6 +1909,9 @@
       "billedYearly": "Billed Yearly",
       "branchCapacity": "Branch capacity",
       "upToBranches": "Up to {limit} branches",
+      "staffCapacity": "Staff capacity",
+      "upToStaff": "Up to {limit} staff",
+      "unlimitedStaff": "Unlimited staff",
       "businessInfo": "Business Information",
       "businessNameLabel": "Business Name",
       "businessNamePlaceholder": "e.g. PrepIQ Kitchens",
@@ -1908,6 +1933,7 @@
       "processing": "Processing...",
       "pay": "Pay {amount}",
       "convertedFromUsd": "Converted from {amount} USD at today's rate. Charged in {currency}.",
+      "billedInUsd": "All subscriptions are billed in USD.",
       "termsPrivacy": "By proceeding, you agree to PrepIQ's Terms of Service and Privacy Policy. Payments are non-refundable.",
       "pciCompliant": "PCI Compliant",
       "shieldTitle": "Intelligence Shield",
@@ -2440,7 +2466,9 @@
         "renew": "Renew",
         "upgradeTo": "Upgrade To",
         "select": "Select",
-        "footer": "All plans include standard forecasting infrastructure."
+        "footer": "All plans include standard forecasting infrastructure.",
+        "upToStaff": "Up to {count} staff",
+        "unlimitedStaff": "Unlimited staff"
       },
       "unlimited": "Unlimited",
       "invoice": {
@@ -2539,7 +2567,8 @@
       "paymentMethod": "Payment Method",
       "noPaymentMethod": "No Payment Method",
       "lastCharge": "Last Charge",
-      "updatePaymentMethod": "Update Payment Method"
+      "updatePaymentMethod": "Update Payment Method",
+      "unlimitedLocationsNote": "Unlimited locations — each has its own plan."
     },
     "salesWaste": {
       "tableItem": "Table Item",

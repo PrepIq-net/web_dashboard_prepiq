@@ -7,6 +7,7 @@ import type {
   CreateDepartmentPayload,
   CreateStaffInvitePayload,
   AcceptInvitePayload,
+  UpsertBranchAssignmentPayload,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,6 +31,9 @@ export const branchKeys = {
     [...branchKeys.org(orgId), "invite-context"] as const,
 
   staff: (orgId: string) => [...branchKeys.org(orgId), "staff"] as const,
+
+  branchAssignments: (orgId: string, userId?: string) =>
+    [...branchKeys.org(orgId), "branch-assignments", userId ?? "all"] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -288,6 +292,57 @@ export function useRemoveStaff(orgId: string) {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to remove staff member.");
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-branch role assignment — which branches a member works at, and the role
+// they hold at each one.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useBranchAssignments(orgId: string, userId?: string) {
+  return useQuery({
+    queryKey: branchKeys.branchAssignments(orgId, userId),
+    queryFn: () => branchService.listBranchAssignments(orgId, userId),
+    enabled: !!orgId,
+  });
+}
+
+function invalidateAssignments(queryClient: ReturnType<typeof useQueryClient>, orgId: string) {
+  queryClient.invalidateQueries({
+    queryKey: [...branchKeys.org(orgId), "branch-assignments"],
+  });
+  queryClient.invalidateQueries({ queryKey: branchKeys.staff(orgId) });
+  queryClient.invalidateQueries({ queryKey: branchKeys.inviteContext(orgId) });
+}
+
+export function useUpsertBranchAssignment(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpsertBranchAssignmentPayload) =>
+      branchService.upsertBranchAssignment(orgId, payload),
+    onSuccess: () => {
+      invalidateAssignments(queryClient, orgId);
+      toast.success("Branch role updated.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update branch role.");
+    },
+  });
+}
+
+export function useRemoveBranchAssignment(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { user_id: string; branch_id: string }) =>
+      branchService.removeBranchAssignment(orgId, payload),
+    onSuccess: () => {
+      invalidateAssignments(queryClient, orgId);
+      toast.success("Removed from branch.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove from branch.");
     },
   });
 }

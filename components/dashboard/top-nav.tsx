@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Bell, LogOut, NavArrowDown, Search, ProfileCircle, Settings } from "iconoir-react";
 import { useCommandPalette } from "@/components/command/command-palette-provider";
+import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
@@ -113,6 +114,10 @@ const TopNavComponent = memo(function DashboardTopNav() {
               />
             </label>
           )}
+
+          {/* Which location you're viewing is a workspace-level choice —
+              staff often work at more than one. */}
+          <BranchSwitcher />
 
           <div className="relative" ref={notificationsRef}>
             <button
