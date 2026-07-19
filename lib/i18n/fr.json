@@ -4161,6 +4161,13 @@
         "approved": "Approuvé",
         "rejected": "À modifier"
       }
+    },
+    "recommendations": {
+      "title": "Suggestions issues de votre historique ({count})",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "add": "Ajouter au tableau",
+      "addAssigned": "Ajouter pour {name}"
     }
   }
 }

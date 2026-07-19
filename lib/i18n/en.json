@@ -4161,6 +4161,13 @@
         "approved": "Approved",
         "rejected": "Needs changes"
       }
+    },
+    "recommendations": {
+      "title": "Suggested from your history ({count})",
+      "show": "Show",
+      "hide": "Hide",
+      "add": "Add to board",
+      "addAssigned": "Add for {name}"
     }
   }
 }

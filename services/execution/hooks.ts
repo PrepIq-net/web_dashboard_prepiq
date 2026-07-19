@@ -17,6 +17,8 @@ export const executionKeys = {
   all: ["execution"] as const,
   board: (branchId: string, date: string) =>
     [...executionKeys.all, "board", branchId, date] as const,
+  recommendations: (branchId: string, date: string) =>
+    [...executionKeys.all, "recommendations", branchId, date] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +31,19 @@ export function useTaskBoard(branchId?: string, date?: string, enabled = true) {
     queryFn: () => executionService.getTaskBoard(branchId!, date!),
     enabled: enabled && !!branchId && !!date,
     staleTime: 15_000,
+  });
+}
+
+export function useTaskRecommendations(
+  branchId?: string,
+  date?: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: executionKeys.recommendations(branchId ?? "", date ?? ""),
+    queryFn: () => executionService.getTaskRecommendations(branchId!, date!),
+    enabled: enabled && !!branchId && !!date,
+    staleTime: 60_000,
   });
 }
 

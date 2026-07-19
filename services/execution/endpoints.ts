@@ -15,6 +15,9 @@ export const executionEndpoints = {
 
   generate: () => `${BASE}/tasks/generate/`,
 
+  recommendations: (branchId: string, date: string) =>
+    `${BASE}/tasks/recommendations/${buildQuery({ branch_id: branchId, date })}`,
+
   confirm: () => `${BASE}/tasks/confirm/`,
 
   create: () => `${BASE}/tasks/create/`,

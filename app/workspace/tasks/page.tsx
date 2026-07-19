@@ -14,6 +14,7 @@ import {
   useGenerateTasks,
   useSetTaskStatus,
   useTaskBoard,
+  useTaskRecommendations,
   useUpdateTask,
 } from "@/services";
 import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
@@ -33,6 +34,7 @@ import { todayIso } from "@/lib/format";
 import { TaskBoard } from "@/components/dashboard/tasks/task-board";
 import { AvailabilityEditor } from "@/components/dashboard/tasks/availability-editor";
 import { SuggestionsTray } from "@/components/dashboard/tasks/suggestions-tray";
+import { RecommendationsPanel } from "@/components/dashboard/tasks/recommendations-panel";
 import {
   AddTaskModal,
   type NewTaskValues,
@@ -41,7 +43,11 @@ import {
   EditTaskModal,
   type EditTaskValues,
 } from "@/components/dashboard/tasks/edit-task-modal";
-import type { BoardStatus, KitchenTask } from "@/services/execution/types";
+import type {
+  BoardStatus,
+  KitchenTask,
+  TaskRecommendation,
+} from "@/services/execution/types";
 
 /**
  * Board scope for dual-role users. Permissions are additive — a working
@@ -121,6 +127,11 @@ function TasksPageContent() {
   }, [user, canManage]);
 
   const boardQuery = useTaskBoard(branchId, date, !subscriptionBlocked);
+  const recommendationsQuery = useTaskRecommendations(
+    branchId,
+    date,
+    canManage && !subscriptionBlocked,
+  );
   const generate = useGenerateTasks();
   const confirm = useConfirmTasks();
   const create = useCreateTask();
@@ -257,6 +268,19 @@ function TasksPageContent() {
       { taskId, branchId, date },
       { onSuccess: () => setEditingTask(null) },
     );
+  };
+
+  const handleAddRecommendation = (recommendation: TaskRecommendation) => {
+    if (!branchId) return;
+    create.mutate({
+      branch_id: branchId,
+      date,
+      title: recommendation.title,
+      description: recommendation.explanation,
+      category: recommendation.category,
+      estimated_minutes: recommendation.estimated_minutes ?? undefined,
+      user_id: recommendation.suggested_staff?.id ?? null,
+    });
   };
 
   const handleMove = (taskId: string, status: BoardStatus) => {
@@ -398,6 +422,14 @@ function TasksPageContent() {
         </p>
       ) : board ? (
         <>
+          {canManage && scope === "TEAM" ? (
+            <RecommendationsPanel
+              recommendations={recommendationsQuery.data?.recommendations ?? []}
+              adding={create.isPending}
+              onAdd={handleAddRecommendation}
+            />
+          ) : null}
+
           {canManage && scope === "TEAM" ? (
             <div
               ref={trayRef}

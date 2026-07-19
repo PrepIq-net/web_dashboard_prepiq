@@ -6,6 +6,7 @@ import {
   kitchenTaskSchema,
   taskBoardSchema,
   taskMutationResponseSchema,
+  taskRecommendationsResponseSchema,
   type CreateTaskPayload,
   type TaskStatus,
   type UpdateTaskPayload,
@@ -24,6 +25,14 @@ export async function generateTasks(branchId: string, date: string) {
     executionEndpoints.generate(),
     generateResponseSchema,
     { method: "POST", body: { branch_id: branchId, date } },
+  );
+}
+
+export async function getTaskRecommendations(branchId: string, date: string) {
+  return apiClientWithSchema(
+    executionEndpoints.recommendations(branchId, date),
+    taskRecommendationsResponseSchema,
+    { method: "GET" },
   );
 }
 
