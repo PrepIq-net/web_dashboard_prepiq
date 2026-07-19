@@ -42,10 +42,10 @@ export function KpiPulseCard({
 }) {
   return (
     <article
-      className={`bg-surface-2 rounded-xl p-6 border border-surface-4 cursor-pointer transition-colors hover:bg-surface-3/40 group ${hoverBorderClass}`}
+      className={`bg-surface-2 rounded-xl p-4 border border-surface-4 cursor-pointer transition-colors hover:bg-surface-3/40 group ${hoverBorderClass}`}
       onClick={onOpen}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
           {label}
         </p>
@@ -62,11 +62,11 @@ export function KpiPulseCard({
         </button>
       </div>
       <p
-        className={`font-display text-3xl font-semibold tracking-tight ${valueClass}`}
+        className={`font-display text-2xl font-semibold tracking-tight ${valueClass}`}
       >
         {value}
       </p>
-      <div className="mt-4 pt-4 border-t border-surface-4">{footer}</div>
+      <div className="mt-2.5 pt-2.5 border-t border-surface-4">{footer}</div>
     </article>
   );
 }

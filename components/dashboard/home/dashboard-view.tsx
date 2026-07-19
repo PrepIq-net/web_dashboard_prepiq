@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, StatsUpSquare, StatsDownSquare, Shop } from "iconoir-react";
 import { useCurrentUserProfile } from "@/services";
 import {
@@ -9,6 +9,7 @@ import {
   useOwnerMarginProtectionReport,
 } from "@/services/production-intelligence/hooks";
 import { formatMoney, formatCurrencyBreakdown } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { alertCTA, type BranchEntry } from "./alert-cta";
 import { KpiPulseCard } from "./kpi-pulse-card";
 import { KpiDetailModals, type KpiModalKey } from "./kpi-detail-modals";
@@ -16,12 +17,14 @@ import { KpiDetailModals, type KpiModalKey } from "./kpi-detail-modals";
 // ─────────────────────────────────────────────────────────────────────────────
 // Branch diagnosis
 // Ordered by impact: blocking ops first, financial loss second, data gaps third.
+// Labels are i18n keys under dashboard.home.orgHome, resolved at render.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Diagnosis = {
-  issue: string | null;
-  detail: string | null;
-  ctaLabel: string;
+  issueKey: string | null;
+  issueVars?: Record<string, string | number>;
+  detailKey: string | null;
+  ctaKey: string;
   ctaHref: string;
   severity: "critical" | "warning" | "ok";
 };
@@ -41,9 +44,9 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
     (branch.day_status === "MORNING" || branch.day_status == null)
   ) {
     return {
-      issue: "Prep plan hasn't been approved",
-      detail: "The branch can't go live until a manager locks today's plan.",
-      ctaLabel: "Review and approve plan",
+      issueKey: "dashboard.home.orgHome.diagPlanIssue",
+      detailKey: "dashboard.home.orgHome.diagPlanDetail",
+      ctaKey: "dashboard.home.orgHome.diagPlanCta",
       ctaHref: toToday,
       severity: "critical",
     };
@@ -52,9 +55,9 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // 2. POS not connected — sales data is blind
   if (branch.staff_activity_status === "NO_SYNC") {
     return {
-      issue: "POS is not connected",
-      detail: "Sales data isn't syncing. Revenue and waste figures are incomplete.",
-      ctaLabel: "Fix integration",
+      issueKey: "dashboard.home.orgHome.diagPosIssue",
+      detailKey: "dashboard.home.orgHome.diagPosDetail",
+      ctaKey: "dashboard.home.orgHome.diagPosCta",
       ctaHref: toSettings,
       severity: "critical",
     };
@@ -63,9 +66,10 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // 3. Critical waste — active financial loss
   if (wastePct >= 7) {
     return {
-      issue: `${wastePct.toFixed(1)}% of items are at risk of waste`,
-      detail: "Reduce prep quantities or redirect surplus before service closes.",
-      ctaLabel: "See which items are at risk",
+      issueKey: "dashboard.home.orgHome.diagWasteIssue",
+      issueVars: { pct: wastePct.toFixed(1) },
+      detailKey: "dashboard.home.orgHome.diagWasteDetail",
+      ctaKey: "dashboard.home.orgHome.diagWasteCta",
       ctaHref: toWaste,
       severity: "critical",
     };
@@ -74,10 +78,9 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // 4. Staff gone idle during live service — likely a floor problem
   if (branch.staff_activity_status === "IDLE" && branch.day_status === "LIVE") {
     return {
-      issue: "No staff POS activity in 2+ hours",
-      detail:
-        "Live service is running but the POS hasn't synced. Sales may be missing.",
-      ctaLabel: "Review live status",
+      issueKey: "dashboard.home.orgHome.diagIdleIssue",
+      detailKey: "dashboard.home.orgHome.diagIdleDetail",
+      ctaKey: "dashboard.home.orgHome.diagIdleCta",
       ctaHref: toToday,
       severity: "critical",
     };
@@ -86,9 +89,10 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // 5. Moderate waste — approaching threshold, not yet critical
   if (wastePct >= 4) {
     return {
-      issue: `${wastePct.toFixed(1)}% waste — approaching threshold`,
-      detail: "Watch closely, especially in the final hour of service.",
-      ctaLabel: "Monitor waste trend",
+      issueKey: "dashboard.home.orgHome.diagWasteWarnIssue",
+      issueVars: { pct: wastePct.toFixed(1) },
+      detailKey: "dashboard.home.orgHome.diagWasteWarnDetail",
+      ctaKey: "dashboard.home.orgHome.diagWasteWarnCta",
       ctaHref: toWaste,
       severity: "warning",
     };
@@ -97,9 +101,9 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // 6. Day closed or not yet started
   if (!branch.day_status || branch.day_status === "CLOSED") {
     return {
-      issue: null,
-      detail: null,
-      ctaLabel: "View yesterday's summary",
+      issueKey: null,
+      detailKey: null,
+      ctaKey: "dashboard.home.orgHome.diagClosedCta",
       ctaHref: toToday,
       severity: "ok",
     };
@@ -107,56 +111,34 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
 
   // All good
   return {
-    issue: null,
-    detail: null,
-    ctaLabel: "View today's plan",
+    issueKey: null,
+    detailKey: null,
+    ctaKey: "dashboard.home.orgHome.diagOkCta",
     ctaHref: toToday,
     severity: "ok",
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Misc helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function greeting(firstName: string | null | undefined): string {
-  const hour = new Date().getHours();
-  const salutation =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  return firstName ? `${salutation}, ${firstName}` : salutation;
-}
-
-function branchStatusLine(branch: BranchEntry): string {
-  const status =
-    branch.day_status === "LIVE"
-      ? "Live service"
-      : branch.day_status === "CLOSED"
-        ? "Closed"
-        : branch.day_status === "MORNING"
-          ? "Morning planning"
-          : "Not started";
-  const plan = branch.plan_locked ? "Plan locked" : "Plan pending";
-  const staff =
-    branch.staff_activity_status === "ACTIVE"
-      ? "Staff active"
-      : branch.staff_activity_status === "IDLE"
-        ? "Staff idle"
-        : "No staff sync";
-  return `${status} · ${plan} · ${staff}`;
-}
-
-const QUICK_ACTIONS = [
-  { label: "Today's prep plans", href: "/workspace/today" },
-  { label: "Planning calendar", href: "/workspace/planning" },
-  { label: "Inventory", href: "/workspace/inventory" },
-  { label: "Sales & waste", href: "/workspace/sales-waste" },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean }) {
+const QUICK_ACTIONS = [
+  { labelKey: "dashboard.home.orgHome.quickToday", href: "/workspace/today" },
+  { labelKey: "dashboard.home.orgHome.quickPlanning", href: "/workspace/planning" },
+  { labelKey: "dashboard.home.orgHome.quickInventory", href: "/workspace/inventory" },
+  { labelKey: "dashboard.home.orgHome.quickSalesWaste", href: "/workspace/sales-waste" },
+];
+
+export function DashboardView({
+  canSeeFinancials,
+  analyticsSlot,
+}: {
+  canSeeFinancials: boolean;
+  /** Charts, rendered directly below the pulse KPIs — kept as a slot so page.tsx owns the wiring. */
+  analyticsSlot?: ReactNode;
+}) {
+  const { t, language } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const [kpiModal, setKpiModal] = useState<KpiModalKey | null>(null);
 
@@ -218,11 +200,42 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
   const forecastIsBad = forecastAccuracyPct > 0 && forecastAccuracyPct < 70;
   const forecastIsWarning = forecastAccuracyPct >= 70 && forecastAccuracyPct < 85;
 
-  const todayDisplay = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const hour = new Date().getHours();
+  const greetingKey =
+    hour < 12
+      ? "dashboard.home.orgHome.goodMorning"
+      : hour < 17
+        ? "dashboard.home.orgHome.goodAfternoon"
+        : "dashboard.home.orgHome.goodEvening";
+  const greeting = user?.first_name
+    ? `${t(greetingKey)}, ${user.first_name}`
+    : t(greetingKey);
+
+  const todayDisplay = new Date().toLocaleDateString(
+    language === "fr" ? "fr-FR" : "en-US",
+    { weekday: "long", month: "long", day: "numeric" },
+  );
+
+  const branchStatusLine = (branch: BranchEntry): string => {
+    const status =
+      branch.day_status === "LIVE"
+        ? t("dashboard.home.orgHome.statusLive")
+        : branch.day_status === "CLOSED"
+          ? t("dashboard.home.orgHome.statusClosed")
+          : branch.day_status === "MORNING"
+            ? t("dashboard.home.orgHome.statusMorning")
+            : t("dashboard.home.orgHome.statusNotStarted");
+    const plan = branch.plan_locked
+      ? t("dashboard.home.orgHome.planLocked")
+      : t("dashboard.home.orgHome.planPending");
+    const staff =
+      branch.staff_activity_status === "ACTIVE"
+        ? t("dashboard.home.orgHome.staffActive")
+        : branch.staff_activity_status === "IDLE"
+          ? t("dashboard.home.orgHome.staffIdle")
+          : t("dashboard.home.orgHome.noStaffSync");
+    return `${status} · ${plan} · ${staff}`;
+  };
 
   return (
     <>
@@ -232,14 +245,18 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
           {todayDisplay}
         </p>
         <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
-          {greeting(user?.first_name)}
+          {greeting}
         </h1>
         <p className="mt-4 text-base text-text-secondary">
           {branchGrid.length > 0
-            ? `${branchGrid.length} ${branchGrid.length === 1 ? "branch" : "branches"} reporting`
+            ? branchGrid.length === 1
+              ? t("dashboard.home.orgHome.branchReportingOne")
+              : t("dashboard.home.orgHome.branchesReporting", {
+                  count: branchGrid.length,
+                })
             : ctToday.isLoading
-              ? "Loading…"
-              : "No branches connected yet"}
+              ? t("dashboard.home.orgHome.loadingEllipsis")
+              : t("dashboard.home.orgHome.noBranchesYet")}
         </p>
         {/* Quick navigation into the day's working surfaces */}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -249,7 +266,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
               href={action.href}
               className="group inline-flex h-9 items-center gap-1.5 rounded-full border border-surface-4 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
             >
-              {action.label}
+              {t(action.labelKey)}
               <ArrowRight className="h-3 w-3 transition-transform duration-150 group-hover:translate-x-0.5" />
             </Link>
           ))}
@@ -257,12 +274,16 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
       </div>
 
       {/* ── Pulse KPIs ─────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
+      <section className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <KpiPulseCard
-          label={isMultiCurrency ? "Revenue today (USD est.)" : "Revenue today"}
+          label={
+            isMultiCurrency
+              ? t("dashboard.home.orgHome.kpiRevenueTodayUsd")
+              : t("dashboard.home.orgHome.kpiRevenueToday")
+          }
           value={formatMoney(revenueToday, towerCurrency)}
           onOpen={() => setKpiModal("revenue")}
-          openAriaLabel="View revenue details"
+          openAriaLabel={t("dashboard.home.orgHome.kpiRevenueAria")}
           footer={
             <div className="flex flex-col gap-1">
               {isMultiCurrency && revenueByCurrency.length > 0 && (
@@ -286,12 +307,15 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   <span
                     className={`text-sm font-medium ${revenueDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}
                   >
-                    {revenueDeltaPct >= 0 ? "+" : ""}
-                    {revenueDeltaPct.toFixed(1)}% vs yesterday
+                    {t("dashboard.home.orgHome.vsYesterday", {
+                      value: `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}`,
+                    })}
                   </span>
                 </>
               ) : (
-                <span className="text-xs text-text-muted">No prior-day baseline</span>
+                <span className="text-xs text-text-muted">
+                  {t("dashboard.home.orgHome.noPriorBaseline")}
+                </span>
               )}
               </div>
             </div>
@@ -299,7 +323,11 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
         />
 
         <KpiPulseCard
-          label={canSeeFinancials ? "Waste cost" : "Waste risk"}
+          label={
+            canSeeFinancials
+              ? t("dashboard.home.orgHome.kpiWasteCost")
+              : t("dashboard.home.orgHome.kpiWasteRisk")
+          }
           value={
             canSeeFinancials
               ? formatMoney(wasteCost, marginCurrency)
@@ -308,18 +336,20 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
           valueClass={wasteIsBad ? "text-status-critical" : "text-text-primary"}
           hoverBorderClass="hover:border-status-critical/20"
           onOpen={() => setKpiModal("waste")}
-          openAriaLabel="View waste details"
+          openAriaLabel={t("dashboard.home.orgHome.kpiWasteAria")}
           footer={
             <p className="text-xs text-text-muted">
               {canSeeFinancials
-                ? `${wasteAsRevenuePct.toFixed(1)}% of revenue`
-                : "items at risk today"}
+                ? t("dashboard.home.orgHome.ofRevenue", {
+                    value: wasteAsRevenuePct.toFixed(1),
+                  })
+                : t("dashboard.home.orgHome.itemsAtRiskToday")}
             </p>
           }
         />
 
         <KpiPulseCard
-          label="Forecast accuracy"
+          label={t("dashboard.home.orgHome.kpiForecastAccuracy")}
           value={`${forecastAccuracyPct.toFixed(1)}%`}
           valueClass={
             forecastIsBad
@@ -329,29 +359,38 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                 : "text-text-primary"
           }
           onOpen={() => setKpiModal("forecast")}
-          openAriaLabel="View forecast details"
-          footer={<p className="text-xs text-text-muted">7-day rolling average</p>}
+          openAriaLabel={t("dashboard.home.orgHome.kpiForecastAria")}
+          footer={
+            <p className="text-xs text-text-muted">
+              {t("dashboard.home.orgHome.rolling7d")}
+            </p>
+          }
         />
 
         <KpiPulseCard
-          label="Active alerts"
+          label={t("dashboard.home.orgHome.kpiActiveAlerts")}
           value={alerts.length}
           valueClass={
             highAlerts.length > 0 ? "text-status-critical" : "text-text-primary"
           }
           onOpen={() => setKpiModal("alerts")}
-          openAriaLabel="View all alerts"
+          openAriaLabel={t("dashboard.home.orgHome.kpiAlertsAria")}
           footer={
             <p className="text-xs text-text-muted">
               {highAlerts.length > 0
-                ? `${highAlerts.length} need immediate action`
+                ? t("dashboard.home.orgHome.needImmediate", {
+                    count: highAlerts.length,
+                  })
                 : alerts.length > 0
-                  ? "No urgent issues"
-                  : "All clear"}
+                  ? t("dashboard.home.orgHome.noUrgent")
+                  : t("dashboard.home.orgHome.allClear")}
             </p>
           }
         />
       </section>
+
+      {/* ── Analytics — right below the pulse KPIs ───────────────────────── */}
+      {analyticsSlot}
 
       {/* ── HIGH alerts — specific issue + specific action ─────────────── */}
       {highAlerts.length > 0 && (
@@ -389,7 +428,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                   href={cta.href}
                   className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-medium text-text-secondary whitespace-nowrap hover:border-status-critical/40 hover:text-status-critical transition-colors"
                 >
-                  {cta.label}
+                  {t(cta.labelKey)}
                   <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -404,21 +443,26 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
           <div className="mb-6 flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Operations
+                {t("dashboard.home.orgHome.operationsKicker")}
               </p>
               <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
-                {sortedBranches.length}{" "}
-                {sortedBranches.length === 1 ? "location" : "locations"}
+                {sortedBranches.length === 1
+                  ? t("dashboard.home.orgHome.locationsOne")
+                  : t("dashboard.home.orgHome.locationsMany", {
+                      count: sortedBranches.length,
+                    })}
               </h2>
               <p className="mt-1 text-sm text-text-muted">
-                System status — POS connections, plan approvals, live service
-                activity.
+                {t("dashboard.home.orgHome.systemStatusLine")}
               </p>
             </div>
             {sortedBranches.some((b) => b.compliance_badge === "RED") && (
               <span className="text-xs font-medium text-status-critical shrink-0 mt-1">
-                {sortedBranches.filter((b) => b.compliance_badge === "RED").length}{" "}
-                need attention
+                {t("dashboard.home.orgHome.needAttention", {
+                  count: sortedBranches.filter(
+                    (b) => b.compliance_badge === "RED",
+                  ).length,
+                })}
               </span>
             )}
           </div>
@@ -427,7 +471,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
             {sortedBranches.map((branch) => {
               const isRed = branch.compliance_badge === "RED";
               const diagnosis = diagnoseBranch(branch);
-              const hasProblem = diagnosis.issue !== null;
+              const hasProblem = diagnosis.issueKey !== null;
 
               return (
                 <article
@@ -467,11 +511,11 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                             : "text-status-warning"
                         }`}
                       >
-                        {diagnosis.issue}
+                        {t(diagnosis.issueKey!, diagnosis.issueVars)}
                       </p>
-                      {diagnosis.detail && (
+                      {diagnosis.detailKey && (
                         <p className="text-xs text-text-muted leading-relaxed">
-                          {diagnosis.detail}
+                          {t(diagnosis.detailKey)}
                         </p>
                       )}
                     </div>
@@ -490,7 +534,7 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
                         : "border-surface-4 bg-surface-3 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
                     }`}
                   >
-                    {diagnosis.ctaLabel}
+                    {t(diagnosis.ctaKey)}
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                   </Link>
                 </article>
@@ -503,11 +547,13 @@ export function DashboardView({ canSeeFinancials }: { canSeeFinancials: boolean 
       {/* Empty state */}
       {branchGrid.length === 0 && !ctToday.isLoading && (
         <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
-          <p className="text-text-muted">No branches connected yet</p>
+          <p className="text-text-muted">
+            {t("dashboard.home.orgHome.noBranchesYet")}
+          </p>
           <Link href="/workspace/branches/new">
             <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
               <Shop className="h-4 w-4" />
-              Add your first branch
+              {t("dashboard.home.orgHome.addFirstBranch")}
             </button>
           </Link>
         </div>
