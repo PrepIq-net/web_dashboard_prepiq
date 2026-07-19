@@ -144,6 +144,31 @@ export function useAssignTask() {
   });
 }
 
+/** Self-service: claim an unassigned task, or release a claim you made. */
+export function useClaimTask() {
+  const invalidate = useInvalidateBoard();
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      branchId,
+      release,
+    }: {
+      taskId: string;
+      branchId: string;
+      date: string;
+      release?: boolean;
+    }) =>
+      release
+        ? executionService.releaseTask(taskId, branchId)
+        : executionService.claimTask(taskId, branchId),
+    onSuccess: (data, { branchId, date }) => {
+      invalidate(branchId, date);
+      for (const warning of data.warnings ?? []) toast(warning, { icon: "⚠️" });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
 /**
  * Status changes drive the drag interaction, so this one is optimistic: the
  * card lands in its new column immediately and rolls back if the server

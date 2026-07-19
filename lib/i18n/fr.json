@@ -3798,7 +3798,10 @@
       "minutes": "{count} min",
       "unassigned": "Non assignée",
       "edit": "Modifier la tâche",
-      "aiBadge": "PrepIQ AI"
+      "aiBadge": "PrepIQ AI",
+      "claim": "Prendre",
+      "release": "Libérer",
+      "selfAssigned": "Vous avez pris cette tâche"
     },
     "tray": {
       "title": "{count} tâche(s) suggérée(s) à vérifier",
@@ -3835,6 +3838,29 @@
       "team": "Équipe",
       "mine": "Mes tâches"
     },
-    "emptyMine": "Aucune tâche ne vous est assignée aujourd'hui."
+    "emptyMine": "Aucune tâche ne vous est assignée aujourd'hui.",
+    "tabTasks": "Tâches",
+    "tabAvailability": "Mes disponibilités",
+    "availability": {
+      "intro": "Indiquez à {branch} les créneaux que vous pouvez travailler. Votre responsable les valide avant de créer le planning.",
+      "noBranch": "Vous n'êtes encore rattaché à aucun établissement. Demandez à votre responsable de vous ajouter.",
+      "noShifts": "Cet établissement n'a pas encore configuré de créneaux.",
+      "notSubmitted": "Non soumis",
+      "noteLabel": "Note pour votre responsable (facultatif)",
+      "notePlaceholder": "ex. Je préfère les matins ; pas de dimanche ce mois-ci.",
+      "selectedCount": "{count} créneau(x) sélectionné(s)",
+      "submit": "Soumettre mes disponibilités",
+      "resubmit": "Mettre à jour",
+      "resubmitWarning": "Modifier une semaine approuvée la renvoie en révision.",
+      "loadError": "Impossible de charger vos disponibilités.",
+      "prevWeek": "Semaine précédente",
+      "nextWeek": "Semaine suivante",
+      "reviewNote": "Note du responsable : {note}",
+      "status": {
+        "pending": "En attente de révision",
+        "approved": "Approuvé",
+        "rejected": "À modifier"
+      }
+    }
   }
 }

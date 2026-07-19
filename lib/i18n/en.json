@@ -3798,7 +3798,10 @@
       "minutes": "{count} min",
       "unassigned": "Unassigned",
       "edit": "Edit task",
-      "aiBadge": "PrepIQ AI"
+      "aiBadge": "PrepIQ AI",
+      "claim": "Claim",
+      "release": "Release",
+      "selfAssigned": "You claimed this task"
     },
     "tray": {
       "title": "{count} suggested task(s) to review",
@@ -3835,6 +3838,29 @@
       "team": "Team",
       "mine": "My tasks"
     },
-    "emptyMine": "Nothing assigned to you today."
+    "emptyMine": "Nothing assigned to you today.",
+    "tabTasks": "Tasks",
+    "tabAvailability": "My availability",
+    "availability": {
+      "intro": "Tell {branch} which shifts you can work. Your manager reviews it before building the schedule.",
+      "noBranch": "You're not on any branch roster yet. Ask your manager to add you.",
+      "noShifts": "This branch hasn't set up any shifts yet.",
+      "notSubmitted": "Not submitted",
+      "noteLabel": "Note for your manager (optional)",
+      "notePlaceholder": "e.g. Prefer mornings; no Sundays this month.",
+      "selectedCount": "{count} shift(s) selected",
+      "submit": "Submit availability",
+      "resubmit": "Update availability",
+      "resubmitWarning": "Editing an approved week sends it back for review.",
+      "loadError": "Could not load your availability.",
+      "prevWeek": "Previous week",
+      "nextWeek": "Next week",
+      "reviewNote": "Manager note: {note}",
+      "status": {
+        "pending": "Pending review",
+        "approved": "Approved",
+        "rejected": "Needs changes"
+      }
+    }
   }
 }

@@ -88,3 +88,21 @@ export async function assignTask(
     { method: "POST", body: { user_id: userId } },
   );
 }
+
+/** Pick up an unassigned board task for yourself (no MANAGE_TASKS needed). */
+export async function claimTask(taskId: string, branchId: string) {
+  return apiClientWithSchema(
+    executionEndpoints.taskClaim(taskId, branchId),
+    taskMutationResponseSchema,
+    { method: "POST", body: {} },
+  );
+}
+
+/** Drop a claim you made yourself, returning the task to the unassigned pool. */
+export async function releaseTask(taskId: string, branchId: string) {
+  return apiClientWithSchema(
+    executionEndpoints.taskClaim(taskId, branchId),
+    taskMutationResponseSchema,
+    { method: "DELETE" },
+  );
+}

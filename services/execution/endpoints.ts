@@ -28,5 +28,10 @@ export const executionEndpoints = {
   taskAssign: (taskId: string, branchId: string) =>
     `${BASE}/tasks/${taskId}/assign/${buildQuery({ branch_id: branchId })}`,
 
+  // Self-service claim/release: POST to claim an unassigned task for yourself,
+  // DELETE to drop a claim you made. No MANAGE_TASKS required.
+  taskClaim: (taskId: string, branchId: string) =>
+    `${BASE}/tasks/${taskId}/claim/${buildQuery({ branch_id: branchId })}`,
+
   myTasks: (date: string) => `${BASE}/me/tasks/${buildQuery({ date })}`,
 };

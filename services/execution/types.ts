@@ -49,6 +49,9 @@ export const kitchenTaskSchema = z.object({
   sort_order: z.number(),
   assigned_to: personSchema,
   suggested_assignee: personSchema,
+  // True when the assignee claimed the task themselves — drives the board's
+  // "release" affordance (you can only drop a claim you made yourself).
+  self_assigned: z.boolean().optional().default(false),
   estimated_minutes: z.number().nullable(),
   rationale: z.string(),
   links: z.array(kitchenTaskLinkSchema),
