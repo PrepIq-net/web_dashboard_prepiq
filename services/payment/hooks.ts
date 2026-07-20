@@ -28,11 +28,14 @@ import {
   listPayments,
   listSubscriptionQuoteRequests,
   listSubscriptions,
+  requestSubscriptionActivation,
   type PaymentHistoryQuery,
   type SubscriptionQuery,
 } from "./service";
+import { ApiError } from "@/lib/api/errors";
 import type {
   AttachSubscriptionAddOnPayload,
+  BillingContact,
   CancelSubscriptionPayload,
   CompletePaymentPayload,
   CreatePaymentPayload,
@@ -41,6 +44,7 @@ import type {
   DetachSubscriptionAddOnPayload,
   FailPaymentPayload,
   PaymentCheckoutPayload,
+  SubscriptionDetail,
 } from "@/services/payment/types";
 
 export const paymentQueryKeys = {
@@ -143,6 +147,43 @@ const PLAN_TIER_MAP: Record<string, number> = {
  * branchId must be the branch the current page is operating on.
  * Without branchId the backend falls back to the org's primary branch.
  */
+/**
+ * Ask the branch's billing owners to activate a subscription.
+ *
+ * Deliberately not invalidating the subscription query — the request doesn't
+ * change subscription state, it just puts the ask in front of someone who can.
+ */
+export function useNotifyBillingOwners() {
+  return useMutation({
+    mutationFn: (params?: { branch_id?: string }) =>
+      requestSubscriptionActivation(params),
+  });
+}
+
+/**
+ * Reads the paywall payload the API returned alongside a 404/200.
+ *
+ * A 404 from /subscriptions/current/ is a *successful* answer ("this branch has
+ * never subscribed") and carries the viewer's billing capability in its body.
+ * Any other status is a real failure and must not be read as "no subscription".
+ */
+function readGatePayload(error: unknown, data?: SubscriptionDetail | null) {
+  if (data) {
+    return {
+      canManageBilling: data.viewer_can_manage_billing ?? false,
+      billingContacts: data.billing_contacts ?? [],
+    };
+  }
+  const details =
+    error instanceof ApiError && error.status === 404
+      ? (error.details as Record<string, unknown> | null)
+      : null;
+  return {
+    canManageBilling: Boolean(details?.viewer_can_manage_billing),
+    billingContacts: (details?.billing_contacts as BillingContact[]) ?? [],
+  };
+}
+
 export function useSubscriptionTier(branchId?: string) {
   const params = branchId ? ({ branch_id: branchId } satisfies SubscriptionQuery) : undefined;
   // The access gate must reflect real subscription state, but staleTime:0 made
@@ -152,7 +193,7 @@ export function useSubscriptionTier(branchId?: string) {
   // mutation invalidates paymentQueryKeys.currentSubscriptions() for instant
   // reflection. retry:false so a 404 (no active subscription) is detected
   // immediately, not after retries.
-  const { data, isLoading, isFetching, isError } = useQuery({
+  const { data, error, isLoading, isFetching } = useQuery({
     queryKey: paymentQueryKeys.currentSubscription(params),
     queryFn: () => getCurrentSubscription(params),
     retry: false,
@@ -168,10 +209,25 @@ export function useSubscriptionTier(branchId?: string) {
 
   // Wait for both initial load AND any background re-fetch before evaluating access.
   const loaded = !isLoading && !isFetching;
-  const hasNoSubscription = loaded && (!data || isError);
+
+  // Only a 404 means "this branch has never subscribed". Every other error is
+  // the API failing to answer — previously those were folded into
+  // hasNoSubscription, which is why a 400 from a role check showed staff the
+  // "start your free trial" screen for a branch that was fully paid up.
+  const isMissing = error instanceof ApiError && error.status === 404;
+  const isUnavailable = loaded && Boolean(error) && !isMissing;
+
+  const hasNoSubscription = loaded && !data && isMissing;
   const isExpired = loaded && Boolean(data && !data.is_currently_active && !data.is_trial);
   const isTrialExpired = loaded && Boolean(data && !data.is_currently_active && data.is_trial);
+
+  // A failed lookup must not paywall the app. Blocking on an unknown state
+  // locks working kitchens out on a transient 500; the subscription checks the
+  // API itself enforces remain the real boundary.
   const shouldBlockAccess = hasNoSubscription || isExpired || isTrialExpired;
+
+  const { canManageBilling, billingContacts } = readGatePayload(error, data);
+
   const gateVariant: "none" | "expired" | "trial_expired" = hasNoSubscription
     ? "none"
     : isTrialExpired
@@ -179,7 +235,16 @@ export function useSubscriptionTier(branchId?: string) {
       : "expired";
 
   // Expose isFetching via isLoading so callers gate data queries during re-fetches too.
-  return { tier, planType, isLoading: isLoading || isFetching, shouldBlockAccess, gateVariant };
+  return {
+    tier,
+    planType,
+    isLoading: isLoading || isFetching,
+    shouldBlockAccess,
+    gateVariant,
+    canManageBilling,
+    billingContacts,
+    isUnavailable,
+  };
 }
 
 export function useSubscriptionAvailableAddOns(subscriptionId: string) {

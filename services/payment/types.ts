@@ -109,6 +109,26 @@ export const subscriptionListSchema = z
   .passthrough();
 export type SubscriptionList = z.infer<typeof subscriptionListSchema>;
 
+// Who a member without MANAGE_BILLING should be told to ask. Sent only to
+// members who cannot pay themselves, so it is empty for admins.
+export const billingContactSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+export type BillingContact = z.infer<typeof billingContactSchema>;
+
+export const subscriptionActivationRequestSchema = z.object({
+  delivered: z.boolean(),
+  // "NO_BILLING_OWNERS" | "ALREADY_REQUESTED" | null — the org can genuinely
+  // have nobody who can pay, which the UI must state rather than swallow.
+  reason: z.string().nullable(),
+  notified: z.array(z.string()),
+  conversation_id: z.string().nullable(),
+});
+export type SubscriptionActivationRequest = z.infer<
+  typeof subscriptionActivationRequestSchema
+>;
+
 export const subscriptionDetailSchema = z
   .object({
     id: z.string().uuid(),
@@ -140,6 +160,11 @@ export const subscriptionDetailSchema = z
     notes: z.string().nullable().optional(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
+    // Set by /subscriptions/current/ only. Whether the *viewer* may act on a
+    // paywall — a line cook sees the same subscription state as an owner but
+    // must be shown "ask your manager", not "upgrade".
+    viewer_can_manage_billing: z.boolean().optional(),
+    billing_contacts: z.array(billingContactSchema).optional(),
   })
   .passthrough();
 export type SubscriptionDetail = z.infer<typeof subscriptionDetailSchema>;

@@ -133,6 +133,8 @@ function TodayWorkspacePageContent() {
     isLoading: subLoading,
     shouldBlockAccess,
     gateVariant,
+    canManageBilling,
+    billingContacts,
   } = useSubscriptionTier(safeBranchId || undefined);
   // Any active subscription (Core and up) includes the assistant.
   const canUseAssistant =
@@ -883,7 +885,13 @@ function TodayWorkspacePageContent() {
       </div>
 
       {safeBranchId && !subLoading && shouldBlockAccess ? (
-        <SubscriptionRequiredState variant={gateVariant} compact />
+        <SubscriptionRequiredState
+          variant={gateVariant}
+          canManageBilling={canManageBilling}
+          billingContacts={billingContacts}
+          branchId={safeBranchId}
+          compact
+        />
       ) : (
         <>
           {walkthroughActive ? (

@@ -56,7 +56,12 @@ export interface MessageAction {
   id: string;
   label: string;
   style: "primary" | "secondary";
-  action_type: "NOTIFY_TEAM" | "INCREASE_PREP" | "ACKNOWLEDGE" | "OPEN_LINK";
+  action_type:
+    | "NOTIFY_TEAM"
+    | "INCREASE_PREP"
+    | "ACKNOWLEDGE"
+    | "OPEN_LINK"
+    | "REQUEST_SUBSCRIPTION";
   params: Record<string, string>;
 }
 

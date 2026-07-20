@@ -17,6 +17,7 @@ import {
   paymentCheckoutPayloadSchema,
   paymentCheckoutResponseSchema,
   paymentSchema,
+  subscriptionActivationRequestSchema,
   subscriptionDetailSchema,
   subscriptionListSchema,
   subscriptionPlanSchema,
@@ -147,6 +148,20 @@ export async function getSubscriptionDetail(subscriptionId: string) {
 export async function getCurrentSubscription(params?: SubscriptionQuery) {
   const url = withQuery(paymentEndpoints.subscriptionCurrent(), params);
   return apiClientWithSchema(url, subscriptionDetailSchema, { method: "GET" });
+}
+
+/**
+ * Ask the branch's billing owners to activate a subscription. The only action
+ * available to a member who cannot pay for the branch themselves.
+ */
+export async function requestSubscriptionActivation(params?: {
+  branch_id?: string;
+}) {
+  return apiClientWithSchema(
+    paymentEndpoints.subscriptionRequestActivation(),
+    subscriptionActivationRequestSchema,
+    { method: "POST", body: params?.branch_id ? { branch_id: params.branch_id } : {} },
+  );
 }
 
 export async function createSubscription(payload: CreateSubscriptionPayload) {
