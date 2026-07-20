@@ -155,4 +155,10 @@ export const productionIntelligenceEndpoints = {
   cloverOAuthCallback: () =>
     `${BASE}/production-intelligence/integrations/clover/oauth/callback/`,
   cloverPOSWebhook: () => `${BASE}/production-intelligence/webhooks/clover/`,
+
+  // ── Dashboard analytics (interactive charts) ─────────────────────────────
+  dashboardSeries: () =>
+    `${BASE}/production-intelligence/analytics/dashboard-series/`,
+  dashboardCapacityRisk: () =>
+    `${BASE}/production-intelligence/analytics/capacity-risk/`,
 } as const;

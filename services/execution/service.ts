@@ -6,6 +6,7 @@ import {
   kitchenTaskSchema,
   taskBoardSchema,
   taskMutationResponseSchema,
+  taskRecommendationsResponseSchema,
   type CreateTaskPayload,
   type TaskStatus,
   type UpdateTaskPayload,
@@ -24,6 +25,14 @@ export async function generateTasks(branchId: string, date: string) {
     executionEndpoints.generate(),
     generateResponseSchema,
     { method: "POST", body: { branch_id: branchId, date } },
+  );
+}
+
+export async function getTaskRecommendations(branchId: string, date: string) {
+  return apiClientWithSchema(
+    executionEndpoints.recommendations(branchId, date),
+    taskRecommendationsResponseSchema,
+    { method: "GET" },
   );
 }
 
@@ -86,5 +95,23 @@ export async function assignTask(
     executionEndpoints.taskAssign(taskId, branchId),
     taskMutationResponseSchema,
     { method: "POST", body: { user_id: userId } },
+  );
+}
+
+/** Pick up an unassigned board task for yourself (no MANAGE_TASKS needed). */
+export async function claimTask(taskId: string, branchId: string) {
+  return apiClientWithSchema(
+    executionEndpoints.taskClaim(taskId, branchId),
+    taskMutationResponseSchema,
+    { method: "POST", body: {} },
+  );
+}
+
+/** Drop a claim you made yourself, returning the task to the unassigned pool. */
+export async function releaseTask(taskId: string, branchId: string) {
+  return apiClientWithSchema(
+    executionEndpoints.taskClaim(taskId, branchId),
+    taskMutationResponseSchema,
+    { method: "DELETE" },
   );
 }

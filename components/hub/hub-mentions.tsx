@@ -20,14 +20,14 @@ export type MentionSegment =
 export function buildHubMentionTargets({
   members,
   currentUserId,
-  assistantAvailable,
 }: {
   members: ConversationMemberInfo[];
   currentUserId: string;
-  assistantAvailable: boolean;
 }): HubMentionTarget[] {
   const targets: HubMentionTarget[] = [];
 
+  // Always offered. The server treats @PrepIQ as valid in any conversation
+  // (chat/services.py ASSISTANT_MENTION_RE), so the picker does too.
   targets.push({
     id: "prepiq-assistant",
     label: "PrepIQ Assistant",
@@ -35,7 +35,7 @@ export function buildHubMentionTargets({
     searchText: "prepiq assistant prep iq ai",
     kind: "assistant",
     subtitle: "PrepIQ Assistant",
-    available: assistantAvailable,
+    available: true,
   });
 
   for (const member of members) {
@@ -164,6 +164,16 @@ export function filterMentionTargets(
           target.token.toLowerCase().includes(normalized),
     )
     .sort((left, right) => {
+      // A teammate whose NAME starts with what you typed wins over the
+      // assistant. Typing "@pre" for a colleague called Precious shouldn't
+      // ghost-fill "@PrepIQ" over them — but with no such teammate, "@pre"
+      // still completes to the assistant, which is the common case.
+      const leftNameStarts = nameStartsWith(left, normalized);
+      const rightNameStarts = nameStartsWith(right, normalized);
+      if (leftNameStarts !== rightNameStarts) {
+        return leftNameStarts ? -1 : 1;
+      }
+
       if (left.kind !== right.kind) {
         return left.kind === "assistant" ? -1 : 1;
       }
@@ -176,6 +186,12 @@ export function filterMentionTargets(
 
       return left.label.localeCompare(right.label);
     });
+}
+
+/** True when a real person's display name begins with the typed query. */
+function nameStartsWith(target: HubMentionTarget, normalized: string): boolean {
+  if (target.kind !== "user" || normalized.length === 0) return false;
+  return target.label.toLowerCase().startsWith(normalized);
 }
 
 export function MentionedText({

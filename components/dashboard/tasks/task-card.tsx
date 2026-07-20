@@ -23,12 +23,22 @@ export function TaskCard({
   draggable,
   onOpen,
   onEdit,
+  onClaim,
+  onRelease,
+  canClaim = false,
+  canRelease = false,
+  claimPending = false,
   highlightAi = false,
 }: {
   task: KitchenTask;
   draggable: boolean;
   onOpen?: (task: KitchenTask) => void;
   onEdit?: (task: KitchenTask) => void;
+  onClaim?: (task: KitchenTask) => void;
+  onRelease?: (task: KitchenTask) => void;
+  canClaim?: boolean;
+  canRelease?: boolean;
+  claimPending?: boolean;
   highlightAi?: boolean;
 }) {
   const { t } = useTranslation();
@@ -115,9 +125,40 @@ export function TaskCard({
             {t("tasks.card.minutes", { count: task.estimated_minutes })}
           </span>
         ) : null}
-        <span className="ml-auto inline-flex items-center gap-1">
-          <User className="h-3 w-3" />
-          {task.assigned_to?.name ?? t("tasks.card.unassigned")}
+        <span className="ml-auto inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {task.assigned_to?.name ?? t("tasks.card.unassigned")}
+          </span>
+          {canClaim && onClaim ? (
+            <button
+              type="button"
+              disabled={claimPending}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onClaim(task);
+              }}
+              className="inline-flex h-6 items-center rounded border border-brand-gold/40 bg-brand-gold/10 px-2 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 disabled:opacity-50"
+            >
+              {t("tasks.card.claim")}
+            </button>
+          ) : null}
+          {canRelease && onRelease ? (
+            <button
+              type="button"
+              disabled={claimPending}
+              title={t("tasks.card.selfAssigned")}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRelease(task);
+              }}
+              className="inline-flex h-6 items-center rounded border border-surface-4 px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text-secondary disabled:opacity-50"
+            >
+              {t("tasks.card.release")}
+            </button>
+          ) : null}
         </span>
       </div>
     </div>

@@ -17,6 +17,8 @@ export const executionKeys = {
   all: ["execution"] as const,
   board: (branchId: string, date: string) =>
     [...executionKeys.all, "board", branchId, date] as const,
+  recommendations: (branchId: string, date: string) =>
+    [...executionKeys.all, "recommendations", branchId, date] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +31,19 @@ export function useTaskBoard(branchId?: string, date?: string, enabled = true) {
     queryFn: () => executionService.getTaskBoard(branchId!, date!),
     enabled: enabled && !!branchId && !!date,
     staleTime: 15_000,
+  });
+}
+
+export function useTaskRecommendations(
+  branchId?: string,
+  date?: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: executionKeys.recommendations(branchId ?? "", date ?? ""),
+    queryFn: () => executionService.getTaskRecommendations(branchId!, date!),
+    enabled: enabled && !!branchId && !!date,
+    staleTime: 60_000,
   });
 }
 
@@ -136,6 +151,31 @@ export function useAssignTask() {
       date: string;
       userId: string | null;
     }) => executionService.assignTask(taskId, branchId, userId),
+    onSuccess: (data, { branchId, date }) => {
+      invalidate(branchId, date);
+      for (const warning of data.warnings ?? []) toast(warning, { icon: "⚠️" });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/** Self-service: claim an unassigned task, or release a claim you made. */
+export function useClaimTask() {
+  const invalidate = useInvalidateBoard();
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      branchId,
+      release,
+    }: {
+      taskId: string;
+      branchId: string;
+      date: string;
+      release?: boolean;
+    }) =>
+      release
+        ? executionService.releaseTask(taskId, branchId)
+        : executionService.claimTask(taskId, branchId),
     onSuccess: (data, { branchId, date }) => {
       invalidate(branchId, date);
       for (const warning of data.warnings ?? []) toast(warning, { icon: "⚠️" });

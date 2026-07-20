@@ -40,39 +40,62 @@ export default function StaffInvitePage() {
   const [salesAccess, setSalesAccess] = useState<SalesAccessAnswer>(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("");
+  const [branchId, setBranchId] = useState<string>("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSent, setInviteSent] = useState(false);
 
-  // Use backend role values directly — never frontend RBAC slugs like "system-admin"
-  const defaultRole = salesAccess === "yes" ? "ADMIN" : "GM";
+  // Roles are real RBAC slugs. Branch-level roles (manager/staff/custom) are
+  // offered too — they just require picking the location they work at.
   const roleOptions: StaffRoleOption[] =
-    inviteContext.data?.roles
-      .map((roleOption) => ({
-        value: roleOption.role,
-        label: roleOption.label,
-        description: roleOption.permission_hints.join(", ") || roleOption.label,
-        requiresBranch: roleOption.requires_branch,
-      }))
-      .filter((option) => !option.requiresBranch) ??
-    SYSTEM_ROLE_OPTIONS.map((option) => ({
-      value: option.value,
-      label: option.label,
-      description: option.label,
-      requiresBranch: false,
-    }));
-  const selectedRole = roleOptions.find(
-    (option) => option.value === (role || defaultRole),
-  );
+    inviteContext.data?.roles.map((roleOption) => ({
+      value: roleOption.slug,
+      label: roleOption.label,
+      description: roleOption.permission_hints.join(", ") || roleOption.label,
+      requiresBranch: roleOption.requires_branch,
+    })) ??
+    SYSTEM_ROLE_OPTIONS.filter((option) => option.value !== "system-super-admin").map(
+      (option) => ({
+        value: option.value,
+        label: option.label,
+        description: option.label,
+        requiresBranch: option.value !== "system-admin",
+      }),
+    );
+
+  // Someone who handles sales data is an org admin; otherwise the first
+  // branch-level role (the kitchen lead at a location).
+  const defaultRole =
+    (salesAccess === "yes"
+      ? roleOptions.find((o) => !o.requiresBranch)
+      : roleOptions.find((o) => o.requiresBranch)
+    )?.value ??
+    roleOptions[0]?.value ??
+    "";
+
+  const activeRole = role || defaultRole;
+  const selectedRole = roleOptions.find((option) => option.value === activeRole);
+  const branchOptions = inviteContext.data?.allowed_branches ?? [];
+  const needsBranch = Boolean(selectedRole?.requiresBranch);
+  const activeBranchId =
+    branchId ||
+    branchOptions.find((b) => b.is_primary)?.id ||
+    branchOptions[0]?.id ||
+    "";
 
   async function handleSendInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !email.includes("@") || !orgId) return;
+    if (needsBranch && !activeBranchId) {
+      setInviteError(t("setup.staff.branchRequired"));
+      return;
+    }
     setInviteError(null);
 
     try {
       await inviteMutation.mutateAsync({
         email: email.trim(),
-        role: role || defaultRole,
+        custom_role_slug: activeRole,
+        branch: needsBranch ? activeBranchId : undefined,
       });
       setInviteSent(true);
       setTimeout(() => router.push("/setup/pricing"), 1800);
@@ -223,7 +246,7 @@ export default function StaffInvitePage() {
             </label>
             <div className="relative">
               <select
-                value={role || defaultRole}
+                value={activeRole}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-lg px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
               >
@@ -243,6 +266,35 @@ export default function StaffInvitePage() {
               </p>
             )}
           </div>
+
+          {/* Branch-level roles work at a specific location. */}
+          {needsBranch && branchOptions.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]">
+                {t("setup.staff.branchLabel")}
+              </label>
+              <div className="relative">
+                <select
+                  value={activeBranchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  className="w-full h-12 bg-[#1C1C1F] border border-[#2E2E33] rounded-lg px-4 pr-10 text-[14px] text-[#F5F5F7] focus:outline-none focus:border-[#A8821F] transition-colors duration-150 appearance-none cursor-pointer"
+                >
+                  {branchOptions.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                      {branch.is_primary ? ` ${t("setup.checkout.primary")}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5A5A60]">
+                  <NavArrowDown className="h-4 w-4" />
+                </span>
+              </div>
+              <p className="text-[12px] leading-4.5 text-[#5A5A60] px-1">
+                {t("setup.staff.branchHint")}
+              </p>
+            </div>
+          )}
 
           {inviteError && (
             <div className="rounded-lg border border-[#C44949]/40 bg-[#C44949]/8 px-4 py-3">

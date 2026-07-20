@@ -49,6 +49,9 @@ export const kitchenTaskSchema = z.object({
   sort_order: z.number(),
   assigned_to: personSchema,
   suggested_assignee: personSchema,
+  // True when the assignee claimed the task themselves — drives the board's
+  // "release" affordance (you can only drop a claim you made yourself).
+  self_assigned: z.boolean().optional().default(false),
   estimated_minutes: z.number().nullable(),
   rationale: z.string(),
   links: z.array(kitchenTaskLinkSchema),
@@ -84,6 +87,25 @@ export const taskBoardSchema = z.object({
   summary: z.record(z.string(), z.number()),
 });
 export type TaskBoard = z.infer<typeof taskBoardSchema>;
+
+/** A predictive recommendation mined from the branch's task history. */
+export const taskRecommendationSchema = z.object({
+  title: z.string(),
+  category: z.enum(TASK_CATEGORIES),
+  estimated_minutes: z.number().nullable(),
+  score: z.number(),
+  occurrences: z.number(),
+  similar_day_occurrences: z.number(),
+  last_seen: z.string().nullable(),
+  suggested_staff: personSchema,
+  explanation: z.string(),
+});
+export type TaskRecommendation = z.infer<typeof taskRecommendationSchema>;
+
+export const taskRecommendationsResponseSchema = z.object({
+  date: z.string(),
+  recommendations: z.array(taskRecommendationSchema),
+});
 
 export const generateResponseSchema = z.object({
   generated_by: z.string(),

@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { Plus, RefreshDouble, Shop } from "iconoir-react";
 import {
   useAssignTask,
+  useClaimTask,
   useConfirmTasks,
   useCreateTask,
   useCurrentUserProfile,
@@ -13,6 +14,7 @@ import {
   useGenerateTasks,
   useSetTaskStatus,
   useTaskBoard,
+  useTaskRecommendations,
   useUpdateTask,
 } from "@/services";
 import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
@@ -30,7 +32,9 @@ import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
 import { todayIso } from "@/lib/format";
 import { TaskBoard } from "@/components/dashboard/tasks/task-board";
+import { AvailabilityEditor } from "@/components/dashboard/tasks/availability-editor";
 import { SuggestionsTray } from "@/components/dashboard/tasks/suggestions-tray";
+import { RecommendationsPanel } from "@/components/dashboard/tasks/recommendations-panel";
 import {
   AddTaskModal,
   type NewTaskValues,
@@ -39,7 +43,11 @@ import {
   EditTaskModal,
   type EditTaskValues,
 } from "@/components/dashboard/tasks/edit-task-modal";
-import type { BoardStatus, KitchenTask } from "@/services/execution/types";
+import type {
+  BoardStatus,
+  KitchenTask,
+  TaskRecommendation,
+} from "@/services/execution/types";
 
 /**
  * Board scope for dual-role users. Permissions are additive — a working
@@ -70,6 +78,10 @@ function TasksPageContent() {
   // there is deliberately no date picker in v1.
   const date = todayIso();
 
+  // Top-level surface: the board, or the person's own weekly availability.
+  // Mirrors mobile's Tasks/Availability tabs — availability lives here because
+  // staff can reach the Tasks page (VIEW_TASK_BOARD) but not Schedule.
+  const [view, setView] = useState<"TASKS" | "AVAILABILITY">("TASKS");
   const [addOpen, setAddOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KitchenTask | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState("");
@@ -115,10 +127,16 @@ function TasksPageContent() {
   }, [user, canManage]);
 
   const boardQuery = useTaskBoard(branchId, date, !subscriptionBlocked);
+  const recommendationsQuery = useTaskRecommendations(
+    branchId,
+    date,
+    canManage && !subscriptionBlocked,
+  );
   const generate = useGenerateTasks();
   const confirm = useConfirmTasks();
   const create = useCreateTask();
   const assign = useAssignTask();
+  const claim = useClaimTask();
   const remove = useDeleteTask();
   const update = useUpdateTask();
   const setStatus = useSetTaskStatus();
@@ -252,9 +270,32 @@ function TasksPageContent() {
     );
   };
 
+  const handleAddRecommendation = (recommendation: TaskRecommendation) => {
+    if (!branchId) return;
+    create.mutate({
+      branch_id: branchId,
+      date,
+      title: recommendation.title,
+      description: recommendation.explanation,
+      category: recommendation.category,
+      estimated_minutes: recommendation.estimated_minutes ?? undefined,
+      user_id: recommendation.suggested_staff?.id ?? null,
+    });
+  };
+
   const handleMove = (taskId: string, status: BoardStatus) => {
     if (!branchId) return;
     setStatus.mutate({ taskId, branchId, date, status });
+  };
+
+  const handleClaim = (task: KitchenTask) => {
+    if (!branchId) return;
+    claim.mutate({ taskId: task.id, branchId, date });
+  };
+
+  const handleRelease = (task: KitchenTask) => {
+    if (!branchId) return;
+    claim.mutate({ taskId: task.id, branchId, date, release: true });
   };
 
   const assigneeOptions = [
@@ -272,6 +313,30 @@ function TasksPageContent() {
       description={canManage ? t("tasks.description") : t("tasks.descriptionStaff")}
       insight={t("tasks.insight")}
     >
+      {/* Top-level surface switch: the board, or my own availability. */}
+      <div className="mb-6 inline-flex h-9 items-center rounded-lg border border-surface-4 p-0.5">
+        {(["TASKS", "AVAILABILITY"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setView(option)}
+            className={`inline-flex h-full items-center rounded-md px-3 text-xs font-semibold transition-colors ${
+              view === option
+                ? "bg-surface-3 text-text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {option === "TASKS"
+              ? t("tasks.tabTasks")
+              : t("tasks.tabAvailability")}
+          </button>
+        ))}
+      </div>
+
+      {view === "AVAILABILITY" ? (
+        <AvailabilityEditor />
+      ) : (
+        <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         {branchOptions.length > 1 ? (
           <div className="w-56">
@@ -358,6 +423,14 @@ function TasksPageContent() {
       ) : board ? (
         <>
           {canManage && scope === "TEAM" ? (
+            <RecommendationsPanel
+              recommendations={recommendationsQuery.data?.recommendations ?? []}
+              adding={create.isPending}
+              onAdd={handleAddRecommendation}
+            />
+          ) : null}
+
+          {canManage && scope === "TEAM" ? (
             <div
               ref={trayRef}
               className={
@@ -385,6 +458,9 @@ function TasksPageContent() {
               currentUserId={user?.id}
               onMove={handleMove}
               onEdit={canManage ? setEditingTask : undefined}
+              onClaim={handleClaim}
+              onRelease={handleRelease}
+              claimPending={claim.isPending}
               highlightAi={highlightAi}
             />
           ) : null}
@@ -405,6 +481,8 @@ function TasksPageContent() {
           ) : null}
         </>
       ) : null}
+        </>
+      )}
 
       <AddTaskModal
         open={addOpen}

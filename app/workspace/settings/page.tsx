@@ -41,6 +41,9 @@ import {
   useBranch,
   useUpdateBranch,
   useDeleteBranch,
+  useBranchAssignments,
+  useUpsertBranchAssignment,
+  useRemoveBranchAssignment,
 } from "@/services/branches/hooks";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
@@ -1745,13 +1748,53 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     label: string;
   } | null>(null);
 
-  // Get all available roles for member dropdown (system + custom)
+  // Per-branch role management — a member can hold a different role at each
+  // location they work at.
+  const { data: orgBranches } = useBranches(orgId || "");
+  const [branchModalMember, setBranchModalMember] =
+    useState<OrganizationMember | null>(null);
+  const { data: memberAssignments, isLoading: assignmentsLoading } =
+    useBranchAssignments(
+      orgId || "",
+      branchModalMember ? String(branchModalMember.user) : undefined,
+    );
+  const upsertAssignment = useUpsertBranchAssignment(orgId || "");
+  const removeAssignment = useRemoveBranchAssignment(orgId || "");
+  const [assignForm, setAssignForm] = useState({
+    branch_id: "",
+    custom_role_slug: "",
+  });
+
+  // Get all available roles for member dropdown (system + custom).
+  // The owner role is never listed: ownership moves only through Transfer
+  // Ownership in the Danger Zone, so it can't be granted from here.
   const availableRoles = [
-    ...SYSTEM_ROLE_OPTIONS,
+    ...SYSTEM_ROLE_OPTIONS.filter(
+      (option) => option.value !== SYSTEM_ROLE_SLUG.SUPER_ADMIN,
+    ),
     ...(roles
       ?.filter((r) => !r.is_system)
       .map((r) => ({ label: r.name, value: r.slug })) || []),
   ];
+
+  const handleOpenBranchModal = (member: OrganizationMember) => {
+    setBranchModalMember(member);
+    setAssignForm({ branch_id: "", custom_role_slug: "" });
+  };
+
+  const handleAssignBranch = () => {
+    if (!branchModalMember || !assignForm.branch_id) return;
+    upsertAssignment.mutate(
+      {
+        user_id: String(branchModalMember.user),
+        branch_id: assignForm.branch_id,
+        custom_role_slug: assignForm.custom_role_slug || undefined,
+      },
+      {
+        onSuccess: () => setAssignForm({ branch_id: "", custom_role_slug: "" }),
+      },
+    );
+  };
 
   const handleAddMember = () => {
     addMember.mutate(newMember, {
@@ -1939,9 +1982,13 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
-            <span className="text-sm text-text-secondary">
+            <button
+              onClick={() => handleOpenBranchModal(member)}
+              className="text-sm text-text-secondary underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-gold"
+              title={t("settings.users.manageBranchRoles")}
+            >
               {member.branch_name || t("settings.users.table.allBranches")}
-            </span>
+            </button>
           );
         },
       }),
@@ -2169,6 +2216,110 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 ? t("settings.users.addMemberModal.adding")
                 : t("settings.users.addMemberModal.add")}
             </Button>
+          </div>
+        </div>
+      </ModalShell>
+
+      {/* Per-branch roles — a member can hold a different role at each location */}
+      <ModalShell
+        open={Boolean(branchModalMember)}
+        onClose={() => setBranchModalMember(null)}
+        title={t("settings.users.branchRolesModal.title")}
+        description={
+          branchModalMember
+            ? t("settings.users.branchRolesModal.description", {
+                name:
+                  `${branchModalMember.first_name ?? ""} ${branchModalMember.last_name ?? ""}`.trim() ||
+                  branchModalMember.email,
+              })
+            : ""
+        }
+      >
+        <div className="space-y-6 py-4 px-1">
+          {assignmentsLoading ? (
+            <p className="text-sm text-text-muted">
+              {t("settings.users.branchRolesModal.loading")}
+            </p>
+          ) : memberAssignments && memberAssignments.length > 0 ? (
+            <ul className="space-y-2">
+              {memberAssignments.map((assignment) => (
+                <li
+                  key={assignment.id}
+                  className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-2 px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {assignment.branch_name}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {assignment.role_name ||
+                        t("settings.users.branchRolesModal.inheritsOrgRole")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      branchModalMember &&
+                      removeAssignment.mutate({
+                        user_id: String(branchModalMember.user),
+                        branch_id: assignment.branch,
+                      })
+                    }
+                    disabled={removeAssignment.isPending}
+                    className="p-2 text-text-muted transition-colors hover:text-red-500 disabled:opacity-50"
+                    title={t("settings.users.branchRolesModal.remove")}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-text-muted">
+              {t("settings.users.branchRolesModal.empty")}
+            </p>
+          )}
+
+          <div className="space-y-4 border-t border-surface-4 pt-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("settings.users.branchRolesModal.addTitle")}
+            </p>
+            <Select
+              label={t("settings.users.branchRolesModal.branchLabel")}
+              value={assignForm.branch_id}
+              onChange={(val: string) =>
+                setAssignForm({ ...assignForm, branch_id: val })
+              }
+              options={(orgBranches ?? [])
+                .filter((branch) => branch.is_active)
+                .map((branch) => ({ label: branch.name, value: branch.id }))}
+            />
+            <Select
+              label={t("settings.users.branchRolesModal.roleLabel")}
+              value={assignForm.custom_role_slug}
+              onChange={(val: string) =>
+                setAssignForm({ ...assignForm, custom_role_slug: val })
+              }
+              options={[
+                {
+                  label: t("settings.users.branchRolesModal.inheritsOrgRole"),
+                  value: "",
+                },
+                ...availableRoles,
+              ]}
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" onClick={() => setBranchModalMember(null)}>
+                {t("settings.users.addMemberModal.cancel")}
+              </Button>
+              <Button
+                onClick={handleAssignBranch}
+                disabled={upsertAssignment.isPending || !assignForm.branch_id}
+              >
+                {upsertAssignment.isPending
+                  ? t("settings.users.branchRolesModal.saving")
+                  : t("settings.users.branchRolesModal.save")}
+              </Button>
+            </div>
           </div>
         </div>
       </ModalShell>

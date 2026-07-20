@@ -48,6 +48,33 @@ export const employeeAvailabilitySchema = z.object({
   review_note: z.string(),
 });
 
+// ── Employee self-service (mirrors backend labor `me/` endpoints) ───────────
+
+export const contextWeekSchema = z.object({
+  week_start_date: z.string(),
+  status: z.enum(AVAILABILITY_STATUS).nullable(),
+});
+
+export const contextBranchSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  timezone: z.string(),
+  shift_templates: z.array(shiftTemplateSchema),
+  weeks: z.array(contextWeekSchema),
+});
+
+export const myContextSchema = z.object({
+  branches: z.array(contextBranchSchema),
+  current_week_start: z.string(),
+  next_week_start: z.string().optional(),
+});
+
+export const myAvailabilityResponseSchema = z.object({
+  week_start_date: z.string(),
+  shift_templates: z.array(shiftTemplateSchema),
+  availability: employeeAvailabilitySchema.nullable(),
+});
+
 export const availabilitySummarySchema = z.object({
   week_start_date: z.string(),
   submitted: z.number(),
@@ -185,6 +212,9 @@ export type ShiftTemplate = z.infer<typeof shiftTemplateSchema>;
 export type LaborRole = z.infer<typeof laborRoleSchema>;
 export type EmployeeAvailability = z.infer<typeof employeeAvailabilitySchema>;
 export type AvailabilityWeek = z.infer<typeof availabilityWeekSchema>;
+export type ContextBranch = z.infer<typeof contextBranchSchema>;
+export type MyContext = z.infer<typeof myContextSchema>;
+export type MyAvailabilityResponse = z.infer<typeof myAvailabilityResponseSchema>;
 export type AvailabilitySummary = z.infer<typeof availabilitySummarySchema>;
 export type Shift = z.infer<typeof shiftSchema>;
 export type WeeklySchedule = z.infer<typeof weeklyScheduleSchema>;
@@ -222,4 +252,17 @@ export interface UpdateShiftPayload {
 export interface ReviewAvailabilityPayload {
   status: "APPROVED" | "REJECTED";
   review_note?: string;
+}
+
+export interface AvailabilityEntryInput {
+  weekday: number;
+  shift_template_id: string;
+  is_available: boolean;
+}
+
+export interface SubmitAvailabilityPayload {
+  branch_id: string;
+  week_start_date: string;
+  note?: string;
+  entries: AvailabilityEntryInput[];
 }
