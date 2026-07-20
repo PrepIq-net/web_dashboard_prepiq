@@ -311,7 +311,8 @@ export type StaffInviteContextBranch = z.infer<
 export const staffInviteContextSchema = z.object({
   inviter: z.object({
     user_id: z.string().uuid(),
-    role: z.string(),
+    // Null when the inviter has no custom_role assigned — see branches/views.py.
+    role: z.string().nullable(),
     has_global_staff_mgmt: z.boolean(),
     has_branch_staff_mgmt: z.boolean(),
     managed_branch_id: z.string().uuid().nullable().optional(),

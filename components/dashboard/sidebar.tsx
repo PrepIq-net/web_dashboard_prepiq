@@ -6,8 +6,12 @@ import { usePathname } from "next/navigation";
 import { memo, useMemo } from "react";
 import { NavArrowLeft } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
-import { resolvePermissions } from "@/lib/permissions";
-import { NAV_PAGES, NAV_SECTION_TITLES } from "@/lib/command/navigation";
+import { canAccessDashboard, resolvePermissions } from "@/lib/permissions";
+import {
+  NAV_PAGES,
+  NAV_SECTION_TITLES,
+  canSeeNavPage,
+} from "@/lib/command/navigation";
 import { useTranslation } from "@/lib/i18n";
 import type { UserProfile } from "@/services/users/types";
 
@@ -107,8 +111,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
         title: t(section.titleKey),
         items: NAV_PAGES.filter(
           (page) =>
-            page.sectionKey === section.key &&
-            (!page.permission || permissions.has(page.permission)),
+            page.sectionKey === section.key && canSeeNavPage(page, permissions),
         ).map((page) => ({
           label: t(page.labelKey),
           href: page.href,
@@ -118,6 +121,13 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       })).filter((section) => section.items.length > 0),
     [permissions, t],
   );
+
+  // The logo is a "go home" affordance, so it has to honour the same rule as
+  // the nav entry — pointing everyone at /workspace/dashboard sent operational
+  // staff to a page that immediately redirects them back out.
+  const homeHref = canAccessDashboard(permissions)
+    ? "/workspace/dashboard"
+    : "/workspace/today";
 
   // Org logo — use organization_logo if set, else fall back to app logo
   const orgLogo = user?.organization_logo ?? null;
@@ -132,7 +142,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
       <div className="border-b border-[#1C1C1F] px-4 py-5">
         <div className="relative flex items-center">
           <Link
-            href="/workspace/dashboard"
+            href={homeHref}
             className={`inline-flex min-w-0 items-center ${
               collapsed ? "mx-auto justify-center" : "gap-3 pr-8"
             }`}

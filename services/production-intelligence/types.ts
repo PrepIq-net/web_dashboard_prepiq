@@ -1634,7 +1634,11 @@ export type SetupForecastWOW = z.infer<typeof setupForecastWOWSchema>;
 export const productionIntelligenceAccessScopeSchema = z.object({
   organization_id: z.string().uuid(),
   organization_name: z.string(),
-  role: z.string(),
+  // Null for a member with no custom_role assigned. The API has always been
+  // able to return null here; declaring it non-nullable made the whole
+  // access-scope response fail to parse for those users, which in turn left
+  // the app with no accessible-branch list at all.
+  role: z.string().nullable(),
   can_view_all_branches: z.boolean(),
   accessible_branches: z.array(
     z.object({
@@ -1687,7 +1691,9 @@ export const branchCommandViewSchema = z.object({
   }),
   viewer: z
     .object({
-      role: z.string(),
+      // Nullable for the same reason as access-scope's role: .partial() only
+      // permits undefined, and the API sends an explicit null.
+      role: z.string().nullable(),
       can_view_financials: z.boolean().optional(),
     })
     .partial()
