@@ -8,11 +8,13 @@ import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
 import { ForecastDriverWaterfall } from "@/components/dashboard/today/forecast-driver-waterfall";
 import { ConfidenceBreakdown } from "@/components/dashboard/today/confidence-breakdown";
+import { ItemVelocityChart } from "@/components/dashboard/today/item-velocity-chart";
 import { useCurrentUserProfile } from "@/services";
 import {
   useAdvancedForecast,
   useBranchDayToday,
   useForecastMetrics,
+  useIntradayTimeline,
   useUpdatePrepPlanItem,
 } from "@/services/production-intelligence/hooks";
 import { useIngredientDemand } from "@/services/inventory/hooks";
@@ -336,6 +338,12 @@ function DeepDiveContent() {
     { branch_id: branchId, date: targetDate },
     Boolean(branchId),
   );
+  // Hourly curves for the pace comparison. Only meaningful once the day is
+  // live — before service there is nothing sold to plot against history.
+  const timelineQuery = useIntradayTimeline(
+    { branch_id: branchId, date: targetDate },
+    Boolean(branchId) && todayQuery.data?.status === "LIVE",
+  );
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
   const ingredientDemandMutation = useIngredientDemand(branchId, targetDate, productId);
 
@@ -355,6 +363,13 @@ function DeepDiveContent() {
 
   const isPlanLocked = Boolean(branchDay?.plan_lock?.is_locked);
   const unit = prepItem?.unit ?? "PCS";
+
+  const timelineItem = useMemo(
+    () =>
+      timelineQuery.data?.items?.find((row) => row.item_id === productId),
+    [timelineQuery.data, productId],
+  );
+  const isLiveDay = branchDay?.status === "LIVE";
 
   const suggestedQty = prepItem?.suggested_quantity ?? advancedForecast?.ensemble_forecast ?? null;
   const plannedQty = prepItem?.planned_quantity ?? suggestedQty;
@@ -700,6 +715,16 @@ function DeepDiveContent() {
                   />
                 </div>
               </section>
+            ) : null}
+
+            {/* ── 3b. Today's pace vs this dish's own history ── */}
+            {isLiveDay ? (
+              <ItemVelocityChart
+                timelineItem={timelineItem}
+                unit={unit}
+                plannedQty={plannedQty}
+                currentHour={timelineQuery.data?.current_hour}
+              />
             ) : null}
 
             {/* ── 4. Financial scenarios ── */}

@@ -52,6 +52,10 @@ import {
   derivePipelineProvenance,
 } from "@/components/dashboard/today/plan-provenance-drawer";
 import { DayPhaseStepper } from "@/components/dashboard/today/day-phase-stepper";
+import {
+  RefreshingBar,
+  TodaySkeleton,
+} from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
@@ -773,6 +777,27 @@ function TodayWorkspacePageContent() {
   // ── Status line ───────────────────────────────────────────────────────────
   const loading = isLoading || todayQuery.isLoading || initializeMutation.isPending;
   const noBranchContext = !loading && !branchOptions.length;
+
+  // Remember the phase across a branch/date switch so the skeleton can be
+  // shaped like the view that's arriving rather than defaulting to the
+  // morning plan — switching branches mid-service used to blank the page.
+  const lastPhaseRef = useRef<"MORNING" | "LIVE" | "CLOSED" | "UNKNOWN">(
+    "UNKNOWN",
+  );
+  if (branchDay?.status && branchDay.status !== lastPhaseRef.current) {
+    if (
+      branchDay.status === "MORNING" ||
+      branchDay.status === "LIVE" ||
+      branchDay.status === "CLOSED"
+    ) {
+      lastPhaseRef.current = branchDay.status;
+    }
+  }
+  // A refetch with data already on screen keeps the content and shows a
+  // liveness cue; only a cold load replaces the view with a skeleton.
+  const showSkeleton = loading && !branchDay && !walkthroughActive;
+  const isBackgroundRefreshing =
+    Boolean(branchDay) && todayQuery.isFetching && !todayQuery.isLoading;
   const statusLabel = loading
     ? t("today.status.loading")
     : noBranchContext
@@ -943,6 +968,10 @@ function TodayWorkspacePageContent() {
               </p>
             </div>
           ) : null}
+
+          <RefreshingBar active={isBackgroundRefreshing} />
+
+          {showSkeleton ? <TodaySkeleton phase={lastPhaseRef.current} /> : null}
 
           {/* ── Persistent Demand Signals banner — all three phases ── */}
           {!walkthroughActive && branchDay ? (

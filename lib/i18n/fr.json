@@ -740,14 +740,14 @@
       "whyThisQuantity": "Pourquoi cette quantité ?",
       "signalsTitle": "Signaux qui ont façonné cette prévision",
       "marginImpactEstimate": "Estimation de l'impact sur la marge",
-      "ifSoldOut": "Si tout est vendu : {revenue} de revenus · {margin} de marge",
+      "ifSoldOut": "Si tout est vendu : {revenue} de revenus",
       "ifWasted": "En cas de gaspillage : {cost} en coût alimentaire.",
       "stockoutWarning": "Si vous tombez en rupture de {quantity}, vous pourriez perdre {margin} de marge.",
       "missingPricing": "Les données de prix sont manquantes. Ajoutez le prix de vente et le coût pour débloquer les estimations de revenus et de gaspillage.",
       "useSuggestion": "Utiliser la suggestion",
-      "keepMine": "Garder ma quantité",
+      "keepMine": "Confirmer ma quantité",
       "deepDive": "Analyse approfondie",
-      "accept": "Accepter",
+      "accept": "Utiliser la prédiction PrepIQ",
       "aiSuggests": "IA suggère",
       "allReviewed": "Tous les articles examinés",
       "confidence": "Confiance",
@@ -766,7 +766,8 @@
       "markUnavailable": "Marquer indisponible",
       "batchRule": "Règle de lot : {{raw}} → {{rounded}}",
       "batchSize": "(taille de lot {{size}})",
-      "message": "Message"
+      "message": "Message",
+      "keepMineHint": "Saisissez d'abord une quantité"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",
@@ -788,12 +789,13 @@
       "marginRisk": "Écart de marge. L'écart par rapport aux prévisions affecte la contribution estimée.",
       "marginAtRisk": "~{cost} de marge à risque",
       "riskOfWaste": "Risque de gaspillage par surproduction",
-      "mayRunOut": "Risque de rupture de {item}",
+      "mayRunOut": "Risque de rupture",
       "stockoutRiskWithMargin": "Risque de rupture — ~{cost} de marge à risque",
       "wasteRiskWithCost": "~{cost} de gaspillage si la demande n'augmente pas",
       "marginRiskWithImpact": "Impact sur la marge : ~{cost}",
       "why": "Pourquoi ?",
-      "fixTo": "Corriger → {{quantity}}"
+      "fixTo": "Corriger → {{quantity}}",
+      "marginAtRiskPlain": "Marge à risque"
     },
     "live": {
       "status": "Le service est en cours",
@@ -806,7 +808,7 @@
       "allClear": "Tout est clair — pas de problèmes urgents pour le moment.",
       "onTrack": "En bonne voie",
       "keepEye": "À surveiller",
-      "needsAction": "Action requise",
+      "needsAction": "Attention requise",
       "remaining": "restant",
       "manualLog": "Saisie manuelle",
       "criticalFilterActive": "Filtre critique actif — tous les articles sont dans les seuils normaux.",
@@ -834,10 +836,19 @@
       "pctLeft": "{{pct}}% restant",
       "recordCooked": "Enregistrer ce qui a été cuisiné",
       "soldLabel": "Vendus à ce stade",
-      "ofPlanned": "sur {quantity} préparés",
+      "ofPlanned": "sur {quantity} planifiés",
       "runoutIn": "Rupture possible dans ~{runoutMin} min",
       "details": "Détails",
-      "moreActions": "Plus d'actions"
+      "moreActions": "Plus d'actions",
+      "advisoryPrefix": "Attention requise",
+      "showChart": "Afficher la courbe des ventes",
+      "hideChart": "Masquer la courbe des ventes",
+      "chartTitle": "Ventes vs rythme habituel",
+      "chartNoData": "Pas encore assez d'historique de ventes pour tracer une courbe pour ce plat.",
+      "chartHourAxis": "Heure",
+      "chartSoldSeries": "Vendus",
+      "chartExpectedSeries": "Rythme habituel",
+      "chartPlannedSeries": "Planifié"
     },
     "closed": {
       "dayComplete": "Journée clôturée",
@@ -877,7 +888,7 @@
       "howItPlayed": "Voici comment la journée s'est déroulée.",
       "demandExpectedToBe": "Demande attendue",
       "vsTypical": "vs typique {day}",
-      "vsBaseline": "{pct}% vs référence",
+      "vsBaseline": "vs référence",
       "sold": "Vendu",
       "ofPrepped": "sur {quantity} préparés",
       "wasteCost": "Coût du gaspillage",
@@ -896,7 +907,7 @@
       "fromAvoidingStockouts": "en évitant les ruptures",
       "aiAccuracy": "Précision IA",
       "accuracyDelta": "{arrow} {pct}% vs {day} dernier",
-      "aiWasCloser": "L'IA était plus proche sur {count} articles",
+      "aiWasCloser": "L'IA était plus proche",
       "you": "Vous",
       "ai": "IA",
       "cleanService": "Service propre — aucune rupture, aucun gaspillage.",
@@ -963,7 +974,28 @@
     "statusIs": "Statut",
     "tracked": "Suivi",
     "planReliability": "Fiabilité du plan",
-    "why": "Pourquoi ?",
+    "why": {
+      "leadUp": "Nous avons revu l'objectif du jour à la hausse de {pct} parce que {reasons}.",
+      "leadDown": "Nous avons réduit l'objectif du jour de {pct} parce que {reasons}.",
+      "leadFlat": "L'objectif du jour suit le schéma habituel du {weekday} — rien d'inhabituel ne tire la demande.",
+      "joinTwo": "{first} et {second}",
+      "joinThree": "{first}, {second} et {third}",
+      "detailsHeading": "Le détail derrière ce chiffre",
+      "reason": {
+        "event": "un événement local a lieu aujourd'hui",
+        "localEvent": "il se passe quelque chose localement aujourd'hui",
+        "weatherRain": "de la pluie est attendue",
+        "weatherClear": "le temps est dégagé",
+        "weatherGeneric": "le temps est {condition}",
+        "reservation": "des réservations sont déjà enregistrées",
+        "traffic": "la fréquentation du quartier est supérieure à la normale",
+        "similarDay": "les {weekday}s récents dans des conditions similaires ont vendu davantage",
+        "similarDayDown": "les {weekday}s récents dans des conditions similaires ont vendu moins",
+        "staffing": "l'équipe en cuisine est différente aujourd'hui",
+        "deliveryMix": "la part de la livraison évolue",
+        "kitchenCapacity": "la capacité de la cuisine est limitée aujourd'hui"
+      }
+    },
     "needsAttention": "Nécessite attention",
     "noActivePrepItems": "Aucun article de préparation pour ce jour.",
     "demand": {
@@ -1022,7 +1054,19 @@
     "riskLabel": {
       "high": "Élevé",
       "medium": "Moyen",
-      "low": "Faible"
+      "low": "Faible",
+      "stockout": {
+        "high": "Risque de rupture élevé",
+        "medium": "Risque de rupture moyen",
+        "low": "Risque de rupture faible"
+      },
+      "waste": {
+        "high": "Risque de gaspillage élevé",
+        "medium": "Risque de gaspillage moyen",
+        "low": "Risque de gaspillage faible"
+      },
+      "stockoutHint": "Rupture avant d'avoir couvert la demande",
+      "wasteHint": "Préparer plus que ce que la demande justifie"
     },
     "feedback": {
       "accepted": "Suggestion acceptée. Plan aligné sur les prévisions.",
@@ -1114,7 +1158,7 @@
       "noHeader": "Le fichier CSV n'a pas de ligne d'en-tête.",
       "unreadable": "Impossible de lire ce fichier CSV.",
       "columnsDetected": "{count} colonnes détectées.",
-      "columnsDetectedList": "{count} colonnes détectées.",
+      "columnsDetectedList": "Colonnes détectées : {columns}.",
       "downloadTemplate": "Télécharger le modèle",
       "downloadSuccess": "Modèle téléchargé.",
       "downloadError": "Impossible de télécharger le modèle. Réessayez.",
@@ -1514,6 +1558,11 @@
       "macro_trends": "Tendances macro",
       "network": "Signaux réseau",
       "quiet": "Aucun effet"
+    },
+    "loading": {
+      "service": "Actualisation des données de service…",
+      "closed": "Chargement du bilan de la journée…",
+      "plan": "Chargement du plan du jour…"
     }
   },
   "profile": {
@@ -3864,6 +3913,21 @@
           "matches": "Correspond à la suggestion de l'IA",
           "aboveSuggestion": "{qty} au-dessus de la suggestion de l'IA",
           "belowSuggestion": "{qty} en dessous de la suggestion de l'IA"
+        },
+        "velocity": {
+          "title": "Rythme du jour vs historique",
+          "description": "Ventes cumulées à ce stade comparées à la courbe habituelle de ce plat. La bande ombrée représente un écart-type de variation d'un jour à l'autre, calculé sur son propre historique.",
+          "sold": "Vendus aujourd'hui",
+          "expected": "Rythme habituel",
+          "band": "Plage normale (±1σ)",
+          "planned": "Planifié",
+          "noData": "Ce plat a besoin de quelques jours supplémentaires d'historique horaire avant qu'une comparaison de rythme ait du sens.",
+          "noBand": "Trop peu de jours comparables pour afficher une plage normale — seule la courbe habituelle est montrée.",
+          "hourAxis": "Heure de la journée",
+          "aheadOfPace": "En avance de {pct} sur la courbe habituelle pour cette heure.",
+          "behindPace": "En retard de {pct} sur la courbe habituelle pour cette heure.",
+          "onPace": "Dans la plage normale pour cette heure de la journée.",
+          "liveOnly": "Le suivi du rythme apparaît une fois le service lancé."
         }
       },
       "csvMap": {

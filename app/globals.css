@@ -101,6 +101,17 @@
 }
 
 @layer utilities {
+  /* Indeterminate progress sweep — background refetches on the Today page,
+     where stale content stays on screen and only needs a liveness cue. */
+  @keyframes today-indeterminate {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
+  }
+
   @keyframes slide-in-right {
     from {
       opacity: 0;

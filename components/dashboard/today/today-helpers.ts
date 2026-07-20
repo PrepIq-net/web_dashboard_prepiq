@@ -117,6 +117,67 @@ export function riskLabel(t: Translator, value: number) {
   return t("today.riskLabel.low");
 }
 
+/** Which side of the plan is actually at risk, and how badly. */
+export type RiskKind = "stockout" | "waste";
+
+/**
+ * Split the plan risk into its two sides so the label can name the
+ * consequence. "Medium Risk" tells an operator nothing actionable —
+ * "Medium Stockout Risk" tells them which way to move the number.
+ *
+ * Mirrors the weighting in computePlanRiskScore so the label and the score
+ * can never disagree about which side is dominant.
+ */
+export function planRiskBreakdown(
+  item: PrepPlanItem,
+  planned: number | null,
+  impact: ImpactPreview | undefined,
+): { score: number; kind: RiskKind } {
+  const baseStockout = item.forecast_context.risk_of_stockout;
+  const baseWaste = item.forecast_context.risk_of_waste;
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+
+  if (planned == null || Number.isNaN(planned)) {
+    return {
+      score: Math.min(1, Math.max(baseStockout, baseWaste)),
+      kind: baseStockout >= baseWaste ? "stockout" : "waste",
+    };
+  }
+  const target = Math.max(
+    1,
+    item.net_suggested_quantity ??
+      Math.max(0, item.suggested_quantity - (item.carry_over_qty ?? 0)),
+  );
+  const coverage = planned / target;
+  const stockoutRisk = baseStockout * clamp(1.5 - coverage, 0, 1.5);
+  const wasteRisk = baseWaste * clamp(coverage - 0.5, 0, 1.5);
+  const impactDelta = impact
+    ? Math.max(impact.waste_risk_increase, impact.stockout_risk_change) / 100
+    : 0;
+  return {
+    score: clamp(Math.max(stockoutRisk, wasteRisk) + impactDelta, 0, 1),
+    kind: stockoutRisk >= wasteRisk ? "stockout" : "waste",
+  };
+}
+
+/** "Medium Stockout Risk" / "Low Waste Risk" — level plus consequence. */
+export function qualifiedRiskLabel(
+  t: Translator,
+  score: number,
+  kind: RiskKind,
+) {
+  const level = score >= 0.45 ? "high" : score >= 0.25 ? "medium" : "low";
+  return t(`today.riskLabel.${kind}.${level}`);
+}
+
+/** Hover copy spelling out what the risk actually costs the kitchen. */
+export function riskKindHint(t: Translator, kind: RiskKind) {
+  return kind === "stockout"
+    ? t("today.riskLabel.stockoutHint")
+    : t("today.riskLabel.wasteHint");
+}
+
 export function signalToneClasses(
   direction: "up" | "down" | "neutral",
   valuePct: number,
@@ -187,6 +248,93 @@ export function getFallbackDemandSignals(t: Translator) {
   ];
 }
 
+// ── Humanized explanation ────────────────────────────────────────────────────
+
+/**
+ * Turn the forecast's signal maths into something a chef would actually say.
+ *
+ * The backend's reasoning lines are accurate but read like a changelog
+ * ("Event signal adjusted demand up by 13%"). This composes the same facts
+ * into one plain sentence — what moved, by how much, and why in kitchen
+ * terms — and keeps the raw lines as secondary detail rather than binning
+ * them, so nothing is lost for anyone who wants the specifics.
+ */
+export function humanizeReasoning(
+  t: Translator,
+  item: PrepPlanItem,
+  weekday: string,
+): { lead: string; details: string[] } {
+  const details = item.forecast_context.reasoning ?? [];
+  const signals = item.forecast_context.applied_signals ?? {};
+
+  const active = Object.entries(signals)
+    .filter(([, signal]) => Math.abs(signal?.modifier ?? 0) >= 0.005)
+    .sort(
+      (a, b) => Math.abs(b[1]?.modifier ?? 0) - Math.abs(a[1]?.modifier ?? 0),
+    );
+
+  // Signals compound rather than add — mirror how they were applied.
+  const net =
+    active.reduce((product, [, s]) => product * (1 + (s.modifier ?? 0)), 1) - 1;
+  const pct = Math.round(Math.abs(net) * 100);
+
+  if (!active.length || pct < 1) {
+    return { lead: t("today.why.leadFlat", { weekday }), details };
+  }
+
+  const phraseFor = ([key, signal]: (typeof active)[number]): string => {
+    const up = (signal.modifier ?? 0) > 0;
+    switch (key) {
+      case "event":
+        return t("today.why.reason.event");
+      case "local_event":
+        return t("today.why.reason.localEvent");
+      case "weather":
+        if (signal.is_rain) return t("today.why.reason.weatherRain");
+        if (signal.condition) {
+          return t("today.why.reason.weatherGeneric", {
+            condition: String(signal.condition).toLowerCase(),
+          });
+        }
+        return t("today.why.reason.weatherClear");
+      case "reservation":
+        return t("today.why.reason.reservation");
+      case "traffic":
+        return t("today.why.reason.traffic");
+      case "staffing":
+        return t("today.why.reason.staffing");
+      case "delivery_mix":
+        return t("today.why.reason.deliveryMix");
+      case "kitchen_capacity":
+        return t("today.why.reason.kitchenCapacity");
+      case "similar_day":
+        return up
+          ? t("today.why.reason.similarDay", { weekday })
+          : t("today.why.reason.similarDayDown", { weekday });
+      default:
+        return signalLabel(t, key).toLowerCase();
+    }
+  };
+
+  const phrases = active.slice(0, 3).map(phraseFor);
+  const reasons =
+    phrases.length === 1
+      ? phrases[0]
+      : phrases.length === 2
+        ? t("today.why.joinTwo", { first: phrases[0], second: phrases[1] })
+        : t("today.why.joinThree", {
+            first: phrases[0],
+            second: phrases[1],
+            third: phrases[2],
+          });
+
+  const lead = t(net > 0 ? "today.why.leadUp" : "today.why.leadDown", {
+    pct: `${pct}%`,
+    reasons,
+  });
+  return { lead, details };
+}
+
 // ── Financial snapshot ───────────────────────────────────────────────────────
 
 export function buildFinancialSnapshot(params: {
@@ -236,7 +384,7 @@ export function overrideImpactLine(
   if (variance > 0 && impact.food_cost_at_risk && impact.food_cost_at_risk > 0) {
     return {
       text: t("today.override.foodAtRisk", {
-        amount: formatMoney(impact.food_cost_at_risk),
+        cost: formatMoney(impact.food_cost_at_risk),
       }),
       tone: "warning",
     };
@@ -248,7 +396,7 @@ export function overrideImpactLine(
   ) {
     return {
       text: t("today.override.marginAtRisk", {
-        amount: formatMoney(impact.shortfall_margin_risk),
+        cost: formatMoney(impact.shortfall_margin_risk),
       }),
       tone: "critical",
     };
@@ -405,7 +553,7 @@ export function buildMorningRiskAlerts(
       drivers.push(
         shortfallQty > 0
           ? t("today.riskAlert.driver.stockoutBelow", {
-              quantity: formatQuantity(shortfallQty, item.unit),
+              qty: formatQuantity(shortfallQty, item.unit),
             })
           : t("today.riskAlert.driver.stockoutPressure"),
       );
@@ -414,7 +562,7 @@ export function buildMorningRiskAlerts(
       drivers.push(
         overprepQty > 0
           ? t("today.riskAlert.driver.wasteAbove", {
-              quantity: formatQuantity(overprepQty, item.unit),
+              qty: formatQuantity(overprepQty, item.unit),
             })
           : t("today.riskAlert.driver.wasteSignal"),
       );
@@ -538,6 +686,6 @@ export function deriveNetworkSuggestedAction(
     network?.network_aggregation?.cross_location_patterns?.[0];
   if (!wastePattern) return t("today.network.noAction");
   return t("today.network.reduceExposure", {
-    itemName: wastePattern.item_name,
+    item: wastePattern.item_name,
   });
 }

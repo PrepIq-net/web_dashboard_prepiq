@@ -18,9 +18,12 @@ import {
   buildFinancialSnapshot,
   confidenceLabel,
   hasPricing,
+  humanizeReasoning,
   overrideImpactLine,
+  planRiskBreakdown,
   popularityLabel,
-  riskLabel,
+  qualifiedRiskLabel,
+  riskKindHint,
   riskTone,
   signalLabel,
   type DecisionSummary,
@@ -207,33 +210,46 @@ function OverrideReasonChips({
   className?: string;
 }) {
   const { t } = useTranslation();
-  if (!onOverrideReason || disabled || planned == null) return null;
+  if (!onOverrideReason) return null;
   const suggested = item.suggested_quantity;
-  const diverges =
+  // Kept mounted rather than unmounted so the reveal can animate: dropping
+  // the node on every keystroke is what made the row snap open and shut.
+  const open =
+    !disabled &&
+    planned != null &&
     Math.abs(planned - suggested) / Math.max(suggested, 1) >= 0.15;
-  if (!diverges) return null;
   const selected = item.override_reason || "";
   return (
-    <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-        {t("today.override.why")}
-      </span>
-      {OVERRIDE_REASONS.map((reason) => (
-        <button
-          key={reason}
-          type="button"
-          onClick={() =>
-            onOverrideReason(item.id, selected === reason ? "" : reason)
-          }
-          className={`inline-flex h-6 items-center rounded-full border px-2 text-[10px] font-semibold transition-colors active:scale-[0.98] ${
-            selected === reason
-              ? "border-brand-gold/60 bg-brand-gold/15 text-brand-gold"
-              : "border-surface-4 text-text-muted hover:bg-surface-3"
-          }`}
-        >
-          {t(`today.override.${reason.toLowerCase()}`)}
-        </button>
-      ))}
+    <div
+      aria-hidden={!open}
+      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      }`}
+    >
+      <div className="overflow-hidden">
+        <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+            {t("today.override.why")}
+          </span>
+          {OVERRIDE_REASONS.map((reason) => (
+            <button
+              key={reason}
+              type="button"
+              tabIndex={open ? 0 : -1}
+              onClick={() =>
+                onOverrideReason(item.id, selected === reason ? "" : reason)
+              }
+              className={`inline-flex h-6 items-center rounded-full border px-2 text-[10px] font-semibold transition-all duration-150 active:scale-[0.98] ${
+                selected === reason
+                  ? "border-brand-gold/60 bg-brand-gold/15 text-brand-gold"
+                  : "border-surface-4 text-text-muted hover:bg-surface-3"
+              }`}
+            >
+              {t(`today.override.${reason.toLowerCase()}`)}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -340,21 +356,25 @@ function AcceptKeepButtons({
 }) {
   const { t } = useTranslation();
   const h = size === "md" ? "h-8" : "h-7";
+  // Confirming "my quantity" is meaningless until a quantity exists — the
+  // input starts empty by design, so gate the button on it being filled.
+  const hasEnteredQuantity = planned != null && !Number.isNaN(planned);
   return (
     <>
       <button
         type="button"
         onClick={() => onAccept(item.id, netSuggestedQty(item), item.unit)}
         disabled={disabled}
-        className={`inline-flex ${h} items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-colors hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30`}
+        className={`inline-flex ${h} items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-all duration-150 hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30`}
       >
         {t("today.table.accept")}
       </button>
       <button
         type="button"
         onClick={() => onKeep(item.id, planned, item.unit)}
-        disabled={disabled}
-        className={`inline-flex ${h} items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20`}
+        disabled={disabled || !hasEnteredQuantity}
+        title={hasEnteredQuantity ? undefined : t("today.table.keepMineHint")}
+        className={`inline-flex ${h} items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-all duration-150 hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20`}
       >
         {t("today.table.keepMine")}
       </button>
@@ -565,17 +585,48 @@ function FinancialScenarios({
   );
 }
 
+/** The plain-language headline, with the raw model lines kept underneath. */
+function WhyNarrative({
+  item,
+  weekday,
+}: {
+  item: PrepPlanItem;
+  weekday: string;
+}) {
+  const { t } = useTranslation();
+  const { lead, details } = humanizeReasoning(t, item, weekday);
+  return (
+    <>
+      <p className="text-xs leading-relaxed text-text-primary">{lead}</p>
+      {details.length ? (
+        <div className="mt-2 border-t border-surface-4/40 pt-2">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            {t("today.why.detailsHeading")}
+          </p>
+          <div className="space-y-0.5">
+            {details.map((line) => (
+              <p key={`r-${item.id}-${line}`}>{line}</p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 /** Full "why this quantity" explainer: reasoning, constraints, signals, money. */
 function WhyPanel({
   item,
   planned,
   impact,
   layout,
+  weekday,
 }: {
   item: PrepPlanItem;
   planned: number | null;
   impact: ImpactPreview | undefined;
   layout: "stack" | "grid";
+  weekday: string;
 }) {
   const { t } = useTranslation();
   if (layout === "grid") {
@@ -585,11 +636,7 @@ function WhyPanel({
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             {t("today.table.whyThisQuantity")}
           </p>
-          <div className="space-y-0.5">
-            {item.forecast_context.reasoning.map((line) => (
-              <p key={`r-${item.id}-${line}`}>{line}</p>
-            ))}
-          </div>
+          <WhyNarrative item={item} weekday={weekday} />
           <div className="mt-2 border-t border-surface-4/40 pt-2 empty:hidden">
             <BatchConstraints item={item} />
           </div>
@@ -607,11 +654,7 @@ function WhyPanel({
       <div className="border-b border-surface-4/40 pb-2 empty:hidden">
         <BatchConstraints item={item} />
       </div>
-      <div className="space-y-0.5">
-        {item.forecast_context.reasoning.map((line) => (
-          <p key={`mobile-r-${item.id}-${line}`}>{line}</p>
-        ))}
-      </div>
+      <WhyNarrative item={item} weekday={weekday} />
       <div className="border-t border-surface-4/40 pt-2 empty:hidden">
         <SignalAdjustments item={item} />
       </div>
@@ -630,7 +673,7 @@ function WhyPanel({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function PrepPlanSection(props: PrepPlanSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const {
     branchDay,
     rows,
@@ -659,6 +702,12 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
   } = props;
 
   const editingDisabled = isPlanLocked || readOnly;
+
+  // Named day, for the plain-language explanation ("recent Mondays…").
+  const weekday = new Date(`${targetDate}T12:00:00`).toLocaleDateString(
+    language === "fr" ? "fr-FR" : "en-US",
+    { weekday: "long" },
+  );
 
   const lockStartButtons = readOnly ? null : (
     <>
@@ -779,9 +828,14 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                   size="lg"
                 />
                 <span
+                  title={riskKindHint(t, planRiskBreakdown(item, planned, impact).kind)}
                   className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskTone(riskScore)}`}
                 >
-                  {riskLabel(t, riskScore)}
+                  {qualifiedRiskLabel(
+                    t,
+                    riskScore,
+                    planRiskBreakdown(item, planned, impact).kind,
+                  )}
                 </span>
               </div>
 
@@ -864,7 +918,13 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
               />
 
               {isExpanded ? (
-                <WhyPanel item={item} planned={planned} impact={impact} layout="stack" />
+                <WhyPanel
+                  item={item}
+                  planned={planned}
+                  impact={impact}
+                  layout="stack"
+                  weekday={weekday}
+                />
               ) : null}
             </article>
           );
@@ -947,9 +1007,14 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                         )}
                       </p>
                       <span
+                        title={riskKindHint(t, planRiskBreakdown(item, planned, impact).kind)}
                         className={`mt-1.5 inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${riskTone(riskScore)}`}
                       >
-                        {riskLabel(t, riskScore)} {t("today.table.risk")}
+                        {qualifiedRiskLabel(
+                          t,
+                          riskScore,
+                          planRiskBreakdown(item, planned, impact).kind,
+                        )}
                       </span>
                     </td>
 
@@ -1018,6 +1083,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                           planned={planned}
                           impact={impact}
                           layout="grid"
+                          weekday={weekday}
                         />
                       </td>
                     </tr>

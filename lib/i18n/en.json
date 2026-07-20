@@ -740,14 +740,14 @@
       "whyThisQuantity": "Why this quantity?",
       "signalsTitle": "Signals that shaped this forecast",
       "marginImpactEstimate": "Margin impact estimate",
-      "ifSoldOut": "If sold out: {revenue} revenue · {margin} margin",
+      "ifSoldOut": "If sold out: {revenue} revenue",
       "ifWasted": "If wasted: {cost} in food cost.",
       "stockoutWarning": "If you stock out by {quantity}, you could lose {margin} margin.",
       "missingPricing": "Pricing data is missing. Add selling price and cost to unlock revenue and waste estimates.",
       "useSuggestion": "Use suggestion",
-      "keepMine": "Keep mine",
+      "keepMine": "Confirm My Quantity",
       "deepDive": "Deep dive",
-      "accept": "Accept",
+      "accept": "Use PrepIQ Prediction",
       "aiSuggests": "AI suggests",
       "allReviewed": "All items reviewed",
       "confidence": "Confidence",
@@ -766,7 +766,8 @@
       "markUnavailable": "Mark Unavailable",
       "batchRule": "Batch rule: {{raw}} → {{rounded}}",
       "batchSize": "(batch size {{size}})",
-      "message": "Message"
+      "message": "Message",
+      "keepMineHint": "Enter a quantity first"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",
@@ -788,12 +789,13 @@
       "marginRisk": "Margin variance. Deviation from forecast affects estimated contribution.",
       "marginAtRisk": "~{cost} margin at risk",
       "riskOfWaste": "Risk of overproduction waste",
-      "mayRunOut": "May run out of {item}",
+      "mayRunOut": "May run out",
       "stockoutRiskWithMargin": "May run out — ~{cost} margin at risk",
       "wasteRiskWithCost": "~{cost} in waste if demand does not pick up",
       "marginRiskWithImpact": "Margin impact: ~{cost}",
       "why": "Why?",
-      "fixTo": "Fix → {{quantity}}"
+      "fixTo": "Fix → {{quantity}}",
+      "marginAtRiskPlain": "Margin at risk"
     },
     "live": {
       "status": "Service is live",
@@ -806,7 +808,7 @@
       "allClear": "All clear — no urgent issues right now.",
       "onTrack": "On track",
       "keepEye": "Keep an eye on",
-      "needsAction": "Needs action",
+      "needsAction": "Needs attention",
       "remaining": "remaining",
       "manualLog": "Manual log",
       "criticalFilterActive": "Critical filter active — all items are within safe thresholds.",
@@ -834,10 +836,19 @@
       "pctLeft": "{{pct}}% left",
       "recordCooked": "Record what you cooked",
       "soldLabel": "Sold so far",
-      "ofPlanned": "of {quantity} prepared",
+      "ofPlanned": "of {quantity} planned",
       "runoutIn": "May run out in ~{runoutMin} min",
       "details": "Details",
-      "moreActions": "More actions"
+      "moreActions": "More actions",
+      "advisoryPrefix": "Needs attention",
+      "showChart": "Show sales curve",
+      "hideChart": "Hide sales curve",
+      "chartTitle": "Sold vs typical pace",
+      "chartNoData": "Not enough sales history yet to draw a pace curve for this dish.",
+      "chartHourAxis": "Hour",
+      "chartSoldSeries": "Sold",
+      "chartExpectedSeries": "Typical pace",
+      "chartPlannedSeries": "Planned"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -877,7 +888,7 @@
       "howItPlayed": "Here is how today played out.",
       "demandExpectedToBe": "Demand expected to be",
       "vsTypical": "vs typical {day}",
-      "vsBaseline": "{pct}% vs baseline",
+      "vsBaseline": "vs baseline",
       "sold": "Sold",
       "ofPrepped": "of {quantity} prepped",
       "wasteCost": "Waste cost",
@@ -896,7 +907,7 @@
       "fromAvoidingStockouts": "from avoiding stockouts",
       "aiAccuracy": "AI accuracy",
       "accuracyDelta": "{arrow} {pct}% vs last {day}",
-      "aiWasCloser": "AI was closer on {count} items",
+      "aiWasCloser": "AI was closer",
       "you": "You",
       "ai": "AI",
       "cleanService": "Clean service — no stockouts, no waste.",
@@ -963,7 +974,28 @@
     "statusIs": "Status",
     "tracked": "Tracked",
     "planReliability": "Plan reliability",
-    "why": "Why?",
+    "why": {
+      "leadUp": "We adjusted today's target up by {pct} because {reasons}.",
+      "leadDown": "We trimmed today's target by {pct} because {reasons}.",
+      "leadFlat": "Today's target follows the usual {weekday} pattern — nothing unusual is pulling demand either way.",
+      "joinTwo": "{first} and {second}",
+      "joinThree": "{first}, {second} and {third}",
+      "detailsHeading": "The detail behind it",
+      "reason": {
+        "event": "there is a local event on today",
+        "localEvent": "there is something on locally today",
+        "weatherRain": "rain is expected",
+        "weatherClear": "the weather is clear",
+        "weatherGeneric": "the weather is {condition}",
+        "reservation": "there are bookings already on the sheet",
+        "traffic": "footfall nearby is running above normal",
+        "similarDay": "recent {weekday}s under similar conditions sold more",
+        "similarDayDown": "recent {weekday}s under similar conditions sold less",
+        "staffing": "the kitchen is staffed differently today",
+        "deliveryMix": "the delivery share is shifting",
+        "kitchenCapacity": "kitchen capacity is tight today"
+      }
+    },
     "needsAttention": "Needs attention",
     "noActivePrepItems": "No active prep items for this day.",
     "demand": {
@@ -1022,7 +1054,19 @@
     "riskLabel": {
       "high": "High",
       "medium": "Medium",
-      "low": "Low"
+      "low": "Low",
+      "stockout": {
+        "high": "High Stockout Risk",
+        "medium": "Medium Stockout Risk",
+        "low": "Low Stockout Risk"
+      },
+      "waste": {
+        "high": "High Waste Risk",
+        "medium": "Medium Waste Risk",
+        "low": "Low Waste Risk"
+      },
+      "stockoutHint": "Running out before demand is met",
+      "wasteHint": "Preparing more than demand supports"
     },
     "signalLabel": {
       "reservation": "Reservations",
@@ -1114,7 +1158,7 @@
       "noHeader": "CSV file is missing a header row.",
       "unreadable": "Unable to read this CSV file.",
       "columnsDetected": "Detected {count} columns.",
-      "columnsDetectedList": "Detected {count} columns.",
+      "columnsDetectedList": "Detected columns: {columns}.",
       "downloadTemplate": "Download template",
       "downloadSuccess": "Template downloaded.",
       "downloadError": "Unable to download template. Please try again.",
@@ -1514,6 +1558,11 @@
       "macro_trends": "Macro trends",
       "network": "Network signals",
       "quiet": "No effect"
+    },
+    "loading": {
+      "service": "Refreshing service data…",
+      "closed": "Loading the day review…",
+      "plan": "Loading today's plan…"
     }
   },
   "profile": {
@@ -3864,6 +3913,21 @@
           "matches": "Matches AI suggestion",
           "aboveSuggestion": "{qty} above AI suggestion",
           "belowSuggestion": "{qty} below AI suggestion"
+        },
+        "velocity": {
+          "title": "Today's pace vs history",
+          "description": "Cumulative sales so far against this dish's typical curve. The shaded band is one standard deviation of day-to-day variation from its own history.",
+          "sold": "Sold today",
+          "expected": "Typical pace",
+          "band": "Normal range (±1σ)",
+          "planned": "Planned",
+          "noData": "This dish needs a few more days of hourly sales history before a pace comparison is meaningful.",
+          "noBand": "Too few comparable days so far to show a normal range — the typical curve is shown on its own.",
+          "hourAxis": "Hour of day",
+          "aheadOfPace": "Running {pct} ahead of the typical curve for this time of day.",
+          "behindPace": "Running {pct} behind the typical curve for this time of day.",
+          "onPace": "Tracking within the normal range for this time of day.",
+          "liveOnly": "Pace tracking appears once service is live."
         }
       },
       "csvMap": {

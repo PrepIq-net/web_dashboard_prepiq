@@ -2107,6 +2107,14 @@ export const intradayTimelineItemSchema = z.object({
   expected_series: z.array(
     z.object({ hour: z.number(), cumulative: z.number() }),
   ),
+  // Day-to-day dispersion (±1σ) of the expected pace, from this item's own
+  // history. Empty when there were too few sampled days to be meaningful.
+  expected_band: z
+    .array(
+      z.object({ hour: z.number(), lower: z.number(), upper: z.number() }),
+    )
+    .optional()
+    .default([]),
   production_steps: z.array(
     z.object({
       hour: z.number(),

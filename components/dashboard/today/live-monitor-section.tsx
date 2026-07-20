@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MoreHoriz } from "iconoir-react";
+import { MoreHoriz, NavArrowDown } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { formatQuantity, isDiscreteUnit } from "@/lib/format";
 import type {
@@ -15,6 +15,7 @@ import { LivePaceBanner } from "./live-pace-banner";
 import { CsvImportModal } from "./csv-import-modal";
 import { ItemImage } from "./item-image";
 import { Sparkline } from "./live-timeline-section";
+import { ServiceItemChart } from "./service-item-chart";
 import type { LiveRow } from "./today-helpers";
 
 type PaceItem = BranchPaceSummary["items"][number];
@@ -142,10 +143,15 @@ function LiveAdvisoryLine({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-status-warning/25 bg-status-warning/5 px-3 py-2">
-      <p className="text-xs leading-snug text-text-primary">{text}</p>
+    <div className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning/8 px-3 py-2.5">
+      <p className="text-xs leading-snug text-text-primary">
+        <span className="font-semibold text-status-warning">
+          {t("today.live.advisoryPrefix")}:
+        </span>{" "}
+        {text}
+      </p>
       {confidence !== null ? (
-        <p className="mt-0.5 text-[10px] font-medium text-text-muted">
+        <p className="mt-1 text-[10px] font-medium text-text-muted">
           {t("today.advisory.confidence", { confidence })}
         </p>
       ) : null}
@@ -153,18 +159,22 @@ function LiveAdvisoryLine({
   );
 }
 
+// "Needs attention" is a warning, not an emergency: the kitchen is being
+// asked to consider another batch, not told something has already failed.
+// Critical red stays reserved for the runout countdown inside the card, so
+// the grid doesn't read as a wall of alarms during a normal busy service.
 const STATUS_STYLES: Record<
   RowStatus,
   { border: string; chip: string; labelKey: string }
 > = {
   action: {
-    border: "border-status-critical/35",
-    chip: "border-status-critical/40 bg-status-critical/10 text-status-critical",
+    border: "border-status-warning/45",
+    chip: "border-status-warning/45 bg-status-warning/12 text-status-warning",
     labelKey: "today.live.needsAction",
   },
   watch: {
-    border: "border-status-warning/30",
-    chip: "border-status-warning/40 bg-status-warning/10 text-status-warning",
+    border: "border-status-warning/25",
+    chip: "border-surface-4 bg-surface-3/60 text-text-secondary",
     labelKey: "today.live.keepEye",
   },
   ok: {
@@ -201,6 +211,7 @@ function ServiceItemCard({
   readOnly: boolean;
 }) {
   const { t } = useTranslation();
+  const [chartOpen, setChartOpen] = useState(false);
   const { item, monitor, planned, additional, sold, remaining } = row;
   const styles = STATUS_STYLES[status];
   const totalPrepared = planned + additional;
@@ -250,6 +261,8 @@ function ServiceItemCard({
           <p className="mt-0.5 font-display text-2xl font-semibold leading-none text-text-primary">
             {formatQuantity(soldDisplay, item.unit)}
           </p>
+          {/* "planned", not "prepared": this figure is the morning plan plus
+              any logged batches, not proof the kitchen has cooked it all. */}
           <p className="mt-1 text-[11px] text-text-muted">
             {t("today.live.ofPlanned", {
               quantity: formatQuantity(totalPrepared, item.unit),
@@ -298,6 +311,45 @@ function ServiceItemCard({
           sellThrough={monitor?.sell_through_probability}
         />
       ) : null}
+
+      {/* Progressive disclosure: the grid stays scannable, and the full
+          curve is one tap away for whoever wants it. */}
+      <div className="mt-3 border-t border-surface-4/50 pt-2">
+        <button
+          type="button"
+          onClick={() => setChartOpen((open) => !open)}
+          aria-expanded={chartOpen}
+          className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-left text-[11px] font-semibold text-text-secondary transition-colors hover:text-brand-gold"
+        >
+          <span>
+            {chartOpen ? t("today.live.hideChart") : t("today.live.showChart")}
+          </span>
+          <NavArrowDown
+            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+              chartOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+        <div
+          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+            chartOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
+            {/* Mounted only once opened — a dozen live charts per grid is
+                real work, and recharts measures on mount. */}
+            {chartOpen ? (
+              <div className="pt-2">
+                <ServiceItemChart
+                  timelineItem={timelineItem}
+                  unit={item.unit}
+                  plannedQty={planned || null}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
       <div className="mt-auto flex items-center justify-between gap-2 pt-3">
         <Link
