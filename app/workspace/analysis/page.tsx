@@ -32,16 +32,25 @@ import {
 import { OpportunitiesTab } from "@/components/dashboard/insights/opportunities-tab";
 import { RootCausesTab } from "@/components/dashboard/insights/root-causes-tab";
 import { ReportsTab } from "@/components/dashboard/insights/reports-tab";
+import { AnalysisTab } from "@/components/dashboard/insights/analysis-tab";
 
 type AnalystTab =
   | "SUMMARY"
   | "FEED"
   | "OPPORTUNITIES"
   | "ROOT_CAUSES"
-  | "REPORTS";
+  | "REPORTS"
+  | "ANALYSIS";
 
 /** The Intelligence tier, mirroring PLAN_TIER_MAP in services/payment/hooks. */
 const INTELLIGENCE_TIER = 2;
+
+/**
+ * The Command tier. Tabs 1-4 read what the nightly pipeline already wrote and
+ * cost nothing per view; the Analysis chat is the one surface that calls a
+ * model per question, so it sits a tier above the rest of the workspace.
+ */
+const COMMAND_TIER = 3;
 
 export default function InsightsPage() {
   const { t } = useTranslation();
@@ -117,6 +126,7 @@ export default function InsightsPage() {
     { id: "OPPORTUNITIES", label: t("workspace.insights.tabs.opportunities") },
     { id: "ROOT_CAUSES", label: t("workspace.insights.tabs.rootCauses") },
     { id: "REPORTS", label: t("workspace.insights.tabs.reports") },
+    { id: "ANALYSIS", label: t("workspace.insights.tabs.analysis") },
   ];
 
   const shell = {
@@ -251,6 +261,24 @@ export default function InsightsPage() {
             <TabBody query={reportsQuery}>
               {reportsQuery.data ? <ReportsTab data={reportsQuery.data} /> : null}
             </TabBody>
+          ) : null}
+
+          {/*
+            The one tab gated above the page itself. The rest of the workspace
+            renders on Intelligence; the chat needs Command, so the gate lives
+            here rather than around the whole page — an Intelligence customer
+            should still get Tabs 1-4, and should see what the upgrade buys.
+          */}
+          {activeTab === "ANALYSIS" ? (
+            tier < COMMAND_TIER ? (
+              <SubscriptionRequiredState
+                variant="command_required"
+                currentPlanType={planType}
+                compact
+              />
+            ) : (
+              <AnalysisTab branchId={safeBranchId} />
+            )
           ) : null}
         </>
       )}

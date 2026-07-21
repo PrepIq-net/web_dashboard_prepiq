@@ -1,6 +1,10 @@
-import { apiClientWithSchema } from "@/lib/api/client";
+import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { insightsEndpoints } from "./endpoints";
 import {
+  analystThreadDetailSchema,
+  analystThreadSchema,
+  analystThreadsSchema,
+  analystTurnSchema,
   feedSchema,
   insightSchema,
   opportunitiesSchema,
@@ -64,5 +68,82 @@ export async function setInsightStatus(insightId: string, status: InsightStatus)
   return apiClientWithSchema(insightsEndpoints.status(insightId), insightSchema, {
     method: "POST",
     body: { status },
+  });
+}
+
+// ── Analysis chat ───────────────────────────────────────────────────────────
+
+export async function getAnalystThreads(branchId: string) {
+  return apiClientWithSchema(
+    insightsEndpoints.threads(branchId),
+    analystThreadsSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getAnalystThread(branchId: string, threadId: string) {
+  return apiClientWithSchema(
+    insightsEndpoints.thread(branchId, threadId),
+    analystThreadDetailSchema,
+    { method: "GET" },
+  );
+}
+
+export async function createAnalystThread(branchId: string, title?: string) {
+  return apiClientWithSchema(
+    insightsEndpoints.threads(branchId),
+    analystThreadSchema,
+    { method: "POST", body: JSON.stringify({ title: title ?? "" }) },
+  );
+}
+
+export async function renameAnalystThread(
+  branchId: string,
+  threadId: string,
+  title: string,
+) {
+  return apiClientWithSchema(
+    insightsEndpoints.thread(branchId, threadId),
+    analystThreadSchema,
+    { method: "PATCH", body: JSON.stringify({ title }) },
+  );
+}
+
+export async function deleteAnalystThread(branchId: string, threadId: string) {
+  return apiClient(insightsEndpoints.thread(branchId, threadId), {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Ask a question and wait for the reply.
+ *
+ * This is the one endpoint in the feature that calls a model, so it is the one
+ * that can take seconds rather than milliseconds. Callers must show a pending
+ * state; there is no streaming here yet.
+ */
+export async function sendAnalystTurn(
+  branchId: string,
+  threadId: string,
+  message: string,
+) {
+  return apiClientWithSchema(
+    insightsEndpoints.threadTurn(branchId, threadId),
+    analystTurnSchema,
+    { method: "POST", body: JSON.stringify({ message }) },
+  );
+}
+
+export async function openAnalystWeek(branchId: string) {
+  return apiClientWithSchema(
+    insightsEndpoints.openWeek(branchId),
+    analystTurnSchema,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+export async function retireAnalystMemory(branchId: string, memoryId: string) {
+  return apiClient(insightsEndpoints.memory(branchId, memoryId), {
+    method: "DELETE",
   });
 }

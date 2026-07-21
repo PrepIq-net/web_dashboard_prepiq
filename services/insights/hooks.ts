@@ -122,3 +122,132 @@ export function useSetInsightStatus(branchId: string) {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Analysis chat
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const analystKeys = {
+  threads: (branchId: string) =>
+    [...insightsKeys.branch(branchId), "analyst", "threads"] as const,
+  thread: (branchId: string, threadId: string) =>
+    [...insightsKeys.branch(branchId), "analyst", "thread", threadId] as const,
+};
+
+/**
+ * The thread list and the manager's standing instructions.
+ *
+ * Unlike the nightly tabs, this reflects the manager's own actions within the
+ * session, so it is not cached for five minutes — a thread they just created
+ * has to appear immediately.
+ */
+export function useAnalystThreads(branchId?: string, enabled = true) {
+  return useQuery({
+    queryKey: analystKeys.threads(branchId ?? ""),
+    queryFn: () => insightsService.getAnalystThreads(branchId!),
+    enabled: enabled && !!branchId,
+  });
+}
+
+export function useAnalystThread(
+  branchId?: string,
+  threadId?: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: analystKeys.thread(branchId ?? "", threadId ?? ""),
+    queryFn: () => insightsService.getAnalystThread(branchId!, threadId!),
+    enabled: enabled && !!branchId && !!threadId,
+  });
+}
+
+export function useCreateAnalystThread(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (title?: string) =>
+      insightsService.createAnalystThread(branchId, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useRenameAnalystThread(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ threadId, title }: { threadId: string; title: string }) =>
+      insightsService.renameAnalystThread(branchId, threadId, title),
+    onSuccess: (_data, { threadId }) => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+      queryClient.invalidateQueries({
+        queryKey: analystKeys.thread(branchId, threadId),
+      });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteAnalystThread(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (threadId: string) =>
+      insightsService.deleteAnalystThread(branchId, threadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * Ask a question.
+ *
+ * Invalidates the thread list as well as the transcript: a reply bumps
+ * `updated_at`, which is the list's sort key, and the first turn also names an
+ * untitled thread. Refreshing only the transcript leaves the sidebar showing a
+ * stale title in a stale position.
+ */
+export function useSendAnalystTurn(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ threadId, message }: { threadId: string; message: string }) =>
+      insightsService.sendAnalystTurn(branchId, threadId, message),
+    onSuccess: (_data, { threadId }) => {
+      queryClient.invalidateQueries({
+        queryKey: analystKeys.thread(branchId, threadId),
+      });
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useOpenAnalystWeek(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => insightsService.openAnalystWeek(branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * Retire a standing instruction.
+ *
+ * The reply may also have created one (via the `remember` tool), so this
+ * invalidates the same list the chat writes to.
+ */
+export function useRetireAnalystMemory(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memoryId: string) =>
+      insightsService.retireAnalystMemory(branchId, memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}

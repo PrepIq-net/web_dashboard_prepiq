@@ -1642,7 +1642,7 @@
     "production": "Production",
     "inventory": "Inventaire",
     "history": "Historique",
-    "insights": "Analyste PrepIQ",
+    "analysis": "Analyse",
     "salesWaste": "Ventes & Gaspillage",
     "financial": "Financier",
     "staff": "Personnel",
@@ -2663,7 +2663,8 @@
         "feed": "À savoir",
         "opportunities": "Opportunités",
         "rootCauses": "Causes racines",
-        "reports": "Rapports"
+        "reports": "Rapports",
+        "analysis": "Interroger l'analyste"
       },
       "severity": {
         "low": "Faible",
@@ -2780,6 +2781,23 @@
         "revenue": "Ce qui génère le chiffre d'affaires",
         "stockout": "Ce qui génère les ruptures",
         "labor_variance": "Ce qui génère l'écart de main-d'œuvre"
+      },
+      "analysis": {
+        "openWeek": "Ouvrir la semaine",
+        "newThread": "Nouvelle conversation",
+        "threads": "Conversations",
+        "untitled": "Sans titre",
+        "noThreads": "Aucune conversation pour le moment.",
+        "rename": "Renommer",
+        "delete": "Supprimer",
+        "watching": "Sous surveillance",
+        "stopWatching": "Ne plus surveiller",
+        "placeholder": "Posez une question sur le gaspillage, les prévisions, le personnel…",
+        "send": "Envoyer",
+        "thinking": "Analyse de vos données…",
+        "summarized": "{count} échanges précédents résumés",
+        "startTitle": "Interroger l'analyste",
+        "startBody": "Demandez pourquoi un chiffre a bougé, ce qu'une semaine vous a coûté, ou quoi changer ensuite. Les réponses viennent de vos propres données."
       }
     },
     "chat": {

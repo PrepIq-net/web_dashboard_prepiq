@@ -32,4 +32,23 @@ export const insightsEndpoints = {
     `${BASE}/reports/${buildQuery({ branch_id: branchId })}`,
 
   reportDetail: (reportId: string) => `${BASE}/reports/${reportId}/`,
+
+  // ── Analysis chat ─────────────────────────────────────────────────────────
+  // Every one of these carries branch_id, including the writes: the server
+  // re-derives the Command-tier gate from the resolved branch, so omitting it
+  // would fall back to the org's primary branch and gate the wrong thing.
+  threads: (branchId: string) =>
+    `${BASE}/threads/${buildQuery({ branch_id: branchId })}`,
+
+  thread: (branchId: string, threadId: string) =>
+    `${BASE}/threads/${threadId}/${buildQuery({ branch_id: branchId })}`,
+
+  threadTurn: (branchId: string, threadId: string) =>
+    `${BASE}/threads/${threadId}/turn/${buildQuery({ branch_id: branchId })}`,
+
+  openWeek: (branchId: string) =>
+    `${BASE}/threads/open-week/${buildQuery({ branch_id: branchId })}`,
+
+  memory: (branchId: string, memoryId: string) =>
+    `${BASE}/memories/${memoryId}/${buildQuery({ branch_id: branchId })}`,
 };

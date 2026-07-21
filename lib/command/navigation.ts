@@ -43,7 +43,7 @@ export type NavPageId =
   | "production"
   | "inventory"
   | "history"
-  | "insights"
+  | "analysis"
   | "sales-waste"
   | "financial"
   | "staff-performance"
@@ -186,9 +186,9 @@ export const NAV_PAGES: NavPage[] = [
     keywords: ["past days", "operations history", "day history"],
   },
   {
-    id: "insights",
-    href: "/workspace/insights",
-    labelKey: "sidebar.insights",
+    id: "analysis",
+    href: "/workspace/analysis",
+    labelKey: "sidebar.analysis",
     icon: Sparks,
     // The union the API itself enforces (insights/views.py::_require_analytics).
     // A single `permission` here would hide the link from someone the endpoint
@@ -201,6 +201,7 @@ export const NAV_PAGES: NavPage[] = [
     keywords: [
       "analyst",
       "prepiq analyst",
+      "analysis",
       "insights",
       "intelligence",
       "opportunities",

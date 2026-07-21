@@ -1642,7 +1642,7 @@
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
-    "insights": "PrepIQ Analyst",
+    "analysis": "Analysis",
     "salesWaste": "Sales & Waste",
     "financial": "Financial",
     "staff": "Staff",
@@ -2663,7 +2663,8 @@
         "feed": "Things You Should Know",
         "opportunities": "Opportunities",
         "rootCauses": "Root Cause",
-        "reports": "Reports"
+        "reports": "Reports",
+        "analysis": "Ask the Analyst"
       },
       "severity": {
         "low": "Low",
@@ -2780,6 +2781,23 @@
         "revenue": "What drives revenue",
         "stockout": "What drives stockouts",
         "labor_variance": "What drives labor variance"
+      },
+      "analysis": {
+        "openWeek": "Open the week",
+        "newThread": "New conversation",
+        "threads": "Conversations",
+        "untitled": "Untitled",
+        "noThreads": "No conversations yet.",
+        "rename": "Rename",
+        "delete": "Delete",
+        "watching": "Watching for you",
+        "stopWatching": "Stop watching this",
+        "placeholder": "Ask about waste, forecasts, staffing, anything in your numbers…",
+        "send": "Send",
+        "thinking": "Looking through your data…",
+        "summarized": "{count} earlier turns summarised",
+        "startTitle": "Ask the Analyst",
+        "startBody": "Ask why a number moved, what a week cost you, or what to change next. Answers come from your own kitchen data, not guesses."
       }
     },
     "chat": {

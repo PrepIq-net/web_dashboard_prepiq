@@ -350,3 +350,66 @@ export const runsSchema = z.object({
   ...freshnessShape,
 });
 export type Runs = z.infer<typeof runsSchema>;
+
+// ── Analysis chat ───────────────────────────────────────────────────────────
+
+export const analystThreadSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  // Annotated by the list endpoint; absent on the create/rename responses,
+  // which return the bare row.
+  message_count: z.number().optional(),
+  last_message_at: z.string().nullable().optional(),
+});
+export type AnalystThread = z.infer<typeof analystThreadSchema>;
+
+export const analystMessageSchema = z.object({
+  id: z.string(),
+  // Only user/assistant reach the client — tool turns are stored for audit and
+  // filtered server-side. Kept as a plain string rather than an enum so a new
+  // server-side role degrades to an unstyled bubble instead of a parse failure
+  // that blanks the whole transcript.
+  role: z.string(),
+  content: z.string(),
+  created_at: z.string(),
+});
+export type AnalystMessage = z.infer<typeof analystMessageSchema>;
+
+export const analystMemorySchema = z.object({
+  id: z.string(),
+  user_instruction: z.string(),
+  // How the instruction was actually parsed. Shown alongside the original
+  // because a misread memory is only discoverable by comparing the two.
+  restatement: z.string(),
+  latest_update: z.string(),
+  last_triggered_on: z.string().nullable(),
+  last_evaluated_on: z.string().nullable(),
+  evaluation_count: z.number(),
+  created_at: z.string(),
+});
+export type AnalystMemory = z.infer<typeof analystMemorySchema>;
+
+export const analystThreadsSchema = z.object({
+  threads: z.array(analystThreadSchema),
+  memories: z.array(analystMemorySchema),
+  ...freshnessShape,
+});
+export type AnalystThreads = z.infer<typeof analystThreadsSchema>;
+
+export const analystThreadDetailSchema = z.object({
+  thread: analystThreadSchema,
+  messages: z.array(analystMessageSchema),
+  // How many turns have been folded into the rolling summary. Surfaced so the
+  // UI can say "earlier turns summarised" rather than appearing to have lost
+  // the start of a long conversation.
+  summarized_turns: z.number(),
+});
+export type AnalystThreadDetail = z.infer<typeof analystThreadDetailSchema>;
+
+export const analystTurnSchema = z.object({
+  thread: analystThreadSchema,
+  message: analystMessageSchema,
+});
+export type AnalystTurn = z.infer<typeof analystTurnSchema>;
