@@ -93,7 +93,7 @@ export async function createAnalystThread(branchId: string, title?: string) {
   return apiClientWithSchema(
     insightsEndpoints.threads(branchId),
     analystThreadSchema,
-    { method: "POST", body: JSON.stringify({ title: title ?? "" }) },
+    { method: "POST", body: { title: title ?? "" } },
   );
 }
 
@@ -105,7 +105,7 @@ export async function renameAnalystThread(
   return apiClientWithSchema(
     insightsEndpoints.thread(branchId, threadId),
     analystThreadSchema,
-    { method: "PATCH", body: JSON.stringify({ title }) },
+    { method: "PATCH", body: { title } },
   );
 }
 
@@ -130,7 +130,7 @@ export async function sendAnalystTurn(
   return apiClientWithSchema(
     insightsEndpoints.threadTurn(branchId, threadId),
     analystTurnSchema,
-    { method: "POST", body: JSON.stringify({ message }) },
+    { method: "POST", body: { message } },
   );
 }
 
@@ -138,7 +138,7 @@ export async function openAnalystWeek(branchId: string) {
   return apiClientWithSchema(
     insightsEndpoints.openWeek(branchId),
     analystTurnSchema,
-    { method: "POST", body: JSON.stringify({}) },
+    { method: "POST", body: {} },
   );
 }
 
