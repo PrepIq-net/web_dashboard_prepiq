@@ -18,6 +18,7 @@ import {
   Settings,
   ShieldAlert,
   Shop,
+  Sparks,
   StatsReport,
   TaskList,
 } from "iconoir-react";
@@ -42,6 +43,7 @@ export type NavPageId =
   | "production"
   | "inventory"
   | "history"
+  | "insights"
   | "sales-waste"
   | "financial"
   | "staff-performance"
@@ -182,6 +184,32 @@ export const NAV_PAGES: NavPage[] = [
     permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
     sectionKey: "operations",
     keywords: ["past days", "operations history", "day history"],
+  },
+  {
+    id: "insights",
+    href: "/workspace/insights",
+    labelKey: "sidebar.insights",
+    icon: Sparks,
+    // The union the API itself enforces (insights/views.py::_require_analytics).
+    // A single `permission` here would hide the link from someone the endpoint
+    // would happily serve.
+    anyPermission: [
+      PERMISSIONS.VIEW_ANALYTICS,
+      PERMISSIONS.VIEW_PRODUCTION_REPORTS,
+    ],
+    sectionKey: "analytics",
+    keywords: [
+      "analyst",
+      "prepiq analyst",
+      "insights",
+      "intelligence",
+      "opportunities",
+      "savings",
+      "root cause",
+      "why",
+      "health score",
+      "what should i know",
+    ],
   },
   {
     id: "sales-waste",

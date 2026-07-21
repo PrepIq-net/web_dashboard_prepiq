@@ -1642,6 +1642,7 @@
     "production": "Production",
     "inventory": "Inventaire",
     "history": "Historique",
+    "insights": "Analyste PrepIQ",
     "salesWaste": "Ventes & Gaspillage",
     "financial": "Financier",
     "staff": "Personnel",
@@ -2646,6 +2647,128 @@
     "supply": "Stock"
   },
   "workspace": {
+    "insights": {
+      "eyebrow": "Analyste",
+      "title": "Analyste PrepIQ",
+      "description": "Ce qui s'est passé, pourquoi, et ce que cela vous coûte. Calculé chaque nuit à partir de vos propres relevés de service.",
+      "insight": "Chaque chiffre ici provient d'une journée de service enregistrée. Rien sur cette page n'est estimé au moment où vous l'ouvrez.",
+      "branch": "Succursale",
+      "noPermission": "Vous n'avez pas l'autorisation de consulter les analyses de cette organisation.",
+      "loadError": "Impossible de charger cette vue. Réessayez.",
+      "confidence": "{{value}} % de confiance",
+      "seenTimes": "Observé {{count}} nuits d'affilée",
+      "resurfaced": "Réapparu",
+      "tabs": {
+        "summary": "Synthèse",
+        "feed": "À savoir",
+        "opportunities": "Opportunités",
+        "rootCauses": "Causes racines"
+      },
+      "severity": {
+        "low": "Faible",
+        "medium": "Moyenne",
+        "high": "Élevée",
+        "critical": "Critique"
+      },
+      "source": {
+        "rule": "Mesuré",
+        "llm": "Rédigé"
+      },
+      "status": {
+        "implemented": "Appliqué",
+        "dismissed": "Écarté",
+        "dismissedUntil": "Écarté jusqu'au {{date}}"
+      },
+      "period": {
+        "daily": "par jour",
+        "weekly": "par semaine",
+        "monthly": "par mois"
+      },
+      "trend": {
+        "improving": "En amélioration",
+        "stable": "Stable",
+        "declining": "En baisse"
+      },
+      "actions": {
+        "dismiss": "Écarter",
+        "markDone": "Marquer traité",
+        "restore": "Rétablir"
+      },
+      "filters": {
+        "active": "Ouverts",
+        "implemented": "Traités",
+        "dismissed": "Écartés"
+      },
+      "freshness": {
+        "neverRun": "Aucune analyse n'a encore été exécutée pour cette succursale.",
+        "stale": "Cette analyse date du {{date}} et n'a pas été actualisée depuis.",
+        "staleUnknown": "Cette analyse n'a pas été actualisée récemment.",
+        "detail": "Les constats sont calculés durant la nuit. Ce que vous voyez peut ne pas refléter l'état actuel de la cuisine."
+      },
+      "summary": {
+        "healthTitle": "Santé opérationnelle",
+        "asOf": "Au {{date}}",
+        "notAvailable": "Aucune donnée",
+        "lowCompleteness": "Établi sur {{percent}} % des relevés attendus. À considérer comme provisoire tant que d'autres journées de service ne sont pas enregistrées.",
+        "noScore": "Pas encore de score de santé",
+        "noScoreReason": "Un score apparaît dès que cette succursale compte assez de journées de service enregistrées pour mesurer les composantes.",
+        "yesterdayTitle": "Performance d'hier",
+        "revenue": "Chiffre d'affaires",
+        "vsWeekday": "{{change}} vs même jour de semaine",
+        "forecastAccuracy": "Précision des prévisions",
+        "sevenDayAvg": "{{value}} sur 7 jours",
+        "wasteCost": "Coût du gaspillage",
+        "vsBaseline": "{{change}} vs référence",
+        "laborHours": "Heures de travail",
+        "hours": "{{value}} h",
+        "scheduledHours": "{{value}} h planifiées",
+        "bestItem": "Meilleure performance",
+        "hardestToPredict": "Le plus difficile à prévoir",
+        "noLaborCost": "L'écart de coût de main-d'œuvre nécessite un taux horaire sur vos rôles. Ajoutez-en un pour le voir ici.",
+        "noMetrics": "Aucune journée enregistrée",
+        "noMetricsReason": "La carte d'hier se remplit après la clôture d'une journée de service et l'exécution de l'analyse nocturne.",
+        "actionTitle": "À faire en premier",
+        "openCount": "{{count}} constats ouverts",
+        "noAction": "Rien ne requiert votre attention",
+        "noActionReason": "Aucun constat ouvert n'a franchi le seuil de signification pour cette succursale. C'est un résultat, pas une absence de données."
+      },
+      "feed": {
+        "empty": {
+          "active": "Rien d'ouvert",
+          "implemented": "Rien de marqué traité",
+          "dismissed": "Rien d'écarté"
+        },
+        "emptyReason": {
+          "active": "Aucun constat n'a atteint le seuil pour cette succursale. Les détecteurs restent silencieux plutôt que de deviner.",
+          "implemented": "Les constats que vous marquez traités s'accumulent ici, pour vérifier plus tard si la correction a tenu.",
+          "dismissed": "Les constats écartés restent masqués quelques semaines. Si la situation coûte toujours de l'argent ensuite, elle revient."
+        }
+      },
+      "opportunities": {
+        "headerLabel": "Récupérable par mois",
+        "headerDetail": "Sur {{count}} constats chiffrés, dans la devise propre à cette succursale.",
+        "breakdown": "Afficher le détail ({{count}} articles)",
+        "surplusPerDay": "{{count}} unités/jour en surplus",
+        "empty": "Aucune opportunité chiffrée",
+        "emptyReason": "Une opportunité apparaît lorsqu'un article est régulièrement préparé au-delà de ce qui se vend et que le surplus peut être chiffré. Rien n'a atteint ce seuil."
+      },
+      "rootCauses": {
+        "window": "Facteurs mesurés sur les {{days}} derniers jours.",
+        "share": "{{percent}} % de la variance",
+        "increases": "Le fait monter",
+        "decreases": "Le fait baisser",
+        "samples": "{{count}} échantillons",
+        "empty": "Aucun facteur établi pour l'instant",
+        "emptyReason": "Un facteur n'est publié qu'une fois la signification atteinte sur assez de journées de service. D'ici là, cette vue reste vide plutôt que de nommer une cause que nous ne pouvons pas étayer."
+      },
+      "outcome": {
+        "waste": "Ce qui génère le gaspillage",
+        "forecast_error": "Ce qui génère l'erreur de prévision",
+        "revenue": "Ce qui génère le chiffre d'affaires",
+        "stockout": "Ce qui génère les ruptures",
+        "labor_variance": "Ce qui génère l'écart de main-d'œuvre"
+      }
+    },
     "chat": {
       "eyebrow": "Hub Opérations",
       "title": "Hub Opérations",
