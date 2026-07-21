@@ -1,5 +1,5 @@
 /**
- * Chart color + mark constants, derived from BRAND_SYSTEM.md tokens.
+ * Chart color + mark constants, derived from docs/DESIGN.md tokens.
  *
  * Palette validated (dataviz six-checks, dark surface #141416):
  * actual=#A8821F vs forecast=#C7C7CC — CVD ΔE 23.2, normal-vision ΔE 24.0,

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 /**
  * Standard workspace section heading: gold eyebrow, display title, optional
  * supporting line, optional right-aligned actions. Spacing-led per
- * BRAND_SYSTEM.md — no card chrome.
+ * docs/DESIGN.md — no card chrome.
  */
 export function SectionHeader({
   eyebrow,
