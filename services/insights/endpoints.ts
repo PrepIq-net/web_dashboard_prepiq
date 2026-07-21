@@ -27,4 +27,9 @@ export const insightsEndpoints = {
   status: (insightId: string) => `${BASE}/${insightId}/status/`,
 
   runs: (branchId: string) => `${BASE}/runs/${buildQuery({ branch_id: branchId })}`,
+
+  reports: (branchId: string) =>
+    `${BASE}/reports/${buildQuery({ branch_id: branchId })}`,
+
+  reportDetail: (reportId: string) => `${BASE}/reports/${reportId}/`,
 };

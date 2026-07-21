@@ -4,6 +4,7 @@ import {
   feedSchema,
   insightSchema,
   opportunitiesSchema,
+  reportsSchema,
   rootCausesSchema,
   runsSchema,
   summarySchema,
@@ -39,6 +40,12 @@ export async function getRootCauses(branchId: string, outcome?: string) {
     rootCausesSchema,
     { method: "GET" },
   );
+}
+
+export async function getReports(branchId: string) {
+  return apiClientWithSchema(insightsEndpoints.reports(branchId), reportsSchema, {
+    method: "GET",
+  });
 }
 
 export async function getRuns(branchId: string) {

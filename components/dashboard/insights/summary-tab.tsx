@@ -12,7 +12,7 @@ import {
   deltaTone,
   EmptyState,
   Metric,
-  percent,
+  ratioPercent,
   signedPercent,
 } from "./insight-primitives";
 
@@ -132,11 +132,13 @@ export function SummaryTab({
               />
               <Metric
                 label={t("workspace.insights.summary.forecastAccuracy")}
-                value={percent(yesterday.forecast_accuracy, 1)}
+                // Ratio, not percentage — see ratioPercent. `percent` here
+                // rendered a branch at 39.7% accuracy as "0.4%".
+                value={ratioPercent(yesterday.forecast_accuracy, 1)}
                 detail={
                   yesterday.forecast_accuracy_7d_avg !== null
                     ? t("workspace.insights.summary.sevenDayAvg", {
-                        value: percent(yesterday.forecast_accuracy_7d_avg, 1),
+                        value: ratioPercent(yesterday.forecast_accuracy_7d_avg, 1),
                       })
                     : undefined
                 }

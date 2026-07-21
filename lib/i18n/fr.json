@@ -2662,7 +2662,8 @@
         "summary": "Synthèse",
         "feed": "À savoir",
         "opportunities": "Opportunités",
-        "rootCauses": "Causes racines"
+        "rootCauses": "Causes racines",
+        "reports": "Rapports"
       },
       "severity": {
         "low": "Faible",
@@ -2760,6 +2761,18 @@
         "samples": "{{count}} échantillons",
         "empty": "Aucun facteur établi pour l'instant",
         "emptyReason": "Un facteur n'est publié qu'une fois la signification atteinte sur assez de journées de service. D'ici là, cette vue reste vide plutôt que de nommer une cause que nous ne pouvons pas étayer."
+      },
+      "reports": {
+        "weekly": "Revue hebdomadaire",
+        "board": "Rapport du conseil",
+        "download": "Télécharger le PDF",
+        "noPdf": "PDF indisponible",
+        "sentTo": "Envoyé à {{count}} destinataires",
+        "notDelivered": "Généré mais non distribué",
+        "scopeIntelligence": "Revues hebdomadaires de cette succursale, générées chaque lundi matin.",
+        "scopeCommand": "Revues hebdomadaires de cette succursale, ainsi que les rapports mensuels du conseil pour l'ensemble du réseau.",
+        "empty": "Aucun rapport pour l'instant",
+        "emptyReason": "La première revue hebdomadaire est compilée le lundi suivant une semaine complète de journées de service enregistrées."
       },
       "outcome": {
         "waste": "Ce qui génère le gaspillage",

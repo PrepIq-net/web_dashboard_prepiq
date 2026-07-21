@@ -2662,7 +2662,8 @@
         "summary": "Executive Summary",
         "feed": "Things You Should Know",
         "opportunities": "Opportunities",
-        "rootCauses": "Root Cause"
+        "rootCauses": "Root Cause",
+        "reports": "Reports"
       },
       "severity": {
         "low": "Low",
@@ -2760,6 +2761,18 @@
         "samples": "{{count}} samples",
         "empty": "No drivers established yet",
         "emptyReason": "A driver is published only once it clears significance across enough service days. Until then this stays empty rather than naming a cause we cannot support."
+      },
+      "reports": {
+        "weekly": "Weekly review",
+        "board": "Board report",
+        "download": "Download PDF",
+        "noPdf": "PDF unavailable",
+        "sentTo": "Emailed to {{count}} recipients",
+        "notDelivered": "Generated but not delivered",
+        "scopeIntelligence": "Weekly reviews for this branch, generated every Monday morning.",
+        "scopeCommand": "Weekly reviews for this branch, plus monthly board reports across your whole network.",
+        "empty": "No reports yet",
+        "emptyReason": "The first weekly review is compiled on the Monday after a full week of recorded service days."
       },
       "outcome": {
         "waste": "What drives waste",

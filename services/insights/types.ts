@@ -310,6 +310,38 @@ export const rootCausesSchema = z.object({
 });
 export type RootCauses = z.infer<typeof rootCausesSchema>;
 
+// ── Reports log ─────────────────────────────────────────────────────────────
+
+export const REPORT_TYPES = ["WEEKLY_EXECUTIVE", "MONTHLY_BOARD"] as const;
+export type ReportType = (typeof REPORT_TYPES)[number];
+
+export const insightReportSchema = z.object({
+  id: z.string(),
+  report_type: z.enum(REPORT_TYPES),
+  title: z.string(),
+  period_start: z.string(),
+  period_end: z.string(),
+  currency: z.string(),
+  status: z.string(),
+  generated_at: z.string().nullable(),
+  sent_at: z.string().nullable(),
+  recipient_count: z.number(),
+  has_pdf: z.boolean(),
+  download_url: z.string(),
+  // Present when the report generated but could not be emailed. Surfaced so a
+  // report nobody received does not sit in the log looking delivered.
+  email_error: z.string(),
+});
+export type InsightReport = z.infer<typeof insightReportSchema>;
+
+export const reportsSchema = z.object({
+  results: z.array(insightReportSchema),
+  // False on Intelligence: board reports are Command-tier, and listing them
+  // only to 403 on open is worse than not listing them.
+  board_reports_available: z.boolean(),
+});
+export type ReportsLog = z.infer<typeof reportsSchema>;
+
 // ── Runs ────────────────────────────────────────────────────────────────────
 
 export const runsSchema = z.object({

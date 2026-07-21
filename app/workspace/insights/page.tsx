@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useCurrentUserProfile } from "@/services";
 import {
   useInsightFeed,
+  useInsightReports,
   useInsightSummary,
   useOpportunities,
   useRootCauses,
@@ -30,8 +31,14 @@ import {
 } from "@/components/dashboard/insights/feed-tab";
 import { OpportunitiesTab } from "@/components/dashboard/insights/opportunities-tab";
 import { RootCausesTab } from "@/components/dashboard/insights/root-causes-tab";
+import { ReportsTab } from "@/components/dashboard/insights/reports-tab";
 
-type AnalystTab = "SUMMARY" | "FEED" | "OPPORTUNITIES" | "ROOT_CAUSES";
+type AnalystTab =
+  | "SUMMARY"
+  | "FEED"
+  | "OPPORTUNITIES"
+  | "ROOT_CAUSES"
+  | "REPORTS";
 
 /** The Intelligence tier, mirroring PLAN_TIER_MAP in services/payment/hooks. */
 const INTELLIGENCE_TIER = 2;
@@ -90,6 +97,10 @@ export default function InsightsPage() {
     undefined,
     enabled && activeTab === "ROOT_CAUSES",
   );
+  const reportsQuery = useInsightReports(
+    safeBranchId,
+    enabled && activeTab === "REPORTS",
+  );
 
   const setStatus = useSetInsightStatus(safeBranchId);
   const pendingId = setStatus.isPending
@@ -105,6 +116,7 @@ export default function InsightsPage() {
     { id: "FEED", label: t("workspace.insights.tabs.feed") },
     { id: "OPPORTUNITIES", label: t("workspace.insights.tabs.opportunities") },
     { id: "ROOT_CAUSES", label: t("workspace.insights.tabs.rootCauses") },
+    { id: "REPORTS", label: t("workspace.insights.tabs.reports") },
   ];
 
   const shell = {
@@ -232,6 +244,12 @@ export default function InsightsPage() {
               {rootCausesQuery.data ? (
                 <RootCausesTab data={rootCausesQuery.data} />
               ) : null}
+            </TabBody>
+          ) : null}
+
+          {activeTab === "REPORTS" ? (
+            <TabBody query={reportsQuery}>
+              {reportsQuery.data ? <ReportsTab data={reportsQuery.data} /> : null}
             </TabBody>
           ) : null}
         </>

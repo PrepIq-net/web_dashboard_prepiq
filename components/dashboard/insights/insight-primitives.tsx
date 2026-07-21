@@ -153,6 +153,20 @@ export function percent(value: number | null, digits = 0): string {
   return `${value.toFixed(digits)}%`;
 }
 
+/**
+ * A stored 0–1 ratio, rendered as a percentage.
+ *
+ * `BranchDailyMetric` carries two conventions, inherited from the tables it
+ * reads: fields named `*_pct` are already percentages, while
+ * `forecast_accuracy`, `compliance_rate` and `override_rate` are ratios on
+ * 0–1. Passing a ratio to `percent` above is how a branch running at 39.7%
+ * accuracy rendered as "0.4%".
+ */
+export function ratioPercent(value: number | null, digits = 0): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  return `${(value * 100).toFixed(digits)}%`;
+}
+
 /** Direction of a change where up is good (revenue) or bad (waste). */
 export function deltaTone(
   value: number | null,

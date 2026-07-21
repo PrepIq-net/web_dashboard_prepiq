@@ -20,6 +20,7 @@ export const insightsKeys = {
   rootCauses: (branchId: string, outcome?: string) =>
     [...insightsKeys.branch(branchId), "root-causes", outcome ?? ""] as const,
   runs: (branchId: string) => [...insightsKeys.branch(branchId), "runs"] as const,
+  reports: (branchId: string) => [...insightsKeys.branch(branchId), "reports"] as const,
 };
 
 /**
@@ -69,6 +70,21 @@ export function useRootCauses(branchId?: string, outcome?: string, enabled = tru
   return useQuery({
     queryKey: insightsKeys.rootCauses(branchId ?? "", outcome),
     queryFn: () => insightsService.getRootCauses(branchId!, outcome),
+    enabled: enabled && !!branchId,
+    staleTime: NIGHTLY,
+  });
+}
+
+/**
+ * The in-app Reports log.
+ *
+ * Reports appear on a Monday-morning beat, not on user action, so the cache
+ * can sit for the same nightly interval as everything else here.
+ */
+export function useInsightReports(branchId?: string, enabled = true) {
+  return useQuery({
+    queryKey: insightsKeys.reports(branchId ?? ""),
+    queryFn: () => insightsService.getReports(branchId!),
     enabled: enabled && !!branchId,
     staleTime: NIGHTLY,
   });
