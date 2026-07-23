@@ -15,7 +15,7 @@ const CATEGORY_TONE: Record<string, string> = {
 
 /**
  * One card on the board. Deliberately quiet — flat surface, border, no shadow
- * theatrics — per BRAND_SYSTEM.md; a kanban card earns its keep by being
+ * theatrics — per docs/DESIGN.md; a kanban card earns its keep by being
  * scannable from a metre away, not by looking like Trello.
  */
 export function TaskCard({

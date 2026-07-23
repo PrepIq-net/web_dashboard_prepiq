@@ -1645,6 +1645,8 @@ export const productionIntelligenceAccessScopeSchema = z.object({
       id: z.string().uuid(),
       name: z.string(),
       is_primary: z.boolean(),
+      /** ISO 4217 for this branch — money on Today is branch-scoped, not org-scoped. */
+      currency: z.string().optional(),
       can_manage_branch_data: z.boolean(),
     }),
   ),

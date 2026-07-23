@@ -1551,6 +1551,7 @@
       "sales_trends": "Sales trends",
       "operating_hours": "Operating hours",
       "weather": "Weather",
+      "traffic": "Road traffic",
       "stockout_history": "Stockout history",
       "day_of_week": "Day of week",
       "events_holidays": "Events & holidays",
@@ -1642,6 +1643,7 @@
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
+    "analysis": "Analysis",
     "salesWaste": "Sales & Waste",
     "financial": "Financial",
     "staff": "Staff",
@@ -2646,6 +2648,159 @@
     "supply": "Supply"
   },
   "workspace": {
+    "insights": {
+      "eyebrow": "Analyst",
+      "title": "PrepIQ Analyst",
+      "description": "What happened, why it happened, and what it is costing you. Computed overnight from your own service records.",
+      "insight": "Every figure here traces to a recorded service day. Nothing on this page is estimated at the moment you open it.",
+      "branch": "Branch",
+      "noPermission": "You do not have permission to view analytics for this organization.",
+      "loadError": "Could not load this view. Try again.",
+      "confidence": "{{value}}% confidence",
+      "seenTimes": "Seen {{count}} nights running",
+      "resurfaced": "Resurfaced",
+      "tabs": {
+        "summary": "Executive Summary",
+        "feed": "Things You Should Know",
+        "opportunities": "Opportunities",
+        "rootCauses": "Root Cause",
+        "reports": "Reports",
+        "analysis": "Ask the Analyst"
+      },
+      "severity": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "source": {
+        "rule": "Measured",
+        "llm": "Narrated"
+      },
+      "status": {
+        "implemented": "Implemented",
+        "dismissed": "Dismissed",
+        "dismissedUntil": "Dismissed until {{date}}"
+      },
+      "period": {
+        "daily": "per day",
+        "weekly": "per week",
+        "monthly": "per month"
+      },
+      "trend": {
+        "improving": "Improving",
+        "stable": "Stable",
+        "declining": "Declining"
+      },
+      "actions": {
+        "dismiss": "Dismiss",
+        "markDone": "Mark done",
+        "restore": "Restore"
+      },
+      "filters": {
+        "active": "Open",
+        "implemented": "Actioned",
+        "dismissed": "Dismissed"
+      },
+      "freshness": {
+        "neverRun": "No analysis has run for this branch yet.",
+        "stale": "This analysis is from {{date}} and has not refreshed since.",
+        "staleUnknown": "This analysis has not refreshed recently.",
+        "detail": "Findings are computed overnight. What you see may not reflect the current state of the kitchen."
+      },
+      "summary": {
+        "healthTitle": "Operational Health",
+        "asOf": "As of {{date}}",
+        "notAvailable": "No data",
+        "lowCompleteness": "Built on {{percent}}% of the expected records. Treat as provisional until more service days land.",
+        "noScore": "No health score yet",
+        "noScoreReason": "A score appears once this branch has enough recorded service days for the components to be measured.",
+        "yesterdayTitle": "Yesterday's Performance",
+        "revenue": "Revenue",
+        "vsWeekday": "{{change}} vs same weekday",
+        "forecastAccuracy": "Forecast Accuracy",
+        "sevenDayAvg": "{{value}} over 7 days",
+        "wasteCost": "Waste Cost",
+        "vsBaseline": "{{change}} vs baseline",
+        "laborHours": "Labor Hours",
+        "hours": "{{value}} h",
+        "scheduledHours": "{{value}} h scheduled",
+        "bestItem": "Best Performer",
+        "hardestToPredict": "Hardest to Predict",
+        "noLaborCost": "Labor cost variance needs an hourly rate on your staff roles. Add one to see it here.",
+        "noMetrics": "No recorded day yet",
+        "noMetricsReason": "Yesterday's card fills in after a service day is closed and the overnight analysis runs.",
+        "actionTitle": "Do This First",
+        "openCount": "{{count}} open findings",
+        "noAction": "Nothing needs your attention",
+        "noActionReason": "No open finding cleared the significance threshold for this branch. That is a result, not an absence of data."
+      },
+      "feed": {
+        "empty": {
+          "active": "Nothing open",
+          "implemented": "Nothing marked done yet",
+          "dismissed": "Nothing dismissed"
+        },
+        "emptyReason": {
+          "active": "No finding reached the threshold for this branch. Detectors stay silent rather than guess.",
+          "implemented": "Findings you mark as done collect here, so you can check later whether the fix held.",
+          "dismissed": "Findings you dismiss are hidden for a few weeks. If the condition is still costing money after that, it comes back."
+        }
+      },
+      "opportunities": {
+        "headerLabel": "Recoverable per month",
+        "headerDetail": "Across {{count}} costed findings, in this branch's own currency.",
+        "breakdown": "Show breakdown ({{count}} items)",
+        "surplusPerDay": "{{count}} units/day surplus",
+        "empty": "No costed opportunities",
+        "emptyReason": "An opportunity appears when an item is routinely prepped past what sells and the surplus can be priced. Nothing met that bar."
+      },
+      "rootCauses": {
+        "window": "Drivers measured over the last {{days}} days.",
+        "share": "{{percent}}% of variance",
+        "increases": "Pushes it up",
+        "decreases": "Pulls it down",
+        "samples": "{{count}} samples",
+        "empty": "No drivers established yet",
+        "emptyReason": "A driver is published only once it clears significance across enough service days. Until then this stays empty rather than naming a cause we cannot support."
+      },
+      "reports": {
+        "weekly": "Weekly review",
+        "board": "Board report",
+        "download": "Download PDF",
+        "noPdf": "PDF unavailable",
+        "sentTo": "Emailed to {{count}} recipients",
+        "notDelivered": "Generated but not delivered",
+        "scopeIntelligence": "Weekly reviews for this branch, generated every Monday morning.",
+        "scopeCommand": "Weekly reviews for this branch, plus monthly board reports across your whole network.",
+        "empty": "No reports yet",
+        "emptyReason": "The first weekly review is compiled on the Monday after a full week of recorded service days."
+      },
+      "outcome": {
+        "waste": "What drives waste",
+        "forecast_error": "What drives forecast error",
+        "revenue": "What drives revenue",
+        "stockout": "What drives stockouts",
+        "labor_variance": "What drives labor variance"
+      },
+      "analysis": {
+        "openWeek": "Open the week",
+        "newThread": "New conversation",
+        "threads": "Conversations",
+        "untitled": "Untitled",
+        "noThreads": "No conversations yet.",
+        "rename": "Rename",
+        "delete": "Delete",
+        "watching": "Watching for you",
+        "stopWatching": "Stop watching this",
+        "placeholder": "Ask about waste, forecasts, staffing, anything in your numbers…",
+        "send": "Send",
+        "thinking": "Looking through your data…",
+        "summarized": "{count} earlier turns summarised",
+        "startTitle": "Ask the Analyst",
+        "startBody": "Ask why a number moved, what a week cost you, or what to change next. Answers come from your own kitchen data, not guesses."
+      }
+    },
     "chat": {
       "eyebrow": "Operations Hub",
       "title": "Operations Hub",
