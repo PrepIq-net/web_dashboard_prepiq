@@ -20,6 +20,17 @@ export const operatingHoursSchema = z.object({
 export type OperatingHours = z.infer<typeof operatingHoursSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sports demand context — only branches that show live sports react to a match,
+// so an empty profile means the sports signal is off for this branch.
+// ─────────────────────────────────────────────────────────────────────────────
+export const sportsProfileSchema = z.object({
+  teams: z.array(z.string()).optional(),
+  league_ids: z.array(z.string()).optional(),
+  big_match_keywords: z.array(z.string()).optional(),
+});
+export type SportsProfile = z.infer<typeof sportsProfileSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Branch (read — BranchSerializer)
 // ─────────────────────────────────────────────────────────────────────────────
 export const branchSchema = z.object({
@@ -29,6 +40,8 @@ export const branchSchema = z.object({
   name: z.string(),
   code: z.string(),
   address: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   location_display: z
     .object({ latitude: z.number(), longitude: z.number() })
     .nullable()
@@ -52,15 +65,44 @@ export const branchSchema = z.object({
 
   // Demand Context
   nearby_event_venues: z.array(z.string()).optional(),
+  nearby_event_radius_km: z.number().optional(),
   seasonality_profile: z.string().nullable().optional(),
   local_demand_patterns: z.record(z.string(), z.any()).optional(),
+  shows_live_sports: z.boolean().optional(),
+  sports_profile: sportsProfileSchema.optional(),
+  /** One-time OSM venue enrichment — read-only branch covariates for the model. */
+  location_context: z.record(z.string(), z.any()).optional(),
 
   // Inventory Rules
   min_stock_buffer: z.number().optional(),
   waste_threshold: z.number().optional(),
   reorder_buffer: z.number().optional(),
+
+  branch_manager: z.union([z.string(), z.number()]).nullable().optional(),
+  branch_manager_name: z.string().nullable().optional(),
 });
 export type Branch = z.infer<typeof branchSchema>;
+
+/**
+ * Returned only by POST /branches/ — the trial the branch was auto-enrolled in.
+ * Present so branch creation can state the plan, cost, and end date instead of
+ * leaving the user to guess whether they just started paying for something.
+ */
+export const branchTrialSchema = z.object({
+  subscription_id: z.string(),
+  plan_name: z.string(),
+  plan_type: z.string(),
+  is_trial: z.boolean(),
+  trial_ends_at: z.string().nullable().optional(),
+  price_after_trial: z.string().nullable().optional(),
+  billing_cycle: z.string().optional(),
+});
+export type BranchTrial = z.infer<typeof branchTrialSchema>;
+
+export const createdBranchSchema = branchSchema.extend({
+  trial: branchTrialSchema.nullable().optional(),
+});
+export type CreatedBranch = z.infer<typeof createdBranchSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CreateBranchPayload (write — CreateUpdateBranchSerializer)
@@ -90,13 +132,19 @@ export const createBranchPayloadSchema = z.object({
 
   // Demand Context
   nearby_event_venues: z.array(z.string()).optional(),
+  nearby_event_radius_km: z.number().int().min(1).max(200).optional(),
   seasonality_profile: z.string().nullable().optional(),
   local_demand_patterns: z.record(z.string(), z.any()).optional(),
+  shows_live_sports: z.boolean().optional(),
+  sports_profile: sportsProfileSchema.optional(),
 
   // Inventory Rules
   min_stock_buffer: z.number().optional(),
-  waste_threshold: z.number().optional(),
+  /** Rate, not a percentage — 0.05 means 5%. */
+  waste_threshold: z.number().min(0).max(1).optional(),
   reorder_buffer: z.number().optional(),
+
+  branch_manager: z.union([z.string(), z.number()]).nullable().optional(),
 });
 export type CreateBranchPayload = z.infer<typeof createBranchPayloadSchema>;
 export type UpdateBranchPayload = Partial<CreateBranchPayload>;
