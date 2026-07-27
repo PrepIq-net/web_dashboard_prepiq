@@ -119,6 +119,39 @@ export function useUpdatePlanningEvent() {
   });
 }
 
+export function useConfirmPlanningEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      decision,
+    }: {
+      eventId: string;
+      decision: "confirm" | "dismiss";
+    }) => planningService.confirmEvent(eventId, decision),
+    onSuccess: (event, { decision }) => {
+      queryClient.invalidateQueries({ queryKey: planningKeys.events() });
+      queryClient.invalidateQueries({
+        queryKey: planningKeys.eventDetail(event.id),
+      });
+      queryClient.invalidateQueries({ queryKey: [...planningKeys.all, "calendar"] });
+      // The forecast only changes on confirm, but a dismissal changes the
+      // pending count the context reports either way.
+      queryClient.invalidateQueries({
+        queryKey: [...planningKeys.all, "forecast-context"],
+      });
+      toast.success(
+        decision === "confirm"
+          ? "Event confirmed — it now counts toward the forecast."
+          : "Event dismissed.",
+      );
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update the event.");
+    },
+  });
+}
+
 export function useDeletePlanningEvent() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMyOrganizations } from "@/services/organizations/hooks";
 import { useCreateBranch } from "@/services/branches/hooks";
-import { ArrowRight, Sparks } from "iconoir-react";
+import { useSubscriptionPlans } from "@/services/payment/hooks";
+import { ArrowRight, CheckCircle, Sparks } from "iconoir-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Select } from "@/components/ui/select";
 import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { formatMoney } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
+import type { CreatedBranch } from "@/services/branches/types";
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC — Coordinated Universal Time" },
@@ -86,7 +90,26 @@ export default function NewBranchPage() {
   } = useMyOrganizations();
 
   const orgId = orgs?.[0]?.id ?? "";
-  const createBranch = useCreateBranch(orgId);
+  // The success dialog reports the trial, so the generic toast would be a
+  // second notice for the same event.
+  const createBranch = useCreateBranch(orgId, { silent: true });
+
+  // What the new branch will actually be enrolled in — quoted before the user
+  // commits so creation never ends in an unexplained charge expectation.
+  const plansQuery = useSubscriptionPlans();
+  const trialPlan = useMemo(() => {
+    const plans = plansQuery.data ?? [];
+    return (
+      plans.find((plan) => plan.plan_type?.toUpperCase() === "INTELLIGENCE") ??
+      plans.find((plan) => plan.plan_type?.toUpperCase() === "CORE") ??
+      null
+    );
+  }, [plansQuery.data]);
+  const trialDays = trialPlan?.trial_days || 30;
+  const priceAfterTrial =
+    trialPlan?.monthly_price != null
+      ? formatMoney(Number(trialPlan.monthly_price), "USD")
+      : null;
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -101,6 +124,8 @@ export default function NewBranchPage() {
   const [submitError, setSubmitError] = useState("");
   const [showUpgradeCta, setShowUpgradeCta] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [createdBranch, setCreatedBranch] = useState<CreatedBranch | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [touchedDays, setTouchedDays] = useState<Record<OperatingDay, boolean>>({
     MONDAY: false,
@@ -112,11 +137,9 @@ export default function NewBranchPage() {
     SUNDAY: false,
   });
 
-  useEffect(() => {
-    if (createBranch.isSuccess) {
-      router.push("/workspace/branches");
-    }
-  }, [createBranch.isSuccess, router]);
+  // Creation ends on a confirmation dialog, not a silent redirect — the user
+  // has just started a billing relationship for this location and needs to see
+  // its terms before leaving the page.
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
@@ -185,7 +208,8 @@ export default function NewBranchPage() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  /** Validate, then ask for explicit confirmation before creating anything. */
+  function handleReview(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError("");
     setShowUpgradeCta(false);
@@ -213,6 +237,12 @@ export default function NewBranchPage() {
       return;
     }
 
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmCreate() {
+    setSubmitError("");
+
     try {
       const payload = {
         name: name.trim(),
@@ -232,17 +262,29 @@ export default function NewBranchPage() {
         ...(longitude ? { longitude: parseFloat(longitude) } : {}),
       };
 
-      await createBranch.mutateAsync(payload);
+      const branch = await createBranch.mutateAsync(payload);
+      setConfirmOpen(false);
+      setCreatedBranch(branch);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("workspace.branches.new.createFailed");
       const isBranchLimitError =
         message.toLowerCase().includes("maximum of") &&
         message.toLowerCase().includes("branch");
 
+      setConfirmOpen(false);
       setSubmitError(message);
       if (isBranchLimitError) setShowUpgradeCta(true);
     }
   }
+
+  const createdTrial = createdBranch?.trial ?? null;
+  const createdTrialEnds = createdTrial?.trial_ends_at
+    ? new Date(createdTrial.trial_ends_at).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   return (
     <WorkspaceShell
@@ -251,15 +293,32 @@ export default function NewBranchPage() {
       description={t("workspace.branches.new.description")}
       insight=""
     >
+      {/* What this branch costs — stated before any commitment, not after. */}
       <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-gold/20 bg-brand-gold/5 px-4 py-3.5">
         <Sparks className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold" />
         <div>
           <p className="text-[13px] font-semibold text-text-primary">
-            {t("workspace.branches.new.trialNoticeTitle")}
+            {t("workspace.branches.new.trialNoticeTitleDays", {
+              count: trialDays,
+              plan: trialPlan?.name ?? "Intelligence",
+            })}
           </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+          <p className="mt-1 text-[12px] leading-relaxed text-text-secondary">
             {t("workspace.branches.new.trialNoticeDescription")}
           </p>
+          <ul className="mt-2 space-y-1 text-[12px] text-text-muted">
+            <li>• {t("workspace.branches.new.trialPointNoCard")}</li>
+            <li>
+              •{" "}
+              {priceAfterTrial
+                ? t("workspace.branches.new.trialPointPrice", {
+                    price: priceAfterTrial,
+                    plan: trialPlan?.name ?? "Intelligence",
+                  })
+                : t("workspace.branches.new.trialPointPriceUnknown")}
+            </li>
+            <li>• {t("workspace.branches.new.trialPointPerBranch")}</li>
+          </ul>
         </div>
       </div>
 
@@ -270,14 +329,14 @@ export default function NewBranchPage() {
       )}
 
       {!isOrgsLoading && orgsError && (
-        <div className="mb-6 rounded-xl border border-status-critical/20 bg-status-critical/8 px-4 py-3">
-          <p className="text-xs text-status-critical">
+        <div className="mb-6 border-l-4 border-status-critical bg-surface-2 px-4 py-3">
+          <p className="text-xs text-text-primary">
             {orgsError instanceof Error ? orgsError.message : t("workspace.branches.new.loadOrgsFailed")}
           </p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+      <form onSubmit={handleReview} className="max-w-3xl space-y-6">
         {/* ── Core details ── */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div className="space-y-1.5">
@@ -293,7 +352,7 @@ export default function NewBranchPage() {
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("name") && errors.name ? (
-              <p className="text-xs text-status-critical">{errors.name}</p>
+              <p className="border-l-2 border-status-critical pl-2 text-xs text-text-primary">{errors.name}</p>
             ) : null}
           </div>
 
@@ -323,7 +382,7 @@ export default function NewBranchPage() {
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("address") && errors.address ? (
-              <p className="text-xs text-status-critical">{errors.address}</p>
+              <p className="border-l-2 border-status-critical pl-2 text-xs text-text-primary">{errors.address}</p>
             ) : null}
           </div>
 
@@ -364,7 +423,7 @@ export default function NewBranchPage() {
               className="h-11 w-full rounded-[8px] border border-surface-4 bg-surface-2 px-4 text-sm text-text-primary placeholder-text-muted/50 transition-colors focus:border-brand-gold focus:outline-none"
             />
             {shouldShowFieldError("email") && errors.email ? (
-              <p className="text-xs text-status-critical">{errors.email}</p>
+              <p className="border-l-2 border-status-critical pl-2 text-xs text-text-primary">{errors.email}</p>
             ) : null}
           </div>
 
@@ -489,13 +548,13 @@ export default function NewBranchPage() {
                   </div>
 
                   <div className="flex items-center justify-start md:justify-end">
-                    <span className={`text-xs ${day.isOpen ? "text-status-success" : "text-text-muted"}`}>
+                    <span className={`text-xs ${day.isOpen ? "text-text-secondary" : "text-text-muted"}`}>
                       {day.isOpen ? t("workspace.branches.new.open") : t("workspace.branches.new.closed")}
                     </span>
                   </div>
 
                   {shouldShowDayError(day.day) && dayError ? (
-                    <p className="text-xs text-status-critical md:col-span-4">{dayError}</p>
+                    <p className="border-l-2 border-status-critical pl-2 text-xs text-text-primary md:col-span-4">{dayError}</p>
                   ) : null}
                 </div>
               );
@@ -503,14 +562,14 @@ export default function NewBranchPage() {
           </div>
 
           {shouldShowFieldError("operating_hours") && errors.operating_hours ? (
-            <p className="text-xs text-status-critical">{errors.operating_hours}</p>
+            <p className="border-l-2 border-status-critical pl-2 text-xs text-text-primary">{errors.operating_hours}</p>
           ) : null}
         </section>
 
         {/* ── Errors ── */}
         {submitError && (
-          <div className="rounded-xl border border-status-critical/20 bg-status-critical/8 px-4 py-3">
-            <p className="text-xs text-status-critical">{submitError}</p>
+          <div className="border-l-4 border-status-critical bg-surface-2 px-4 py-3">
+            <p className="text-xs text-text-primary">{submitError}</p>
             {showUpgradeCta ? (
               <Link
                 href="/workspace/billing"
@@ -535,7 +594,7 @@ export default function NewBranchPage() {
           <button
             type="submit"
             disabled={createBranch.isPending || isOrgsLoading || !!orgsError || !orgId}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-gold px-6 text-sm font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-gold px-6 text-sm font-semibold text-background transition-all hover:bg-brand-gold-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createBranch.isPending ? (
               <>
@@ -544,19 +603,170 @@ export default function NewBranchPage() {
               </>
             ) : (
               <>
-                {t("workspace.branches.new.submit")}
+                {t("workspace.branches.new.reviewSubmit")}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
           </button>
           <Link
             href="/workspace/branches"
-            className="inline-flex h-11 items-center rounded-full border border-surface-4 px-5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+            className="inline-flex h-11 items-center rounded-full border border-surface-4 px-6 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
             {t("common.cancel")}
           </Link>
         </div>
       </form>
+
+      {/* ── Step 1: confirm what creating this branch commits to ── */}
+      <ModalShell
+        open={confirmOpen}
+        title={t("workspace.branches.new.confirm.title")}
+        description={t("workspace.branches.new.confirm.description")}
+        onClose={() => {
+          if (!createBranch.isPending) setConfirmOpen(false);
+        }}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              disabled={createBranch.isPending}
+              className="inline-flex h-10 items-center rounded-full border border-surface-4 px-6 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {t("workspace.branches.new.confirm.back")}
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCreate}
+              disabled={createBranch.isPending}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-6 text-sm font-semibold text-background transition-colors hover:bg-brand-gold-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {createBranch.isPending ? (
+                <>
+                  <Spinner size="sm" color="#141416" />
+                  {t("workspace.branches.new.creating")}
+                </>
+              ) : (
+                t("workspace.branches.new.confirm.create")
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <dl className="space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                {t("workspace.branches.new.branchNameLabel")}
+              </dt>
+              <dd className="text-sm font-semibold text-text-primary">{name.trim()}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                {t("workspace.branches.new.addressLabel")}
+              </dt>
+              <dd className="max-w-[60%] text-right text-sm text-text-secondary">
+                {address.trim()}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                {t("workspace.branches.new.timezoneLabel")}
+              </dt>
+              <dd className="text-sm text-text-secondary">
+                {timezone} · {currency}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-xs uppercase tracking-[0.14em] text-text-muted">
+                {t("workspace.branches.new.confirm.openDays")}
+              </dt>
+              <dd className="text-sm text-text-secondary">
+                {schedule.filter((day) => day.isOpen).length}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="border-l-4 border-brand-gold bg-surface-3/40 px-4 py-3">
+            <p className="text-sm font-semibold text-text-primary">
+              {t("workspace.branches.new.confirm.billingTitle", {
+                count: trialDays,
+                plan: trialPlan?.name ?? "Intelligence",
+              })}
+            </p>
+            <p className="mt-1 text-sm text-text-secondary">
+              {priceAfterTrial
+                ? t("workspace.branches.new.confirm.billingBody", {
+                    price: priceAfterTrial,
+                  })
+                : t("workspace.branches.new.confirm.billingBodyUnknown")}
+            </p>
+          </div>
+        </div>
+      </ModalShell>
+
+      {/* ── Step 2: what was actually created, with its real trial end date ── */}
+      <ModalShell
+        open={Boolean(createdBranch)}
+        title={t("workspace.branches.new.created.title", {
+          name: createdBranch?.name ?? "",
+        })}
+        description={t("workspace.branches.new.created.description")}
+        onClose={() => router.push("/workspace/branches")}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => router.push("/workspace/branches")}
+              className="inline-flex h-10 items-center rounded-full border border-surface-4 px-6 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {t("workspace.branches.new.created.allBranches")}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/workspace/branches/${createdBranch?.id ?? ""}`)
+              }
+              className="inline-flex h-10 items-center rounded-full bg-brand-gold px-6 text-sm font-semibold text-background transition-colors hover:bg-brand-gold-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {t("workspace.branches.new.created.openBranch")}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 border-l-4 border-status-success bg-surface-3/40 px-4 py-3">
+            <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-success" />
+            <div>
+              <p className="text-sm font-semibold text-text-primary">
+                {createdTrial?.is_trial
+                  ? t("workspace.branches.new.created.trialTitle", {
+                      plan: createdTrial.plan_name,
+                    })
+                  : t("workspace.branches.new.created.noTrialTitle")}
+              </p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {createdTrialEnds
+                  ? t("workspace.branches.new.created.trialBody", {
+                      date: createdTrialEnds,
+                    })
+                  : t("workspace.branches.new.created.trialBodyUnknown")}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("workspace.branches.new.created.nextSteps")}
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-text-secondary">
+              <li>• {t("workspace.branches.new.created.stepConnect")}</li>
+              <li>• {t("workspace.branches.new.created.stepStaff")}</li>
+              <li>• {t("workspace.branches.new.created.stepPlan")}</li>
+            </ul>
+          </div>
+        </div>
+      </ModalShell>
     </WorkspaceShell>
   );
 }

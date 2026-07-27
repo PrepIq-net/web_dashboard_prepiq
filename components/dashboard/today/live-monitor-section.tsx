@@ -458,6 +458,18 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
     [criticalRows, watchRows, okRows],
   );
 
+  // Without operating hours the backend cannot say how much service is left,
+  // so it withholds every prepare-more / hold call rather than guessing. Say
+  // so once at the top instead of leaving the kitchen wondering why the
+  // guidance went quiet.
+  const operatingHoursMissing = useMemo(
+    () =>
+      orderedRows.some(
+        ({ row }) => row.monitor?.risk_engine?.operating_hours_known === false,
+      ),
+    [orderedRows],
+  );
+
   return (
     <section className="mt-8">
       {/* Live header */}
@@ -494,6 +506,25 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
         )}
       </div>
       <LivePaceBanner pace={paceSummary} />
+
+      {operatingHoursMissing ? (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-warning/35 bg-status-warning/10 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-warning">
+              {t("today.live.hoursMissingTitle")}
+            </p>
+            <p className="mt-1 text-sm text-text-primary">
+              {t("today.live.hoursMissingDescription")}
+            </p>
+          </div>
+          <Link
+            href={`/workspace/branches/${branchId}/edit`}
+            className="shrink-0 text-xs font-semibold text-status-warning hover:text-status-warning/80"
+          >
+            {t("today.live.hoursMissingAction")}
+          </Link>
+        </div>
+      ) : null}
 
       {showCsvImportBanner ? (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">

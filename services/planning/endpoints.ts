@@ -29,6 +29,8 @@ export const planningEndpoints = {
 
   delete: (eventId: string) => `${BASE}/${eventId}/`,
 
+  confirm: (eventId: string) => `${BASE}/${eventId}/confirm/`,
+
   calendarView: (params: CalendarViewParams) =>
     `${BASE}/calendar/${buildQuery({
       start: params.start,

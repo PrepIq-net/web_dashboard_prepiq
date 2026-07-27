@@ -45,6 +45,8 @@ import {
   useUpsertBranchAssignment,
   useRemoveBranchAssignment,
 } from "@/services/branches/hooks";
+import type { UpdateBranchPayload } from "@/services/branches/types";
+import { BranchForm } from "@/components/branches/branch-form";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
   useIntegrationsOverview,
@@ -1314,7 +1316,6 @@ function BranchSettings({
   const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
   const [branchReasonChoice, setBranchReasonChoice] =
     useState("LOCATION_CLOSED");
-  const [formData, setFormData] = useState<any>(null);
 
   const isLastBranch = (branches?.length ?? 0) <= 1;
 
@@ -1341,35 +1342,12 @@ function BranchSettings({
     setSelectedBranchId(target);
   }, [branches, focusedBranchId, selectedBranchId]);
 
-  // Sync form data when branch details are loaded
-  useEffect(() => {
-    if (branch) {
-      setFormData({
-        name: branch.name || "",
-        address: branch.address || "",
-        timezone: branch.timezone || "UTC",
-        capacity: branch.capacity || 0,
-        average_prep_time_minutes: branch.average_prep_time_minutes || 15,
-        service_start_time: branch.service_start_time || "",
-        service_end_time: branch.service_end_time || "",
-        seasonality_profile: branch.seasonality_profile || "",
-        min_stock_buffer: branch.min_stock_buffer || 10,
-        waste_threshold: branch.waste_threshold || 0.05,
-        reorder_buffer: branch.reorder_buffer || 5,
-      });
-    }
-  }, [branch]);
-
-  const handleSave = () => {
-    updateBranch.mutate(formData, {
+  const handleSave = (payload: UpdateBranchPayload) => {
+    updateBranch.mutate(payload, {
       onSuccess: () => {
         toast.success(t("settings.branch.updated"));
       },
     });
-  };
-
-  const handleChange = (key: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
   };
 
   if (loadingBranches) {
@@ -1406,15 +1384,14 @@ function BranchSettings({
               placeholder={t("settings.branch.selectBranchPlaceholder")}
             />
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={updateBranch.isPending || !selectedBranchId}
-            className="font-semibold px-6"
-          >
-            {updateBranch.isPending
-              ? t("settings.branch.saving")
-              : t("settings.branch.saveChanges")}
-          </Button>
+          {selectedBranchId ? (
+            <Link
+              href={`/workspace/branches/${selectedBranchId}`}
+              className="inline-flex h-12 items-center rounded-button border border-border-default px-4 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {t("settings.branch.viewBranch")}
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -1439,177 +1416,17 @@ function BranchSettings({
             {t("settings.branch.noBranchSelected")}
           </p>
         </div>
-      ) : loadingBranch || !formData ? (
+      ) : loadingBranch || !branch ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
         </div>
       ) : (
         <div className="space-y-10">
-          {/* General */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <Shop className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.general")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.branchName")}
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-              />
-              <Input
-                label={t("settings.branch.address")}
-                value={formData.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-              />
-              <Select
-                label={t("settings.branch.timezone")}
-                value={formData.timezone}
-                onChange={(val: string) => handleChange("timezone", val)}
-                options={[
-                  {
-                    label: t("settings.organization.timezoneOptions.utc"),
-                    value: "UTC",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.eastern"),
-                    value: "America/New_York",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.pacific"),
-                    value: "America/Los_Angeles",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.london"),
-                    value: "Europe/London",
-                  },
-                  {
-                    label: t(
-                      "settings.organization.timezoneOptions.eastAfrica",
-                    ),
-                    value: "Africa/Nairobi",
-                  },
-                ]}
-              />
-            </div>
-          </section>
-
-          {/* Kitchen Configuration */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <Brain className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.kitchenConfiguration")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.kitchenCapacity")}
-                type="number"
-                value={formData.capacity}
-                onChange={(e) =>
-                  handleChange("capacity", parseInt(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.avgPrepTime")}
-                type="number"
-                value={formData.average_prep_time_minutes}
-                onChange={(e) =>
-                  handleChange(
-                    "average_prep_time_minutes",
-                    parseInt(e.target.value),
-                  )
-                }
-              />
-              <Input
-                label={t("settings.branch.serviceStartTime")}
-                type="time"
-                value={formData.service_start_time}
-                onChange={(e) =>
-                  handleChange("service_start_time", e.target.value)
-                }
-              />
-              <Input
-                label={t("settings.branch.serviceEndTime")}
-                type="time"
-                value={formData.service_end_time}
-                onChange={(e) =>
-                  handleChange("service_end_time", e.target.value)
-                }
-              />
-            </div>
-          </section>
-
-          {/* Demand Context */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <CloudSync className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.demandContext")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.seasonalityProfile")}
-                value={formData.seasonality_profile}
-                onChange={(e) =>
-                  handleChange("seasonality_profile", e.target.value)
-                }
-                placeholder={t("settings.branch.seasonalityPlaceholder")}
-              />
-              <div className="p-4 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E] flex items-start gap-3">
-                <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
-                <p className="text-xs text-text-muted leading-relaxed">
-                  {t("settings.branch.demandContextBefore")}
-                  <span className="text-brand-gold font-medium">
-                    {" "}
-                    {t("settings.branch.intelligenceEngine")}
-                  </span>{" "}
-                  {t("settings.branch.demandContextAfter")}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Inventory Rules */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <ShieldCheck className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.inventoryRules")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input
-                label={t("settings.branch.minStockBuffer")}
-                type="number"
-                value={formData.min_stock_buffer}
-                onChange={(e) =>
-                  handleChange("min_stock_buffer", parseInt(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.wasteThreshold")}
-                type="number"
-                step="0.01"
-                value={formData.waste_threshold}
-                onChange={(e) =>
-                  handleChange("waste_threshold", parseFloat(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.reorderBuffer")}
-                type="number"
-                value={formData.reorder_buffer}
-                onChange={(e) =>
-                  handleChange("reorder_buffer", parseInt(e.target.value))
-                }
-              />
-            </div>
-          </section>
+          <BranchForm
+            branch={branch}
+            isSaving={updateBranch.isPending}
+            onSubmit={handleSave}
+          />
 
           {/* Danger zone — delete this branch */}
           <section className="space-y-4">

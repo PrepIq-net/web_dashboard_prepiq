@@ -3,6 +3,7 @@ import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { branchEndpoints } from "./endpoints";
 import {
   branchSchema,
+  createdBranchSchema,
   departmentSchema,
   staffInviteSchema,
   staffRoleEnum,
@@ -62,7 +63,7 @@ export async function createBranch(
   orgId: string,
   payload: CreateBranchPayload,
 ) {
-  return apiClientWithSchema(branchEndpoints.list(orgId), branchSchema, {
+  return apiClientWithSchema(branchEndpoints.list(orgId), createdBranchSchema, {
     method: "POST",
     body: { ...payload, organization: orgId },
   });

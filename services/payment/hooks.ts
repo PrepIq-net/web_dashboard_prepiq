@@ -114,10 +114,11 @@ export function useFxRates() {
   });
 }
 
-export function useSubscriptions(params?: SubscriptionQuery) {
+export function useSubscriptions(params?: SubscriptionQuery, enabled = true) {
   return useQuery({
     queryKey: paymentQueryKeys.subscriptions(params),
     queryFn: () => listSubscriptions(params),
+    enabled,
   });
 }
 

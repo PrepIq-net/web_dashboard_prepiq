@@ -25,6 +25,13 @@ export type EventType = z.infer<typeof eventTypeEnum>;
 export const eventStatusEnum = z.enum(["ACTIVE", "CANCELLED", "COMPLETED", "DRAFT"]);
 export type EventStatus = z.infer<typeof eventStatusEnum>;
 
+export const eventSourceEnum = z.enum(["MANUAL", "AI_DISCOVERED"]);
+export type EventSource = z.infer<typeof eventSourceEnum>;
+
+// PENDING events are visible on the calendar but do not move the forecast.
+export const confirmationStatusEnum = z.enum(["PENDING", "CONFIRMED", "DISMISSED"]);
+export type ConfirmationStatus = z.infer<typeof confirmationStatusEnum>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-model schemas (read-only — returned in detail view)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,6 +122,14 @@ export const calendarEventListSchema = z.object({
   branch_name: z.string().nullable().optional(),
   is_forecast_signal: z.boolean(),
   expected_demand_impact: z.number().nullable().optional(),
+  source: eventSourceEnum.default("MANUAL"),
+  confirmation_status: confirmationStatusEnum.default("CONFIRMED"),
+  confirmed_at: z.string().nullable().optional(),
+  // Plain-language explanation of why PrepIQ thinks this affects demand.
+  ai_reason: z.string().nullable().optional(),
+  // Confidence in the *magnitude*, learned from realized residuals at this
+  // branch. 0 means "no track record yet" — not "probably wrong".
+  ai_confidence: z.number().nullable().optional(),
   created_at: z.string(),
 });
 export type CalendarEventList = z.infer<typeof calendarEventListSchema>;
@@ -190,6 +205,25 @@ export const automaticSignalSchema = z.object({
 });
 export type AutomaticSignal = z.infer<typeof automaticSignalSchema>;
 
+// The forecast-context endpoint returns its own summary shape, NOT the list
+// shape: no status / is_forecast_signal / created_at, plus AI provenance.
+// Declaring it as calendarEventListSchema made the whole response fail to
+// parse on any day that actually had an event.
+export const forecastContextEventSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  event_type: eventTypeEnum,
+  start_datetime: z.string(),
+  end_datetime: z.string(),
+  expected_demand_impact: z.number().nullable().optional(),
+  source: eventSourceEnum.default("MANUAL"),
+  confirmation_status: confirmationStatusEnum.default("CONFIRMED"),
+  counted_in_forecast: z.boolean().default(true),
+  ai_reason: z.string().nullable().optional(),
+  ai_confidence: z.number().nullable().optional(),
+});
+export type ForecastContextEvent = z.infer<typeof forecastContextEventSchema>;
+
 export const forecastContextSchema = z.object({
   // Signals PrepIQ auto-detected (weather/sports/religious/payday) + learned
   // profile. Present when a signal snapshot exists for the day.
@@ -212,7 +246,10 @@ export const forecastContextSchema = z.object({
   delivery_supplier: z.string().nullable().optional(),
   composite_demand_impact: z.number(),
   total_events: z.number(),
-  events: z.array(calendarEventListSchema),
+  // Events waiting on a manager. Counted separately because they are
+  // deliberately NOT inside composite_demand_impact.
+  pending_ai_event_count: z.number().default(0),
+  events: z.array(forecastContextEventSchema),
 });
 export type ForecastContext = z.infer<typeof forecastContextSchema>;
 

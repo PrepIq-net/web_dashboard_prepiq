@@ -56,14 +56,23 @@ export function useBranch(orgId: string, branchId: string) {
   });
 }
 
-export function useCreateBranch(orgId: string) {
+/**
+ * `silent` suppresses the success toast for callers that confirm creation with
+ * their own UI — a toast on top of a "here's the trial you just started" dialog
+ * is two notices for one event.
+ */
+export function useCreateBranch(orgId: string, options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
+  const silent = options?.silent ?? false;
   return useMutation({
     mutationFn: (payload: CreateBranchPayload) =>
       branchService.createBranch(orgId, payload),
     onSuccess: (branch) => {
       queryClient.invalidateQueries({ queryKey: branchKeys.branches(orgId) });
-      toast.success(`Branch "${branch.name}" created.`);
+      // A new branch gets its own trial subscription, so any cached
+      // subscription list is stale the moment this resolves.
+      queryClient.invalidateQueries({ queryKey: ["payment", "subscriptions"] });
+      if (!silent) toast.success(`Branch "${branch.name}" created.`);
     },
     onError: (error: any) => {
       const message = error?.message || "Failed to create branch.";

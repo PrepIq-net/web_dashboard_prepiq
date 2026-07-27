@@ -35,6 +35,8 @@ export const subscriptionPlanSchema = z
     features: z.array(z.unknown()).optional(),
     capabilities: z.array(capabilitySchema).optional(),
     is_popular: z.boolean().optional(),
+    /** Free-trial length applied when a branch is auto-enrolled on this plan. */
+    trial_days: z.number().optional(),
     plan_limits: planLimitSchema.optional(),
     pricing_model: z.string().optional(),
     pricing_model_details: z.unknown().optional(),
@@ -104,6 +106,8 @@ export const subscriptionListSchema = z
     add_ons: z.array(subscriptionAddOnSchema).optional(),
     is_currently_active: z.boolean().optional(),
     days_until_renewal: z.number().nullable().optional(),
+    is_trial: z.boolean().optional(),
+    trial_ends_at: z.string().nullable().optional(),
     created_at: z.string().optional(),
   })
   .passthrough();
