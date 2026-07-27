@@ -9,6 +9,8 @@ export const paymentEndpoints = {
   subscriptionDetail: (subscriptionId: string) =>
     `${BASE}/subscriptions/${subscriptionId}/`,
   subscriptionCurrent: () => `${BASE}/subscriptions/current/`,
+  subscriptionRequestActivation: () =>
+    `${BASE}/subscriptions/request-activation/`,
   subscriptionCancel: (subscriptionId: string) =>
     `${BASE}/subscriptions/${subscriptionId}/cancel/`,
   subscriptionActivate: (subscriptionId: string) =>

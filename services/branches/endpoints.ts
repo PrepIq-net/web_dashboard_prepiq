@@ -25,4 +25,7 @@ export const branchEndpoints = {
   staffAssignments: (orgId: string) => `${ORG(orgId)}/staff-assignments/`,
   removeStaff: (orgId: string, memberId: string) =>
     `${ORG(orgId)}/staff/${memberId}/remove/`,
+
+  // ── Per-branch role assignment (members already in the org) ───────────────
+  branchAssignments: (orgId: string) => `${ORG(orgId)}/branch-assignments/`,
 } as const;

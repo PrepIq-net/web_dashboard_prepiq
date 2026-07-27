@@ -1,6 +1,6 @@
+import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 
-// Only define local fonts with actual files
 export const satoshi = localFont({
   src: [
     {
@@ -19,7 +19,21 @@ export const satoshi = localFont({
   fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
 });
 
-// Export a dummy object for inter to maintain compatibility
-export const inter = {
+/**
+ * Body font.
+ *
+ * This was previously a stub — an object carrying only `variable`, with no font
+ * behind it — so `--font-inter-next` fell through to the `system-ui` default
+ * declared in globals.css and every piece of body copy in the dashboard rendered
+ * in the OS font rather than Inter. Headings were unaffected because Satoshi is
+ * a real local font.
+ *
+ * next/font downloads and self-hosts at build time, so there is no runtime
+ * request to Google and no layout shift.
+ */
+export const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-inter-next",
-};
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+});

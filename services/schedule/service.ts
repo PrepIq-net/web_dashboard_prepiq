@@ -3,13 +3,17 @@ import { scheduleEndpoints } from "./endpoints";
 import {
   availabilityWeekSchema,
   coverageResponseSchema,
+  employeeAvailabilitySchema,
   generateResponseSchema,
   historyResponseSchema,
+  myAvailabilityResponseSchema,
+  myContextSchema,
   scheduleWeekSchema,
   shiftMutationResponseSchema,
   weeklyScheduleSchema,
   type CreateShiftPayload,
   type ReviewAvailabilityPayload,
+  type SubmitAvailabilityPayload,
   type UpdateShiftPayload,
 } from "./types";
 
@@ -18,6 +22,32 @@ export async function getAvailabilityWeek(branchId: string, week: string) {
     scheduleEndpoints.availability(branchId, week),
     availabilityWeekSchema,
     { method: "GET" },
+  );
+}
+
+// ── Employee self-service ─────────────────────────────────────────────────
+
+export async function getMyContext() {
+  return apiClientWithSchema(scheduleEndpoints.myContext(), myContextSchema, {
+    method: "GET",
+  });
+}
+
+export async function getMyAvailability(branchId: string, week: string) {
+  return apiClientWithSchema(
+    scheduleEndpoints.myAvailability(branchId, week),
+    myAvailabilityResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function submitAvailability(payload: SubmitAvailabilityPayload) {
+  // branch_id rides in both the query (branch resolution) and the body (the
+  // submit serializer requires it) — mirror mobile and send the whole payload.
+  return apiClientWithSchema(
+    scheduleEndpoints.submitAvailability(payload.branch_id),
+    employeeAvailabilitySchema,
+    { method: "PUT", body: payload },
   );
 }
 

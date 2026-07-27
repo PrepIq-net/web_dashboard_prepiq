@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "iconoir-react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { formatMoney } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import type {
   ExecutiveControlTowerSnapshot,
   OwnerMarginProtectionReport,
@@ -62,11 +63,11 @@ type BarItem = {
 function HorizontalBars({
   items,
   formatVal,
-  emptyText = "No data",
+  emptyText,
 }: {
   items: BarItem[];
   formatVal: (item: BarItem) => string;
-  emptyText?: string;
+  emptyText: string;
 }) {
   const max = Math.max(...items.map((d) => d.value), 1);
   if (items.length === 0) {
@@ -117,6 +118,7 @@ export function KpiDetailModals({
   alerts: AlertEntry[];
   highAlerts: AlertEntry[];
 }) {
+  const { t } = useTranslation();
   const branchGrid = tower?.branch_grid ?? [];
   // Branch money is local-currency; org totals arrive in the summary currency
   // (the shared local currency, or USD when the fleet mixes currencies). Bars
@@ -143,39 +145,41 @@ export function KpiDetailModals({
       <ModalShell
         open={openModal === "revenue"}
         onClose={onClose}
-        title="Revenue"
-        description="Today's revenue across all connected branches"
+        title={t("dashboard.home.kpiModal.revenueTitle")}
+        description={t("dashboard.home.kpiModal.revenueDesc")}
         maxWidthClassName="max-w-2xl"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
             <ModalStat
-              label="Today"
+              label={t("dashboard.home.kpiModal.statToday")}
               value={formatMoney(revenueToday, towerCurrency)}
               sub={
                 revenueDeltaPct !== null
-                  ? `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}% vs yesterday`
-                  : "No prior-day baseline"
+                  ? t("dashboard.home.orgHome.vsYesterday", {
+                      value: `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}`,
+                    })
+                  : t("dashboard.home.orgHome.noPriorBaseline")
               }
             />
             <ModalStat
-              label="Units sold"
+              label={t("dashboard.home.kpiModal.statUnitsSold")}
               value={(tower?.summary?.total_sold ?? 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
               })}
-              sub="across all branches"
+              sub={t("dashboard.home.kpiModal.acrossAllBranches")}
             />
             <ModalStat
-              label="Cost saved today"
+              label={t("dashboard.home.kpiModal.statCostSaved")}
               value={formatMoney(Number(tower?.summary?.cost_saved_today ?? 0), towerCurrency)}
-              sub="vs unoptimized baseline"
+              sub={t("dashboard.home.kpiModal.vsUnoptimized")}
             />
           </div>
 
           {branchGrid.some((b) => Number(b.revenue ?? 0) > 0) && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                Revenue by branch
+                {t("dashboard.home.kpiModal.revenueByBranch")}
               </p>
               <HorizontalBars
                 items={[...branchGrid]
@@ -190,31 +194,31 @@ export function KpiDetailModals({
                   }))
                   .sort((a, b) => b.value - a.value)}
                 formatVal={(item) => item.display ?? formatMoney(item.value, towerCurrency)}
-                emptyText="No revenue data available"
+                emptyText={t("dashboard.home.kpiModal.noRevenueData")}
               />
             </div>
           )}
 
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Prepared vs sold
+              {t("dashboard.home.kpiModal.preparedVsSold")}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <ModalStat
-                label="Total prepared"
+                label={t("dashboard.home.kpiModal.statTotalPrepared")}
                 value={(tower?.summary?.total_prepared ?? 0).toLocaleString(
                   undefined,
                   { maximumFractionDigits: 0 },
                 )}
-                sub="units across branches"
+                sub={t("dashboard.home.kpiModal.unitsAcrossBranches")}
               />
               <ModalStat
-                label="Predicted surplus"
+                label={t("dashboard.home.kpiModal.statPredictedSurplus")}
                 value={(tower?.summary?.predicted_surplus ?? 0).toLocaleString(
                   undefined,
                   { maximumFractionDigits: 0 },
                 )}
-                sub="units at end of service"
+                sub={t("dashboard.home.kpiModal.unitsAtEod")}
                 highlight={
                   Number(tower?.summary?.predicted_surplus ?? 0) > 0
                     ? "amber"
@@ -228,7 +232,7 @@ export function KpiDetailModals({
             href="/workspace/financial"
             className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
           >
-            View full financial report
+            {t("dashboard.home.kpiModal.viewFinancialReport")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -238,14 +242,22 @@ export function KpiDetailModals({
       <ModalShell
         open={openModal === "waste"}
         onClose={onClose}
-        title={canSeeFinancials ? "Waste Cost" : "Waste Risk"}
-        description="Item-level waste exposure across all branches today"
+        title={
+          canSeeFinancials
+            ? t("dashboard.home.kpiModal.wasteCostTitle")
+            : t("dashboard.home.kpiModal.wasteRiskTitle")
+        }
+        description={t("dashboard.home.kpiModal.wasteDesc")}
         maxWidthClassName="max-w-2xl"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
             <ModalStat
-              label={canSeeFinancials ? "Total waste cost" : "Waste risk %"}
+              label={
+                canSeeFinancials
+                  ? t("dashboard.home.kpiModal.statTotalWasteCost")
+                  : t("dashboard.home.kpiModal.statWasteRiskPct")
+              }
               value={
                 canSeeFinancials
                   ? formatMoney(wasteCost, marginCurrency)
@@ -253,17 +265,19 @@ export function KpiDetailModals({
               }
               sub={
                 canSeeFinancials
-                  ? `${wasteAsRevenuePct.toFixed(1)}% of revenue`
-                  : "items at risk"
+                  ? t("dashboard.home.orgHome.ofRevenue", {
+                      value: wasteAsRevenuePct.toFixed(1),
+                    })
+                  : t("dashboard.home.kpiModal.itemsAtRisk")
               }
               highlight={wasteIsBad ? "red" : undefined}
             />
             <ModalStat
-              label="Branches above 7%"
+              label={t("dashboard.home.kpiModal.branchesAbove7")}
               value={branchGrid
                 .filter((b) => Number(b.waste_pct ?? 0) >= 7)
                 .length.toString()}
-              sub="critical threshold"
+              sub={t("dashboard.home.kpiModal.criticalThreshold")}
               highlight={
                 branchGrid.some((b) => Number(b.waste_pct ?? 0) >= 7)
                   ? "red"
@@ -271,14 +285,14 @@ export function KpiDetailModals({
               }
             />
             <ModalStat
-              label="Branches 4–7%"
+              label={t("dashboard.home.kpiModal.branches47")}
               value={branchGrid
                 .filter((b) => {
                   const p = Number(b.waste_pct ?? 0);
                   return p >= 4 && p < 7;
                 })
                 .length.toString()}
-              sub="approaching threshold"
+              sub={t("dashboard.home.kpiModal.approachingThreshold")}
               highlight={
                 branchGrid.some((b) => {
                   const p = Number(b.waste_pct ?? 0);
@@ -293,18 +307,22 @@ export function KpiDetailModals({
           {marginReport?.summary?.margin_reliability?.is_reliable === false && (
             <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3">
               <p className="text-xs font-semibold text-text-primary">
-                Data reliability note
+                {t("dashboard.home.kpiModal.reliabilityTitle")}
               </p>
               <p className="text-xs text-text-muted mt-0.5">
                 {marginReport.summary.margin_reliability.warning ??
-                  `${marginReport.summary.margin_reliability.unreliable_items_count ?? "Some"} items have incomplete data — figures may be understated.`}
+                  t("dashboard.home.kpiModal.reliabilityFallback", {
+                    count:
+                      marginReport.summary.margin_reliability
+                        .unreliable_items_count ?? 0,
+                  })}
               </p>
             </div>
           )}
 
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Waste % by branch — sorted worst first
+              {t("dashboard.home.kpiModal.wastePctByBranch")}
             </p>
             <HorizontalBars
               items={[...branchGrid]
@@ -334,14 +352,14 @@ export function KpiDetailModals({
                   ? `${item.value.toFixed(1)}% · ${item.display}`
                   : `${item.value.toFixed(1)}%`
               }
-              emptyText="No waste data available"
+              emptyText={t("dashboard.home.kpiModal.noWasteData")}
             />
           </div>
 
           {canSeeFinancials && marginReport?.branches && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-                Waste cost by branch
+                {t("dashboard.home.kpiModal.wasteCostByBranch")}
               </p>
               <HorizontalBars
                 items={[...marginReport.branches]
@@ -359,7 +377,7 @@ export function KpiDetailModals({
                   }))
                   .sort((a, b) => b.value - a.value)}
                 formatVal={(item) => item.display ?? formatMoney(item.value, marginCurrency)}
-                emptyText="No cost data available"
+                emptyText={t("dashboard.home.kpiModal.noCostData")}
               />
             </div>
           )}
@@ -368,7 +386,7 @@ export function KpiDetailModals({
             href="/workspace/sales-waste"
             className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
           >
-            View waste details
+            {t("dashboard.home.kpiModal.viewWasteDetails")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -378,22 +396,22 @@ export function KpiDetailModals({
       <ModalShell
         open={openModal === "forecast"}
         onClose={onClose}
-        title="Forecast Accuracy"
-        description="How well AI-predicted demand matched actual sales"
+        title={t("dashboard.home.kpiModal.forecastTitle")}
+        description={t("dashboard.home.kpiModal.forecastDesc")}
         maxWidthClassName="max-w-2xl"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
             <ModalStat
-              label="7-day rolling"
+              label={t("dashboard.home.kpiModal.stat7day")}
               value={`${forecastAccuracyPct.toFixed(1)}%`}
-              sub="across all branches"
+              sub={t("dashboard.home.kpiModal.acrossAllBranches")}
               highlight={
                 forecastIsBad ? "red" : forecastIsWarning ? "amber" : undefined
               }
             />
             <ModalStat
-              label="Branches below 70%"
+              label={t("dashboard.home.kpiModal.branchesBelow70")}
               value={branchGrid
                 .filter(
                   (b) =>
@@ -402,7 +420,7 @@ export function KpiDetailModals({
                     Number(b.forecast_confidence) < 0.7,
                 )
                 .length.toString()}
-              sub="need attention"
+              sub={t("dashboard.home.kpiModal.needAttentionSub")}
               highlight={
                 branchGrid.some(
                   (b) =>
@@ -415,7 +433,7 @@ export function KpiDetailModals({
               }
             />
             <ModalStat
-              label="Active branches"
+              label={t("dashboard.home.kpiModal.activeBranches")}
               value={branchGrid
                 .filter(
                   (b) =>
@@ -423,13 +441,13 @@ export function KpiDetailModals({
                     b.forecast_confidence !== undefined,
                 )
                 .length.toString()}
-              sub="with forecast data"
+              sub={t("dashboard.home.kpiModal.withForecastData")}
             />
           </div>
 
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
-              Forecast confidence by branch — worst first
+              {t("dashboard.home.kpiModal.confidenceByBranch")}
             </p>
             <HorizontalBars
               items={[...branchGrid]
@@ -460,7 +478,9 @@ export function KpiDetailModals({
                           : "bg-chart-baseline",
                     display:
                       accuracy != null
-                        ? `${(accuracy * 100).toFixed(0)}% actual`
+                        ? t("dashboard.home.kpiModal.pctActual", {
+                            value: (accuracy * 100).toFixed(0),
+                          })
                         : undefined,
                   };
                 })}
@@ -469,19 +489,19 @@ export function KpiDetailModals({
                   ? `${item.value.toFixed(0)}% · ${item.display}`
                   : `${item.value.toFixed(0)}%`
               }
-              emptyText="No forecast data available"
+              emptyText={t("dashboard.home.kpiModal.noForecastData")}
             />
           </div>
 
           <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3.5 space-y-1">
             <p className="text-xs font-semibold text-text-primary">
-              What drives low confidence?
+              {t("dashboard.home.kpiModal.lowConfidenceTitle")}
             </p>
             <ul className="text-xs text-text-muted space-y-0.5 list-disc list-inside">
-              <li>Unmapped menu items not feeding the demand model</li>
-              <li>Irregular sales patterns in the last 7 days</li>
-              <li>POS sync gaps (missing sales data)</li>
-              <li>New items with fewer than 14 days of history</li>
+              <li>{t("dashboard.home.kpiModal.lowConfidence1")}</li>
+              <li>{t("dashboard.home.kpiModal.lowConfidence2")}</li>
+              <li>{t("dashboard.home.kpiModal.lowConfidence3")}</li>
+              <li>{t("dashboard.home.kpiModal.lowConfidence4")}</li>
             </ul>
           </div>
 
@@ -489,7 +509,7 @@ export function KpiDetailModals({
             href="/workspace/today"
             className="inline-flex items-center gap-1.5 text-sm text-brand-gold hover:underline"
           >
-            Review today's prep plan
+            {t("dashboard.home.kpiModal.reviewTodayPlan")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -499,19 +519,31 @@ export function KpiDetailModals({
       <ModalShell
         open={openModal === "alerts"}
         onClose={onClose}
-        title="Active Alerts"
+        title={t("dashboard.home.kpiModal.alertsTitle")}
         description={
           alerts.length > 0
-            ? `${alerts.length} alert${alerts.length !== 1 ? "s" : ""} across your network${highAlerts.length > 0 ? ` · ${highAlerts.length} urgent` : ""}`
-            : "No active alerts right now"
+            ? `${
+                alerts.length === 1
+                  ? t("dashboard.home.kpiModal.alertsCountOne")
+                  : t("dashboard.home.kpiModal.alertsCountMany", {
+                      count: alerts.length,
+                    })
+              }${
+                highAlerts.length > 0
+                  ? ` · ${t("dashboard.home.kpiModal.urgentSuffix", { count: highAlerts.length })}`
+                  : ""
+              }`
+            : t("dashboard.home.kpiModal.alertsDescNone")
         }
         maxWidthClassName="max-w-xl"
       >
         {alerts.length === 0 ? (
           <div className="py-10 text-center">
-            <p className="text-sm font-medium text-text-primary">All clear</p>
+            <p className="text-sm font-medium text-text-primary">
+              {t("dashboard.home.kpiModal.allClearTitle")}
+            </p>
             <p className="text-xs text-text-muted mt-1">
-              No alerts detected across your branches.
+              {t("dashboard.home.kpiModal.allClearSub")}
             </p>
           </div>
         ) : (
@@ -565,7 +597,7 @@ export function KpiDetailModals({
                       href={cta.href}
                       className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-brand-gold/30 hover:text-text-primary"
                     >
-                      {cta.label}
+                      {t(cta.labelKey)}
                       <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>

@@ -20,6 +20,17 @@ export const operatingHoursSchema = z.object({
 export type OperatingHours = z.infer<typeof operatingHoursSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sports demand context — only branches that show live sports react to a match,
+// so an empty profile means the sports signal is off for this branch.
+// ─────────────────────────────────────────────────────────────────────────────
+export const sportsProfileSchema = z.object({
+  teams: z.array(z.string()).optional(),
+  league_ids: z.array(z.string()).optional(),
+  big_match_keywords: z.array(z.string()).optional(),
+});
+export type SportsProfile = z.infer<typeof sportsProfileSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Branch (read — BranchSerializer)
 // ─────────────────────────────────────────────────────────────────────────────
 export const branchSchema = z.object({
@@ -29,6 +40,8 @@ export const branchSchema = z.object({
   name: z.string(),
   code: z.string(),
   address: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   location_display: z
     .object({ latitude: z.number(), longitude: z.number() })
     .nullable()
@@ -52,15 +65,44 @@ export const branchSchema = z.object({
 
   // Demand Context
   nearby_event_venues: z.array(z.string()).optional(),
+  nearby_event_radius_km: z.number().optional(),
   seasonality_profile: z.string().nullable().optional(),
   local_demand_patterns: z.record(z.string(), z.any()).optional(),
+  shows_live_sports: z.boolean().optional(),
+  sports_profile: sportsProfileSchema.optional(),
+  /** One-time OSM venue enrichment — read-only branch covariates for the model. */
+  location_context: z.record(z.string(), z.any()).optional(),
 
   // Inventory Rules
   min_stock_buffer: z.number().optional(),
   waste_threshold: z.number().optional(),
   reorder_buffer: z.number().optional(),
+
+  branch_manager: z.union([z.string(), z.number()]).nullable().optional(),
+  branch_manager_name: z.string().nullable().optional(),
 });
 export type Branch = z.infer<typeof branchSchema>;
+
+/**
+ * Returned only by POST /branches/ — the trial the branch was auto-enrolled in.
+ * Present so branch creation can state the plan, cost, and end date instead of
+ * leaving the user to guess whether they just started paying for something.
+ */
+export const branchTrialSchema = z.object({
+  subscription_id: z.string(),
+  plan_name: z.string(),
+  plan_type: z.string(),
+  is_trial: z.boolean(),
+  trial_ends_at: z.string().nullable().optional(),
+  price_after_trial: z.string().nullable().optional(),
+  billing_cycle: z.string().optional(),
+});
+export type BranchTrial = z.infer<typeof branchTrialSchema>;
+
+export const createdBranchSchema = branchSchema.extend({
+  trial: branchTrialSchema.nullable().optional(),
+});
+export type CreatedBranch = z.infer<typeof createdBranchSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CreateBranchPayload (write — CreateUpdateBranchSerializer)
@@ -90,13 +132,19 @@ export const createBranchPayloadSchema = z.object({
 
   // Demand Context
   nearby_event_venues: z.array(z.string()).optional(),
+  nearby_event_radius_km: z.number().int().min(1).max(200).optional(),
   seasonality_profile: z.string().nullable().optional(),
   local_demand_patterns: z.record(z.string(), z.any()).optional(),
+  shows_live_sports: z.boolean().optional(),
+  sports_profile: sportsProfileSchema.optional(),
 
   // Inventory Rules
   min_stock_buffer: z.number().optional(),
-  waste_threshold: z.number().optional(),
+  /** Rate, not a percentage — 0.05 means 5%. */
+  waste_threshold: z.number().min(0).max(1).optional(),
   reorder_buffer: z.number().optional(),
+
+  branch_manager: z.union([z.string(), z.number()]).nullable().optional(),
 });
 export type CreateBranchPayload = z.infer<typeof createBranchPayloadSchema>;
 export type UpdateBranchPayload = Partial<CreateBranchPayload>;
@@ -186,11 +234,14 @@ export type StaffInvite = z.infer<typeof staffInviteSchema>;
 /** POST /<org_id>/invites/ */
 export const createStaffInvitePayloadSchema = z.object({
   email: z.string().email("Valid email required"),
-  role: z.string(),
+  /** Legacy label. The backend derives it from custom_role_slug when omitted. */
+  role: z.string().optional(),
   /**
-   * Required when role is BRANCH_MANAGER or STAFF.
-   * Must NOT be provided for OWNER, ADMIN, AUDITOR.
+   * The RBAC role to grant: a system role slug or an org custom-role slug.
+   * Org-level roles (system-admin) must NOT carry a branch; every other role
+   * is branch-level and requires one.
    */
+  custom_role_slug: z.string().optional(),
   branch: z.string().uuid().optional(),
 });
 export type CreateStaffInvitePayload = z.infer<
@@ -240,6 +291,34 @@ export const staffAssignmentSchema = z.object({
 export type StaffAssignment = z.infer<typeof staffAssignmentSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BranchStaffAssignment — one person's role at one branch.
+// A user has one row per branch they work at, so the same person can be a
+// Manager at one location and hold a custom role at another.
+// ─────────────────────────────────────────────────────────────────────────────
+export const branchStaffAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  user: z.union([z.string(), z.number()]),
+  user_email: z.string().email(),
+  user_name: z.string(),
+  branch: z.string().uuid(),
+  branch_name: z.string(),
+  /** Falls back to the org-level role when no per-branch override is set. */
+  role_name: z.string().nullable().optional(),
+  role_slug: z.string().nullable().optional(),
+  is_primary_branch: z.boolean(),
+  is_active: z.boolean(),
+  assigned_at: z.string(),
+});
+export type BranchStaffAssignment = z.infer<typeof branchStaffAssignmentSchema>;
+
+export type UpsertBranchAssignmentPayload = {
+  user_id: string;
+  branch_id: string;
+  /** Omit to fall back to the member's org-level role. */
+  custom_role_slug?: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Invite validation — token look-up response (GET /invites/accept/?token=...)
 // ─────────────────────────────────────────────────────────────────────────────
 export const inviteValidationSchema = z.object({
@@ -253,8 +332,12 @@ export const inviteValidationSchema = z.object({
 export type InviteValidation = z.infer<typeof inviteValidationSchema>;
 
 export const staffInviteContextRoleSchema = z.object({
-  role: staffRoleEnum,
+  /** Real RBAC role slug (system role or org custom role), not a legacy label. */
+  role: z.string(),
+  slug: z.string(),
+  name: z.string(),
   label: z.string(),
+  is_system: z.boolean(),
   requires_branch: z.boolean(),
   capabilities: z.array(z.string()),
   permission_hints: z.array(z.string()),
@@ -276,23 +359,28 @@ export type StaffInviteContextBranch = z.infer<
 export const staffInviteContextSchema = z.object({
   inviter: z.object({
     user_id: z.string().uuid(),
-    role: z.string(),
+    // Null when the inviter has no custom_role assigned — see branches/views.py.
+    role: z.string().nullable(),
     has_global_staff_mgmt: z.boolean(),
     has_branch_staff_mgmt: z.boolean(),
     managed_branch_id: z.string().uuid().nullable().optional(),
   }),
   allowed_branches: z.array(staffInviteContextBranchSchema),
   roles: z.array(staffInviteContextRoleSchema),
+  /**
+   * Branches are unmetered and there is no org-wide staff cap — the only limit
+   * is per branch, from that branch's own plan (`per_branch[].max_staff`,
+   * null = unlimited).
+   */
   limits: z.object({
-    plan_name: z.string().nullable().optional(),
-    max_total_staff: z.number().nullable().optional(),
-    max_staff_per_branch: z.number().nullable().optional(),
     current_staff_total: z.number(),
     pending_invites_total: z.number(),
     per_branch: z.array(
       z.object({
         branch_id: z.string().uuid(),
         branch_name: z.string(),
+        plan_name: z.string().nullable().optional(),
+        max_staff: z.number().nullable().optional(),
         current_staff: z.number(),
         pending_invites: z.number(),
       }),

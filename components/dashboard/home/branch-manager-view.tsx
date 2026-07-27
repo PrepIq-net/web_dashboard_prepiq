@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { KpiCard } from "./kpi-card";
 import { useTranslation } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -23,6 +24,8 @@ interface BranchManagerViewProps {
   yesterdayPrepared: number;
   yesterdaySold: number;
   yesterdayWasteCost: number;
+  /** Charts, rendered directly below the KPI grid — kept as a slot so page.tsx owns the wiring. */
+  analyticsSlot?: ReactNode;
 }
 
 export function BranchManagerView({
@@ -43,6 +46,7 @@ export function BranchManagerView({
   yesterdayPrepared,
   yesterdaySold,
   yesterdayWasteCost,
+  analyticsSlot,
 }: BranchManagerViewProps) {
   const { t } = useTranslation();
   const salesStatus =
@@ -91,19 +95,21 @@ export function BranchManagerView({
       </div>
 
       {/* KPI Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <KpiCard
           label={t("dashboard.home.salesVsTarget")}
           value={`${salesVsTargetPct.toFixed(1)}%`}
           status={salesStatus}
           progress={salesVsTargetPct}
           progressColor={salesStatus}
+          compact
         />
         <KpiCard
           label={t("dashboard.home.wasteToday")}
           value={formatMoney(wasteTodayValue, branchCurrency)}
           subtext={`${wasteTodayPct.toFixed(1)}% ${t("dashboard.home.ofProduction")}`}
           status={wasteStatus}
+          compact
         />
         <KpiCard
           label={t("dashboard.home.productionVsPlan")}
@@ -111,14 +117,19 @@ export function BranchManagerView({
           status={prodStatus}
           progress={productionVsPlanPct}
           progressColor="gold"
+          compact
         />
         <KpiCard
           label={t("dashboard.home.inventoryRisk")}
           value={inventoryRiskCount}
           subtext={t("dashboard.home.itemsAtRisk")}
           status={invStatus}
+          compact
         />
       </section>
+
+      {/* ── Analytics — right below the KPI grid ─────────────────────────── */}
+      {analyticsSlot}
 
       {/* Inventory + Staff */}
       <section className="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-6">

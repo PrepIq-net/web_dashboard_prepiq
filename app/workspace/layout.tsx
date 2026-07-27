@@ -10,6 +10,7 @@ import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-
 import { SalesSourceRequiredState } from "@/components/dashboard/empty-states/sales-source-required-state";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
 import { TrialBanner, PaymentFailedBanner } from "@/components/dashboard/subscription-banners";
+import { ApiError } from "@/lib/api/errors";
 import { useBranches, useCurrentUserProfile } from "@/services";
 import { useCurrentSubscription } from "@/services/payment/hooks";
 import {
@@ -28,6 +29,11 @@ const SUBSCRIPTION_EXEMPT_PATHS = [
   "/workspace/support",
   "/workspace/settings",
   "/workspace/notifications",
+  // Talking to your colleagues is not a paid feature. An unpaid branch still
+  // needs its team able to coordinate — and it is where a blocked member asks
+  // whoever holds billing to sort the subscription out. @PrepIQ is gated
+  // separately, inside the Hub, since the assistant IS the paid product.
+  "/workspace/chat",
 ];
 
 // Pages that must render WITHOUT an org-level branch. These are either where you
@@ -59,25 +65,43 @@ export default function WorkspaceLayout({
   // Memoize user to prevent unnecessary re-renders of wrappers
   const memoizedUser = useMemo(() => user, [user?.id]);
 
-  // Layout-level gate checks the user's PRIMARY branch subscription (org-level health).
-  // Per-page gates (via useSubscriptionTier(branchId)) handle branch-specific checks.
-  const subscriptionQuery = useCurrentSubscription();
+  // Declared below activeBranchId — see the gate block.
 
-  const activeBranchId =
-    accessScopeQuery.data?.default_branch_id ??
-    branchesQuery.data?.find((branch) => branch.is_primary)?.id ??
-    branchesQuery.data?.[0]?.id ??
-    "";
+  // access-scope is the ONLY source that filters branches by what this member
+  // can actually reach. The old fallback reached into branchesQuery (every
+  // branch in the org) whenever access-scope hadn't resolved yet, so a member
+  // assigned to one branch got probed against the org's primary branch and the
+  // API correctly 403'd. Stay empty until access-scope answers, then fall back
+  // only within the branches it approved.
+  const accessibleBranches = accessScopeQuery.data?.accessible_branches;
+  const activeBranchId = accessScopeQuery.isLoading
+    ? ""
+    : (accessScopeQuery.data?.default_branch_id ??
+      accessibleBranches?.find((branch) => branch.is_primary)?.id ??
+      accessibleBranches?.[0]?.id ??
+      "");
 
   // ── Subscription gate ──────────────────────────────────────────────────────
+  // Scoped to the branch this member actually works in, not the org's primary
+  // branch: subscriptions are branch-scoped, so checking the wrong branch
+  // paywalls staff whose own branch is paid up.
+  const subscriptionQuery = useCurrentSubscription(
+    activeBranchId ? { branch_id: activeBranchId } : undefined,
+  );
+
   const isExemptPath = SUBSCRIPTION_EXEMPT_PATHS.some((p) =>
     pathname.startsWith(p),
   );
   const sub = subscriptionQuery.data;
-  const subLoaded = !subscriptionQuery.isLoading;
+  const subLoaded = !subscriptionQuery.isLoading && !accessScopeQuery.isLoading;
 
-  // "No subscription" = query finished with no data (404 or genuinely empty)
-  const hasNoSubscription = subLoaded && !sub;
+  // Only a 404 means "never subscribed". Any other error is the API failing to
+  // answer, and must not be rendered as a paywall — that is what turned a
+  // role-check 400 into "Start your 30-day free trial" for staff.
+  const subError = subscriptionQuery.error;
+  const subMissing = subError instanceof ApiError && subError.status === 404;
+  const hasNoSubscription = subLoaded && !sub && subMissing;
+
   // Expired/cancelled = data present but no longer active, and not a trial
   const isExpired =
     subLoaded && sub && !sub.is_currently_active && !sub.is_trial;
@@ -89,6 +113,16 @@ export default function WorkspaceLayout({
   // Payment past due but still accessible
   const isPastDue = sub?.status === "PAST_DUE";
   const daysLeft = sub?.days_until_renewal ?? null;
+
+  // Whether this viewer can do anything about a paywall. Carried on the 200 and
+  // on the 404 body alike, so the gate can be honest with staff either way.
+  const gatePayload = (sub ??
+    (subMissing ? (subError as ApiError).details : null)) as {
+    viewer_can_manage_billing?: boolean;
+    billing_contacts?: { id: string; name: string }[];
+  } | null;
+  const canManageBilling = Boolean(gatePayload?.viewer_can_manage_billing);
+  const billingContacts = gatePayload?.billing_contacts ?? [];
 
   const shouldBlockAccess =
     !isExemptPath && Boolean(hasNoSubscription || isExpired || isTrialExpired);
@@ -133,7 +167,13 @@ export default function WorkspaceLayout({
     </div>
   ) : shouldBlockAccess ? (
     <div className="mt-8">
-      <SubscriptionRequiredState variant={gateVariant} compact />
+      <SubscriptionRequiredState
+        variant={gateVariant}
+        canManageBilling={canManageBilling}
+        billingContacts={billingContacts}
+        branchId={activeBranchId || undefined}
+        compact
+      />
     </div>
   ) : shouldShowSalesSourceRequiredState ? (
     <div className="mt-8">

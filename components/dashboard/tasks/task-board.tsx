@@ -32,6 +32,11 @@ function BoardColumn({
   canDragTask,
   onOpen,
   onEdit,
+  onClaim,
+  onRelease,
+  canClaimTask,
+  canReleaseTask,
+  claimPending,
   highlightAi,
 }: {
   status: BoardStatus;
@@ -40,6 +45,11 @@ function BoardColumn({
   canDragTask: (task: KitchenTask) => boolean;
   onOpen?: (task: KitchenTask) => void;
   onEdit?: (task: KitchenTask) => void;
+  onClaim?: (task: KitchenTask) => void;
+  onRelease?: (task: KitchenTask) => void;
+  canClaimTask: (task: KitchenTask) => boolean;
+  canReleaseTask: (task: KitchenTask) => boolean;
+  claimPending?: boolean;
   highlightAi?: boolean;
 }) {
   const { t } = useTranslation();
@@ -71,6 +81,11 @@ function BoardColumn({
               draggable={canDrag && canDragTask(task)}
               onOpen={onOpen}
               onEdit={onEdit}
+              onClaim={onClaim}
+              onRelease={onRelease}
+              canClaim={canClaimTask(task)}
+              canRelease={canReleaseTask(task)}
+              claimPending={claimPending}
               highlightAi={highlightAi}
             />
           ))
@@ -92,6 +107,9 @@ export function TaskBoard({
   onMove,
   onOpen,
   onEdit,
+  onClaim,
+  onRelease,
+  claimPending,
   highlightAi,
 }: {
   board: TaskBoardData;
@@ -100,6 +118,9 @@ export function TaskBoard({
   onMove: (taskId: string, status: BoardStatus) => void;
   onOpen?: (task: KitchenTask) => void;
   onEdit?: (task: KitchenTask) => void;
+  onClaim?: (task: KitchenTask) => void;
+  onRelease?: (task: KitchenTask) => void;
+  claimPending?: boolean;
   highlightAi?: boolean;
 }) {
   const sensors = useSensors(
@@ -113,6 +134,13 @@ export function TaskBoard({
   // rule the API enforces, mirrored so a forbidden drag never starts.
   const canDragTask = (task: KitchenTask) =>
     canManage || (!!currentUserId && task.assigned_to?.id === currentUserId);
+
+  // Claim is a staff affordance for unassigned work; managers assign through
+  // the edit modal instead. Release only undoes a claim you made yourself.
+  const canClaimTask = (task: KitchenTask) =>
+    !canManage && !task.assigned_to;
+  const canReleaseTask = (task: KitchenTask) =>
+    !!task.self_assigned && !!currentUserId && task.assigned_to?.id === currentUserId;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const target = event.over?.id;
@@ -134,6 +162,11 @@ export function TaskBoard({
             canDragTask={canDragTask}
             onOpen={onOpen}
             onEdit={onEdit}
+            onClaim={onClaim}
+            onRelease={onRelease}
+            canClaimTask={canClaimTask}
+            canReleaseTask={canReleaseTask}
+            claimPending={claimPending}
             highlightAi={highlightAi}
           />
         ))}

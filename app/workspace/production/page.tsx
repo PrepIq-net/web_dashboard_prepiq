@@ -50,8 +50,10 @@ type LiveItem = {
   remaining: number;
   prepNowQty: number;
   runoutMinutes: number | null;
-  stockoutRisk: "LOW" | "MEDIUM" | "HIGH";
-  wasteRisk: "LOW" | "MEDIUM" | "HIGH";
+  // UNKNOWN = the branch has no operating hours set, so how much service is
+  // left is genuinely unknown and no risk claim can be made either way.
+  stockoutRisk: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
+  wasteRisk: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
   trendPct: number;
   alertLabel: string | null;
   startBatchNow: boolean;
@@ -100,7 +102,10 @@ function formatMinutes(value: number | null) {
 function riskRank(value: LiveItem["stockoutRisk"]) {
   if (value === "HIGH") return 0;
   if (value === "MEDIUM") return 1;
-  return 2;
+  // An item we cannot assess sorts above the ones we know are fine, so it
+  // stays visible instead of sinking to the bottom looking healthy.
+  if (value === "UNKNOWN") return 2;
+  return 3;
 }
 
 function getTrendLabel(value: number) {

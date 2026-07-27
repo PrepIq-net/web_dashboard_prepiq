@@ -18,10 +18,9 @@ import {
   useCheckoutPayment,
   useCurrentSubscription,
   useCurrentUserProfile,
-  useFxRates,
   useSubscriptionPlanPricing,
 } from "@/services";
-import { convertFromUsd, formatMoney, getCurrency } from "@/lib/currencies";
+import { formatMoney } from "@/lib/currencies";
 
 function toNum(v: unknown): number {
   if (typeof v === "number") return v;
@@ -30,14 +29,6 @@ function toNum(v: unknown): number {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
-}
-
-function fmtCurrency(v: number) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(v);
 }
 
 function asStrings(v: unknown): string[] {
@@ -104,14 +95,9 @@ export default function WorkspaceCheckoutPage() {
       : toNum(selectedPlan.yearly_price);
   }, [selectedPlan, cycleFromUrl]);
 
-  // Branches operate in a local currency; the subscription is priced in USD and
-  // charged in the branch currency. Show the branch-currency total so the page
-  // matches what the gateway will charge.
-  const fxQuery = useFxRates();
-  const branchCurrency = (selectedBranch?.currency ?? "USD").toUpperCase();
-  const localPrice = convertFromUsd(price, branchCurrency, fxQuery.data?.rates);
-  const isConverted = branchCurrency !== "USD";
-  const displayPrice = (v: number) => formatMoney(v, branchCurrency);
+  // Subscriptions are billed in USD only — the branch's operating currency
+  // never applies to billing, so there is no conversion to show.
+  const displayPrice = (v: number) => formatMoney(v, "USD");
 
   const features = asStrings(selectedPlan?.features);
 
@@ -321,7 +307,7 @@ export default function WorkspaceCheckoutPage() {
                     </p>
                   </div>
                   <p className="shrink-0 text-[14px] font-semibold text-text-primary">
-                    {displayPrice(localPrice)}
+                    {displayPrice(price)}
                   </p>
                 </div>
 
@@ -344,20 +330,15 @@ export default function WorkspaceCheckoutPage() {
                       {t("setup.checkout.totalDueToday")}
                     </p>
                     <p className="text-[28px] font-semibold text-text-primary leading-none">
-                      {displayPrice(localPrice)}
+                      {displayPrice(price)}
                     </p>
                   </div>
                   <p className="mt-1 text-[11px] text-text-muted text-right">
                     {t(cycleFromUrl === "MONTHLY" ? "setup.checkout.billedMonthly" : "setup.checkout.billedYearly")}
                   </p>
-                  {isConverted && (
-                    <p className="mt-1 text-[11px] text-text-muted text-right">
-                      {t("setup.checkout.convertedFromUsd", {
-                        amount: fmtCurrency(price),
-                        currency: getCurrency(branchCurrency).code,
-                      })}
-                    </p>
-                  )}
+                  <p className="mt-1 text-[11px] text-text-muted text-right">
+                    {t("setup.checkout.billedInUsd")}
+                  </p>
                 </div>
 
                 {/* Pay button */}
@@ -372,7 +353,7 @@ export default function WorkspaceCheckoutPage() {
                       {t("setup.checkout.processing")}
                     </span>
                   ) : (
-                    t("setup.checkout.pay", { amount: displayPrice(localPrice) })
+                    t("setup.checkout.pay", { amount: displayPrice(price) })
                   )}
                 </button>
 

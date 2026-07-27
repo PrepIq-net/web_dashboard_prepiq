@@ -94,6 +94,12 @@ import {
   type OperationsHistorySnapshot,
   itemHistorySchema,
   type ItemHistory,
+  dashboardSeriesSchema,
+  type DashboardSeries,
+  type DashboardSeriesQuery,
+  dashboardCapacityRiskSchema,
+  type DashboardCapacityRisk,
+  type DashboardCapacityRiskQuery,
 } from "@/services/production-intelligence/types";
 
 export type {
@@ -937,5 +943,27 @@ export async function importPOSCSV(
       method: "POST",
       body: buildPOSCSVFormData(payload, false),
     },
+  );
+}
+
+export type { DashboardSeriesQuery, DashboardCapacityRiskQuery };
+
+export async function getDashboardSeries(
+  params?: DashboardSeriesQuery,
+): Promise<DashboardSeries> {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.dashboardSeries(), params),
+    dashboardSeriesSchema,
+    { method: "GET" },
+  );
+}
+
+export async function getDashboardCapacityRisk(
+  params?: DashboardCapacityRiskQuery,
+): Promise<DashboardCapacityRisk> {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.dashboardCapacityRisk(), params),
+    dashboardCapacityRiskSchema,
+    { method: "GET" },
   );
 }

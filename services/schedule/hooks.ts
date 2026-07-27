@@ -4,6 +4,7 @@ import * as scheduleService from "./service";
 import type {
   CreateShiftPayload,
   ReviewAvailabilityPayload,
+  SubmitAvailabilityPayload,
   UpdateShiftPayload,
 } from "./types";
 
@@ -21,6 +22,9 @@ export const scheduleKeys = {
     [...scheduleKeys.all, "coverage", branchId, week] as const,
   history: (branchId: string, weeks: number) =>
     [...scheduleKeys.all, "history", branchId, weeks] as const,
+  myContext: () => [...scheduleKeys.all, "my-context"] as const,
+  myAvailability: (branchId: string, week: string) =>
+    [...scheduleKeys.all, "my-availability", branchId, week] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,6 +64,55 @@ export function useScheduleHistory(branchId?: string, weeks = 8, enabled = true)
     queryFn: () => scheduleService.getHistory(branchId!, weeks),
     enabled: enabled && !!branchId,
     staleTime: 60_000,
+  });
+}
+
+// ── Employee self-service (submit your own availability) ────────────────────
+
+/** The branches you're rostered at, their shift templates, and which weeks
+ * you've already submitted. One call powers the availability editor. */
+export function useMyContext(enabled = true) {
+  return useQuery({
+    queryKey: scheduleKeys.myContext(),
+    queryFn: () => scheduleService.getMyContext(),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+export function useMyAvailability(branchId?: string, week?: string) {
+  return useQuery({
+    queryKey: scheduleKeys.myAvailability(branchId ?? "", week ?? ""),
+    queryFn: () => scheduleService.getMyAvailability(branchId!, week!),
+    enabled: !!branchId && !!week,
+    staleTime: 30_000,
+  });
+}
+
+export function useSubmitAvailability() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SubmitAvailabilityPayload) =>
+      scheduleService.submitAvailability(payload),
+    onSuccess: (_data, variables) => {
+      // Submitting resets the week to PENDING; refresh both the editor's own
+      // week and the context chips, plus the manager review list for the week.
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.myAvailability(
+          variables.branch_id,
+          variables.week_start_date,
+        ),
+      });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.myContext() });
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.availability(
+          variables.branch_id,
+          variables.week_start_date,
+        ),
+      });
+      toast.success("Availability submitted.");
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 }
 

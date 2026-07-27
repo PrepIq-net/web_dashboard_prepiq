@@ -45,17 +45,27 @@ export function resolvePermissions(
 }
 
 /**
+ * Management-level permissions that make the Dashboard meaningful. Holding any
+ * one of them is enough.
+ *
+ * Exported so the nav registry filters the sidebar/palette entry on exactly the
+ * same rule the page itself enforces — otherwise the link shows for people who
+ * get bounced the moment they click it.
+ */
+export const DASHBOARD_ACCESS_PERMISSIONS: string[] = [
+  PERMISSIONS.VIEW_ANALYTICS,
+  PERMISSIONS.VIEW_FINANCIAL_DATA,
+  PERMISSIONS.MANAGE_BRANCHES,
+  PERMISSIONS.VIEW_ALL_BRANCHES,
+  PERMISSIONS.VIEW_PRODUCTION_REPORTS,
+  PERMISSIONS.MANAGE_TEAM,
+  PERMISSIONS.VIEW_COMPLIANCE,
+];
+
+/**
  * True if the user has enough management-level permissions to use the
  * Dashboard. Users without any of these belong on the Today page instead.
  */
 export function canAccessDashboard(perms: Set<string>): boolean {
-  return (
-    perms.has(PERMISSIONS.VIEW_ANALYTICS) ||
-    perms.has(PERMISSIONS.VIEW_FINANCIAL_DATA) ||
-    perms.has(PERMISSIONS.MANAGE_BRANCHES) ||
-    perms.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
-    perms.has(PERMISSIONS.VIEW_PRODUCTION_REPORTS) ||
-    perms.has(PERMISSIONS.MANAGE_TEAM) ||
-    perms.has(PERMISSIONS.VIEW_COMPLIANCE)
-  );
+  return DASHBOARD_ACCESS_PERMISSIONS.some((perm) => perms.has(perm));
 }

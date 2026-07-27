@@ -147,13 +147,23 @@ export const prepPlanItemSchema = z.object({
         .object({
           remaining_stock: z.number(),
           avg_demand_last_hour: z.number(),
-          hours_until_closing: z.number(),
-          forecast_demand_remaining: z.number(),
+          // Null when the branch has no operating hours configured. The
+          // backend refuses to invent a runway, so the UI must handle "we
+          // don't know when they close" rather than rendering a 0.
+          hours_until_closing: z.number().nullable(),
+          forecast_demand_remaining: z.number().nullable(),
+          // How the remaining-demand number was derived, so the UI can show
+          // a shape-aware estimate differently from a flat guess.
+          demand_basis: z
+            .enum(["intraday_profile", "flat_extrapolation", "unknown"])
+            .optional(),
+          expected_fraction_of_day_done: z.number().nullable().optional(),
+          operating_hours_known: z.boolean().optional(),
           runout_minutes: z.number().nullable().optional(),
           prep_time_minutes: z.number().optional(),
           start_new_batch_now: z.boolean().optional(),
-          stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
-          waste_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+          stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH", "UNKNOWN"]),
+          waste_risk: z.enum(["LOW", "MEDIUM", "HIGH", "UNKNOWN"]),
         })
         .optional(),
       sales_intake_mode: z
@@ -1634,13 +1644,19 @@ export type SetupForecastWOW = z.infer<typeof setupForecastWOWSchema>;
 export const productionIntelligenceAccessScopeSchema = z.object({
   organization_id: z.string().uuid(),
   organization_name: z.string(),
-  role: z.string(),
+  // Null for a member with no custom_role assigned. The API has always been
+  // able to return null here; declaring it non-nullable made the whole
+  // access-scope response fail to parse for those users, which in turn left
+  // the app with no accessible-branch list at all.
+  role: z.string().nullable(),
   can_view_all_branches: z.boolean(),
   accessible_branches: z.array(
     z.object({
       id: z.string().uuid(),
       name: z.string(),
       is_primary: z.boolean(),
+      /** ISO 4217 for this branch — money on Today is branch-scoped, not org-scoped. */
+      currency: z.string().optional(),
       can_manage_branch_data: z.boolean(),
     }),
   ),
@@ -1687,7 +1703,9 @@ export const branchCommandViewSchema = z.object({
   }),
   viewer: z
     .object({
-      role: z.string(),
+      // Nullable for the same reason as access-scope's role: .partial() only
+      // permits undefined, and the API sends an explicit null.
+      role: z.string().nullable(),
       can_view_financials: z.boolean().optional(),
     })
     .partial()
@@ -2054,9 +2072,17 @@ export type VelocityUpdateResponse = z.infer<
   typeof velocityUpdateResponseSchema
 >;
 
+/** How much trading time is left, and whether we actually know. */
+export const serviceWindowSchema = z.object({
+  hours_until_closing: z.number().nullable(),
+  is_known: z.boolean(),
+  is_closed_today: z.boolean(),
+});
+
 export const branchPaceSummarySchema = z.object({
   as_of: z.string(),
   date: z.string(),
+  service_window: serviceWindowSchema.optional(),
   branch: cumulativePositionSchema
     .omit({ projected_gap_units: true })
     .extend({
@@ -2101,6 +2127,14 @@ export const intradayTimelineItemSchema = z.object({
   expected_series: z.array(
     z.object({ hour: z.number(), cumulative: z.number() }),
   ),
+  // Day-to-day dispersion (±1σ) of the expected pace, from this item's own
+  // history. Empty when there were too few sampled days to be meaningful.
+  expected_band: z
+    .array(
+      z.object({ hour: z.number(), lower: z.number(), upper: z.number() }),
+    )
+    .optional()
+    .default([]),
   production_steps: z.array(
     z.object({
       hour: z.number(),
@@ -2115,6 +2149,7 @@ export const intradayTimelineSchema = z.object({
   as_of: z.string(),
   date: z.string(),
   current_hour: z.number(),
+  service_window: serviceWindowSchema.optional(),
   items: z.array(intradayTimelineItemSchema),
 });
 export type IntradayTimeline = z.infer<typeof intradayTimelineSchema>;
@@ -2616,4 +2651,98 @@ export type IntegrationsSyncRetryQuery = {
   branch_id: string;
   connection_id?: string;
   provider_code?: string;
+};
+
+// ── Dashboard analytics (interactive charts) ────────────────────────────────
+
+export const dashboardSeriesPointSchema = z.object({
+  bucket: z.string(),
+  hour: z.number().optional(),
+  is_forecast_window: z.boolean(),
+  is_partial: z.boolean().optional(),
+  forecast_fidelity: z.enum(["OPERATIONAL", "BASELINE"]).nullable(),
+  forecast_source: z
+    .enum(["RECOMMENDATION", "WEEKDAY_BASELINE"])
+    .nullable()
+    .optional(),
+  sales_actual: z.number().nullable(),
+  sales_forecast: z.number().nullable(),
+  demand_actual: z.number().nullable(),
+  demand_forecast: z.number().nullable(),
+});
+export type DashboardSeriesPoint = z.infer<typeof dashboardSeriesPointSchema>;
+
+export const dashboardSeriesSchema = z.object({
+  scope: z.enum(["EXECUTIVE", "BRANCH"]),
+  branch_id: z.string().nullable(),
+  branch_count: z.number(),
+  interval: z.enum(["hourly", "daily", "weekly"]),
+  start_date: z.string(),
+  end_date: z.string(),
+  as_of: z.string(),
+  currency: z.object({
+    code: z.string(),
+    is_multi_currency: z.boolean(),
+    by_currency: z.array(currencyAmountSchema),
+  }),
+  points: z.array(dashboardSeriesPointSchema),
+});
+export type DashboardSeries = z.infer<typeof dashboardSeriesSchema>;
+
+export type DashboardSeriesQuery = {
+  branch_id?: string;
+  interval?: "hourly" | "daily" | "weekly";
+  date?: string;
+};
+
+export const capacityRiskShortfallSchema = z.object({
+  ingredient_name: z.string().nullable(),
+  needed: z.number().nullable(),
+  on_hand: z.number().nullable(),
+  net_need: z.number().nullable(),
+  unit: z.string().nullable(),
+});
+export type CapacityRiskShortfall = z.infer<typeof capacityRiskShortfallSchema>;
+
+export const capacityRiskDaySchema = z.object({
+  date: z.string(),
+  risk_level: z.enum(["CRITICAL", "WARNING", "OK"]),
+  demand_forecast_qty: z.number().nullable(),
+  labor: z.object({
+    status: z.enum(["UNDER", "OK", "OVER", "UNKNOWN"]),
+    coverage_pct: z.number().nullable(),
+    required_hours: z.number(),
+    scheduled_hours: z.number(),
+    required_headcount: z.number(),
+    scheduled_headcount: z.number(),
+  }),
+  inventory: z.object({
+    status: z.enum(["STOCKOUT_RISK", "OK", "NO_DATA"]),
+    shortfall_count: z.number(),
+    top_shortfalls: z.array(capacityRiskShortfallSchema),
+  }),
+  branches_at_risk: z.array(
+    z.object({
+      branch_id: z.string(),
+      branch_name: z.string(),
+      issues: z.array(z.string()),
+    }),
+  ),
+});
+export type CapacityRiskDay = z.infer<typeof capacityRiskDaySchema>;
+
+export const dashboardCapacityRiskSchema = z.object({
+  scope: z.enum(["EXECUTIVE", "BRANCH"]),
+  branch_id: z.string().nullable(),
+  branch_count: z.number(),
+  start_date: z.string(),
+  end_date: z.string(),
+  as_of: z.string(),
+  days: z.array(capacityRiskDaySchema),
+});
+export type DashboardCapacityRisk = z.infer<typeof dashboardCapacityRiskSchema>;
+
+export type DashboardCapacityRiskQuery = {
+  branch_id?: string;
+  days?: number;
 };

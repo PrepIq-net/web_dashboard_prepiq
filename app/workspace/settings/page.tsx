@@ -41,7 +41,12 @@ import {
   useBranch,
   useUpdateBranch,
   useDeleteBranch,
+  useBranchAssignments,
+  useUpsertBranchAssignment,
+  useRemoveBranchAssignment,
 } from "@/services/branches/hooks";
+import type { UpdateBranchPayload } from "@/services/branches/types";
+import { BranchForm } from "@/components/branches/branch-form";
 import { ConfirmActionModal } from "@/components/dashboard/today/confirm-action-modal";
 import {
   useIntegrationsOverview,
@@ -83,7 +88,12 @@ import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-pri
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
 import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
 import { useTranslation } from "@/lib/i18n";
-import { usePrepConectors } from "@/services/connector/hook";
+import {
+  useCreateConnectorToken,
+  usePrepConectors,
+} from "@/services/connector/hook";
+import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
+import { Spinner } from "@/components/ui/spinner";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -651,6 +661,7 @@ function formatRelativeTime(iso: string | null): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
+
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
@@ -708,12 +719,23 @@ function IntegrationsSettings({
   const isFocusedBranchWithIssue =
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
 
+  const createConnectorToken = useCreateConnectorToken();
+
+
   const [generatedToken, setGeneratedToken] = useState<string | "">("");
   const [openTokenDialog, setOpenTokenDialog] = useState(false);
 
   function handleBranchChange(branchId: string) {
     setSelectedBranchId(branchId);
     onBranchChange?.(branchId);
+  }
+
+  async function handleTokenCreation(branchId: string) {
+    const response = await createConnectorToken.mutateAsync(branchId);
+    toast.loading(<Spinner />);
+
+    setGeneratedToken(response.data.token);
+    setOpenTokenDialog(true);
   }
 
   const handleConnect = (posId: string) => {
@@ -743,7 +765,7 @@ function IntegrationsSettings({
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-text-primary">
-          Integrations
+          {t("settings.integrations.title")}
         </h2>
         <p className="text-sm text-text-muted mt-1">
           {t("settings.integrations.description")}
@@ -755,8 +777,10 @@ function IntegrationsSettings({
         <div className="flex flex-wrap gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-status-ok" />
-            {summary.active_connections} of {summary.total_branches} branches
-            connected
+            {t("settings.integrations.branchesConnected", {
+              count: summary.active_connections,
+              total: summary.total_branches,
+            })}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-surface-4 px-3 py-1 text-xs text-text-muted">
             {t("settings.integrations.syncHealth", { pct: summary.health_pct })}
@@ -771,7 +795,9 @@ function IntegrationsSettings({
         value={selectedBranchId}
         onChange={handleBranchChange}
         placeholder={
-          branches.length === 0 ? "Loading branches…" : "Select branch"
+          branches.length === 0
+            ? t("settings.integrations.loadingBranches")
+            : t("settings.integrations.selectBranch")
         }
         disabled={branches.length === 0}
         className="max-w-xs"
@@ -820,7 +846,7 @@ function IntegrationsSettings({
               variant="outline"
               className="text-[10px] text-status-ok border-status-ok/40"
             >
-              Active
+              {t("settings.integrations.active")}
             </Badge>
           )}
         </div>
@@ -861,8 +887,12 @@ function IntegrationsSettings({
           {selectedBranch && (
             <span className="ml-auto text-xs text-text-muted">
               {isConnected
-                ? `${selectedBranch.name} is connected`
-                : `Connect for ${selectedBranch.name}`}
+                ? t("settings.integrations.isConnectedSuffix", {
+                    name: selectedBranch.name,
+                  })
+                : t("settings.integrations.connectFor", {
+                    name: selectedBranch.name,
+                  })}
             </span>
           )}
         </div>
@@ -878,12 +908,16 @@ function IntegrationsSettings({
                   <Shop className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-medium text-text-primary">{pos.name}</p>
+                  <p className="font-medium text-text-primary">
+                    {t(`settings.integrations.posSystems.${pos.id}`)}
+                  </p>
                   <Badge
                     variant="outline"
                     className="mt-1 text-[10px] opacity-60"
                   >
-                    {isConnected ? "Connected" : "Not connected"}
+                    {isConnected
+                      ? t("settings.integrations.connected")
+                      : t("settings.integrations.notConnected")}
                   </Badge>
                 </div>
               </div>
@@ -1340,7 +1374,6 @@ function BranchSettings({
   const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
   const [branchReasonChoice, setBranchReasonChoice] =
     useState("LOCATION_CLOSED");
-  const [formData, setFormData] = useState<any>(null);
 
   const isLastBranch = (branches?.length ?? 0) <= 1;
 
@@ -1367,35 +1400,12 @@ function BranchSettings({
     setSelectedBranchId(target);
   }, [branches, focusedBranchId, selectedBranchId]);
 
-  // Sync form data when branch details are loaded
-  useEffect(() => {
-    if (branch) {
-      setFormData({
-        name: branch.name || "",
-        address: branch.address || "",
-        timezone: branch.timezone || "UTC",
-        capacity: branch.capacity || 0,
-        average_prep_time_minutes: branch.average_prep_time_minutes || 15,
-        service_start_time: branch.service_start_time || "",
-        service_end_time: branch.service_end_time || "",
-        seasonality_profile: branch.seasonality_profile || "",
-        min_stock_buffer: branch.min_stock_buffer || 10,
-        waste_threshold: branch.waste_threshold || 0.05,
-        reorder_buffer: branch.reorder_buffer || 5,
-      });
-    }
-  }, [branch]);
-
-  const handleSave = () => {
-    updateBranch.mutate(formData, {
+  const handleSave = (payload: UpdateBranchPayload) => {
+    updateBranch.mutate(payload, {
       onSuccess: () => {
         toast.success(t("settings.branch.updated"));
       },
     });
-  };
-
-  const handleChange = (key: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
   };
 
   if (loadingBranches) {
@@ -1432,15 +1442,14 @@ function BranchSettings({
               placeholder={t("settings.branch.selectBranchPlaceholder")}
             />
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={updateBranch.isPending || !selectedBranchId}
-            className="font-semibold px-6"
-          >
-            {updateBranch.isPending
-              ? t("settings.branch.saving")
-              : t("settings.branch.saveChanges")}
-          </Button>
+          {selectedBranchId ? (
+            <Link
+              href={`/workspace/branches/${selectedBranchId}`}
+              className="inline-flex h-12 items-center rounded-button border border-border-default px-4 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+            >
+              {t("settings.branch.viewBranch")}
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -1465,177 +1474,17 @@ function BranchSettings({
             {t("settings.branch.noBranchSelected")}
           </p>
         </div>
-      ) : loadingBranch || !formData ? (
+      ) : loadingBranch || !branch ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold"></div>
         </div>
       ) : (
         <div className="space-y-10">
-          {/* General */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <Shop className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.general")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.branchName")}
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-              />
-              <Input
-                label={t("settings.branch.address")}
-                value={formData.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-              />
-              <Select
-                label={t("settings.branch.timezone")}
-                value={formData.timezone}
-                onChange={(val: string) => handleChange("timezone", val)}
-                options={[
-                  {
-                    label: t("settings.organization.timezoneOptions.utc"),
-                    value: "UTC",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.eastern"),
-                    value: "America/New_York",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.pacific"),
-                    value: "America/Los_Angeles",
-                  },
-                  {
-                    label: t("settings.organization.timezoneOptions.london"),
-                    value: "Europe/London",
-                  },
-                  {
-                    label: t(
-                      "settings.organization.timezoneOptions.eastAfrica",
-                    ),
-                    value: "Africa/Nairobi",
-                  },
-                ]}
-              />
-            </div>
-          </section>
-
-          {/* Kitchen Configuration */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <Brain className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.kitchenConfiguration")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.kitchenCapacity")}
-                type="number"
-                value={formData.capacity}
-                onChange={(e) =>
-                  handleChange("capacity", parseInt(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.avgPrepTime")}
-                type="number"
-                value={formData.average_prep_time_minutes}
-                onChange={(e) =>
-                  handleChange(
-                    "average_prep_time_minutes",
-                    parseInt(e.target.value),
-                  )
-                }
-              />
-              <Input
-                label={t("settings.branch.serviceStartTime")}
-                type="time"
-                value={formData.service_start_time}
-                onChange={(e) =>
-                  handleChange("service_start_time", e.target.value)
-                }
-              />
-              <Input
-                label={t("settings.branch.serviceEndTime")}
-                type="time"
-                value={formData.service_end_time}
-                onChange={(e) =>
-                  handleChange("service_end_time", e.target.value)
-                }
-              />
-            </div>
-          </section>
-
-          {/* Demand Context */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <CloudSync className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.demandContext")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label={t("settings.branch.seasonalityProfile")}
-                value={formData.seasonality_profile}
-                onChange={(e) =>
-                  handleChange("seasonality_profile", e.target.value)
-                }
-                placeholder={t("settings.branch.seasonalityPlaceholder")}
-              />
-              <div className="p-4 rounded-xl bg-[#1C1C1F]/50 border border-[#2A2A2E] flex items-start gap-3">
-                <InfoCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
-                <p className="text-xs text-text-muted leading-relaxed">
-                  {t("settings.branch.demandContextBefore")}
-                  <span className="text-brand-gold font-medium">
-                    {" "}
-                    {t("settings.branch.intelligenceEngine")}
-                  </span>{" "}
-                  {t("settings.branch.demandContextAfter")}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Inventory Rules */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-              <ShieldCheck className="h-4 w-4 text-brand-gold" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-                {t("settings.branch.inventoryRules")}
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input
-                label={t("settings.branch.minStockBuffer")}
-                type="number"
-                value={formData.min_stock_buffer}
-                onChange={(e) =>
-                  handleChange("min_stock_buffer", parseInt(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.wasteThreshold")}
-                type="number"
-                step="0.01"
-                value={formData.waste_threshold}
-                onChange={(e) =>
-                  handleChange("waste_threshold", parseFloat(e.target.value))
-                }
-              />
-              <Input
-                label={t("settings.branch.reorderBuffer")}
-                type="number"
-                value={formData.reorder_buffer}
-                onChange={(e) =>
-                  handleChange("reorder_buffer", parseInt(e.target.value))
-                }
-              />
-            </div>
-          </section>
+          <BranchForm
+            branch={branch}
+            isSaving={updateBranch.isPending}
+            onSubmit={handleSave}
+          />
 
           {/* Danger zone — delete this branch */}
           <section className="space-y-4">
@@ -1774,13 +1623,53 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     label: string;
   } | null>(null);
 
-  // Get all available roles for member dropdown (system + custom)
+  // Per-branch role management — a member can hold a different role at each
+  // location they work at.
+  const { data: orgBranches } = useBranches(orgId || "");
+  const [branchModalMember, setBranchModalMember] =
+    useState<OrganizationMember | null>(null);
+  const { data: memberAssignments, isLoading: assignmentsLoading } =
+    useBranchAssignments(
+      orgId || "",
+      branchModalMember ? String(branchModalMember.user) : undefined,
+    );
+  const upsertAssignment = useUpsertBranchAssignment(orgId || "");
+  const removeAssignment = useRemoveBranchAssignment(orgId || "");
+  const [assignForm, setAssignForm] = useState({
+    branch_id: "",
+    custom_role_slug: "",
+  });
+
+  // Get all available roles for member dropdown (system + custom).
+  // The owner role is never listed: ownership moves only through Transfer
+  // Ownership in the Danger Zone, so it can't be granted from here.
   const availableRoles = [
-    ...SYSTEM_ROLE_OPTIONS,
+    ...SYSTEM_ROLE_OPTIONS.filter(
+      (option) => option.value !== SYSTEM_ROLE_SLUG.SUPER_ADMIN,
+    ),
     ...(roles
       ?.filter((r) => !r.is_system)
       .map((r) => ({ label: r.name, value: r.slug })) || []),
   ];
+
+  const handleOpenBranchModal = (member: OrganizationMember) => {
+    setBranchModalMember(member);
+    setAssignForm({ branch_id: "", custom_role_slug: "" });
+  };
+
+  const handleAssignBranch = () => {
+    if (!branchModalMember || !assignForm.branch_id) return;
+    upsertAssignment.mutate(
+      {
+        user_id: String(branchModalMember.user),
+        branch_id: assignForm.branch_id,
+        custom_role_slug: assignForm.custom_role_slug || undefined,
+      },
+      {
+        onSuccess: () => setAssignForm({ branch_id: "", custom_role_slug: "" }),
+      },
+    );
+  };
 
   const handleAddMember = () => {
     addMember.mutate(newMember, {
@@ -1968,9 +1857,13 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
           return (
-            <span className="text-sm text-text-secondary">
+            <button
+              onClick={() => handleOpenBranchModal(member)}
+              className="text-sm text-text-secondary underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-gold"
+              title={t("settings.users.manageBranchRoles")}
+            >
               {member.branch_name || t("settings.users.table.allBranches")}
-            </span>
+            </button>
           );
         },
       }),
@@ -2198,6 +2091,110 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 ? t("settings.users.addMemberModal.adding")
                 : t("settings.users.addMemberModal.add")}
             </Button>
+          </div>
+        </div>
+      </ModalShell>
+
+      {/* Per-branch roles — a member can hold a different role at each location */}
+      <ModalShell
+        open={Boolean(branchModalMember)}
+        onClose={() => setBranchModalMember(null)}
+        title={t("settings.users.branchRolesModal.title")}
+        description={
+          branchModalMember
+            ? t("settings.users.branchRolesModal.description", {
+                name:
+                  `${branchModalMember.first_name ?? ""} ${branchModalMember.last_name ?? ""}`.trim() ||
+                  branchModalMember.email,
+              })
+            : ""
+        }
+      >
+        <div className="space-y-6 py-4 px-1">
+          {assignmentsLoading ? (
+            <p className="text-sm text-text-muted">
+              {t("settings.users.branchRolesModal.loading")}
+            </p>
+          ) : memberAssignments && memberAssignments.length > 0 ? (
+            <ul className="space-y-2">
+              {memberAssignments.map((assignment) => (
+                <li
+                  key={assignment.id}
+                  className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-2 px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {assignment.branch_name}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {assignment.role_name ||
+                        t("settings.users.branchRolesModal.inheritsOrgRole")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      branchModalMember &&
+                      removeAssignment.mutate({
+                        user_id: String(branchModalMember.user),
+                        branch_id: assignment.branch,
+                      })
+                    }
+                    disabled={removeAssignment.isPending}
+                    className="p-2 text-text-muted transition-colors hover:text-red-500 disabled:opacity-50"
+                    title={t("settings.users.branchRolesModal.remove")}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-text-muted">
+              {t("settings.users.branchRolesModal.empty")}
+            </p>
+          )}
+
+          <div className="space-y-4 border-t border-surface-4 pt-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("settings.users.branchRolesModal.addTitle")}
+            </p>
+            <Select
+              label={t("settings.users.branchRolesModal.branchLabel")}
+              value={assignForm.branch_id}
+              onChange={(val: string) =>
+                setAssignForm({ ...assignForm, branch_id: val })
+              }
+              options={(orgBranches ?? [])
+                .filter((branch) => branch.is_active)
+                .map((branch) => ({ label: branch.name, value: branch.id }))}
+            />
+            <Select
+              label={t("settings.users.branchRolesModal.roleLabel")}
+              value={assignForm.custom_role_slug}
+              onChange={(val: string) =>
+                setAssignForm({ ...assignForm, custom_role_slug: val })
+              }
+              options={[
+                {
+                  label: t("settings.users.branchRolesModal.inheritsOrgRole"),
+                  value: "",
+                },
+                ...availableRoles,
+              ]}
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" onClick={() => setBranchModalMember(null)}>
+                {t("settings.users.addMemberModal.cancel")}
+              </Button>
+              <Button
+                onClick={handleAssignBranch}
+                disabled={upsertAssignment.isPending || !assignForm.branch_id}
+              >
+                {upsertAssignment.isPending
+                  ? t("settings.users.branchRolesModal.saving")
+                  : t("settings.users.branchRolesModal.save")}
+              </Button>
+            </div>
           </div>
         </div>
       </ModalShell>

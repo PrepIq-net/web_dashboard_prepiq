@@ -17,6 +17,7 @@ import { InsightFooter } from "@/components/dashboard/home/insight-footer";
 import { DashboardView } from "@/components/dashboard/home/dashboard-view";
 import { BranchManagerView } from "@/components/dashboard/home/branch-manager-view";
 import { CommandSection } from "@/components/dashboard/home/command-section";
+import { AnalyticsSection } from "@/components/dashboard/home/analytics/analytics-section";
 import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
@@ -220,10 +221,35 @@ function DashboardContent() {
       ? `${todayRecommendations[0].item_title} has the highest priority today at ${todayRecommendations[0].recommended_quantity} ${todayRecommendations[0].unit}.`
       : "";
 
+  const canViewAllBranches = permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES);
+
+  // Analytics: org users get the fleet aggregate with a branch filter;
+  // branch-scoped users are pinned to their branch (backend re-enforces).
+  // Built once and slotted into each view directly below its KPI cards.
+  const analyticsSlot =
+    isOrgOverviewMode || isBranchExecutionMode ? (
+      <AnalyticsSection
+        canSeeFinancials={canSeeFinancials}
+        canSelectBranch={isOrgOverviewMode && canViewAllBranches}
+        branches={branchOptions.map((branch) => ({
+          id: branch.id,
+          name: branch.name,
+        }))}
+        lockedBranchId={
+          isOrgOverviewMode && canViewAllBranches
+            ? undefined
+            : activeBranchId || undefined
+        }
+      />
+    ) : null;
+
   return (
     <div className="mt-10 animate-fade-in">
       {isOrgOverviewMode ? (
-        <DashboardView canSeeFinancials={canSeeFinancials} />
+        <DashboardView
+          canSeeFinancials={canSeeFinancials}
+          analyticsSlot={analyticsSlot}
+        />
       ) : isBranchExecutionMode ? (
         <BranchManagerView
           branchName={activeBranch?.name || "Branch"}
@@ -243,6 +269,7 @@ function DashboardContent() {
           yesterdayPrepared={yesterdayPrepared}
           yesterdaySold={yesterdaySold}
           yesterdayWasteCost={yesterdayWasteCost}
+          analyticsSlot={analyticsSlot}
         />
       ) : null}
 

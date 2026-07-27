@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   createProductionLog,
   createSalesManualQuickEntry,
@@ -85,6 +90,10 @@ import {
   type ChefSkillScoreQuery,
   type DataQualityReportQuery,
   type VelocityUpdatePayload,
+  getDashboardSeries,
+  getDashboardCapacityRisk,
+  type DashboardSeriesQuery,
+  type DashboardCapacityRiskQuery,
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
@@ -343,6 +352,21 @@ export const productionIntelligenceQueryKeys = {
       "data-quality-report",
       params?.branch_id ?? "",
       params?.days_window ?? "",
+    ] as const,
+  dashboardSeries: (params?: DashboardSeriesQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "dashboard-series",
+      params?.branch_id ?? "",
+      params?.interval ?? "daily",
+      params?.date ?? "",
+    ] as const,
+  dashboardCapacityRisk: (params?: DashboardCapacityRiskQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "dashboard-capacity-risk",
+      params?.branch_id ?? "",
+      params?.days ?? 7,
     ] as const,
 };
 
@@ -1032,6 +1056,40 @@ export function useRetryIntegrationsSync() {
         queryKey: productionIntelligenceQueryKeys.root,
       });
     },
+  });
+}
+
+// ── Dashboard analytics (interactive charts) ────────────────────────────────
+// Polled so the dashboard reads live without sockets. keepPreviousData holds
+// the last render during refetches — no skeleton flash, no tooltip disruption.
+
+const DASHBOARD_ANALYTICS_POLL_MS = 45_000;
+
+export function useDashboardSeries(
+  params?: DashboardSeriesQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.dashboardSeries(params),
+    queryFn: () => getDashboardSeries(params),
+    enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: enabled ? DASHBOARD_ANALYTICS_POLL_MS : false,
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useDashboardCapacityRisk(
+  params?: DashboardCapacityRiskQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.dashboardCapacityRisk(params),
+    queryFn: () => getDashboardCapacityRisk(params),
+    enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: enabled ? DASHBOARD_ANALYTICS_POLL_MS : false,
+    refetchIntervalInBackground: false,
   });
 }
 

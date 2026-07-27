@@ -10,6 +10,7 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { useCurrentUserProfile } from "@/services";
+import { useTranslation } from "@/lib/i18n";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import {
@@ -66,6 +67,7 @@ function toSeverity(impact: number, highCount: number): SeverityTone {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function CommandSection() {
+  const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
 
@@ -165,7 +167,10 @@ export function CommandSection() {
     if (!canManageBilling) return [];
 
     return (subscriptions as any[]).flatMap((sub): PriorityRow[] => {
-      const entity = sub.branch_name || sub.organization_name || "Organization";
+      const entity =
+        sub.branch_name ||
+        sub.organization_name ||
+        t("dashboard.home.queue.defaultOrgName");
       const daysUntil: number | null = sub.days_until_renewal ?? null;
       const isActive: boolean = sub.is_currently_active ?? true;
       const status: string = (sub.status ?? "").toLowerCase();
@@ -175,14 +180,16 @@ export function CommandSection() {
           {
             id: `sub-lapsed-${sub.id}`,
             rank: 0,
-            title: `Subscription lapsed — ${entity}`,
+            title: t("dashboard.home.queue.subLapsedTitle", { entity }),
             impactedBranch: entity,
             financialImpact: 9999,
-            rootCauseHint: `Status: ${sub.status}. Some features may already be restricted.`,
+            rootCauseHint: t("dashboard.home.queue.subLapsedHint", {
+              status: sub.status,
+            }),
             viewHref: "/workspace/settings?tab=organization",
-            sectionLabel: "Subscription",
+            sectionLabel: t("dashboard.home.queue.secSubscription"),
             severity: "RED",
-            ctaLabel: "Renew subscription",
+            ctaLabel: t("dashboard.home.queue.ctaRenew"),
             isBillingRow: true,
           },
         ];
@@ -193,14 +200,14 @@ export function CommandSection() {
           {
             id: `sub-pastdue-${sub.id}`,
             rank: 0,
-            title: `Payment overdue — ${entity}`,
+            title: t("dashboard.home.queue.subPastDueTitle", { entity }),
             impactedBranch: entity,
             financialImpact: 8000,
-            rootCauseHint: "Service continuity is at risk. Update payment details immediately.",
+            rootCauseHint: t("dashboard.home.queue.subPastDueHint"),
             viewHref: "/workspace/settings?tab=organization",
-            sectionLabel: "Subscription",
+            sectionLabel: t("dashboard.home.queue.secSubscription"),
             severity: "RED",
-            ctaLabel: "Update payment",
+            ctaLabel: t("dashboard.home.queue.ctaUpdatePayment"),
             isBillingRow: true,
           },
         ];
@@ -211,16 +218,22 @@ export function CommandSection() {
           {
             id: `sub-renew7-${sub.id}`,
             rank: 0,
-            title: `Subscription renews in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} — ${entity}`,
+            title:
+              daysUntil === 1
+                ? t("dashboard.home.queue.subRenewTitleOne", { entity })
+                : t("dashboard.home.queue.subRenewTitleMany", {
+                    days: daysUntil,
+                    entity,
+                  }),
             impactedBranch: entity,
             financialImpact: 2000,
             rootCauseHint: sub.auto_renew
-              ? "Auto-renew is ON — confirm your payment method is still valid."
-              : "Auto-renew is OFF — manual renewal required before this date.",
+              ? t("dashboard.home.queue.autoRenewOnConfirm")
+              : t("dashboard.home.queue.autoRenewOffManual"),
             viewHref: "/workspace/settings?tab=organization",
-            sectionLabel: "Subscription",
+            sectionLabel: t("dashboard.home.queue.secSubscription"),
             severity: "AMBER",
-            ctaLabel: "Review subscription",
+            ctaLabel: t("dashboard.home.queue.ctaReviewSubscription"),
             isBillingRow: true,
           },
         ];
@@ -231,16 +244,19 @@ export function CommandSection() {
           {
             id: `sub-renew14-${sub.id}`,
             rank: 0,
-            title: `Subscription renews in ${daysUntil} days — ${entity}`,
+            title: t("dashboard.home.queue.subRenewTitleMany", {
+              days: daysUntil,
+              entity,
+            }),
             impactedBranch: entity,
             financialImpact: 500,
             rootCauseHint: sub.auto_renew
-              ? "Auto-renew is ON."
-              : "Auto-renew is OFF — action needed.",
+              ? t("dashboard.home.queue.autoRenewOn")
+              : t("dashboard.home.queue.autoRenewOffAction"),
             viewHref: "/workspace/settings?tab=organization",
-            sectionLabel: "Subscription",
+            sectionLabel: t("dashboard.home.queue.secSubscription"),
             severity: "AMBER",
-            ctaLabel: "Review subscription",
+            ctaLabel: t("dashboard.home.queue.ctaReviewSubscription"),
             isBillingRow: true,
           },
         ];
@@ -248,7 +264,7 @@ export function CommandSection() {
 
       return [];
     });
-  }, [subscriptions, canManageBilling]);
+  }, [subscriptions, canManageBilling, t]);
 
   // 2. Waste spike — VIEW_PRODUCTION_REPORTS
   const wasteSpikeRow = useMemo<PriorityRow | null>(() => {
@@ -261,19 +277,22 @@ export function CommandSection() {
     return {
       id: `waste-${top.branch_id}`,
       rank: 0,
-      title: `Waste trending at ${pct.toFixed(1)}% — ${top.branch_name}`,
+      title: t("dashboard.home.queue.wasteTitle", {
+        pct: pct.toFixed(1),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz(pct * 280),
       rootCauseHint:
         pct >= 7
-          ? "Above 7% threshold — active financial loss right now."
-          : "Approaching the 7% threshold — act before service closes.",
+          ? t("dashboard.home.queue.wasteHintHigh")
+          : t("dashboard.home.queue.wasteHintApproaching"),
       viewHref: `/workspace/sales-waste?branch=${top.branch_id}`,
-      sectionLabel: "Waste Spike",
+      sectionLabel: t("dashboard.home.queue.secWasteSpike"),
       severity: pct >= 7 ? "RED" : "AMBER",
-      ctaLabel: "Review waste items",
+      ctaLabel: t("dashboard.home.queue.ctaReviewWaste"),
     };
-  }, [scopedBranchGrid, canSeeProduction]);
+  }, [scopedBranchGrid, canSeeProduction, t]);
 
   // 3. Profit leakage — VIEW_FINANCIAL_DATA
   const profitLeakageRow = useMemo<PriorityRow | null>(() => {
@@ -289,17 +308,19 @@ export function CommandSection() {
     return {
       id: `profit-${top.branch_id}`,
       rank: 0,
-      title: `${fmt(cost)} in waste cost this period — ${top.branch_name}`,
+      title: t("dashboard.home.queue.profitTitle", {
+        amount: fmt(cost),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz(cost * 4),
-      rootCauseHint:
-        "Recurring waste concentration — likely a prep quantity or menu mix issue.",
+      rootCauseHint: t("dashboard.home.queue.profitHint"),
       viewHref: `/workspace/financial?branch=${top.branch_id}`,
-      sectionLabel: "Profit Leakage",
+      sectionLabel: t("dashboard.home.queue.secProfitLeakage"),
       severity: toSeverity(nz(cost * 4), highSeverityCount),
-      ctaLabel: "View margin report",
+      ctaLabel: t("dashboard.home.queue.ctaViewMargin"),
     };
-  }, [marginBranches, canSeeFinancials, highSeverityCount]);
+  }, [marginBranches, canSeeFinancials, highSeverityCount, t]);
 
   // 4. Margin erosion — VIEW_FINANCIAL_DATA
   const marginErosionRow = useMemo<PriorityRow | null>(() => {
@@ -316,16 +337,19 @@ export function CommandSection() {
     return {
       id: `margin-${top.branch_id}`,
       rank: 0,
-      title: `Margin down ${pct.toFixed(1)}% vs target — ${top.branch_name}`,
+      title: t("dashboard.home.queue.marginTitle", {
+        pct: pct.toFixed(1),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz(cost * 0.2),
-      rootCauseHint: "Likely tied to waste concentration or menu mix variance.",
+      rootCauseHint: t("dashboard.home.queue.marginHint"),
       viewHref: `/workspace/financial?branch=${top.branch_id}`,
-      sectionLabel: "Margin Erosion",
+      sectionLabel: t("dashboard.home.queue.secMarginErosion"),
       severity: toSeverity(nz(cost * 0.2), 0),
-      ctaLabel: "View margin report",
+      ctaLabel: t("dashboard.home.queue.ctaViewMargin"),
     };
-  }, [marginBranches, canSeeFinancials]);
+  }, [marginBranches, canSeeFinancials, t]);
 
   // 5. Cost / purchasing spike — VIEW_FINANCIAL_DATA
   const costSpikeRow = useMemo<PriorityRow | null>(() => {
@@ -334,16 +358,16 @@ export function CommandSection() {
     return {
       id: `cost-${top.id}`,
       rank: 0,
-      title: top.title || "Supplier cost spike detected",
+      title: top.title || t("dashboard.home.queue.costTitle"),
       impactedBranch: top.branch_name,
       financialImpact: nz(supplierAlerts.length * 650),
-      rootCauseHint: top.context || "Supplier-side price movement detected.",
+      rootCauseHint: top.context || t("dashboard.home.queue.costHint"),
       viewHref: "/workspace/purchasing",
-      sectionLabel: "Cost Spike",
+      sectionLabel: t("dashboard.home.queue.secCostSpike"),
       severity: toSeverity(nz(supplierAlerts.length * 650), 0),
-      ctaLabel: "Review purchases",
+      ctaLabel: t("dashboard.home.queue.ctaReviewPurchases"),
     };
-  }, [supplierAlerts, canSeeFinancials]);
+  }, [supplierAlerts, canSeeFinancials, t]);
 
   // 6. POS sync lag — MANAGE_INTEGRATIONS | VIEW_POS_DATA
   const posLagRow = useMemo<PriorityRow | null>(() => {
@@ -352,17 +376,16 @@ export function CommandSection() {
     return {
       id: `pos-lag-${top.id}`,
       rank: 0,
-      title: `POS sync delayed — ${top.branch_name}`,
+      title: t("dashboard.home.queue.posLagTitle", { branch: top.branch_name }),
       impactedBranch: top.branch_name,
       financialImpact: nz(posLagAlerts.length * 800),
-      rootCauseHint:
-        top.context || "Data used for today's decisions may be incomplete.",
+      rootCauseHint: top.context || t("dashboard.home.queue.posLagHint"),
       viewHref: `/workspace/settings?tab=integrations&branch=${top.branch_id}`,
-      sectionLabel: "POS Sync Lag",
+      sectionLabel: t("dashboard.home.queue.secPosLag"),
       severity: "AMBER",
-      ctaLabel: "Fix POS sync",
+      ctaLabel: t("dashboard.home.queue.ctaFixPos"),
     };
-  }, [posLagAlerts, canSeeIntegrations]);
+  }, [posLagAlerts, canSeeIntegrations, t]);
 
   // 7. Unmapped sales items — VIEW_ANALYTICS
   const unmappedRow = useMemo<PriorityRow | null>(() => {
@@ -371,17 +394,21 @@ export function CommandSection() {
     return {
       id: `unmapped-${top.id}`,
       rank: 0,
-      title: `${unmappedAlerts.length} item${unmappedAlerts.length > 1 ? "s" : ""} selling without a recipe match`,
+      title:
+        unmappedAlerts.length === 1
+          ? t("dashboard.home.queue.unmappedTitleOne")
+          : t("dashboard.home.queue.unmappedTitleMany", {
+              count: unmappedAlerts.length,
+            }),
       impactedBranch: top.branch_name,
       financialImpact: nz(unmappedAlerts.length * 150),
-      rootCauseHint:
-        "Unmapped items don't feed the forecast — prep accuracy degrades silently over time.",
+      rootCauseHint: t("dashboard.home.queue.unmappedHint"),
       viewHref: `/workspace/sales-waste?branch=${top.branch_id}`,
-      sectionLabel: "Unmapped Sales",
+      sectionLabel: t("dashboard.home.queue.secUnmapped"),
       severity: "AMBER",
-      ctaLabel: "Map missing items",
+      ctaLabel: t("dashboard.home.queue.ctaMapItems"),
     };
-  }, [unmappedAlerts, canSeeAnalytics]);
+  }, [unmappedAlerts, canSeeAnalytics, t]);
 
   // 8. Low forecast confidence — VIEW_FORECASTS
   const lowConfidenceRow = useMemo<PriorityRow | null>(() => {
@@ -402,19 +429,22 @@ export function CommandSection() {
     return {
       id: `confidence-${top.branch_id}`,
       rank: 0,
-      title: `Forecast confidence at ${(conf * 100).toFixed(0)}% — ${top.branch_name}`,
+      title: t("dashboard.home.queue.confidenceTitle", {
+        pct: (conf * 100).toFixed(0),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz((1 - conf) * 1200),
       rootCauseHint:
         conf < 0.5
-          ? "Below 50% — prep recommendations are unreliable. Data quality check needed."
-          : "Below 65% — watch for overprep or underprep this shift.",
+          ? t("dashboard.home.queue.confidenceHintLow")
+          : t("dashboard.home.queue.confidenceHintMid"),
       viewHref: `/workspace/today?branch_id=${top.branch_id}`,
-      sectionLabel: "Low Forecast Confidence",
+      sectionLabel: t("dashboard.home.queue.secLowConfidence"),
       severity: conf < 0.5 ? "RED" : "AMBER",
-      ctaLabel: "Review prep plan",
+      ctaLabel: t("dashboard.home.queue.ctaReviewPlan"),
     };
-  }, [scopedBranchGrid, canSeeForecasts]);
+  }, [scopedBranchGrid, canSeeForecasts, t]);
 
   // 9. Branch underperformance — VIEW_ANALYTICS
   const underperformanceRow = useMemo<PriorityRow | null>(() => {
@@ -433,16 +463,16 @@ export function CommandSection() {
     return {
       id: `under-${top.branch_id}`,
       rank: 0,
-      title: `Underperforming vs org average — ${top.branch_name}`,
+      title: t("dashboard.home.queue.underTitle", { branch: top.branch_name }),
       impactedBranch: top.branch_name,
       financialImpact: nz(Number(top.waste_pct ?? 0) * 420),
-      rootCauseHint: "Waste and surplus pressure dragging this branch below the org baseline.",
+      rootCauseHint: t("dashboard.home.queue.underHint"),
       viewHref: `/workspace/branches?branch=${top.branch_id}`,
-      sectionLabel: "Branch Underperformance",
+      sectionLabel: t("dashboard.home.queue.secUnderperformance"),
       severity: toSeverity(nz(Number(top.waste_pct ?? 0) * 420), 0),
-      ctaLabel: "Review branch",
+      ctaLabel: t("dashboard.home.queue.ctaReviewBranch"),
     };
-  }, [scopedBranchGrid, canSeeAnalytics]);
+  }, [scopedBranchGrid, canSeeAnalytics, t]);
 
   // 10. Forecast deviation — VIEW_FORECASTS
   const forecastDeviationRow = useMemo<PriorityRow | null>(() => {
@@ -460,17 +490,19 @@ export function CommandSection() {
     return {
       id: `forecast-${top.branch_id}`,
       rank: 0,
-      title: `${top.missPct.toFixed(1)}% prep vs sales gap — ${top.branch_name}`,
+      title: t("dashboard.home.queue.deviationTitle", {
+        pct: top.missPct.toFixed(1),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz(top.miss * 35),
-      rootCauseHint:
-        "Prepared significantly more than sold — adjust tomorrow's quantities.",
+      rootCauseHint: t("dashboard.home.queue.deviationHint"),
       viewHref: `/workspace/today?branch_id=${top.branch_id}`,
-      sectionLabel: "Forecast Deviation",
+      sectionLabel: t("dashboard.home.queue.secForecastDeviation"),
       severity: toSeverity(nz(top.miss * 35), 0),
-      ctaLabel: "Adjust prep plan",
+      ctaLabel: t("dashboard.home.queue.ctaAdjustPlan"),
     };
-  }, [scopedBranchGrid, canSeeForecasts]);
+  }, [scopedBranchGrid, canSeeForecasts, t]);
 
   // 11. Production misalignment (surplus) — VIEW_PRODUCTION_REPORTS
   const productionMisRow = useMemo<PriorityRow | null>(() => {
@@ -483,16 +515,19 @@ export function CommandSection() {
     return {
       id: `prod-${top.branch_id}`,
       rank: 0,
-      title: `${pct.toFixed(1)}% surplus in production — ${top.branch_name}`,
+      title: t("dashboard.home.queue.surplusTitle", {
+        pct: pct.toFixed(1),
+        branch: top.branch_name,
+      }),
       impactedBranch: top.branch_name,
       financialImpact: nz(pct * 220),
-      rootCauseHint: "Late-shift overproduction is reducing sell-through.",
+      rootCauseHint: t("dashboard.home.queue.surplusHint"),
       viewHref: `/workspace/today?branch_id=${top.branch_id}`,
-      sectionLabel: "Production Misalignment",
+      sectionLabel: t("dashboard.home.queue.secProductionMis"),
       severity: toSeverity(nz(pct * 220), 0),
-      ctaLabel: "Adjust quantities",
+      ctaLabel: t("dashboard.home.queue.ctaAdjustQty"),
     };
-  }, [scopedBranchGrid, canSeeProduction]);
+  }, [scopedBranchGrid, canSeeProduction, t]);
 
   // 12. Low stock / velocity surge — VIEW_INVENTORY
   const lowStockRow = useMemo<PriorityRow | null>(() => {
@@ -501,18 +536,24 @@ export function CommandSection() {
     return {
       id: `stock-${top.id}`,
       rank: 0,
-      title: top.title || `Low stock risk — ${top.branch_name}`,
+      title:
+        top.title ||
+        t("dashboard.home.queue.lowStockTitle", { branch: top.branch_name }),
       impactedBranch: top.branch_name,
       financialImpact: nz(stockAlerts.length * 240),
       rootCauseHint:
         top.context ||
-        `${stockAlerts.length} stock alert${stockAlerts.length > 1 ? "s" : ""} detected.`,
+        (stockAlerts.length === 1
+          ? t("dashboard.home.queue.lowStockHintOne")
+          : t("dashboard.home.queue.lowStockHintMany", {
+              count: stockAlerts.length,
+            })),
       viewHref: `/workspace/inventory?branch=${top.branch_id}`,
-      sectionLabel: "Low Stock Risk",
+      sectionLabel: t("dashboard.home.queue.secLowStock"),
       severity: toSeverity(nz(stockAlerts.length * 240), 0),
-      ctaLabel: "Check inventory",
+      ctaLabel: t("dashboard.home.queue.ctaCheckInventory"),
     };
-  }, [stockAlerts, canSeeInventory]);
+  }, [stockAlerts, canSeeInventory, t]);
 
   // 13. Sales velocity drop — VIEW_PRODUCTION_REPORTS | VIEW_ANALYTICS
   const velocityDropRow = useMemo<PriorityRow | null>(() => {
@@ -522,17 +563,18 @@ export function CommandSection() {
     return {
       id: `velocity-${top.id}`,
       rank: 0,
-      title: top.title || `Sales velocity dropping — ${top.branch_name}`,
+      title:
+        top.title ||
+        t("dashboard.home.queue.velocityTitle", { branch: top.branch_name }),
       impactedBranch: top.branch_name,
       financialImpact: nz(velocityDropAlerts.length * 350),
-      rootCauseHint:
-        top.context || "Lower than expected sales rate during live service.",
+      rootCauseHint: top.context || t("dashboard.home.queue.velocityHint"),
       viewHref: `/workspace/today?branch_id=${top.branch_id}`,
-      sectionLabel: "Sales Velocity Drop",
+      sectionLabel: t("dashboard.home.queue.secVelocityDrop"),
       severity: "AMBER",
-      ctaLabel: "Review live sales",
+      ctaLabel: t("dashboard.home.queue.ctaReviewLiveSales"),
     };
-  }, [velocityDropAlerts, canSeeProduction, canSeeAnalytics]);
+  }, [velocityDropAlerts, canSeeProduction, canSeeAnalytics, t]);
 
   // ── Assemble, filter, sort, rank ─────────────────────────────────────────────
 
@@ -587,7 +629,7 @@ export function CommandSection() {
       }),
       col.display({
         id: "issue",
-        header: "Issue",
+        header: t("dashboard.home.queue.colIssue"),
         cell: (info) => {
           const row = info.row.original;
           const dotColor =
@@ -615,7 +657,7 @@ export function CommandSection() {
         },
       }),
       col.accessor("financialImpact", {
-        header: "Cost at risk",
+        header: t("dashboard.home.queue.colCost"),
         cell: (info) => {
           const row = info.row.original;
           const val = info.getValue();
@@ -628,10 +670,12 @@ export function CommandSection() {
                 <p
                   className={`text-sm font-bold ${isRed ? "text-status-critical" : "text-status-warning"}`}
                 >
-                  {isRed ? "Urgent" : "Action needed"}
+                  {isRed
+                    ? t("dashboard.home.queue.urgent")
+                    : t("dashboard.home.queue.actionNeeded")}
                 </p>
                 <p className="text-[10px] text-text-muted mt-0.5 uppercase tracking-wider">
-                  subscription
+                  {t("dashboard.home.queue.subscriptionTag")}
                 </p>
               </div>
             );
@@ -648,10 +692,10 @@ export function CommandSection() {
                   : "text-status-success bg-status-success/10 border-status-success/20";
             const label =
               row.severity === "RED"
-                ? "Critical"
+                ? t("dashboard.home.queue.sevCritical")
                 : row.severity === "AMBER"
-                  ? "Warning"
-                  : "Low";
+                  ? t("dashboard.home.queue.sevWarning")
+                  : t("dashboard.home.queue.sevLow");
             return (
               <span
                 className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${cls}`}
@@ -673,7 +717,7 @@ export function CommandSection() {
                 {fmt(val)}
               </p>
               <p className="text-[10px] text-text-muted mt-0.5 uppercase tracking-wider">
-                at risk today
+                {t("dashboard.home.queue.atRiskToday")}
               </p>
             </div>
           );
@@ -696,7 +740,7 @@ export function CommandSection() {
         },
       }),
     ],
-    [canSeeFinancials],
+    [canSeeFinancials, t],
   );
 
   const table = useReactTable({
@@ -712,20 +756,22 @@ export function CommandSection() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-            Priority Work Queue
+            {t("dashboard.home.queue.kicker")}
           </p>
           <h2 className="mt-1 text-xl font-semibold text-text-primary">
-            Decisions that affect margins today
+            {t("dashboard.home.queue.title")}
           </h2>
           <p className="mt-1 text-sm text-text-muted max-w-xl">
-            Not system errors — performance issues that need a manager&apos;s call.
-            Ranked by financial impact.
+            {t("dashboard.home.queue.subtitle")}
           </p>
         </div>
         {priorityRows.length > 0 && (
           <span className="shrink-0 mt-1 text-xs font-medium text-text-muted bg-surface-3 border border-surface-4 rounded-full px-3 py-1">
-            {priorityRows.length} open{" "}
-            {priorityRows.length === 1 ? "item" : "items"}
+            {priorityRows.length === 1
+              ? t("dashboard.home.queue.openItemsOne")
+              : t("dashboard.home.queue.openItemsMany", {
+                  count: priorityRows.length,
+                })}
           </span>
         )}
       </div>
@@ -733,10 +779,10 @@ export function CommandSection() {
       {priorityRows.length === 0 ? (
         <div className="rounded-xl border border-surface-4 bg-surface-2 px-8 py-12 text-center">
           <p className="text-sm font-medium text-text-primary">
-            Nothing in the queue right now
+            {t("dashboard.home.queue.emptyTitle")}
           </p>
           <p className="text-xs text-text-muted mt-1">
-            All performance metrics are within acceptable ranges.
+            {t("dashboard.home.queue.emptySubtitle")}
           </p>
         </div>
       ) : (

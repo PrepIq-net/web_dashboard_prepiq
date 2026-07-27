@@ -16,6 +16,16 @@ export const scheduleEndpoints = {
   reviewAvailability: (availabilityId: string) =>
     `${BASE}/availability/${availabilityId}/review/`,
 
+  // Employee self-service (mirrors mobile): submit and read your own weekly
+  // availability without any management permission.
+  myContext: () => `${BASE}/me/context/`,
+
+  myAvailability: (branchId: string, week: string) =>
+    `${BASE}/me/availability/${buildQuery({ branch_id: branchId, week })}`,
+
+  submitAvailability: (branchId: string) =>
+    `${BASE}/me/availability/${buildQuery({ branch_id: branchId })}`,
+
   scheduleWeek: (branchId: string, week: string) =>
     `${BASE}/schedules/${buildQuery({ branch_id: branchId, week })}`,
 

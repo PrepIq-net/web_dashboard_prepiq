@@ -68,20 +68,17 @@ export function ThreadView({
   }, [conversation.id, conversation.display_title]);
 
   const others = conversation.members.filter((m) => m.user.id !== currentUserId);
+  // The assistant is omnipresent: chat/services.py fires it on an @PrepIQ
+  // mention in ANY conversation, not only ones it was added to. Gating the
+  // autocomplete on includes_assistant hid a mention that worked perfectly
+  // well if you typed it out by hand.
   const mentionTargets = useMemo(
     () =>
       buildHubMentionTargets({
         members: conversation.members,
         currentUserId,
-        assistantAvailable:
-          conversation.includes_assistant || conversation.conversation_type === "ASSISTANT",
       }),
-    [
-      conversation.conversation_type,
-      conversation.includes_assistant,
-      conversation.members,
-      currentUserId,
-    ],
+    [conversation.members, currentUserId],
   );
 
   // "Seen" for my latest message: every other member's read horizon passed it.
@@ -279,7 +276,7 @@ export function ThreadView({
         onSend={onSend}
         onTyping={onTyping}
         sending={sending}
-        assistantAvailable={conversation.includes_assistant || conversation.conversation_type === "ASSISTANT"}
+        assistantAvailable
         mentionTargets={mentionTargets}
       />
     </div>

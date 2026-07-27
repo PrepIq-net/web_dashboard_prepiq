@@ -8,6 +8,7 @@ import { formatImpact, impactTone } from "@/lib/format";
 import {
   usePlanningForecastContext,
   useDeletePlanningEvent,
+  useConfirmPlanningEvent,
 } from "@/services/planning/hooks";
 import type { CalendarEventList } from "@/services/planning/types";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/services/planning/types";
@@ -17,6 +18,101 @@ import type { AssistantConversation } from "@/services/assistant/types";
 import { ConversationReadonly } from "@/components/assistant/conversation-readonly";
 import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { toIso } from "./planning-helpers";
+
+/**
+ * Provenance footer for an event PrepIQ found rather than a person entering it.
+ *
+ * The pending state is the important one: the event is on the calendar and
+ * fully readable, but it is not in the forecast and the copy says so plainly.
+ * Confirming admits it; it does not change what PrepIQ has learned.
+ */
+function AiEventFooter({ event }: { event: CalendarEventList }) {
+  const { t } = useTranslation();
+  const confirmMutation = useConfirmPlanningEvent();
+  const isPending = event.confirmation_status === "PENDING";
+  const isDismissed = event.confirmation_status === "DISMISSED";
+
+  // Confidence in the *magnitude*, from realized residuals at this branch.
+  // Zero dots is the honest reading of "we have never seen one of these here".
+  const confidence = event.ai_confidence ?? 0;
+  const dots = Math.max(0, Math.min(4, Math.round(confidence * 4)));
+
+  return (
+    <div className="mt-2 border-t border-surface-4/60 pt-2">
+      <div className="flex items-center gap-1.5">
+        <span className="inline-flex rounded-full border border-surface-4 bg-surface-3 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-text-secondary">
+          {t("planning.ai_found_badge")}
+        </span>
+        <span
+          role="img"
+          className="flex items-center gap-0.5"
+          title={
+            dots === 0
+              ? t("planning.ai_no_track_record")
+              : t("planning.ai_track_record")
+          }
+          aria-label={
+            dots === 0
+              ? t("planning.ai_no_track_record")
+              : t("planning.ai_track_record")
+          }
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <span
+              key={i}
+              className={`h-1 w-1 rounded-full ${
+                i < dots ? "bg-brand-gold" : "bg-surface-4"
+              }`}
+            />
+          ))}
+        </span>
+      </div>
+
+      {event.ai_reason ? (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-text-secondary">
+          {event.ai_reason}
+        </p>
+      ) : null}
+
+      <p
+        className={`mt-1.5 text-[10px] ${
+          isPending ? "text-status-warning" : "text-text-muted"
+        }`}
+      >
+        {isPending
+          ? t("planning.ai_pending_hint")
+          : isDismissed
+            ? t("planning.ai_dismissed_hint")
+            : t("planning.ai_confirmed_hint")}
+      </p>
+
+      {isPending ? (
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              confirmMutation.mutate({ eventId: event.id, decision: "confirm" })
+            }
+            disabled={confirmMutation.isPending}
+            className="rounded-full border border-brand-gold/40 px-2.5 py-1 text-[10px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 disabled:opacity-40"
+          >
+            {t("planning.ai_confirm")}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              confirmMutation.mutate({ eventId: event.id, decision: "dismiss" })
+            }
+            disabled={confirmMutation.isPending}
+            className="rounded-full px-2 py-1 text-[10px] text-text-muted transition-colors hover:text-text-primary disabled:opacity-40"
+          >
+            {t("planning.ai_dismiss")}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Right-hand detail panel for the selected day: forecast impact, auto-detected
@@ -122,6 +218,19 @@ export function DayPanel({
                 </span>
               </div>
             ) : null}
+            {/* Says out loud what the composite above does NOT include, so the
+                number is never quietly incomplete. */}
+            {fc.pending_ai_event_count > 0 ? (
+              <div className="col-span-2 mt-0.5">
+                <span className="font-semibold text-status-warning">
+                  {fc.pending_ai_event_count === 1
+                    ? t("planning.ai_pending_count_one")
+                    : t("planning.ai_pending_count_other", {
+                        count: fc.pending_ai_event_count,
+                      })}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -189,10 +298,17 @@ export function DayPanel({
             </button>
           </div>
         ) : (
-          events.map((event) => (
+          events.map((event) => {
+            const isAiEvent = event.source === "AI_DISCOVERED";
+            const isPending = event.confirmation_status === "PENDING";
+            return (
             <div
               key={event.id}
-              className="rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 transition-colors hover:border-surface-4/80"
+              className={`rounded-xl border bg-surface-2 px-3 py-2.5 transition-colors ${
+                isPending
+                  ? "border-dashed border-status-warning/40"
+                  : "border-surface-4 hover:border-surface-4/80"
+              }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -202,11 +318,25 @@ export function DayPanel({
                     >
                       {EVENT_TYPE_LABELS[event.event_type]}
                     </span>
+                    {isPending ? (
+                      <span className="inline-flex rounded-full border border-status-warning/30 bg-status-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-status-warning">
+                        {t("planning.ai_pending_badge")}
+                      </span>
+                    ) : null}
                     {event.expected_demand_impact != null ? (
                       <span
-                        className={`text-[10px] font-semibold ${impactTone(event.expected_demand_impact)}`}
+                        className={`text-[10px] font-semibold ${
+                          isPending
+                            ? "text-text-muted"
+                            : impactTone(event.expected_demand_impact)
+                        }`}
                       >
                         {formatImpact(event.expected_demand_impact)}
+                        {isPending ? (
+                          <span className="ml-1 font-normal text-text-muted">
+                            {t("planning.ai_if_confirmed")}
+                          </span>
+                        ) : null}
                       </span>
                     ) : null}
                     {event.status === "CANCELLED" ? (
@@ -282,8 +412,10 @@ export function DayPanel({
                   )}
                 </div>
               </div>
+              {isAiEvent ? <AiEventFooter event={event} /> : null}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

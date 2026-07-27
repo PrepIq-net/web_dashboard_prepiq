@@ -45,9 +45,9 @@ export function KpiCard({
 }: KpiCardProps) {
   return (
     <article
-      className={`bg-surface-2 rounded-card p-6 border border-surface-4/50 ${className}`}
+      className={`bg-surface-2 rounded-card p-4 border border-surface-4/50 ${className}`}
     >
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
           {label}
         </p>
@@ -61,18 +61,18 @@ export function KpiCard({
 
       <p
         className={`font-display font-semibold text-text-primary tracking-tight leading-none ${
-          compact ? "text-2xl" : "text-4xl"
+          compact ? "text-xl" : "text-3xl"
         }`}
       >
         {value}
       </p>
 
       {subtext && (
-        <div className="mt-3 text-sm text-text-secondary">{subtext}</div>
+        <div className="mt-2 text-sm text-text-secondary">{subtext}</div>
       )}
 
       {progress !== undefined && (
-        <div className="mt-4 h-1.5 rounded-full overflow-hidden bg-surface-3">
+        <div className="mt-3 h-1.5 rounded-full overflow-hidden bg-surface-3">
           <div
             className={`h-full rounded-full transition-all duration-500 ${progressBarClass[progressColor]}`}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}

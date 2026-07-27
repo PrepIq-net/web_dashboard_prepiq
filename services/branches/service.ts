@@ -3,17 +3,20 @@ import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { branchEndpoints } from "./endpoints";
 import {
   branchSchema,
+  createdBranchSchema,
   departmentSchema,
   staffInviteSchema,
   staffRoleEnum,
   staffInviteContextSchema,
   staffAssignmentSchema,
+  branchStaffAssignmentSchema,
   inviteValidationSchema,
   type CreateBranchPayload,
   type UpdateBranchPayload,
   type CreateDepartmentPayload,
   type CreateStaffInvitePayload,
   type AcceptInvitePayload,
+  type UpsertBranchAssignmentPayload,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +63,7 @@ export async function createBranch(
   orgId: string,
   payload: CreateBranchPayload,
 ) {
-  return apiClientWithSchema(branchEndpoints.list(orgId), branchSchema, {
+  return apiClientWithSchema(branchEndpoints.list(orgId), createdBranchSchema, {
     method: "POST",
     body: { ...payload, organization: orgId },
   });
@@ -291,4 +294,39 @@ export async function removeStaff(
     branchEndpoints.removeStaff(orgId, memberId),
     { method: "POST", body: reason ? { reason } : undefined },
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-branch role assignment — for members already in the org. Bringing a new
+// person in still goes through the invite + accept flow.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listBranchAssignments(orgId: string, userId?: string) {
+  const url = userId
+    ? `${branchEndpoints.branchAssignments(orgId)}?user_id=${encodeURIComponent(userId)}`
+    : branchEndpoints.branchAssignments(orgId);
+  return apiClientWithSchema(url, z.array(branchStaffAssignmentSchema), {
+    method: "GET",
+  });
+}
+
+export async function upsertBranchAssignment(
+  orgId: string,
+  payload: UpsertBranchAssignmentPayload,
+) {
+  return apiClientWithSchema(
+    branchEndpoints.branchAssignments(orgId),
+    branchStaffAssignmentSchema,
+    { method: "POST", body: payload },
+  );
+}
+
+export async function removeBranchAssignment(
+  orgId: string,
+  payload: { user_id: string; branch_id: string },
+) {
+  return apiClient<void>(branchEndpoints.branchAssignments(orgId), {
+    method: "DELETE",
+    body: payload,
+  });
 }

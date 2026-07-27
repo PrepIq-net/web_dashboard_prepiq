@@ -356,10 +356,10 @@ export default function BillingPage() {
     return dates[0] ?? null;
   }, [summarySubscriptions]);
 
+  // Branches are never metered — a plan covers one location, and its only cap
+  // is how many staff work at that location.
   const planLimits = currentSubscriptionQuery.data?.plan?.plan_limits ?? {};
-  const maxBranches = planLimits?.MAX_BRANCHES ?? null;
   const maxStaffPerBranch = planLimits?.MAX_STAFF_PER_BRANCH ?? null;
-  const maxTotalStaff = planLimits?.MAX_TOTAL_STAFF ?? null;
 
   const latestPayment = payments[0];
   const invoiceRows = invoices.slice(0, 8);
@@ -387,7 +387,7 @@ export default function BillingPage() {
     currentSubscriptionQuery.data?.plan?.name ??
     t("workspace.billing.noActivePlan");
 
-  const showLimits = maxBranches || maxStaffPerBranch || maxTotalStaff;
+  const showLimits = Boolean(currentSubscriptionQuery.data?.plan);
 
   const formatDaysRenew = (days: number) => {
     if (days === 0) return t("workspace.billing.renewsToday");
@@ -559,23 +559,11 @@ export default function BillingPage() {
             </p>
             <p className="mt-2 text-2xl font-semibold text-text-primary">
               {activeBranches.length}
-              {maxBranches ? (
-                <span className="ml-1 text-sm font-normal text-text-muted">
-                  / {maxBranches}
-                </span>
-              ) : null}
             </p>
-            {maxBranches && activeBranches.length >= maxBranches ? (
-              <p className="mt-1 text-xs text-status-warning">
-                {t("workspace.billing.atPlanLimit")}
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-text-muted">
-                {maxBranches
-                  ? t("workspace.billing.slotsRemaining", { count: maxBranches - activeBranches.length })
-                  : t("workspace.billing.unlimited")}
-              </p>
-            )}
+            {/* Locations are never capped — each one carries its own plan. */}
+            <p className="mt-1 text-xs text-text-muted">
+              {t("workspace.billing.unlimited")}
+            </p>
           </article>
 
           <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
@@ -863,66 +851,33 @@ export default function BillingPage() {
           <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
             {t("workspace.billing.planLimits")}
           </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {maxBranches && (
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {t("workspace.billing.locations")}
-                  </p>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {activeBranches.length}
-                    <span className="font-normal text-text-muted">
-                      {" "}
-                      / {limitLabel(maxBranches, t)}
-                    </span>
-                  </p>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-4">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${activeBranches.length >= maxBranches ? "bg-status-warning" : "bg-brand-gold"}`}
-                    style={{
-                      width: `${Math.min(100, (activeBranches.length / maxBranches) * 100)}%`,
-                    }}
-                  />
-                </div>
-                {activeBranches.length >= maxBranches && (
-                  <p className="mt-2 text-xs text-status-warning">
-                    {t("workspace.billing.atLimitUpgrade")}
-                  </p>
-                )}
-              </article>
-            )}
-            {maxStaffPerBranch && (
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {t("workspace.billing.staffPerLocation")}
-                  </p>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {limitLabel(maxStaffPerBranch, t)}
-                  </p>
-                </div>
-                <p className="text-xs text-text-muted">
-                  {t("workspace.billing.maxStaffPerBranch")}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {t("workspace.billing.locations")}
                 </p>
-              </article>
-            )}
-            {maxTotalStaff && (
-              <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    {t("workspace.billing.totalStaff")}
-                  </p>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {limitLabel(maxTotalStaff, t)}
-                  </p>
-                </div>
-                <p className="text-xs text-text-muted">
-                  {t("workspace.billing.orgWideStaffAllowance")}
+                <p className="text-sm font-semibold text-text-primary">
+                  {activeBranches.length}
                 </p>
-              </article>
-            )}
+              </div>
+              <p className="text-xs text-text-muted">
+                {t("workspace.billing.unlimitedLocationsNote")}
+              </p>
+            </article>
+            <article className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {t("workspace.billing.staffPerLocation")}
+                </p>
+                <p className="text-sm font-semibold text-text-primary">
+                  {limitLabel(maxStaffPerBranch, t)}
+                </p>
+              </div>
+              <p className="text-xs text-text-muted">
+                {t("workspace.billing.maxStaffPerBranch")}
+              </p>
+            </article>
           </div>
         </section>
       )}
