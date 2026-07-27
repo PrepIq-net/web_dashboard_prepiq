@@ -12,7 +12,12 @@ import type {
   AvailabilityWeek,
   EmployeeAvailability,
 } from "@/services/schedule/types";
-import { weekDates, formatDayLabel, toIso } from "./schedule-helpers";
+import {
+  AVAILABILITY_STATUS_VARIANT,
+  formatDayLabel,
+  toIso,
+  weekDates,
+} from "./schedule-helpers";
 
 type ReviewDecision = "APPROVED" | "REJECTED";
 
@@ -25,12 +30,6 @@ type AvailabilityTabProps = {
     status: ReviewDecision,
     note: string,
   ) => void;
-};
-
-const STATUS_VARIANT: Record<AvailabilityStatus, "default" | "secondary" | "destructive"> = {
-  APPROVED: "default",
-  PENDING: "secondary",
-  REJECTED: "destructive",
 };
 
 // The row asks for a decision; this modal collects the optional note that rides
@@ -180,7 +179,7 @@ function SubmissionRow({ submission, canReview, reviewing, onReview }: Submissio
     <div className="grid grid-cols-[200px_repeat(7,1fr)_180px] gap-px">
       <div className="bg-surface-2 px-3 py-3">
         <p className="truncate text-sm text-text-primary">{submission.user.name}</p>
-        <Badge variant={STATUS_VARIANT[submission.status]} className="mt-1">
+        <Badge variant={AVAILABILITY_STATUS_VARIANT[submission.status]} className="mt-1">
           {t(`schedule.status.${submission.status.toLowerCase()}`)}
         </Badge>
         {submission.note ? (

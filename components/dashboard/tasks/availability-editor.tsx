@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { TextArea } from "@/components/ui/form-field";
+import { AVAILABILITY_STATUS_VARIANT } from "@/components/dashboard/schedule/schedule-helpers";
 import {
   useMyAvailability,
   useMyContext,
@@ -29,15 +30,6 @@ import {
 function slotKey(weekday: number, templateId: string) {
   return `${weekday}|${templateId}`;
 }
-
-const STATUS_VARIANT: Record<
-  AvailabilityStatus,
-  "default" | "secondary" | "destructive"
-> = {
-  APPROVED: "default",
-  PENDING: "secondary",
-  REJECTED: "destructive",
-};
 
 /**
  * The web port of mobile's availability editor. Submit-and-edit weekly
@@ -193,7 +185,7 @@ export function AvailabilityEditor() {
             {weekIso ? formatWeekRange(weekIso) : ""}
           </p>
           {availability ? (
-            <Badge variant={STATUS_VARIANT[availability.status]}>
+            <Badge variant={AVAILABILITY_STATUS_VARIANT[availability.status]}>
               {t(`tasks.availability.status.${availability.status.toLowerCase()}`)}
             </Badge>
           ) : (

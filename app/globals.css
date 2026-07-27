@@ -187,3 +187,17 @@
     }
   }
 }
+
+/* DESIGN.md §5: honour the OS reduced-motion preference. Transitions and
+   keyframes collapse to a single frame rather than being removed, so state
+   still changes — it just stops animating. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

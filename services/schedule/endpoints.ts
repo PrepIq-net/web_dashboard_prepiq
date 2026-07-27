@@ -42,6 +42,17 @@ export const scheduleEndpoints = {
   coverage: (branchId: string, week: string) =>
     `${BASE}/coverage/${buildQuery({ branch_id: branchId, week })}`,
 
+  // Separate from coverage: 168 rows with staff attached, so it is fetched
+  // when the manager opens the view rather than on every schedule page load.
+  hourlyCoverage: (branchId: string, week: string) =>
+    `${BASE}/coverage/hourly/${buildQuery({ branch_id: branchId, week })}`,
+
+  laborStandard: (branchId: string) =>
+    `${BASE}/standards/${buildQuery({ branch_id: branchId })}`,
+
+  employeeLaborProfile: (branchId: string, userId: string) =>
+    `${BASE}/employees/${userId}/labor-profile/${buildQuery({ branch_id: branchId })}`,
+
   recomputeRequirements: () => `${BASE}/requirements/recompute/`,
 
   history: (branchId: string, weeks: number) =>

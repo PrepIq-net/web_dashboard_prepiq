@@ -246,7 +246,7 @@ function IngredientRow({
             ) : null}
           </>
         ) : (
-          <span className="text-xs text-status-positive">
+          <span className="text-xs text-status-success">
             {t("today.ingredients.covered")}
           </span>
         )}
