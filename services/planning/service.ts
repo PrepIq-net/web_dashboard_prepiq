@@ -56,6 +56,17 @@ export async function updateEvent(
   );
 }
 
+export async function confirmEvent(
+  eventId: string,
+  decision: "confirm" | "dismiss",
+) {
+  return apiClientWithSchema(
+    planningEndpoints.confirm(eventId),
+    calendarEventDetailSchema,
+    { method: "POST", body: { decision } },
+  );
+}
+
 export async function deleteEvent(eventId: string) {
   return apiClient<void>(planningEndpoints.delete(eventId), {
     method: "DELETE",

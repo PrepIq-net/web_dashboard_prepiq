@@ -316,6 +316,7 @@ function PlanningPageContent() {
                     "CLOSURE",
                     "LOCAL_EVENT",
                     "DELIVERY",
+                    "AI_RECOMMENDATION",
                   ] as EventType[]
                 ).map((type) => (
                   <span
