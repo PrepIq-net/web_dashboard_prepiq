@@ -469,6 +469,10 @@ export function tierLiveRows(rows: LiveRow[]) {
     if (sr === "HIGH") criticalRows.push(row);
     else if (sr === "MEDIUM" || wr === "HIGH" || wr === "MEDIUM")
       watchRows.push(row);
+    // UNKNOWN means the branch has no operating hours, so we cannot say how
+    // much service is left. That is not the same as on-track — filing it
+    // under "ok" would hide the item behind a reassurance we can't back.
+    else if (sr === "UNKNOWN" || wr === "UNKNOWN") watchRows.push(row);
     else okRows.push(row);
   }
   return { criticalRows, watchRows, okRows };

@@ -147,13 +147,23 @@ export const prepPlanItemSchema = z.object({
         .object({
           remaining_stock: z.number(),
           avg_demand_last_hour: z.number(),
-          hours_until_closing: z.number(),
-          forecast_demand_remaining: z.number(),
+          // Null when the branch has no operating hours configured. The
+          // backend refuses to invent a runway, so the UI must handle "we
+          // don't know when they close" rather than rendering a 0.
+          hours_until_closing: z.number().nullable(),
+          forecast_demand_remaining: z.number().nullable(),
+          // How the remaining-demand number was derived, so the UI can show
+          // a shape-aware estimate differently from a flat guess.
+          demand_basis: z
+            .enum(["intraday_profile", "flat_extrapolation", "unknown"])
+            .optional(),
+          expected_fraction_of_day_done: z.number().nullable().optional(),
+          operating_hours_known: z.boolean().optional(),
           runout_minutes: z.number().nullable().optional(),
           prep_time_minutes: z.number().optional(),
           start_new_batch_now: z.boolean().optional(),
-          stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
-          waste_risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
+          stockout_risk: z.enum(["LOW", "MEDIUM", "HIGH", "UNKNOWN"]),
+          waste_risk: z.enum(["LOW", "MEDIUM", "HIGH", "UNKNOWN"]),
         })
         .optional(),
       sales_intake_mode: z
@@ -2062,9 +2072,17 @@ export type VelocityUpdateResponse = z.infer<
   typeof velocityUpdateResponseSchema
 >;
 
+/** How much trading time is left, and whether we actually know. */
+export const serviceWindowSchema = z.object({
+  hours_until_closing: z.number().nullable(),
+  is_known: z.boolean(),
+  is_closed_today: z.boolean(),
+});
+
 export const branchPaceSummarySchema = z.object({
   as_of: z.string(),
   date: z.string(),
+  service_window: serviceWindowSchema.optional(),
   branch: cumulativePositionSchema
     .omit({ projected_gap_units: true })
     .extend({
@@ -2131,6 +2149,7 @@ export const intradayTimelineSchema = z.object({
   as_of: z.string(),
   date: z.string(),
   current_hour: z.number(),
+  service_window: serviceWindowSchema.optional(),
   items: z.array(intradayTimelineItemSchema),
 });
 export type IntradayTimeline = z.infer<typeof intradayTimelineSchema>;
