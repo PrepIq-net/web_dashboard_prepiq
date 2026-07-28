@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { Plus } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
-import type { Shift, UserSummary } from "@/services/schedule/types";
+import type { Shift, UserSummary, WeekTotals } from "@/services/schedule/types";
+import { HourBudgetRow, HourBudgetSummary } from "./hour-budget";
 import {
   formatDayLabel,
   formatDayNumber,
@@ -20,12 +21,15 @@ type WeekGridProps = {
   onCellClick: (userId: string, dateIso: string) => void;
   onShiftClick: (shift: Shift) => void;
   understaffedDays?: string[];
+  /** Hours against each person's cap. Presentational — the grid never fetches. */
+  weekTotals?: WeekTotals;
 };
 
 /**
- * Rows are people, columns are days. Click-to-assign rather than drag-and-drop:
- * the repo has no DnD library, and dragging is poor on the touch devices
- * managers actually use in a kitchen.
+ * Rows are people, columns are days, with hours-against-cap in a trailing
+ * column. Click-to-assign rather than drag-and-drop — @dnd-kit is available
+ * and the task board uses it, but dragging a shift onto a specific person and
+ * day is fiddly on the tablets managers actually use in a kitchen.
  */
 export function WeekGrid({
   weekStartIso,
@@ -35,10 +39,16 @@ export function WeekGrid({
   onCellClick,
   onShiftClick,
   understaffedDays = [],
+  weekTotals,
 }: WeekGridProps) {
   const { t } = useTranslation();
   const days = useMemo(() => weekDates(weekStartIso), [weekStartIso]);
   const shortDays = useMemo(() => new Set(understaffedDays), [understaffedDays]);
+
+  const totalsByUser = useMemo(
+    () => new Map((weekTotals?.by_user ?? []).map((row) => [row.user_id, row])),
+    [weekTotals],
+  );
 
   const shiftsByCell = useMemo(() => {
     const map = new Map<string, Shift[]>();
@@ -67,7 +77,7 @@ export function WeekGrid({
     // page body never scrolls sideways.
     <div className="overflow-x-auto">
       <div className="min-w-[840px]">
-        <div className="grid grid-cols-[180px_repeat(7,1fr)] gap-px rounded-xl border border-surface-4/60 bg-surface-4/60">
+        <div className="grid grid-cols-[180px_repeat(7,1fr)_120px] gap-px rounded-xl border border-surface-4/60 bg-surface-4/60">
           <div className="bg-surface-2 px-3 py-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
               {t("schedule.grid.employee")}
@@ -91,6 +101,11 @@ export function WeekGrid({
               </div>
             );
           })}
+          <div className="bg-surface-2 px-3 py-2 text-center">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              {t("schedule.hours.column")}
+            </span>
+          </div>
 
           {roster.map((person) => (
             <Row
@@ -101,10 +116,21 @@ export function WeekGrid({
               canEdit={canEdit}
               onCellClick={onCellClick}
               onShiftClick={onShiftClick}
+              total={totalsByUser.get(person.id)}
             />
           ))}
         </div>
       </div>
+
+      {weekTotals ? (
+        <div className="mt-3">
+          <HourBudgetSummary
+            totalHours={weekTotals.total_hours}
+            totalShifts={weekTotals.total_shifts}
+            overCap={weekTotals.by_user.filter((row) => row.over_hour_cap).length}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -116,9 +142,18 @@ type RowProps = {
   canEdit: boolean;
   onCellClick: (userId: string, dateIso: string) => void;
   onShiftClick: (shift: Shift) => void;
+  total?: WeekTotals["by_user"][number];
 };
 
-function Row({ person, days, shiftsByCell, canEdit, onCellClick, onShiftClick }: RowProps) {
+function Row({
+  person,
+  days,
+  shiftsByCell,
+  canEdit,
+  onCellClick,
+  onShiftClick,
+  total,
+}: RowProps) {
   const { t } = useTranslation();
 
   return (
@@ -176,6 +211,16 @@ function Row({ person, days, shiftsByCell, canEdit, onCellClick, onShiftClick }:
           </div>
         );
       })}
+
+      <div className="bg-surface-2">
+        {total ? (
+          <HourBudgetRow total={total} />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <span className="text-[11px] text-text-muted/50">—</span>
+          </div>
+        )}
+      </div>
     </>
   );
 }

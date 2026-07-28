@@ -10,6 +10,7 @@ import {
   useCurrentUserProfile,
   useDeleteShift,
   useGenerateSchedule,
+  useHourlyCoverage,
   usePublishSchedule,
   useRecomputeRequirements,
   useReviewAvailability,
@@ -21,6 +22,8 @@ import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSelectedBranch } from "@/services/context/branch-store";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
@@ -60,6 +63,7 @@ export default function SchedulePage() {
   const [weekIso, setWeekIso] = useState(currentWeekIso);
   const [activeTab, setActiveTab] = useState<ScheduleTab>("SCHEDULE");
   const [draft, setDraft] = useState<ShiftDraft | null>(null);
+  const [pendingRebuild, setPendingRebuild] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const permissions = useMemo(() => resolvePermissions(user), [user]);
@@ -76,6 +80,11 @@ export default function SchedulePage() {
     activeTab === "AVAILABILITY" && !subscriptionBlocked,
   );
   const coverageQuery = useCoverage(
+    branchId,
+    weekIso,
+    activeTab === "COVERAGE" && !subscriptionBlocked,
+  );
+  const hourlyQuery = useHourlyCoverage(
     branchId,
     weekIso,
     activeTab === "COVERAGE" && !subscriptionBlocked,
@@ -123,6 +132,9 @@ export default function SchedulePage() {
     shiftTemplateId: string | null;
     laborRoleId: string | null;
     notes: string;
+    startTime: string | null;
+    endTime: string | null;
+    isLocked: boolean;
   }) => {
     if (!draft || !branchId) return;
 
@@ -134,6 +146,9 @@ export default function SchedulePage() {
             shift_template_id: values.shiftTemplateId,
             labor_role_id: values.laborRoleId,
             notes: values.notes,
+            start_time: values.startTime,
+            end_time: values.endTime,
+            is_locked: values.isLocked,
           },
         },
         { onSuccess: () => setDraft(null) },
@@ -150,6 +165,9 @@ export default function SchedulePage() {
         shift_template_id: values.shiftTemplateId,
         labor_role_id: values.laborRoleId,
         notes: values.notes,
+        start_time: values.startTime,
+        end_time: values.endTime,
+        is_locked: values.isLocked,
       },
       { onSuccess: () => setDraft(null) },
     );
@@ -205,9 +223,44 @@ export default function SchedulePage() {
         generating={generate.isPending}
         publishing={publish.isPending}
         copying={copyPrevious.isPending}
-        onGenerate={() => generate.mutate()}
+        hasShifts={(schedule?.shifts.length ?? 0) > 0}
+        onGenerate={(mode) => {
+          // Auto-Plan discards every unpinned shift. It used to do that
+          // silently, which is fine on an empty week and destructive once a
+          // manager has hand-placed anything.
+          if (mode === "REPLACE" && (schedule?.shifts.length ?? 0) > 0) {
+            setPendingRebuild(true);
+            return;
+          }
+          generate.mutate(mode);
+        }}
         onPublish={() => schedule && publish.mutate(schedule.id)}
         onCopyPrevious={() => copyPrevious.mutate()}
+      />
+
+      <ModalShell
+        open={pendingRebuild}
+        title={t("schedule.rebuild.title")}
+        description={t("schedule.rebuild.description", {
+          count: schedule?.shifts.filter((shift) => !shift.is_locked).length ?? 0,
+        })}
+        onClose={() => setPendingRebuild(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPendingRebuild(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setPendingRebuild(false);
+                generate.mutate("REPLACE");
+              }}
+            >
+              {t("schedule.rebuild.confirm")}
+            </Button>
+          </div>
+        }
       />
 
       <div className="mb-6 flex gap-1 border-b border-surface-4/60">
@@ -249,6 +302,7 @@ export default function SchedulePage() {
                 shifts={schedule?.shifts ?? []}
                 canEdit={canManage && schedule?.status !== "PUBLISHED"}
                 understaffedDays={coverage?.understaffed_days ?? []}
+                weekTotals={week.week_totals}
                 onCellClick={(userId, dateIso) => setDraft({ userId, dateIso })}
                 onShiftClick={(shift) =>
                   setDraft({ userId: shift.user.id, dateIso: shift.date, shift })
@@ -282,6 +336,8 @@ export default function SchedulePage() {
           {coverageQuery.data ? (
             <CoverageTab
               data={coverageQuery.data}
+              hourly={hourlyQuery.data}
+              hourlyLoading={hourlyQuery.isLoading}
               canRecompute={canManage}
               recomputing={recompute.isPending}
               onRecompute={() => recompute.mutate()}
@@ -305,6 +361,13 @@ export default function SchedulePage() {
         roles={week?.labor_roles ?? []}
         saving={createShift.isPending || updateShift.isPending}
         deleting={deleteShift.isPending}
+        sameDayShifts={
+          draft
+            ? (schedule?.shifts ?? []).filter(
+                (shift) => shift.user.id === draft.userId && shift.date === draft.dateIso,
+              )
+            : []
+        }
         onClose={() => setDraft(null)}
         onSave={handleSaveShift}
         onDelete={() =>

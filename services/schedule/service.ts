@@ -6,12 +6,15 @@ import {
   employeeAvailabilitySchema,
   generateResponseSchema,
   historyResponseSchema,
+  hourlyCoverageSchema,
   myAvailabilityResponseSchema,
   myContextSchema,
   scheduleWeekSchema,
   shiftMutationResponseSchema,
   weeklyScheduleSchema,
   type CreateShiftPayload,
+  type EmployeeLaborProfilePayload,
+  type GenerationMode,
   type ReviewAvailabilityPayload,
   type SubmitAvailabilityPayload,
   type UpdateShiftPayload,
@@ -69,10 +72,14 @@ export async function getScheduleWeek(branchId: string, week: string) {
   );
 }
 
-export async function generateSchedule(branchId: string, weekStartDate: string) {
+export async function generateSchedule(
+  branchId: string,
+  weekStartDate: string,
+  mode: GenerationMode = "REPLACE",
+) {
   return apiClientWithSchema(scheduleEndpoints.generate(), generateResponseSchema, {
     method: "POST",
-    body: { branch_id: branchId, week_start_date: weekStartDate },
+    body: { branch_id: branchId, week_start_date: weekStartDate, mode },
   });
 }
 
@@ -117,6 +124,24 @@ export async function getCoverage(branchId: string, week: string) {
     scheduleEndpoints.coverage(branchId, week),
     coverageResponseSchema,
     { method: "GET" },
+  );
+}
+
+export async function getHourlyCoverage(branchId: string, week: string) {
+  return apiClientWithSchema(
+    scheduleEndpoints.hourlyCoverage(branchId, week),
+    hourlyCoverageSchema,
+  );
+}
+
+export async function setEmployeeLaborProfile(
+  branchId: string,
+  userId: string,
+  payload: EmployeeLaborProfilePayload,
+) {
+  return apiClient<unknown>(
+    scheduleEndpoints.employeeLaborProfile(branchId, userId),
+    { method: "PUT", body: payload },
   );
 }
 

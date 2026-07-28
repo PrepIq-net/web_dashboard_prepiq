@@ -4360,7 +4360,11 @@
       "addShift": "Ajouter un service",
       "removeShift": "Supprimer le service",
       "save": "Enregistrer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "optimize": "Optimiser",
+      "autoPlan": "Planifier la semaine",
+      "customWindow": "Définir un créneau personnalisé",
+      "pinShift": "Épingler ce service (la planification automatique ne le supprimera pas)"
     },
     "status": {
       "draft": "Brouillon",
@@ -4462,6 +4466,43 @@
       "sending": "Envoi…",
       "inviteHint": "La personne recevra un e-mail pour rejoindre et apparaîtra sur la liste de {branch} une fois l’invitation acceptée.",
       "noInvitePermission": "Vous n’avez pas la permission d’inviter du personnel dans cet établissement."
+    },
+    "rebuild": {
+      "title": "Reconstruire cette semaine ?",
+      "description": "La planification automatique supprime {count} service(s) saisis manuellement et redessine la semaine à partir des disponibilités approuvées. Les services épinglés sont conservés.",
+      "confirm": "Reconstruire"
+    },
+    "timeRange": {
+      "start": "Début",
+      "end": "Fin",
+      "total": "{hours} h au total",
+      "overnight": "se poursuit après minuit",
+      "endBeforeStart": "L'heure de fin précède l'heure de début.",
+      "overlaps": "Ce créneau en chevauche un autre le même jour."
+    },
+    "hourly": {
+      "day": "Jour",
+      "closed": "Fermé",
+      "closedAllDay": "Fermé toute la journée",
+      "nobodyOn": "Personne n’est planifié sur ce créneau.",
+      "unavailable": "La couverture horaire n’est pas encore disponible pour cette semaine.",
+      "worstGap": "Le créneau le plus tendu de la semaine est {hour} le {date} — il manque {short}.",
+      "detailTitle": "{date} à {hour}",
+      "scheduledOfRequired": "{scheduled} présents · {required} nécessaires",
+      "cellLabel": "{date} à {hour} : {scheduled} planifiés sur {required} nécessaires",
+      "view": {
+        "hourly": "Par heure",
+        "daily": "Par jour"
+      }
+    },
+    "hours": {
+      "column": "Heures",
+      "ofCap": "{hours} / {cap} h",
+      "noCap": "{hours} h",
+      "over": "Dépassé",
+      "barLabel": "Heures par rapport au plafond pour {name}",
+      "weekTotal": "{hours} h planifiées sur {shifts} services",
+      "overCount": "{count} personne(s) au-delà de leur plafond hebdomadaire"
     }
   },
   "tasks": {
@@ -4499,7 +4540,7 @@
     "priority": {
       "low": "Basse",
       "normal": "Normale",
-      "high": "Haute"
+      "high": "Priorité élevée"
     },
     "card": {
       "minutes": "{count} min",
@@ -4508,7 +4549,9 @@
       "aiBadge": "PrepIQ AI",
       "claim": "Prendre",
       "release": "Libérer",
-      "selfAssigned": "Vous avez pris cette tâche"
+      "selfAssigned": "Vous avez pris cette tâche",
+      "remaining": "{count} min restantes",
+      "overBy": "{count} min de dépassement"
     },
     "tray": {
       "title": "{count} tâche(s) suggérée(s) à vérifier",

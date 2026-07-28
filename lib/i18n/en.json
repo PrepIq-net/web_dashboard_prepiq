@@ -4360,7 +4360,11 @@
       "addShift": "Add shift",
       "removeShift": "Remove shift",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "optimize": "Optimize",
+      "autoPlan": "Auto-plan week",
+      "customWindow": "Set a custom time window",
+      "pinShift": "Pin this shift (auto-plan will not remove it)"
     },
     "status": {
       "draft": "Draft",
@@ -4462,6 +4466,43 @@
       "sending": "Sending…",
       "inviteHint": "They’ll get an email to join and will appear on the roster at {branch} once they accept.",
       "noInvitePermission": "You don’t have permission to invite staff to this branch."
+    },
+    "rebuild": {
+      "title": "Rebuild this week?",
+      "description": "Auto-plan discards {count} shift(s) you placed by hand and drafts the week again from approved availability. Pinned shifts are kept.",
+      "confirm": "Rebuild week"
+    },
+    "timeRange": {
+      "start": "Starts",
+      "end": "Ends",
+      "total": "{hours}h total",
+      "overnight": "runs past midnight",
+      "endBeforeStart": "The end time is before the start time.",
+      "overlaps": "This overlaps another window on the same day."
+    },
+    "hourly": {
+      "day": "Day",
+      "closed": "Closed",
+      "closedAllDay": "Closed all day",
+      "nobodyOn": "Nobody is scheduled for this hour.",
+      "unavailable": "Hourly coverage is not available for this week yet.",
+      "worstGap": "Thinnest hour this week is {hour} on {date} — {short} short.",
+      "detailTitle": "{date} at {hour}",
+      "scheduledOfRequired": "{scheduled} on · {required} needed",
+      "cellLabel": "{date} at {hour}: {scheduled} scheduled of {required} needed",
+      "view": {
+        "hourly": "By hour",
+        "daily": "By day"
+      }
+    },
+    "hours": {
+      "column": "Hours",
+      "ofCap": "{hours} / {cap} h",
+      "noCap": "{hours} h",
+      "over": "Over",
+      "barLabel": "Hours against cap for {name}",
+      "weekTotal": "{hours} h scheduled across {shifts} shifts",
+      "overCount": "{count} person(s) over their weekly cap"
     }
   },
   "tasks": {
@@ -4499,7 +4540,7 @@
     "priority": {
       "low": "Low",
       "normal": "Normal",
-      "high": "High"
+      "high": "High priority"
     },
     "card": {
       "minutes": "{count} min",
@@ -4508,7 +4549,9 @@
       "aiBadge": "PrepIQ AI",
       "claim": "Claim",
       "release": "Release",
-      "selfAssigned": "You claimed this task"
+      "selfAssigned": "You claimed this task",
+      "remaining": "{count} min left",
+      "overBy": "{count} min over"
     },
     "tray": {
       "title": "{count} suggested task(s) to review",

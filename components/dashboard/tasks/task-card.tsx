@@ -3,15 +3,17 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Clock, EditPencil, SparksSolid, User } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import type { KitchenTask } from "@/services/execution/types";
-
-const CATEGORY_TONE: Record<string, string> = {
-  PREP: "text-brand-gold border-brand-gold/40 bg-brand-gold/10",
-  SETUP: "text-text-secondary border-surface-4 bg-surface-3/60",
-  SERVICE: "text-status-critical border-status-critical/30 bg-status-critical/10",
-  CLEANING: "text-text-secondary border-surface-4 bg-surface-3/60",
-  OTHER: "text-text-secondary border-surface-4 bg-surface-3/60",
-};
+import {
+  TASK_CATEGORY_ICON,
+  TASK_CATEGORY_ICON_TONE,
+  TASK_CATEGORY_LABEL_KEY,
+  TASK_CATEGORY_TONE,
+  asTaskCategory,
+  minutesRemaining,
+  taskProgress,
+} from "./task-helpers";
 
 /**
  * One card on the board. Deliberately quiet — flat surface, border, no shadow
@@ -29,6 +31,7 @@ export function TaskCard({
   canRelease = false,
   claimPending = false,
   highlightAi = false,
+  now,
 }: {
   task: KitchenTask;
   draggable: boolean;
@@ -40,6 +43,8 @@ export function TaskCard({
   canRelease?: boolean;
   claimPending?: boolean;
   highlightAi?: boolean;
+  /** Board-wide clock. Passed in so a hundred cards share one interval. */
+  now?: number;
 }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -54,6 +59,16 @@ export function TaskCard({
     : undefined;
 
   const isAi = task.source === "AI_PLAN" || task.source === "AI_LIVE";
+  const category = asTaskCategory(task.category);
+  const CategoryIcon = TASK_CATEGORY_ICON[category];
+
+  const clock = now ?? Date.now();
+  const progress =
+    task.status === "IN_PROGRESS"
+      ? taskProgress(task.started_at, task.estimated_minutes, clock)
+      : null;
+  const remaining =
+    progress === null ? null : minutesRemaining(task.started_at, task.estimated_minutes, clock);
 
   return (
     <div
@@ -75,8 +90,15 @@ export function TaskCard({
           {task.title}
         </p>
         <span className="flex shrink-0 items-center gap-1.5">
+          {/* Colour alone is not a label (docs/DESIGN.md §8), so the dot
+              carries a title and an accessible name. */}
           {task.priority === "HIGH" ? (
-            <span className="mt-0.5 h-2 w-2 rounded-full bg-status-critical" />
+            <span
+              role="img"
+              aria-label={t("tasks.priority.high")}
+              title={t("tasks.priority.high")}
+              className="mt-0.5 h-2 w-2 rounded-full bg-status-critical"
+            />
           ) : null}
           {onEdit ? (
             <button
@@ -87,7 +109,7 @@ export function TaskCard({
                 event.stopPropagation();
                 onEdit(task);
               }}
-              className="rounded p-0.5 text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
+              className="rounded-lg p-0.5 text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
             >
               <EditPencil className="h-3.5 w-3.5" />
             </button>
@@ -108,21 +130,41 @@ export function TaskCard({
       ) : null}
 
       <div className="mt-2 flex items-center gap-3 text-xs text-text-muted">
+        {/* Label stays text-primary: the category colour rides on the icon and
+            the border, because these chips are 10px and the status hues fail
+            AA below 18.66px (docs/DESIGN.md §8). */}
         <span
-          className={`inline-flex h-5 items-center rounded border px-1.5 text-[10px] font-semibold uppercase tracking-wide ${CATEGORY_TONE[task.category] ?? CATEGORY_TONE.OTHER}`}
+          className={`inline-flex h-5 items-center gap-1 rounded-lg border px-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-primary ${TASK_CATEGORY_TONE[category]}`}
         >
-          {t(`tasks.category.${task.category.toLowerCase()}`)}
+          <CategoryIcon className={`h-2.5 w-2.5 ${TASK_CATEGORY_ICON_TONE[category]}`} />
+          {t(TASK_CATEGORY_LABEL_KEY[category])}
         </span>
         {isAi ? (
-          <span className="inline-flex h-5 items-center gap-1 rounded border border-brand-gold/40 bg-brand-gold/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-gold">
+          <span className="inline-flex h-5 items-center gap-1 rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-gold">
             <SparksSolid className="h-2.5 w-2.5" />
             {t("tasks.card.aiBadge")}
           </span>
         ) : null}
+        {progress !== null ? (
+          <ProgressRing
+            value={progress}
+            size={22}
+            strokeWidth={2.5}
+            ariaLabel={
+              remaining !== null && remaining >= 0
+                ? t("tasks.card.remaining", { count: remaining })
+                : t("tasks.card.overBy", { count: Math.abs(remaining ?? 0) })
+            }
+          />
+        ) : null}
         {task.estimated_minutes ? (
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {t("tasks.card.minutes", { count: task.estimated_minutes })}
+            {remaining !== null && remaining >= 0
+              ? t("tasks.card.remaining", { count: remaining })
+              : remaining !== null
+                ? t("tasks.card.overBy", { count: Math.abs(remaining) })
+                : t("tasks.card.minutes", { count: task.estimated_minutes })}
           </span>
         ) : null}
         <span className="ml-auto inline-flex items-center gap-2">
@@ -139,7 +181,7 @@ export function TaskCard({
                 event.stopPropagation();
                 onClaim(task);
               }}
-              className="inline-flex h-6 items-center rounded border border-brand-gold/40 bg-brand-gold/10 px-2 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 disabled:opacity-50"
+              className="inline-flex h-6 items-center rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-2 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 disabled:opacity-50"
             >
               {t("tasks.card.claim")}
             </button>
@@ -154,7 +196,7 @@ export function TaskCard({
                 event.stopPropagation();
                 onRelease(task);
               }}
-              className="inline-flex h-6 items-center rounded border border-surface-4 px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text-secondary disabled:opacity-50"
+              className="inline-flex h-6 items-center rounded-lg border border-surface-4 px-2 text-[11px] font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text-secondary disabled:opacity-50"
             >
               {t("tasks.card.release")}
             </button>

@@ -1,9 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { InfoCircle } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
-import type { CoverageResponse, DayCoverage } from "@/services/schedule/types";
+import type {
+  CoverageResponse,
+  DayCoverage,
+  HourlyCoverage,
+} from "@/services/schedule/types";
+import { CoverageHeatmap } from "./coverage-heatmap";
 import {
   COVERAGE_BG,
   COVERAGE_TONE,
@@ -12,8 +18,12 @@ import {
   formatPercent,
 } from "./schedule-helpers";
 
+type CoverageView = "HOURLY" | "DAILY";
+
 type CoverageTabProps = {
   data: CoverageResponse;
+  hourly?: HourlyCoverage;
+  hourlyLoading?: boolean;
   canRecompute: boolean;
   recomputing: boolean;
   onRecompute: () => void;
@@ -21,11 +31,15 @@ type CoverageTabProps = {
 
 export function CoverageTab({
   data,
+  hourly,
+  hourlyLoading = false,
   canRecompute,
   recomputing,
   onRecompute,
 }: CoverageTabProps) {
   const { t } = useTranslation();
+  // Hourly leads: a daily total hides exactly the gap a manager needs to see.
+  const [view, setView] = useState<CoverageView>("HOURLY");
 
   return (
     <div className="space-y-6">
@@ -42,23 +56,52 @@ export function CoverageTab({
             · {data.standard.provenance_label}
           </span>
         </div>
-        {canRecompute ? (
-          <button
-            type="button"
-            onClick={onRecompute}
-            disabled={recomputing}
-            className="h-9 rounded-lg border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-text-primary disabled:opacity-50"
-          >
-            {t("schedule.actions.recompute")}
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-surface-4 p-0.5">
+            {(["HOURLY", "DAILY"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setView(option)}
+                aria-pressed={view === option}
+                className={`h-8 rounded px-3 text-xs font-medium transition-colors ${
+                  view === option
+                    ? "bg-surface-3 text-text-primary"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {t(`schedule.hourly.view.${option.toLowerCase()}`)}
+              </button>
+            ))}
+          </div>
+          {canRecompute ? (
+            <button
+              type="button"
+              onClick={onRecompute}
+              disabled={recomputing}
+              className="h-9 rounded-lg border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-text-primary disabled:opacity-50"
+            >
+              {t("schedule.actions.recompute")}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {data.days.map((day) => (
-          <DayCard key={day.date} day={day} />
-        ))}
-      </div>
+      {view === "HOURLY" ? (
+        hourly ? (
+          <CoverageHeatmap data={hourly} />
+        ) : (
+          <p className="rounded-xl border border-surface-4/60 bg-surface-2 p-10 text-center text-sm text-text-muted">
+            {hourlyLoading ? t("common.loading") : t("schedule.hourly.unavailable")}
+          </p>
+        )
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {data.days.map((day) => (
+            <DayCard key={day.date} day={day} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
