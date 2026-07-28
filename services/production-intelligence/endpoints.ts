@@ -28,6 +28,14 @@ export const productionIntelligenceEndpoints = {
     `${BASE}/production-intelligence/branch-day/${branchDayId}/outcomes/`,
   branchDayIngredientsRecompute: () =>
     `${BASE}/production-intelligence/branch-day/ingredients/recompute/`,
+
+  // ── Intelligence Journey ─────────────────────────────────────────────────
+  // Branch-scoped, not branch-day-scoped: readable for a kitchen that has never
+  // initialized a day, which is exactly the one that needs it most.
+  intelligenceJourney: () =>
+    `${BASE}/production-intelligence/intelligence/journey/`,
+  intelligencePriors: () =>
+    `${BASE}/production-intelligence/intelligence/priors/`,
   prepPlanEvaluate: () => `${BASE}/production-intelligence/prep-plan/evaluate/`,
   prepPlanDetail: (prepPlanItemId: string) =>
     `${BASE}/production-intelligence/prep-plan/${prepPlanItemId}/`,

@@ -57,6 +57,7 @@ import {
   TodaySkeleton,
 } from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
+import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
@@ -73,6 +74,7 @@ import {
 } from "@/components/dashboard/today/today-helpers";
 import type { PendingAction } from "@/services/assistant/types";
 import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
+import { intelligenceJourneySummarySchema } from "@/services/production-intelligence/types";
 
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
@@ -836,6 +838,25 @@ function TodayWorkspacePageContent() {
     return err?.status === 404 || Boolean(details?.error?.details?.can_initialize);
   }, [todayQuery.isError, todayQuery.error]);
 
+  /**
+   * The journey summary rides along on the 404 body, so a kitchen that has
+   * never initialized a day still sees where it stands — that is the screen a
+   * customer looks at on the day they sign up. Parsed leniently because the
+   * error envelope nests differently depending on which layer produced it.
+   */
+  const preInitJourney = useMemo(() => {
+    if (!todayQuery.isError) return null;
+    const err = todayQuery.error as { details?: unknown } | null;
+    const details = err && typeof err === "object" ? (err.details as any) : null;
+    const raw =
+      details?.intelligence_journey ??
+      details?.error?.details?.intelligence_journey ??
+      null;
+    if (!raw) return null;
+    const parsed = intelligenceJourneySummarySchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
+  }, [todayQuery.isError, todayQuery.error]);
+
   const dismissCsvBanner = () => {
     setShowCsvImportBanner(false);
     const params = new URLSearchParams(searchParams.toString());
@@ -958,6 +979,13 @@ function TodayWorkspacePageContent() {
             </div>
           ) : null}
 
+          {/* Day zero: no plan yet, but the journey can still answer "what do
+              you actually know about us?" — which is the question a new
+              customer is really asking. */}
+          {!walkthroughActive && !branchDay && preInitJourney ? (
+            <IntelligenceJourneyBanner summary={preInitJourney} />
+          ) : null}
+
           {noBranchContext ? (
             <div className="mt-8 py-16 text-center">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
@@ -972,6 +1000,15 @@ function TodayWorkspacePageContent() {
           <RefreshingBar active={isBackgroundRefreshing} />
 
           {showSkeleton ? <TodaySkeleton phase={lastPhaseRef.current} /> : null}
+
+          {/* ── How much PrepIQ actually knows about this kitchen yet ──
+              Sits above the signals because it frames everything below it: a
+              number is read differently once you know it is borrowed. */}
+          {!walkthroughActive && branchDay?.intelligence_journey ? (
+            <IntelligenceJourneyBanner
+              summary={branchDay.intelligence_journey}
+            />
+          ) : null}
 
           {/* ── Persistent Demand Signals banner — all three phases ── */}
           {!walkthroughActive && branchDay ? (

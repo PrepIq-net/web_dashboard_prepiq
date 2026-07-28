@@ -94,6 +94,12 @@ import {
   getDashboardCapacityRisk,
   type DashboardSeriesQuery,
   type DashboardCapacityRiskQuery,
+  getIntelligenceJourney,
+  recomputeIntelligenceJourney,
+  getDemandPriors,
+  saveDemandPriors,
+  type IntelligenceJourneyQuery,
+  type DemandPriorsPayload,
 } from "@/services/production-intelligence/service";
 import type {
   BranchDayInitializePayload,
@@ -367,6 +373,20 @@ export const productionIntelligenceQueryKeys = {
       "dashboard-capacity-risk",
       params?.branch_id ?? "",
       params?.days ?? 7,
+    ] as const,
+  intelligenceJourney: (params?: IntelligenceJourneyQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "intelligence-journey",
+      params?.branch_id ?? "",
+      params?.date ?? "",
+    ] as const,
+  demandPriors: (params?: IntelligenceJourneyQuery) =>
+    [
+      ...productionIntelligenceQueryKeys.root,
+      "demand-priors",
+      params?.branch_id ?? "",
+      params?.date ?? "",
     ] as const,
 };
 
@@ -1107,6 +1127,74 @@ export function useImportPOSCSV() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: productionIntelligenceQueryKeys.salesDataValidation({
+          branch_id: variables.branch_id,
+        }),
+      });
+    },
+  });
+}
+
+// ── Intelligence Journey ────────────────────────────────────────────────────
+
+/**
+ * What PrepIQ has learned about this branch so far.
+ *
+ * The profile is computed once a night and held stable for the day on purpose,
+ * so this does not poll — a progress number that drifts between renders reads
+ * as the AI being unsure of itself.
+ */
+export function useIntelligenceJourney(
+  params?: IntelligenceJourneyQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.intelligenceJourney(params),
+    queryFn: () => getIntelligenceJourney(params),
+    enabled: Boolean(enabled && params?.branch_id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useRecomputeIntelligenceJourney() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params?: IntelligenceJourneyQuery) =>
+      recomputeIntelligenceJourney(params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.intelligenceJourney(variables),
+      });
+    },
+  });
+}
+
+export function useDemandPriors(
+  params?: IntelligenceJourneyQuery,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: productionIntelligenceQueryKeys.demandPriors(params),
+    queryFn: () => getDemandPriors(params),
+    enabled: Boolean(enabled && params?.branch_id),
+  });
+}
+
+export function useSaveDemandPriors() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: DemandPriorsPayload) => saveDemandPriors(payload),
+    onSuccess: (_data, variables) => {
+      // A declaration changes what tomorrow's plan can lean on, so both the
+      // priors table and the journey that reports on it are stale.
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.demandPriors({
+          branch_id: variables.branch_id,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: productionIntelligenceQueryKeys.intelligenceJourney({
           branch_id: variables.branch_id,
         }),
       });

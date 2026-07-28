@@ -767,7 +767,8 @@
       "batchRule": "Règle de lot : {{raw}} → {{rounded}}",
       "batchSize": "(taille de lot {{size}})",
       "message": "Message",
-      "keepMineHint": "Saisissez d'abord une quantité"
+      "keepMineHint": "Saisissez d'abord une quantité",
+      "likelyRange": "Probablement {lower}–{upper}"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",
@@ -1567,6 +1568,18 @@
       "service": "Actualisation des données de service…",
       "closed": "Chargement du bilan de la journée…",
       "plan": "Chargement du plan du jour…"
+    },
+    "journey": {
+      "title": "Parcours d'intelligence",
+      "stageOf": "Étape {current} sur {total}",
+      "seeJourney": "Voir le parcours",
+      "learned": "acquis",
+      "learning": "en cours",
+      "locked": "verrouillés",
+      "confidence": "Confiance",
+      "confidenceUnknown": "pas encore mesurable",
+      "next": "Prochaine étape :",
+      "toGo": "restants"
     }
   },
   "profile": {
@@ -1647,6 +1660,7 @@
     "inventory": "Inventaire",
     "history": "Historique",
     "analysis": "Analyse",
+    "intelligence": "Intelligence",
     "salesWaste": "Ventes & Gaspillage",
     "financial": "Financier",
     "staff": "Personnel",
@@ -4575,6 +4589,94 @@
       "hide": "Masquer",
       "add": "Ajouter au tableau",
       "addAssigned": "Ajouter pour {name}"
+    }
+  },
+  "intelligence": {
+    "eyebrow": "Apprentissage",
+    "title": "Parcours d'intelligence",
+    "description": "Ce que PrepIQ a appris de cette cuisine, ce qu'il apprend encore, et ce qu'il ne peut pas encore apprendre.",
+    "branchLabel": "Établissement",
+    "recompute": "Recalculer",
+    "computedAt": "Mis à jour {time}",
+    "noBranch": "Sélectionnez un établissement pour voir son parcours d'apprentissage.",
+    "loadError": "Le parcours d'apprentissage n'a pas pu être chargé pour cet établissement.",
+    "stages": "Étapes d'apprentissage",
+    "stage": {
+      "0": "Démarrage",
+      "1": "Intelligence générale",
+      "2": "Apprentissage de la cuisine",
+      "3": "Intelligence opérationnelle"
+    },
+    "toReach": "Pour atteindre {stage}",
+    "stillNeeded": "Encore nécessaire",
+    "alreadyEarned": "Déjà acquis",
+    "progressCaption": "du chemin vers une cuisine pleinement apprise",
+    "pointsSuffix": " pts",
+    "confidenceTitle": "Confiance des prévisions",
+    "confidenceUnknown": "Pas encore mesurable",
+    "mixTitle": "Sur quoi reposent les chiffres du jour",
+    "mixCaption": "Basé sur {days} jours d'historique dans cet établissement.",
+    "basis": {
+      "MEASURED": "mesuré ici",
+      "PARTIAL": "partiellement mesuré",
+      "INDUSTRY_PRIOR": "tendances du secteur"
+    },
+    "mix": {
+      "branch": "Cet établissement",
+      "similar": "Cuisines similaires",
+      "industry": "Tendances du secteur"
+    },
+    "capability": {
+      "learned": "Acquis",
+      "learning": "En cours",
+      "locked": "Verrouillé"
+    },
+    "dna": {
+      "learning": "En cours",
+      "notAvailable": "Indisponible",
+      "sample": "Sur {count} jours"
+    },
+    "section": {
+      "stageEyebrow": "Étape",
+      "progressEyebrow": "Progression",
+      "progressTitle": "Chaque point, justifié",
+      "progressSupporting": "Cela évolue chaque jour. Chaque jalon ci-dessous apporte sa propre part.",
+      "confidenceEyebrow": "Confiance",
+      "confidenceTitle": "Le degré de certitude de PrepIQ, et pourquoi",
+      "teachEyebrow": "Former PrepIQ",
+      "teachTitle": "Dites-nous ce que vous vendez",
+      "teachSupporting": "Votre estimation prime sur tout chiffre emprunté. C'est le moyen le plus rapide de rendre utiles les plans du premier jour.",
+      "capabilitiesEyebrow": "Capacités",
+      "capabilitiesTitle": "Ce que PrepIQ peut faire pour cette cuisine",
+      "dnaEyebrow": "ADN de la cuisine",
+      "dnaTitle": "Le comportement de cette cuisine",
+      "dnaSupporting": "Les scores n'apparaissent qu'une fois réellement mesurés. Il n'y a volontairement pas de score global.",
+      "digestEyebrow": "Cette semaine",
+      "digestTitle": "Ce que PrepIQ a appris"
+    },
+    "teach": {
+      "coversLabel": "Clients attendus par jour",
+      "coversHelp": "Sert uniquement à adapter les chiffres empruntés à votre taille avant d'avoir un historique.",
+      "useSuggestions": "Remplir {count} lignes vides avec les suggestions",
+      "colItem": "Article",
+      "colMeasured": "Mesuré",
+      "colBorrowed": "PrepIQ utiliserait",
+      "colYours": "Votre estimation",
+      "overDays": "sur {days} jours",
+      "noHistory": "Aucun historique",
+      "alreadyLearned": "Appris des ventes",
+      "inputLabel": "Quantité quotidienne attendue pour {item}",
+      "save": "Enregistrer les estimations",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré",
+      "saveError": "Ces estimations n'ont pas pu être enregistrées. Réessayez.",
+      "loadError": "Le menu n'a pas pu être chargé pour cet établissement.",
+      "noMenu": "Ajoutez d'abord des articles au menu, puis indiquez à PrepIQ combien vous en vendez environ."
+    },
+    "digest": {
+      "since": "Comparé au {date}",
+      "firstWeek": "Votre première semaine — constitution de la référence.",
+      "points": "points"
     }
   }
 }

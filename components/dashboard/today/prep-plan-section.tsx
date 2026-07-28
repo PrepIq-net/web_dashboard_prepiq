@@ -179,9 +179,50 @@ function SuggestedQty({ item }: { item: PrepPlanItem }) {
     );
   }
   return (
-    <p className="font-display text-lg font-semibold text-text-primary">
-      {formatQuantity(item.suggested_quantity, item.unit)}
-    </p>
+    <>
+      <p className="font-display text-lg font-semibold text-text-primary">
+        {formatQuantity(item.suggested_quantity, item.unit)}
+      </p>
+      <UncertaintyNote item={item} />
+    </>
+  );
+}
+
+/**
+ * The honest caption under a prep quantity.
+ *
+ * The point estimate stays, because a chef cannot prep "115 to 150" — the plan
+ * has to name a number. What it must not do is imply that number was measured
+ * when it was borrowed or guessed from four days of history. So the range and
+ * the provenance sit directly beneath it, at caption weight, and only when the
+ * backend says a single number would overstate what we know.
+ */
+function UncertaintyNote({ item }: { item: PrepPlanItem }) {
+  const { t } = useTranslation();
+  const band = item.forecast_context.confidence_band;
+  const coldStart = item.cold_start;
+
+  if (!band?.lead_with_range && !coldStart) return null;
+
+  return (
+    <span className="mt-1 flex flex-col gap-0.5">
+      {band?.lead_with_range ? (
+        <span className="text-xs text-text-secondary">
+          {t("today.table.likelyRange", {
+            lower: band.lower,
+            upper: band.upper,
+          })}
+        </span>
+      ) : null}
+      {coldStart ? (
+        <span
+          title={coldStart.explanation}
+          className="inline-flex w-fit items-center rounded-full border border-surface-4 px-1.5 py-0.5 text-[10px] font-medium text-text-muted"
+        >
+          {coldStart.origin_label}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

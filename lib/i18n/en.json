@@ -767,7 +767,8 @@
       "batchRule": "Batch rule: {{raw}} → {{rounded}}",
       "batchSize": "(batch size {{size}})",
       "message": "Message",
-      "keepMineHint": "Enter a quantity first"
+      "keepMineHint": "Enter a quantity first",
+      "likelyRange": "Likely {lower}–{upper}"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",
@@ -1567,6 +1568,18 @@
       "service": "Refreshing service data…",
       "closed": "Loading the day review…",
       "plan": "Loading today's plan…"
+    },
+    "journey": {
+      "title": "Intelligence Journey",
+      "stageOf": "Stage {current} of {total}",
+      "seeJourney": "See journey",
+      "learned": "learned",
+      "learning": "learning",
+      "locked": "locked",
+      "confidence": "Confidence",
+      "confidenceUnknown": "not measurable yet",
+      "next": "Next:",
+      "toGo": "to go"
     }
   },
   "profile": {
@@ -1647,6 +1660,7 @@
     "inventory": "Inventory",
     "history": "History",
     "analysis": "Analysis",
+    "intelligence": "Intelligence",
     "salesWaste": "Sales & Waste",
     "financial": "Financial",
     "staff": "Staff",
@@ -4575,6 +4589,94 @@
       "hide": "Hide",
       "add": "Add to board",
       "addAssigned": "Add for {name}"
+    }
+  },
+  "intelligence": {
+    "eyebrow": "Learning",
+    "title": "Intelligence Journey",
+    "description": "What PrepIQ has learned about this kitchen so far, what it is still learning, and what it cannot learn yet.",
+    "branchLabel": "Branch",
+    "recompute": "Recompute",
+    "computedAt": "Updated {time}",
+    "noBranch": "Select a branch to see its learning journey.",
+    "loadError": "The learning journey could not be loaded for this branch.",
+    "stages": "Learning stages",
+    "stage": {
+      "0": "Bootstrapping",
+      "1": "General Intelligence",
+      "2": "Kitchen Learning",
+      "3": "Operational Intelligence"
+    },
+    "toReach": "To reach {stage}",
+    "stillNeeded": "Still needed",
+    "alreadyEarned": "Already earned",
+    "progressCaption": "of the way to a fully learned kitchen",
+    "pointsSuffix": " pts",
+    "confidenceTitle": "Forecast confidence",
+    "confidenceUnknown": "Not measurable yet",
+    "mixTitle": "What today's numbers are built from",
+    "mixCaption": "Based on {days} days of history at this branch.",
+    "basis": {
+      "MEASURED": "measured here",
+      "PARTIAL": "partly measured",
+      "INDUSTRY_PRIOR": "industry patterns"
+    },
+    "mix": {
+      "branch": "This branch",
+      "similar": "Similar kitchens",
+      "industry": "Industry patterns"
+    },
+    "capability": {
+      "learned": "Learned",
+      "learning": "Learning",
+      "locked": "Locked"
+    },
+    "dna": {
+      "learning": "Learning",
+      "notAvailable": "Not available",
+      "sample": "From {count} days"
+    },
+    "section": {
+      "stageEyebrow": "Stage",
+      "progressEyebrow": "Progress",
+      "progressTitle": "Every point, attributed",
+      "progressSupporting": "This moves daily. Each milestone below contributes its own share.",
+      "confidenceEyebrow": "Confidence",
+      "confidenceTitle": "How sure PrepIQ is, and why",
+      "teachEyebrow": "Teach PrepIQ",
+      "teachTitle": "Tell us what you sell",
+      "teachSupporting": "Your estimate outranks every borrowed number. This is the fastest way to make day-one plans useful.",
+      "capabilitiesEyebrow": "Capabilities",
+      "capabilitiesTitle": "What PrepIQ can do for this kitchen",
+      "dnaEyebrow": "Kitchen DNA",
+      "dnaTitle": "How this kitchen behaves",
+      "dnaSupporting": "Scores appear only once genuinely measured. There is no overall score on purpose.",
+      "digestEyebrow": "This week",
+      "digestTitle": "What PrepIQ learned"
+    },
+    "teach": {
+      "coversLabel": "Expected customers per day",
+      "coversHelp": "Used only to scale borrowed numbers to your size before you have history.",
+      "useSuggestions": "Fill {count} empty rows from suggestions",
+      "colItem": "Item",
+      "colMeasured": "Measured",
+      "colBorrowed": "PrepIQ would use",
+      "colYours": "Your estimate",
+      "overDays": "over {days} days",
+      "noHistory": "No history",
+      "alreadyLearned": "Learned from sales",
+      "inputLabel": "Expected daily quantity for {item}",
+      "save": "Save estimates",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "saveError": "Those estimates could not be saved. Try again.",
+      "loadError": "The menu could not be loaded for this branch.",
+      "noMenu": "Add menu items first, then tell PrepIQ roughly how many you sell."
+    },
+    "digest": {
+      "since": "Compared with {date}",
+      "firstWeek": "Your first week — building a baseline.",
+      "points": "points"
     }
   }
 }
