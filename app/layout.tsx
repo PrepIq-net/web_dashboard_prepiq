@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { inter, satoshi } from "@/lib/fonts";
 import { Providers } from "@/app/providers";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { AUTH_COOKIES, parseImpersonation } from "@/lib/auth/cookies";
 import "./globals.css";
 
 function resolveHtmlLang(acceptLanguage: string | null): string {
@@ -66,11 +68,19 @@ export default async function RootLayout({
   const headersList = await headers();
   const lang = resolveHtmlLang(headersList.get("accept-language"));
 
+  // Read at the root so the notice covers every route — there is no page where
+  // an admin should be able to lose track of whose account they are viewing.
+  const cookieStore = await cookies();
+  const impersonation = parseImpersonation(
+    cookieStore.get(AUTH_COOKIES.impersonation)?.value,
+  );
+
   return (
     <html lang={lang}>
       <body
         className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}
       >
+        {impersonation && <ImpersonationBanner context={impersonation} />}
         <Providers>{children}</Providers>
       </body>
     </html>

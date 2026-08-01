@@ -4620,5 +4620,33 @@
       "add": "Ajouter au tableau",
       "addAssigned": "Ajouter pour {name}"
     }
+  },
+  "billing": {
+    "offline": {
+      "unavailable": "Le paiement par virement bancaire ou mobile money n'est pas encore configuré. Utilisez une carte ou contactez le support.",
+      "chooseAccount": "Choisissez le compte sur lequel vous avez envoyé l'argent.",
+      "amountRequired": "Saisissez le montant payé.",
+      "proofTooLarge": "Ce fichier dépasse 10 Mo. Joignez une image ou un PDF plus petit.",
+      "submitFailed": "Nous n'avons pas pu enregistrer votre paiement. Réessayez.",
+      "pendingTitle": "Paiement en cours de vérification",
+      "pendingBody": "Nous avons reçu votre paiement ({reference}) et le vérifions sur notre compte. Votre abonnement démarre dès confirmation.",
+      "rejectedTitle": "Votre dernier paiement n'a pas pu être confirmé",
+      "step1": "1. Choisissez où payer",
+      "step2": "2. Indiquez ce que vous avez envoyé",
+      "sendTo": "Envoyez votre paiement à",
+      "amountPaid": "Montant payé",
+      "currency": "Devise",
+      "transactionRef": "Référence de la transaction",
+      "transactionRefPlaceholder": "La référence de votre reçu bancaire ou mobile money",
+      "attachProof": "Joignez votre reçu",
+      "attachProofHint": "Image ou PDF, jusqu'à 10 Mo. Facultatif, mais accélère la confirmation.",
+      "submit": "Envoyer pour vérification",
+      "submitting": "Envoi…",
+      "reviewNotice": "Votre abonnement démarre dès que nous confirmons le paiement — généralement sous un jour ouvré.",
+      "payByTransfer": "Virement bancaire ou mobile money",
+      "payByTransferHint": "Payez sur notre compte et envoyez la preuve. Activé après confirmation.",
+      "payByCard": "Payer par carte",
+      "payByCardHint": "Activation immédiate."
+    }
   }
 }

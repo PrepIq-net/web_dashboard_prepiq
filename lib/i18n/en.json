@@ -4620,5 +4620,33 @@
       "add": "Add to board",
       "addAssigned": "Add for {name}"
     }
+  },
+  "billing": {
+    "offline": {
+      "unavailable": "Paying by bank transfer or mobile money is not set up yet. Please use a card, or contact support.",
+      "chooseAccount": "Choose where you sent the money.",
+      "amountRequired": "Enter the amount you paid.",
+      "proofTooLarge": "That file is larger than 10 MB. Please attach a smaller image or PDF.",
+      "submitFailed": "We could not submit your payment. Please try again.",
+      "pendingTitle": "Payment awaiting review",
+      "pendingBody": "We have your payment ({reference}) and are checking it against our account. Your subscription starts as soon as it is confirmed.",
+      "rejectedTitle": "Your last payment could not be confirmed",
+      "step1": "1. Choose where to pay",
+      "step2": "2. Tell us what you sent",
+      "sendTo": "Send your payment to",
+      "amountPaid": "Amount paid",
+      "currency": "Currency",
+      "transactionRef": "Transaction reference",
+      "transactionRefPlaceholder": "The reference from your bank or mobile money receipt",
+      "attachProof": "Attach your receipt",
+      "attachProofHint": "Image or PDF, up to 10 MB. Optional, but it speeds up confirmation.",
+      "submit": "Submit for review",
+      "submitting": "Submitting…",
+      "reviewNotice": "Your subscription starts once we confirm the payment — usually within one business day.",
+      "payByTransfer": "Bank transfer or mobile money",
+      "payByTransferHint": "Pay into our account and send proof. Activated once confirmed.",
+      "payByCard": "Pay by card",
+      "payByCardHint": "Instant activation."
+    }
   }
 }
