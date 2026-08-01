@@ -5,6 +5,7 @@ import {
   getNotifications,
   markNotificationsAsRead,
   markNotificationsAsResolved,
+  markNotificationsAsArchived,
   getNotificationPreferences,
   updateNotificationPreferences,
   getNotificationQuietHours,
@@ -126,6 +127,18 @@ export function useMarkNotificationsAsResolved() {
   return useMutation({
     mutationFn: (payload?: MarkNotificationsPayload) =>
       markNotificationsAsResolved(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.root });
+    },
+  });
+}
+
+export function useMarkNotificationsAsArchived() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload?: MarkNotificationsPayload) =>
+      markNotificationsAsArchived(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationQueryKeys.root });
     },

@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { Bell, LogOut, NavArrowDown, Search, ProfileCircle, Settings } from "iconoir-react";
 import { useCommandPalette } from "@/components/command/command-palette-provider";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
+  useMarkNotificationsAsResolved,
   useNotifications,
   useSessionLogoutUser,
 } from "@/services";
+import { notificationDestination } from "@/lib/notifications/destinations";
+import { resolvePermissions } from "@/lib/permissions";
+import type { Notification } from "@/services/notifications/types";
 import { useTranslation } from "@/lib/i18n";
 
 const TopNavComponent = memo(function DashboardTopNav() {
@@ -28,8 +32,10 @@ const TopNavComponent = memo(function DashboardTopNav() {
     limit: 10,
   });
   const markAsReadMutation = useMarkNotificationsAsRead();
+  const markAsResolvedMutation = useMarkNotificationsAsResolved();
   const logoutMutation = useSessionLogoutUser();
   const router = useRouter();
+  const permissions = useMemo(() => resolvePermissions(user), [user]);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -62,6 +68,27 @@ const TopNavComponent = memo(function DashboardTopNav() {
 
   const handleMarkAllRead = () => {
     markAsReadMutation.mutate({});
+  };
+
+  /**
+   * A notification in this dropdown is a shortcut to the screen it is about.
+   * Clicking one used to only mark it read, which left you holding the
+   * information and no way to act on it.
+   */
+  const handleOpenNotification = (notification: Notification) => {
+    setNotificationsOpen(false);
+    const destination = notificationDestination(notification, permissions);
+    if (destination) {
+      markAsResolvedMutation.mutate({
+        notification_ids: [notification.id],
+        acted_on: true,
+      });
+      router.push(destination.href);
+      return;
+    }
+    // No screen answers this one — the feed is where its full text lives.
+    markAsReadMutation.mutate({ notification_ids: [notification.id] });
+    router.push("/workspace/notifications");
   };
 
   const handleLogout = () => {
@@ -156,53 +183,38 @@ const TopNavComponent = memo(function DashboardTopNav() {
                       {t("common.loading")}
                     </p>
                   ) : notifications.length ? (
-                    <>
-                      {notifications.map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          onClick={() =>
-                            markAsReadMutation.mutate({
-                              notification_ids: [notification.id],
-                            })
-                          }
-                          className="group w-full border-b border-[#2A2A2E] px-1 py-2.5 text-left transition-colors hover:bg-[#232327] last:border-b-0"
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <div
-                              className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                                notification.escalation_level === "CRITICAL"
-                                  ? "bg-[#FF3B30]"
-                                  : notification.escalation_level === "WARNING"
-                                    ? "bg-[#FFCC00]"
-                                    : notification.escalation_level === "INFO"
-                                      ? "bg-[#34C759]"
-                                      : "bg-[#8E8E93]"
-                              }`}
-                            />
-                            <div className="min-w-0">
-                              <p className="text-[12px] font-medium text-[#F5F5F7]">
-                                {notification.title || "Notification"}
-                              </p>
-                              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#8E8E93] group-hover:text-[#C7C7CC]">
-                                {notification.body ||
-                                  notification.message ||
-                                  "No details available."}
-                              </p>
-                            </div>
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleOpenNotification(notification)}
+                        className="group w-full border-b border-[#2A2A2E] px-1 py-2.5 text-left transition-colors hover:bg-[#232327] last:border-b-0"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div
+                            className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                              notification.escalation_level === "CRITICAL"
+                                ? "bg-[#FF3B30]"
+                                : notification.escalation_level === "WARNING"
+                                  ? "bg-[#FFCC00]"
+                                  : notification.escalation_level === "INFO"
+                                    ? "bg-[#34C759]"
+                                    : "bg-[#8E8E93]"
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-medium text-[#F5F5F7]">
+                              {notification.title || "Notification"}
+                            </p>
+                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#8E8E93] group-hover:text-[#C7C7CC]">
+                              {notification.body ||
+                                notification.message ||
+                                "No details available."}
+                            </p>
                           </div>
-                        </button>
-                      ))}
-                      <div className="pt-2">
-                        <Link
-                          href="/workspace/notifications"
-                          onClick={() => setNotificationsOpen(false)}
-                          className="flex w-full items-center justify-center rounded-[6px] bg-[#232327] py-2 text-[11px] font-medium text-[#A8821F] transition-colors hover:bg-[#2A2A2E] hover:text-[#D2A53A]"
-                        >
-                          {t("dashboard.topNav.viewAllNotifications")}
-                        </Link>
-                      </div>
-                    </>
+                        </div>
+                      </button>
+                    ))
                   ) : (
                     <div className="space-y-2 py-4 text-center">
                       <p className="text-[12px] text-[#C7C7CC]">
@@ -213,6 +225,19 @@ const TopNavComponent = memo(function DashboardTopNav() {
                       </p>
                     </div>
                   )}
+                </div>
+
+                {/* Outside the list, and outside the "has notifications" branch:
+                    the feed carries history and category filters, so a quiet
+                    today is no reason to strand you with only a URL to type. */}
+                <div className="pt-2">
+                  <Link
+                    href="/workspace/notifications"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="flex w-full items-center justify-center rounded-[6px] bg-[#232327] py-2 text-[11px] font-medium text-[#A8821F] transition-colors hover:bg-[#2A2A2E] hover:text-[#D2A53A]"
+                  >
+                    {t("dashboard.topNav.viewAllNotifications")}
+                  </Link>
                 </div>
               </div>
             ) : null}

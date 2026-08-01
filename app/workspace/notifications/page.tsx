@@ -1,26 +1,33 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import {
+  useCurrentUserProfile,
   useNotifications,
   useMarkNotificationsAsRead,
+  useMarkNotificationsAsArchived,
   useMarkNotificationsAsResolved,
 } from "@/services";
 import { useExplainAlert } from "@/services/assistant/hooks";
+import { resolvePermissions } from "@/lib/permissions";
+import { notificationDestination } from "@/lib/notifications/destinations";
 import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_COLORS,
   NOTIFICATION_CATEGORY_LABELS,
+  type Notification,
   type NotificationCategory,
 } from "@/services/notifications/types";
 import {
+  ArrowRight,
   Check,
   CheckCircle,
   WarningTriangle,
   InfoCircle,
-  Clock,
   Sparks,
+  Xmark,
 } from "iconoir-react";
 import { format, isToday, isYesterday, startOfDay } from "date-fns";
 
@@ -44,6 +51,8 @@ const getCategoryStyles = (category: string | null | undefined) => {
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [explainingId, setExplainingId] = useState<string | null>(null);
 
@@ -57,11 +66,57 @@ export default function NotificationsPage() {
   }, [activeTab]);
 
   const notificationsQuery = useNotifications(queryParams);
+  const { data: user } = useCurrentUserProfile();
   const markAsReadMutation = useMarkNotificationsAsRead();
   const markAsResolvedMutation = useMarkNotificationsAsResolved();
+  const markAsArchivedMutation = useMarkNotificationsAsArchived();
   const explainAlertMutation = useExplainAlert();
 
   const notifications = notificationsQuery.data ?? [];
+  const permissions = useMemo(() => resolvePermissions(user), [user]);
+
+  /**
+   * Open the screen this alert is about, and record that it was acted on —
+   * that signal used to require clicking a separate "Resolve" button, which
+   * asked the user to do bookkeeping the click itself already proves.
+   */
+  const openNotification = (notification: Notification) => {
+    const destination = notificationDestination(notification, permissions);
+    if (destination) {
+      markAsResolvedMutation.mutate({
+        notification_ids: [notification.id],
+        acted_on: true,
+      });
+      router.push(destination.href);
+      return;
+    }
+    // Nowhere to go — the alert is the whole message, so reading it is the
+    // only thing that can happen to it.
+    if (notification.status === "UNREAD") {
+      markAsReadMutation.mutate({ notification_ids: [notification.id] });
+    }
+  };
+
+  // A push notification lands on /workspace/notifications?n=<id>. The service
+  // worker has no access to this route table, so it hands the id back and we
+  // forward from here — one map, not two that drift.
+  const forwardedRef = useRef<string | null>(null);
+  const openParam = searchParams.get("n");
+  useEffect(() => {
+    if (!openParam || forwardedRef.current === openParam) return;
+    const target = notifications.find((n) => n.id === openParam);
+    if (!target) return;
+    forwardedRef.current = openParam;
+    const destination = notificationDestination(target, permissions);
+    if (destination) {
+      markAsResolvedMutation.mutate({
+        notification_ids: [target.id],
+        acted_on: true,
+      });
+      router.replace(destination.href);
+    }
+    // No destination: the user is already looking at the alert. Leave them here.
+  }, [openParam, notifications, permissions, router, markAsResolvedMutation]);
 
   const groupedNotifications = useMemo(() => {
     const groups: Record<string, typeof notifications> = {};
@@ -186,10 +241,14 @@ export default function NotificationsPage() {
                       notification.notification_category,
                     );
                     const isExplaining = explainingId === notification.id;
+                    const destination = notificationDestination(
+                      notification,
+                      permissions,
+                    );
                     return (
                       <div
                         key={notification.id}
-                        className={`group flex items-start gap-5 border-l-4 ${styles.border} bg-[#1C1C1F] p-5 transition-all hover:bg-[#232327] ${
+                        className={`group relative flex items-start gap-5 border-l-4 ${styles.border} bg-[#1C1C1F] p-5 transition-all hover:bg-[#232327] ${
                           notification.status === "READ" ? "opacity-60" : ""
                         }`}
                       >
@@ -197,9 +256,27 @@ export default function NotificationsPage() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-[15px] font-semibold text-[#F5F5F7]">
-                              {notification.title}
-                            </h3>
+                            {/* The title is the primary action, stretched over
+                                the whole card so any part of it opens the
+                                screen the alert is about. The buttons on the
+                                right sit above it on z-10. */}
+                            <button
+                              type="button"
+                              onClick={() => openNotification(notification)}
+                              className="min-w-0 text-left before:absolute before:inset-0 before:content-[''] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#A8821F]"
+                              aria-label={
+                                destination
+                                  ? t("workspace.notifications.openIn").replace(
+                                      "{page}",
+                                      t(destination.labelKey),
+                                    )
+                                  : notification.title || undefined
+                              }
+                            >
+                              <span className="block text-[15px] font-semibold text-[#F5F5F7]">
+                                {notification.title}
+                              </span>
+                            </button>
                             <span className="shrink-0 text-[12px] text-[#8E8E93]">
                               {format(
                                 new Date(notification.created_at),
@@ -230,6 +307,18 @@ export default function NotificationsPage() {
                                 {notification.recommended_action}
                               </div>
                             )}
+
+                            {/* Naming the destination before the click is the
+                                difference between a link and a guess. */}
+                            {destination && (
+                              <div className="flex items-center gap-1 text-[12px] font-medium text-[#A8821F] opacity-0 transition-opacity group-hover:opacity-100">
+                                {t("workspace.notifications.openIn").replace(
+                                  "{page}",
+                                  t(destination.labelKey),
+                                )}
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </div>
+                            )}
                           </div>
 
                           {isExplaining && (
@@ -245,7 +334,8 @@ export default function NotificationsPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        {/* z-10 keeps these above the card-wide click target. */}
+                        <div className="relative z-10 flex items-center gap-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
                           {notification.branch && (
                             <button
                               onClick={() => {
@@ -274,16 +364,19 @@ export default function NotificationsPage() {
                               <Check className="h-4 w-4" />
                             </button>
                           )}
+                          {/* Replaces "Resolve": this clears an alert you don't
+                              intend to act on, which is what people were using
+                              Resolve for anyway. */}
                           <button
                             onClick={() =>
-                              markAsResolvedMutation.mutate({
+                              markAsArchivedMutation.mutate({
                                 notification_ids: [notification.id],
                               })
                             }
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#3F8F68]"
-                            title={t("workspace.notifications.resolve")}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#F5F5F7]"
+                            title={t("workspace.notifications.dismiss")}
                           >
-                            <CheckCircle className="h-4 w-4" />
+                            <Xmark className="h-4 w-4" />
                           </button>
                         </div>
                       </div>

@@ -100,3 +100,13 @@ export async function markNotificationsAsResolved(
     body,
   });
 }
+
+export async function markNotificationsAsArchived(
+  payload?: MarkNotificationsPayload,
+) {
+  const body = payload ? markNotificationsPayloadSchema.parse(payload) : {};
+  return apiClientWithSchema(notificationEndpoints.markAsArchived(), z.void(), {
+    method: "POST",
+    body,
+  });
+}

@@ -2834,7 +2834,6 @@
       },
       "domainSystem": "Système de domaine",
       "markAsRead": "Marquer comme lu",
-      "resolve": "Résoudre",
       "tab": {
         "operational": "Opérationnel",
         "planning": "Planification",
@@ -2843,7 +2842,9 @@
         "executive": "Direction"
       },
       "explain": "Expliquer",
-      "explainLoading": "Réflexion en cours..."
+      "explainLoading": "Réflexion en cours...",
+      "openIn": "Ouvrir dans {page}",
+      "dismiss": "Ignorer"
     },
     "branches": {
       "status": {

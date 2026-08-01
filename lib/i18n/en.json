@@ -2834,7 +2834,6 @@
       },
       "domainSystem": "System",
       "markAsRead": "Mark As Read",
-      "resolve": "Resolve",
       "tab": {
         "operational": "Operational",
         "planning": "Planning",
@@ -2843,7 +2842,9 @@
         "executive": "Executive"
       },
       "explain": "Explain",
-      "explainLoading": "Thinking..."
+      "explainLoading": "Thinking...",
+      "openIn": "Open in {page}",
+      "dismiss": "Dismiss"
     },
     "branches": {
       "status": {
