@@ -4722,31 +4722,47 @@
       "firstWeek": "Votre première semaine — constitution de la référence.",
       "points": "points"
   "billing": {
+    "methods": {
+      "samePrice": "Le prix est identique dans les deux cas. Ce qui change, c'est la rapidité d'activation de votre offre.",
+      "instantTitle": "Payer maintenant",
+      "instantBadge": "Immédiat",
+      "instantHint": "Paiement par carte via notre page sécurisée. Votre offre s'active dès que le paiement passe.",
+      "transferTitle": "Payer par virement, puis envoyer la preuve",
+      "transferBadge": "Sous {hours} h",
+      "transferHint": "Envoyez l'argent sur notre compte bancaire ou mobile money et joignez le reçu. Nous activons votre offre dès que nous l'avons rapproché.",
+      "onlineUnavailable": "Le paiement immédiat est indisponible pour le moment : passez par le virement. Nous confirmerons votre paiement par e-mail."
+    },
     "offline": {
-      "unavailable": "Le paiement par virement bancaire ou mobile money n'est pas encore configuré. Utilisez une carte ou contactez le support.",
+      "unavailable": "Le paiement par virement n'est pas disponible pour le moment. Utilisez le paiement immédiat ou contactez le support.",
       "chooseAccount": "Choisissez le compte sur lequel vous avez envoyé l'argent.",
       "amountRequired": "Saisissez le montant payé.",
       "proofTooLarge": "Ce fichier dépasse 10 Mo. Joignez une image ou un PDF plus petit.",
       "submitFailed": "Nous n'avons pas pu enregistrer votre paiement. Réessayez.",
-      "pendingTitle": "Paiement en cours de vérification",
-      "pendingBody": "Nous avons reçu votre paiement ({reference}) et le vérifions sur notre compte. Votre abonnement démarre dès confirmation.",
+      "pendingTitle": "Nous avons votre paiement — nous le vérifions",
+      "pendingBody": "Référence {reference}. Rien n'a encore changé sur votre compte. Nous confirmons généralement sous {hours} heures, et nous vous écrirons dans tous les cas.",
+      "next1": "Nous vérifions que l'argent est bien arrivé sur notre compte.",
+      "next2": "Nous activons votre offre.",
+      "next3": "Vous recevez un e-mail de confirmation et votre facture.",
       "rejectedTitle": "Votre dernier paiement n'a pas pu être confirmé",
-      "step1": "1. Choisissez où payer",
-      "step2": "2. Indiquez ce que vous avez envoyé",
-      "sendTo": "Envoyez votre paiement à",
+      "stepChoose": "Choisissez où l'envoyer",
+      "stepSend": "Envoyez le paiement",
+      "stepConfirm": "Dites-nous que c'est fait",
+      "amountToSend": "Montant à envoyer",
+      "estimateNote": "Converti au taux du jour, à titre indicatif. Votre banque peut appliquer un taux légèrement différent : envoyez le montant qu'elle indique, nous ferons le rapprochement.",
+      "copy": "Copier",
+      "copied": "Copié",
+      "copyAll": "Copier toutes les coordonnées",
       "amountPaid": "Montant payé",
+      "sentDifferent": "J'ai envoyé un montant différent",
       "currency": "Devise",
       "transactionRef": "Référence de la transaction",
       "transactionRefPlaceholder": "La référence de votre reçu bancaire ou mobile money",
       "attachProof": "Joignez votre reçu",
       "attachProofHint": "Image ou PDF, jusqu'à 10 Mo. Facultatif, mais accélère la confirmation.",
+      "removeFile": "Retirer le fichier",
       "submit": "Envoyer pour vérification",
       "submitting": "Envoi…",
-      "reviewNotice": "Votre abonnement démarre dès que nous confirmons le paiement — généralement sous un jour ouvré.",
-      "payByTransfer": "Virement bancaire ou mobile money",
-      "payByTransferHint": "Payez sur notre compte et envoyez la preuve. Activé après confirmation.",
-      "payByCard": "Payer par carte",
-      "payByCardHint": "Activation immédiate."
+      "reviewNotice": "Cela n'active pas encore votre offre. Nous confirmons d'abord le paiement — généralement sous {hours} heures — et vous écrivons dans tous les cas."
     }
   }
 }

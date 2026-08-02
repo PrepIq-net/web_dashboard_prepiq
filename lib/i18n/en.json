@@ -4722,31 +4722,47 @@
       "firstWeek": "Your first week — building a baseline.",
       "points": "points"
   "billing": {
+    "methods": {
+      "samePrice": "The price is the same either way. What differs is how soon your plan turns on.",
+      "instantTitle": "Pay now",
+      "instantBadge": "Instant",
+      "instantHint": "Card payment through our secure checkout. Your plan turns on the moment it clears.",
+      "transferTitle": "Pay by transfer, then send proof",
+      "transferBadge": "Within {hours}h",
+      "transferHint": "Send the money to our bank or mobile money account and upload the receipt. We turn your plan on once we have matched it.",
+      "onlineUnavailable": "Instant checkout is unavailable right now, so paying by transfer is the way through. We will confirm your payment by email."
+    },
     "offline": {
-      "unavailable": "Paying by bank transfer or mobile money is not set up yet. Please use a card, or contact support.",
+      "unavailable": "Paying by transfer is not available right now. Please use instant checkout, or contact support.",
       "chooseAccount": "Choose where you sent the money.",
       "amountRequired": "Enter the amount you paid.",
       "proofTooLarge": "That file is larger than 10 MB. Please attach a smaller image or PDF.",
       "submitFailed": "We could not submit your payment. Please try again.",
-      "pendingTitle": "Payment awaiting review",
-      "pendingBody": "We have your payment ({reference}) and are checking it against our account. Your subscription starts as soon as it is confirmed.",
+      "pendingTitle": "We have your payment — we are checking it",
+      "pendingBody": "Reference {reference}. Nothing has changed on your account yet. We usually confirm within {hours} hours, and we will email you either way.",
+      "next1": "We check the money reached our account.",
+      "next2": "We switch your plan on.",
+      "next3": "You get a confirmation email and your invoice.",
       "rejectedTitle": "Your last payment could not be confirmed",
-      "step1": "1. Choose where to pay",
-      "step2": "2. Tell us what you sent",
-      "sendTo": "Send your payment to",
+      "stepChoose": "Choose where to send it",
+      "stepSend": "Send the payment",
+      "stepConfirm": "Tell us it is done",
+      "amountToSend": "Amount to send",
+      "estimateNote": "Converted at today's rate as a guide. Your bank may apply a slightly different one — send what your bank quotes and we will match it.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyAll": "Copy all details",
       "amountPaid": "Amount paid",
+      "sentDifferent": "I sent a different amount",
       "currency": "Currency",
       "transactionRef": "Transaction reference",
       "transactionRefPlaceholder": "The reference from your bank or mobile money receipt",
       "attachProof": "Attach your receipt",
       "attachProofHint": "Image or PDF, up to 10 MB. Optional, but it speeds up confirmation.",
+      "removeFile": "Remove file",
       "submit": "Submit for review",
       "submitting": "Submitting…",
-      "reviewNotice": "Your subscription starts once we confirm the payment — usually within one business day.",
-      "payByTransfer": "Bank transfer or mobile money",
-      "payByTransferHint": "Pay into our account and send proof. Activated once confirmed.",
-      "payByCard": "Pay by card",
-      "payByCardHint": "Instant activation."
+      "reviewNotice": "This does not activate your plan yet. We confirm the payment first — usually within {hours} hours — and email you either way."
     }
   }
 }

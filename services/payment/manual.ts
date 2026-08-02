@@ -14,6 +14,14 @@ import { z } from "zod";
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { paymentEndpoints } from "@/services/payment/endpoints";
 
+export const amountHintSchema = z.object({
+  currency: z.string(),
+  amount: z.string(),
+  // Rates move, so a converted figure is guidance rather than a number we
+  // would hold anyone to. The UI has to say so.
+  is_estimate: z.boolean(),
+});
+
 export const paymentInstructionSchema = z.object({
   id: z.string(),
   method: z.string(),
@@ -24,6 +32,17 @@ export const paymentInstructionSchema = z.object({
   currency: z.string(),
   is_active: z.boolean(),
   display_order: z.number(),
+  amount_hint: amountHintSchema.nullable().optional(),
+});
+
+export const paymentMethodOptionsSchema = z.object({
+  online: z.object({ enabled: z.boolean() }),
+  offline: z.object({
+    enabled: z.boolean(),
+    review_hours: z.number(),
+    note: z.string(),
+    instructions: z.array(paymentInstructionSchema),
+  }),
 });
 
 export const manualPaymentRequestSchema = z.object({
@@ -51,15 +70,26 @@ export const manualPaymentRequestSchema = z.object({
 });
 
 export type PaymentInstruction = z.infer<typeof paymentInstructionSchema>;
+export type PaymentMethodOptions = z.infer<typeof paymentMethodOptionsSchema>;
 export type ManualPaymentRequest = z.infer<typeof manualPaymentRequestSchema>;
 
-export async function getPaymentInstructions() {
-  const response = await apiClientWithSchema(
-    paymentEndpoints.manualInstructions(),
-    z.object({ results: z.array(paymentInstructionSchema) }),
+/**
+ * What checkout is allowed to offer right now, and where to send an offline
+ * payment. Passing the plan lets the backend tell each account how much to send
+ * in its own currency, so nobody has to convert $49 into shillings themselves.
+ */
+export async function getPaymentMethodOptions(params?: {
+  planId?: string;
+  billingCycle?: string;
+}) {
+  const query = new URLSearchParams();
+  if (params?.planId) query.set("plan_id", params.planId);
+  if (params?.billingCycle) query.set("billing_cycle", params.billingCycle);
+  return apiClientWithSchema(
+    paymentEndpoints.paymentMethods(query.toString()),
+    paymentMethodOptionsSchema,
     { method: "GET" },
   );
-  return response.results;
 }
 
 export async function listManualPaymentRequests() {

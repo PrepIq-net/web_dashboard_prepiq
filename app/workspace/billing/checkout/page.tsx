@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Bank,
@@ -23,6 +24,7 @@ import {
   useSubscriptionPlanPricing,
 } from "@/services";
 import { formatMoney } from "@/lib/currencies";
+import { getPaymentMethodOptions } from "@/services/payment/manual";
 
 function toNum(v: unknown): number {
   if (typeof v === "number") return v;
@@ -59,6 +61,24 @@ export default function WorkspaceCheckoutPage() {
   // Card stays the default: it is instant, and the offline route costs the
   // customer a wait for manual verification.
   const [payMethod, setPayMethod] = useState<"CARD" | "OFFLINE">("CARD");
+
+  // Either route can be switched off platform-wide from the admin panel.
+  const methodsQuery = useQuery({
+    queryKey: ["payment", "manual", "options", planIdFromUrl, cycleFromUrl],
+    queryFn: () =>
+      getPaymentMethodOptions({ planId: planIdFromUrl, billingCycle: cycleFromUrl }),
+  });
+  const onlineEnabled = methodsQuery.data?.online.enabled ?? true;
+  const offlineEnabled = methodsQuery.data?.offline.enabled ?? false;
+  const reviewHours = methodsQuery.data?.offline.review_hours ?? 24;
+
+  // If instant checkout is off, land on the route that actually works rather
+  // than showing a selected option that would be refused on submit.
+  useEffect(() => {
+    if (!methodsQuery.data) return;
+    if (!onlineEnabled && offlineEnabled) setPayMethod("OFFLINE");
+    if (onlineEnabled && !offlineEnabled) setPayMethod("CARD");
+  }, [methodsQuery.data, onlineEnabled, offlineEnabled]);
 
   // Seed billing info from user profile
   useEffect(() => {
@@ -250,68 +270,106 @@ export default function WorkspaceCheckoutPage() {
                 {t("setup.checkout.paymentMethod")}
               </h2>
 
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("CARD")}
-                  aria-pressed={payMethod === "CARD"}
-                  className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
-                    payMethod === "CARD"
-                      ? "border-brand-gold bg-brand-gold/5"
-                      : "border-surface-4 hover:bg-surface-3/40"
-                  }`}
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gold/15">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4 text-brand-gold"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[13px] font-semibold text-text-primary">
-                      {t("setup.checkout.card")}
-                    </p>
-                    <p className="text-[11px] text-text-muted">
-                      {t("setup.checkout.cardAccepted")}
-                    </p>
-                  </div>
-                  {payMethod === "CARD" && (
-                    <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
-                  )}
-                </button>
+              {/* The two routes cost the same and both ultimately move money
+                  through a bank. Framing them as "card vs bank" was misleading;
+                  what actually differs is how soon the plan turns on, so that
+                  is what the labels lead with. */}
+              {onlineEnabled && offlineEnabled && (
+                <p className="mb-4 text-[12px] leading-relaxed text-text-secondary">
+                  {t("billing.methods.samePrice")}
+                </p>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("OFFLINE")}
-                  aria-pressed={payMethod === "OFFLINE"}
-                  className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
-                    payMethod === "OFFLINE"
-                      ? "border-brand-gold bg-brand-gold/5"
-                      : "border-surface-4 hover:bg-surface-3/40"
-                  }`}
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gold/15">
-                    <Bank className="h-4 w-4 text-brand-gold" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[13px] font-semibold text-text-primary">
-                      {t("billing.offline.payByTransfer")}
-                    </p>
-                    <p className="text-[11px] text-text-muted">
-                      {t("billing.offline.payByTransferHint")}
-                    </p>
-                  </div>
-                  {payMethod === "OFFLINE" && (
-                    <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
-                  )}
-                </button>
+              <div className="space-y-2">
+                {onlineEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod("CARD")}
+                    aria-pressed={payMethod === "CARD"}
+                    className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
+                      payMethod === "CARD"
+                        ? "border-brand-gold bg-brand-gold/5"
+                        : "border-surface-4 hover:bg-surface-3/40"
+                    }`}
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gold/15">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4 text-brand-gold"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <path d="M2 10h20" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[13px] font-semibold text-text-primary">
+                          {t("billing.methods.instantTitle")}
+                        </p>
+                        {/* Label in text-primary, not success green: success
+                            is 4.3:1 and fails AA at this size (DESIGN.md §8).
+                            The tint carries the meaning. */}
+                        <span className="rounded-full bg-status-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-primary">
+                          {t("billing.methods.instantBadge")}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
+                        {t("billing.methods.instantHint")}
+                      </p>
+                    </div>
+                    {payMethod === "CARD" && (
+                      <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
+                    )}
+                  </button>
+                )}
+
+                {offlineEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod("OFFLINE")}
+                    aria-pressed={payMethod === "OFFLINE"}
+                    className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
+                      payMethod === "OFFLINE"
+                        ? "border-brand-gold bg-brand-gold/5"
+                        : "border-surface-4 hover:bg-surface-3/40"
+                    }`}
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-gold/15">
+                      <Bank className="h-4 w-4 text-brand-gold" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[13px] font-semibold text-text-primary">
+                          {t("billing.methods.transferTitle")}
+                        </p>
+                        <span className="rounded-full bg-surface-4 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                          {t("billing.methods.transferBadge", {
+                            hours: String(reviewHours),
+                          })}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
+                        {t("billing.methods.transferHint")}
+                      </p>
+                    </div>
+                    {payMethod === "OFFLINE" && (
+                      <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
+                    )}
+                  </button>
+                )}
               </div>
+
+              {!onlineEnabled && offlineEnabled && (
+                <div className="mt-4 flex items-start gap-3 rounded-lg border border-status-warning/30 bg-status-warning/10 px-4 py-3">
+                  <InfoCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
+                  <p className="text-[12px] leading-relaxed text-text-secondary">
+                    {t("billing.methods.onlineUnavailable")}
+                  </p>
+                </div>
+              )}
 
               {payMethod === "CARD" ? (
                 <div className="mt-4 flex items-center gap-2 text-[11px] text-text-muted">
@@ -415,7 +473,9 @@ export default function WorkspaceCheckoutPage() {
                   </button>
                 ) : (
                   <p className="rounded-lg border border-surface-4 bg-surface-3/40 px-4 py-3 text-center text-[11px] leading-relaxed text-text-secondary">
-                    {t("billing.offline.reviewNotice")}
+                    {t("billing.offline.reviewNotice", {
+                      hours: String(reviewHours),
+                    })}
                   </p>
                 )}
 

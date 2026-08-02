@@ -39,7 +39,8 @@ export const paymentEndpoints = {
   invoiceBillingReport: () => `${BASE}/invoices/billing-report/`,
 
   // Offline payments: bank transfer / mobile money with proof of payment.
-  manualInstructions: () => `${BASE}/manual/instructions/`,
+  paymentMethods: (query?: string) =>
+    `${BASE}/methods/${query ? `?${query}` : ""}`,
   manualRequests: () => `${BASE}/manual/requests/`,
   manualRequestDetail: (requestId: string) =>
     `${BASE}/manual/requests/${requestId}/`,
