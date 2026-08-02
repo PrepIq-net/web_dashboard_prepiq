@@ -9,6 +9,9 @@ import {
   branchDayStatusUpdatePayloadSchema,
   branchDayTodaySchema,
   createProductionLogPayloadSchema,
+  demandPriorsResponseSchema,
+  demandPriorsWriteResultSchema,
+  intelligenceJourneySchema,
   ingredientRequirementSchema,
   prepPlanEvaluatePayloadSchema,
   prepPlanEvaluateResponseSchema,
@@ -100,6 +103,8 @@ import {
   dashboardCapacityRiskSchema,
   type DashboardCapacityRisk,
   type DashboardCapacityRiskQuery,
+  type DemandPriorsResponse,
+  type IntelligenceJourney,
 } from "@/services/production-intelligence/types";
 
 export type {
@@ -965,5 +970,70 @@ export async function getDashboardCapacityRisk(
     withQuery(productionIntelligenceEndpoints.dashboardCapacityRisk(), params),
     dashboardCapacityRiskSchema,
     { method: "GET" },
+  );
+}
+
+// ── Intelligence Journey ────────────────────────────────────────────────────
+
+export type IntelligenceJourneyQuery = { branch_id?: string; date?: string };
+
+export async function getIntelligenceJourney(
+  params?: IntelligenceJourneyQuery,
+): Promise<IntelligenceJourney> {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.intelligenceJourney(), {
+      ...params,
+      branch_id: normalizeBranchId(params?.branch_id),
+    }),
+    intelligenceJourneySchema,
+    { method: "GET" },
+  );
+}
+
+/** Force a recompute, including the data-quality sweep the read path skips. */
+export async function recomputeIntelligenceJourney(
+  params?: IntelligenceJourneyQuery,
+): Promise<IntelligenceJourney> {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.intelligenceJourney(), {
+      ...params,
+      branch_id: normalizeBranchId(params?.branch_id),
+    }),
+    intelligenceJourneySchema,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+export async function getDemandPriors(
+  params?: IntelligenceJourneyQuery,
+): Promise<DemandPriorsResponse> {
+  return apiClientWithSchema(
+    withQuery(productionIntelligenceEndpoints.intelligencePriors(), {
+      ...params,
+      branch_id: normalizeBranchId(params?.branch_id),
+    }),
+    demandPriorsResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export type DemandPriorsPayload = {
+  branch_id?: string;
+  expected_daily_covers?: number | null;
+  priors?: Array<{
+    item_id: string;
+    // Null clears the declaration. Zero would mean "this never sells", which
+    // is a very different instruction to the forecast.
+    expected_daily_quantity?: number | null;
+    source?: string;
+    note?: string;
+  }>;
+};
+
+export async function saveDemandPriors(payload: DemandPriorsPayload) {
+  return apiClientWithSchema(
+    productionIntelligenceEndpoints.intelligencePriors(),
+    demandPriorsWriteResultSchema,
+    { method: "POST", body: JSON.stringify(payload) },
   );
 }

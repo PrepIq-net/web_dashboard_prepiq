@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   Bell,
+  Brain,
   Calendar,
   Cart,
   ChatBubble,
@@ -44,6 +45,7 @@ export type NavPageId =
   | "inventory"
   | "history"
   | "analysis"
+  | "intelligence-journey"
   | "sales-waste"
   | "financial"
   | "staff-performance"
@@ -210,6 +212,37 @@ export const NAV_PAGES: NavPage[] = [
       "why",
       "health score",
       "what should i know",
+    ],
+  },
+  {
+    id: "intelligence-journey",
+    href: "/workspace/intelligence",
+    labelKey: "sidebar.intelligence",
+    icon: Brain,
+    // Deliberately not gated on analytics: the journey is the branch's own
+    // learning status, and the people who most need to read it (and to teach
+    // PrepIQ what the kitchen sells) are the ones running the prep plan.
+    anyPermission: [
+      PERMISSIONS.VIEW_FORECASTS,
+      PERMISSIONS.VIEW_ANALYTICS,
+      PERMISSIONS.VIEW_INVENTORY,
+    ],
+    sectionKey: "analytics",
+    // "intelligence" stays here but is absent from the backend registry: the
+    // palette lists every match, so sharing the word with `analysis` is
+    // helpful, whereas the assistant's router resolves to one page and would
+    // have to steal the alias outright.
+    keywords: [
+      "intelligence",
+      "journey",
+      "learning",
+      "what has prepiq learned",
+      "kitchen dna",
+      "confidence",
+      "cold start",
+      "teach prepiq",
+      "expected sales",
+      "how much do we sell",
     ],
   },
   {

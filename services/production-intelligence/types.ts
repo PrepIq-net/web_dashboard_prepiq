@@ -70,6 +70,22 @@ export type BranchDayInitializePayload = z.infer<
   typeof branchDayInitializePayloadSchema
 >;
 
+/**
+ * Where a day-one quantity came from when the branch had no history of its own.
+ * The cascade is declared → sibling branches → comparable kitchens → nothing;
+ * see backend `services/intelligence/cold_start.py`.
+ */
+export const coldStartOriginSchema = z.object({
+  quantity: z.number(),
+  origin: z.enum(["DECLARED", "SIBLING", "NETWORK", "NONE"]),
+  origin_label: z.string(),
+  explanation: z.string(),
+  sample_size: z.number(),
+  scale_factor: z.number(),
+  detail: z.record(z.string(), z.unknown()).optional(),
+});
+export type ColdStartOrigin = z.infer<typeof coldStartOriginSchema>;
+
 export const prepPlanItemSchema = z.object({
   id: z.string().uuid(),
   product_id: z.string().uuid(),
@@ -100,6 +116,20 @@ export const prepPlanItemSchema = z.object({
     risk: z.string().optional(),
     lower_bound: z.number(),
     upper_bound: z.number(),
+    /**
+     * Whether a point estimate would overstate what we know. A single number
+     * reads as a measurement; when the evidence is borrowed or thin, the range
+     * is the honest form. See backend `_confidence_band`.
+     */
+    confidence_band: z
+      .object({
+        lower: z.number(),
+        upper: z.number(),
+        width_pct: z.number(),
+        basis: z.enum(["BORROWED", "COLD_START", "LOW_CONFIDENCE", "MEASURED"]),
+        lead_with_range: z.boolean(),
+      })
+      .optional(),
     risk_of_stockout: z.number(),
     risk_of_waste: z.number(),
     projected_margin: z.number(),
@@ -181,6 +211,9 @@ export const prepPlanItemSchema = z.object({
     })
     .nullable()
     .optional(),
+  // Present only when this branch had no history of its own for the item, so
+  // the quantity was borrowed. Null means PrepIQ measured it.
+  cold_start: coldStartOriginSchema.nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -332,6 +365,216 @@ export type AttributeOutcomesPayload = z.infer<
   typeof attributeOutcomesPayloadSchema
 >;
 
+/**
+ * Where this kitchen is in its learning journey. Rides along on the Today
+ * payload (and on the 404 body when the day has not been initialized) so the
+ * banner can render before anything else has loaded.
+ *
+ * `confidence_pct` is nullable on purpose: a branch we cannot yet score reports
+ * nothing rather than a plausible-looking number.
+ */
+export const intelligenceJourneySummarySchema = z.object({
+  stage: z.number(),
+  stage_key: z.string(),
+  stage_label: z.string(),
+  headline: z.string(),
+  blocked_reason: z.string().optional().default(""),
+  progress_pct: z.number(),
+  learned_count: z.number(),
+  learning_count: z.number(),
+  total_capabilities: z.number(),
+  confidence_pct: z.number().nullable(),
+  confidence_basis: z.string(),
+  confidence_reason: z.string(),
+  next_milestone: z
+    .object({
+      key: z.string(),
+      label: z.string(),
+      actual: z.number(),
+      target: z.number(),
+      remaining: z.number(),
+    })
+    .nullable()
+    .optional(),
+  blend_mix: z
+    .object({
+      branch_pct: z.number(),
+      similar_kitchens_pct: z.number(),
+      industry_pct: z.number(),
+      basis: z.string().optional(),
+      history_days: z.number().optional(),
+    })
+    .nullable()
+    .optional(),
+});
+export type IntelligenceJourneySummary = z.infer<
+  typeof intelligenceJourneySummarySchema
+>;
+
+const journeyGateSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  met: z.boolean(),
+  actual: z.number(),
+  target: z.number(),
+  detail: z.string(),
+  stage: z.number(),
+});
+
+/** Full journey payload, for the dedicated intelligence page. */
+export const intelligenceJourneySchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string().nullable(),
+  as_of_date: z.string(),
+  computed_at: z.string().nullable(),
+  stage: z.object({
+    index: z.number(),
+    key: z.string(),
+    label: z.string(),
+    headline: z.string(),
+    blocked_reason: z.string(),
+    gates_met: z.array(journeyGateSchema),
+    gates_pending: z.array(journeyGateSchema),
+    next_stage: z
+      .object({
+        index: z.number(),
+        key: z.string(),
+        label: z.string(),
+        requirements: z.array(z.string()),
+      })
+      .nullable(),
+  }),
+  progress: z.object({
+    pct: z.number(),
+    milestones: z.array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        actual: z.number(),
+        target: z.number(),
+        weight: z.number(),
+        pct: z.number(),
+      }),
+    ),
+    next_milestone: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
+  capabilities: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      stage: z.number(),
+      // LOCKED means we cannot learn this yet, as opposed to LEARNING which
+      // means evidence is still accumulating.
+      state: z.enum(["LEARNED", "LEARNING", "LOCKED"]),
+      evidence: z.string(),
+      requirement: z.string(),
+    }),
+  ),
+  confidence: z.object({
+    score: z.number().nullable(),
+    pct: z.number().nullable(),
+    basis: z.string(),
+    explanation: z.string(),
+    factors: z.array(z.string()),
+    components: z.record(z.string(), z.number()),
+    weights: z.record(z.string(), z.number()),
+  }),
+  blend_mix: z.object({
+    branch_pct: z.number(),
+    similar_kitchens_pct: z.number(),
+    industry_pct: z.number(),
+    basis: z.string().optional(),
+    history_days: z.number().optional(),
+  }),
+  kitchen_dna: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      // Null unless status is MEASURED — never render a placeholder number.
+      score: z.number().nullable(),
+      status: z.enum(["MEASURED", "LEARNING", "NOT_AVAILABLE"]),
+      sample_size: z.number(),
+      requirement: z.string(),
+      detail: z.string(),
+    }),
+  ),
+  data_quality: z.object({
+    score: z.number().nullable(),
+    grade: z.string().nullable(),
+    is_training_safe: z.boolean().nullable(),
+  }),
+  counters: z.record(z.string(), z.unknown()),
+  /**
+   * Week-over-week diff of this profile against the one from seven days ago.
+   * A quiet week returns no highlights and a `quiet_reason` naming what would
+   * change that — a digest that always finds something is one people skim.
+   */
+  learning_digest: z
+    .object({
+      as_of_date: z.string(),
+      compared_to: z.string().nullable(),
+      is_first_week: z.boolean(),
+      progress_pct: z.number(),
+      progress_delta: z.number().nullable(),
+      confidence_delta: z.number().nullable(),
+      stage: z.number(),
+      stage_label: z.string(),
+      highlights: z.array(
+        z.object({
+          kind: z.string(),
+          label: z.string(),
+          detail: z.string(),
+        }),
+      ),
+      quiet_reason: z.string(),
+    })
+    .nullable()
+    .optional(),
+});
+export type IntelligenceJourney = z.infer<typeof intelligenceJourneySchema>;
+
+/**
+ * The three numbers a kitchen sees per menu item while teaching PrepIQ what it
+ * sells: what we measured, what they told us, and what we would otherwise
+ * borrow. Keeping them separate is the point — a declaration and a measurement
+ * must never be shown as the same kind of fact.
+ */
+export const demandPriorRowSchema = z.object({
+  item_id: z.string().uuid(),
+  title: z.string(),
+  unit: z.string(),
+  observed_daily_average: z.number().nullable(),
+  observed_days: z.number(),
+  declared_daily_quantity: z.number().nullable(),
+  declared_source: z.string().nullable().optional(),
+  declared_at: z.string().nullable().optional(),
+  suggestion: coldStartOriginSchema.nullable(),
+});
+export type DemandPriorRow = z.infer<typeof demandPriorRowSchema>;
+
+export const demandPriorsResponseSchema = z.object({
+  branch_id: z.string().uuid(),
+  expected_daily_covers: z.number().nullable().optional(),
+  items: z.array(demandPriorRowSchema),
+  summary: z
+    .object({
+      total_items: z.number(),
+      with_history: z.number(),
+      declared: z.number(),
+      suggested: z.number(),
+    })
+    .nullable(),
+});
+export type DemandPriorsResponse = z.infer<typeof demandPriorsResponseSchema>;
+
+export const demandPriorsWriteResultSchema = z.object({
+  branch_id: z.string().uuid(),
+  written: z.number(),
+  cleared: z.number(),
+  rejected_item_ids: z.array(z.string()),
+  expected_daily_covers: z.number().nullable().optional(),
+});
+
 export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
@@ -412,6 +655,7 @@ export const branchDayTodaySchema = z.object({
         .optional(),
     })
     .optional(),
+  intelligence_journey: intelligenceJourneySummarySchema.nullable().optional(),
   kitchen_intelligence_network: z
     .object({
       organization_id: z.string().uuid(),
