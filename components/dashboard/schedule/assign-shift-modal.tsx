@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { Select } from "@/components/ui/select";
+import { ToggleRow } from "@/components/ui/form-field";
+import { TimeRangePicker, rangeHours, type TimeRange } from "@/components/ui/time-range-picker";
 import { useTranslation } from "@/lib/i18n";
 import type {
   LaborRole,
@@ -31,8 +33,13 @@ type AssignShiftModalProps = {
     shiftTemplateId: string | null;
     laborRoleId: string | null;
     notes: string;
+    startTime: string | null;
+    endTime: string | null;
+    isLocked: boolean;
   }) => void;
   onDelete: () => void;
+  /** Other shifts this person already has that day, for overlap warnings. */
+  sameDayShifts?: Shift[];
 };
 
 export function AssignShiftModal({
@@ -45,19 +52,34 @@ export function AssignShiftModal({
   onClose,
   onSave,
   onDelete,
+  sameDayShifts = [],
 }: AssignShiftModalProps) {
   const { t } = useTranslation();
   const [templateId, setTemplateId] = useState("");
   const [roleId, setRoleId] = useState("");
   const [notes, setNotes] = useState("");
+  const [custom, setCustom] = useState(false);
+  const [range, setRange] = useState<TimeRange>({ start: "09:00", end: "17:00" });
+  const [locked, setLocked] = useState(false);
 
   const editing = !!draft?.shift;
 
   useEffect(() => {
     if (!draft) return;
-    setTemplateId(draft.shift?.shift_template ?? templates[0]?.id ?? "");
-    setRoleId(draft.shift?.labor_role ?? "");
-    setNotes(draft.shift?.notes ?? "");
+    const shift = draft.shift;
+    setTemplateId(shift?.shift_template ?? templates[0]?.id ?? "");
+    setRoleId(shift?.labor_role ?? "");
+    setNotes(shift?.notes ?? "");
+    setLocked(shift?.is_locked ?? false);
+
+    // An existing shift with no template was placed by hand, so reopen it the
+    // way it was created rather than snapping it back onto a template.
+    const isCustom = !!shift && !shift.shift_template;
+    setCustom(isCustom);
+    setRange({
+      start: (shift?.start_time ?? "09:00").slice(0, 5),
+      end: (shift?.end_time ?? "17:00").slice(0, 5),
+    });
   }, [draft, templates]);
 
   const person = useMemo(
@@ -78,6 +100,14 @@ export function AssignShiftModal({
   ];
 
   const dayLabel = format(parseISO(draft.dateIso), "EEEE d MMM");
+
+  const siblings = sameDayShifts
+    .filter((shift) => shift.id !== draft.shift?.id)
+    .map((shift) => ({ start: shift.start_time, end: shift.end_time }));
+
+  const customHours = rangeHours(range.start, range.end);
+  const customInvalid = custom && (customHours === null || customHours <= 0);
+  const canSave = custom ? !customInvalid : !!templateId;
 
   return (
     <ModalShell
@@ -109,12 +139,17 @@ export function AssignShiftModal({
             </button>
             <button
               type="button"
-              disabled={saving || deleting || !templateId}
+              disabled={saving || deleting || !canSave}
               onClick={() =>
                 onSave({
-                  shiftTemplateId: templateId || null,
+                  // The API takes either a template or an explicit span, and
+                  // has since it shipped — only the UI ever forced a template.
+                  shiftTemplateId: custom ? null : templateId || null,
                   laborRoleId: roleId || null,
                   notes,
+                  startTime: custom ? range.start : null,
+                  endTime: custom ? range.end : null,
+                  isLocked: locked,
                 })
               }
               className="h-10 rounded-lg bg-brand-gold px-4 text-sm font-medium text-[#141416] transition-colors hover:bg-brand-gold-hover disabled:opacity-50"
@@ -126,12 +161,26 @@ export function AssignShiftModal({
       }
     >
       <div className="space-y-4">
-        <Select
-          label={t("schedule.actions.addShift")}
-          options={templateOptions}
-          value={templateId}
-          onChange={setTemplateId}
+        <ToggleRow
+          checked={custom}
+          onChange={setCustom}
+          label={t("schedule.actions.customWindow")}
         />
+        {custom ? (
+          <TimeRangePicker
+            value={range}
+            onChange={setRange}
+            allowOvernight
+            siblings={siblings}
+          />
+        ) : (
+          <Select
+            label={t("schedule.actions.addShift")}
+            options={templateOptions}
+            value={templateId}
+            onChange={setTemplateId}
+          />
+        )}
         <Select
           label={t("schedule.coverage.role")}
           options={roleOptions}
@@ -153,6 +202,11 @@ export function AssignShiftModal({
             className="w-full rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-brand-gold"
           />
         </div>
+        <ToggleRow
+          checked={locked}
+          onChange={setLocked}
+          label={t("schedule.actions.pinShift")}
+        />
       </div>
     </ModalShell>
   );

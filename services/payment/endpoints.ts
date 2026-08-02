@@ -37,5 +37,11 @@ export const paymentEndpoints = {
   invoiceDetail: (invoiceId: string) => `${BASE}/invoices/${invoiceId}/`,
   invoiceDownload: (invoiceId: string) => `${BASE}/invoices/${invoiceId}/download/`,
   invoiceBillingReport: () => `${BASE}/invoices/billing-report/`,
+
+  // Offline payments: bank transfer / mobile money with proof of payment.
+  manualInstructions: () => `${BASE}/manual/instructions/`,
+  manualRequests: () => `${BASE}/manual/requests/`,
+  manualRequestDetail: (requestId: string) =>
+    `${BASE}/manual/requests/${requestId}/`,
 } as const;
 

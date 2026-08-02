@@ -3,7 +3,11 @@
 import { NavArrowLeft, NavArrowRight, Sparks } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
-import type { CoverageStatus, WeeklySchedule } from "@/services/schedule/types";
+import type {
+  CoverageStatus,
+  GenerationMode,
+  WeeklySchedule,
+} from "@/services/schedule/types";
 import {
   COVERAGE_TONE,
   coverageLabelKey,
@@ -23,7 +27,9 @@ type ScheduleContextBarProps = {
   generating: boolean;
   publishing: boolean;
   copying: boolean;
-  onGenerate: () => void;
+  /** True once the draft has shifts that a rebuild would destroy. */
+  hasShifts: boolean;
+  onGenerate: (mode: GenerationMode) => void;
   onPublish: () => void;
   onCopyPrevious: () => void;
 };
@@ -39,6 +45,7 @@ export function ScheduleContextBar({
   generating,
   publishing,
   copying,
+  hasShifts,
   onGenerate,
   onPublish,
   onCopyPrevious,
@@ -105,14 +112,28 @@ export function ScheduleContextBar({
             >
               {t("schedule.actions.copyPrevious")}
             </button>
+            {/* Optimize is offered first: it is the non-destructive one, and
+                once a week has shifts it is almost always what the manager
+                means. */}
+            {hasShifts ? (
+              <button
+                type="button"
+                onClick={() => onGenerate("OPTIMIZE")}
+                disabled={generating || copying}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-text-primary disabled:opacity-50"
+              >
+                <Sparks className="h-3.5 w-3.5" />
+                {generating ? t("schedule.actions.generating") : t("schedule.actions.optimize")}
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={onGenerate}
+              onClick={() => onGenerate("REPLACE")}
               disabled={generating || copying}
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/50 hover:text-text-primary disabled:opacity-50"
             >
               <Sparks className="h-3.5 w-3.5" />
-              {generating ? t("schedule.actions.generating") : t("schedule.actions.generate")}
+              {generating ? t("schedule.actions.generating") : t("schedule.actions.autoPlan")}
             </button>
           </>
         ) : null}

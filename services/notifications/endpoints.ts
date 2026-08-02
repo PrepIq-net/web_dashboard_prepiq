@@ -4,6 +4,7 @@ export const notificationEndpoints = {
   quietHours: () => "/api/notifications/quiet-hours/",
   markAsRead: () => "/api/notifications/mark-as-read/",
   markAsResolved: () => "/api/notifications/mark-as-resolved/",
+  markAsArchived: () => "/api/notifications/mark-as-archived/",
   analyticsSummary: () => "/api/notifications/analytics/summary/",
   webPushPublicKey: () => "/api/notifications/web-push/public-key/",
   webPushSubscribe: () => "/api/notifications/web-push/subscribe/",

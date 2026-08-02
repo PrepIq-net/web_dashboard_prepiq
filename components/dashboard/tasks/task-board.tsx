@@ -10,6 +10,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
 import { TaskCard } from "./task-card";
 import {
@@ -22,8 +23,30 @@ import {
 const COLUMN_TONE: Record<BoardStatus, string> = {
   TODO: "border-surface-4",
   IN_PROGRESS: "border-brand-gold/50",
-  DONE: "border-status-positive/40",
+  // status-success, not status-positive — the latter is not a declared token,
+  // so this border silently fell back to the default and DONE rendered
+  // identically to TODO.
+  DONE: "border-status-success/40",
 };
+
+/**
+ * One clock for the whole board.
+ *
+ * Progress rings need to advance, but a per-card interval would mean dozens of
+ * independent timers all re-rendering out of step. Thirty seconds is well
+ * inside the resolution of a minute-granularity estimate.
+ */
+function useBoardClock(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, [active]);
+
+  return now;
+}
 
 function BoardColumn({
   status,
@@ -38,6 +61,7 @@ function BoardColumn({
   canReleaseTask,
   claimPending,
   highlightAi,
+  now,
 }: {
   status: BoardStatus;
   tasks: KitchenTask[];
@@ -51,6 +75,7 @@ function BoardColumn({
   canReleaseTask: (task: KitchenTask) => boolean;
   claimPending?: boolean;
   highlightAi?: boolean;
+  now: number;
 }) {
   const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -87,6 +112,7 @@ function BoardColumn({
               canRelease={canReleaseTask(task)}
               claimPending={claimPending}
               highlightAi={highlightAi}
+              now={now}
             />
           ))
         )}
@@ -135,6 +161,12 @@ export function TaskBoard({
   const canDragTask = (task: KitchenTask) =>
     canManage || (!!currentUserId && task.assigned_to?.id === currentUserId);
 
+  // Only tick while something is actually running.
+  const hasRunning = (board.columns.IN_PROGRESS ?? []).some(
+    (task) => task.started_at && task.estimated_minutes,
+  );
+  const now = useBoardClock(hasRunning);
+
   // Claim is a staff affordance for unassigned work; managers assign through
   // the edit modal instead. Release only undoes a claim you made yourself.
   const canClaimTask = (task: KitchenTask) =>
@@ -168,6 +200,7 @@ export function TaskBoard({
             canReleaseTask={canReleaseTask}
             claimPending={claimPending}
             highlightAi={highlightAi}
+            now={now}
           />
         ))}
       </div>

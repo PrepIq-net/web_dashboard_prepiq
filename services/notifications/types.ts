@@ -45,6 +45,9 @@ export type NotificationsResponse = z.infer<typeof notificationsResponseSchema>;
 
 export const markNotificationsPayloadSchema = z.object({
   notification_ids: z.array(z.string().uuid()).optional(),
+  // Only meaningful on mark-as-resolved: records that the alert was answered
+  // by doing something, not just dismissed.
+  acted_on: z.boolean().optional(),
 });
 export type MarkNotificationsPayload = z.infer<
   typeof markNotificationsPayloadSchema

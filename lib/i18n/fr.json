@@ -2848,7 +2848,6 @@
       },
       "domainSystem": "Système de domaine",
       "markAsRead": "Marquer comme lu",
-      "resolve": "Résoudre",
       "tab": {
         "operational": "Opérationnel",
         "planning": "Planification",
@@ -2857,7 +2856,9 @@
         "executive": "Direction"
       },
       "explain": "Expliquer",
-      "explainLoading": "Réflexion en cours..."
+      "explainLoading": "Réflexion en cours...",
+      "openIn": "Ouvrir dans {page}",
+      "dismiss": "Ignorer"
     },
     "branches": {
       "status": {
@@ -4374,7 +4375,11 @@
       "addShift": "Ajouter un service",
       "removeShift": "Supprimer le service",
       "save": "Enregistrer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "optimize": "Optimiser",
+      "autoPlan": "Planifier la semaine",
+      "customWindow": "Définir un créneau personnalisé",
+      "pinShift": "Épingler ce service (la planification automatique ne le supprimera pas)"
     },
     "status": {
       "draft": "Brouillon",
@@ -4476,6 +4481,43 @@
       "sending": "Envoi…",
       "inviteHint": "La personne recevra un e-mail pour rejoindre et apparaîtra sur la liste de {branch} une fois l’invitation acceptée.",
       "noInvitePermission": "Vous n’avez pas la permission d’inviter du personnel dans cet établissement."
+    },
+    "rebuild": {
+      "title": "Reconstruire cette semaine ?",
+      "description": "La planification automatique supprime {count} service(s) saisis manuellement et redessine la semaine à partir des disponibilités approuvées. Les services épinglés sont conservés.",
+      "confirm": "Reconstruire"
+    },
+    "timeRange": {
+      "start": "Début",
+      "end": "Fin",
+      "total": "{hours} h au total",
+      "overnight": "se poursuit après minuit",
+      "endBeforeStart": "L'heure de fin précède l'heure de début.",
+      "overlaps": "Ce créneau en chevauche un autre le même jour."
+    },
+    "hourly": {
+      "day": "Jour",
+      "closed": "Fermé",
+      "closedAllDay": "Fermé toute la journée",
+      "nobodyOn": "Personne n’est planifié sur ce créneau.",
+      "unavailable": "La couverture horaire n’est pas encore disponible pour cette semaine.",
+      "worstGap": "Le créneau le plus tendu de la semaine est {hour} le {date} — il manque {short}.",
+      "detailTitle": "{date} à {hour}",
+      "scheduledOfRequired": "{scheduled} présents · {required} nécessaires",
+      "cellLabel": "{date} à {hour} : {scheduled} planifiés sur {required} nécessaires",
+      "view": {
+        "hourly": "Par heure",
+        "daily": "Par jour"
+      }
+    },
+    "hours": {
+      "column": "Heures",
+      "ofCap": "{hours} / {cap} h",
+      "noCap": "{hours} h",
+      "over": "Dépassé",
+      "barLabel": "Heures par rapport au plafond pour {name}",
+      "weekTotal": "{hours} h planifiées sur {shifts} services",
+      "overCount": "{count} personne(s) au-delà de leur plafond hebdomadaire"
     }
   },
   "tasks": {
@@ -4513,7 +4555,7 @@
     "priority": {
       "low": "Basse",
       "normal": "Normale",
-      "high": "Haute"
+      "high": "Priorité élevée"
     },
     "card": {
       "minutes": "{count} min",
@@ -4522,7 +4564,9 @@
       "aiBadge": "PrepIQ AI",
       "claim": "Prendre",
       "release": "Libérer",
-      "selfAssigned": "Vous avez pris cette tâche"
+      "selfAssigned": "Vous avez pris cette tâche",
+      "remaining": "{count} min restantes",
+      "overBy": "{count} min de dépassement"
     },
     "tray": {
       "title": "{count} tâche(s) suggérée(s) à vérifier",
@@ -4677,6 +4721,32 @@
       "since": "Comparé au {date}",
       "firstWeek": "Votre première semaine — constitution de la référence.",
       "points": "points"
+  "billing": {
+    "offline": {
+      "unavailable": "Le paiement par virement bancaire ou mobile money n'est pas encore configuré. Utilisez une carte ou contactez le support.",
+      "chooseAccount": "Choisissez le compte sur lequel vous avez envoyé l'argent.",
+      "amountRequired": "Saisissez le montant payé.",
+      "proofTooLarge": "Ce fichier dépasse 10 Mo. Joignez une image ou un PDF plus petit.",
+      "submitFailed": "Nous n'avons pas pu enregistrer votre paiement. Réessayez.",
+      "pendingTitle": "Paiement en cours de vérification",
+      "pendingBody": "Nous avons reçu votre paiement ({reference}) et le vérifions sur notre compte. Votre abonnement démarre dès confirmation.",
+      "rejectedTitle": "Votre dernier paiement n'a pas pu être confirmé",
+      "step1": "1. Choisissez où payer",
+      "step2": "2. Indiquez ce que vous avez envoyé",
+      "sendTo": "Envoyez votre paiement à",
+      "amountPaid": "Montant payé",
+      "currency": "Devise",
+      "transactionRef": "Référence de la transaction",
+      "transactionRefPlaceholder": "La référence de votre reçu bancaire ou mobile money",
+      "attachProof": "Joignez votre reçu",
+      "attachProofHint": "Image ou PDF, jusqu'à 10 Mo. Facultatif, mais accélère la confirmation.",
+      "submit": "Envoyer pour vérification",
+      "submitting": "Envoi…",
+      "reviewNotice": "Votre abonnement démarre dès que nous confirmons le paiement — généralement sous un jour ouvré.",
+      "payByTransfer": "Virement bancaire ou mobile money",
+      "payByTransferHint": "Payez sur notre compte et envoyez la preuve. Activé après confirmation.",
+      "payByCard": "Payer par carte",
+      "payByCardHint": "Activation immédiate."
     }
   }
 }

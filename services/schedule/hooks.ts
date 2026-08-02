@@ -3,6 +3,8 @@ import { toast } from "react-hot-toast";
 import * as scheduleService from "./service";
 import type {
   CreateShiftPayload,
+  EmployeeLaborProfilePayload,
+  GenerationMode,
   ReviewAvailabilityPayload,
   SubmitAvailabilityPayload,
   UpdateShiftPayload,
@@ -20,6 +22,8 @@ export const scheduleKeys = {
     [...scheduleKeys.all, "week", branchId, week] as const,
   coverage: (branchId: string, week: string) =>
     [...scheduleKeys.all, "coverage", branchId, week] as const,
+  hourlyCoverage: (branchId: string, week: string) =>
+    [...scheduleKeys.all, "coverage-hourly", branchId, week] as const,
   history: (branchId: string, weeks: number) =>
     [...scheduleKeys.all, "history", branchId, weeks] as const,
   myContext: () => [...scheduleKeys.all, "my-context"] as const,
@@ -127,6 +131,7 @@ function useWeekInvalidator(branchId?: string, week?: string) {
     if (!branchId || !week) return;
     queryClient.invalidateQueries({ queryKey: scheduleKeys.week(branchId, week) });
     queryClient.invalidateQueries({ queryKey: scheduleKeys.coverage(branchId, week) });
+    queryClient.invalidateQueries({ queryKey: scheduleKeys.hourlyCoverage(branchId, week) });
     queryClient.invalidateQueries({ queryKey: scheduleKeys.availability(branchId, week) });
   };
 }
@@ -174,15 +179,57 @@ export function useReviewAvailability(branchId?: string, week?: string) {
 export function useGenerateSchedule(branchId?: string, week?: string) {
   const invalidate = useWeekInvalidator(branchId, week);
   return useMutation({
-    mutationFn: () => scheduleService.generateSchedule(branchId!, week!),
+    mutationFn: (mode: GenerationMode = "REPLACE") =>
+      scheduleService.generateSchedule(branchId!, week!, mode),
     onSuccess: (data) => {
       invalidate();
+      const added = data.schedule.generation_metadata.added_shift_count;
+      const kept = data.schedule.generation_metadata.preserved_shift_ids?.length ?? 0;
+
+      // Optimize and Replace succeed differently: "added nothing" is a good
+      // outcome for one and a failure for the other, so they cannot share a
+      // message.
+      if (data.mode === "OPTIMIZE") {
+        toast.success(
+          added
+            ? `Added ${added} shift(s), kept ${kept}. Review before publishing.`
+            : "Every hour the forecast asks for is already covered.",
+        );
+        return;
+      }
+
       const count = data.schedule.shifts.length;
       if (count === 0) {
         toast.error("No shifts could be drafted — approve availability first.");
       } else {
         toast.success(`Drafted ${count} shifts. Review before publishing.`);
       }
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * Hour-by-hour coverage. Its own query because the payload is an order of
+ * magnitude larger than the day view and only the Coverage tab needs it.
+ */
+export function useHourlyCoverage(branchId?: string, week?: string, enabled = true) {
+  return useQuery({
+    queryKey: scheduleKeys.hourlyCoverage(branchId ?? "", week ?? ""),
+    queryFn: () => scheduleService.getHourlyCoverage(branchId!, week!),
+    enabled: Boolean(branchId && week) && enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useSetEmployeeLaborProfile(branchId?: string, week?: string) {
+  const invalidate = useWeekInvalidator(branchId, week);
+  return useMutation({
+    mutationFn: ({ userId, ...payload }: EmployeeLaborProfilePayload & { userId: string }) =>
+      scheduleService.setEmployeeLaborProfile(branchId!, userId, payload),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Hour limit updated.");
     },
     onError: (error: Error) => toast.error(error.message),
   });

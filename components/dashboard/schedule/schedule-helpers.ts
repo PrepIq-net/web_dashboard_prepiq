@@ -1,5 +1,5 @@
 import { addDays, format, parseISO, startOfWeek } from "date-fns";
-import type { CoverageStatus } from "@/services/schedule/types";
+import type { AvailabilityStatus, CoverageStatus } from "@/services/schedule/types";
 
 /** Restaurants think Monday–Sunday, so every week here starts on Monday. */
 export function weekStart(date: Date): Date {
@@ -66,6 +66,16 @@ export const COVERAGE_BG: Record<CoverageStatus, string> = {
   OK: "bg-status-success/10 border-status-success/30",
   OVER: "bg-status-warning/10 border-status-warning/30",
   UNKNOWN: "bg-surface-3 border-surface-4/60",
+};
+
+/** Availability review state → Badge variant. Was defined twice, identically. */
+export const AVAILABILITY_STATUS_VARIANT: Record<
+  AvailabilityStatus,
+  "default" | "secondary" | "destructive"
+> = {
+  APPROVED: "default",
+  PENDING: "secondary",
+  REJECTED: "destructive",
 };
 
 export function coverageLabelKey(status: CoverageStatus): string {

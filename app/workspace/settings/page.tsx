@@ -1061,11 +1061,60 @@ function IntegrationsSettings({
 
 const DIGEST_ELIGIBLE_CATEGORIES = ["LEARNING", "EXECUTIVE"];
 
+const NOTIFICATION_CATEGORY_ORDER = [
+  "OPERATIONAL",
+  "PLANNING",
+  "LIVE_SERVICE",
+  "LEARNING",
+  "EXECUTIVE",
+] as const;
+
+type CategoryPref = {
+  notification_category: string;
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  digest_mode: boolean;
+};
+
+const DEFAULT_CATEGORY_PREF = {
+  in_app_enabled: true,
+  email_enabled: true,
+  push_enabled: true,
+  digest_mode: false,
+};
+
+/**
+ * One row per category the table renders, whether or not the server has a
+ * saved row for it. The toggles used to operate on the raw server list, so on
+ * an account that had never saved a preference every change mapped over an
+ * empty array and POSTed nothing — the switch flicked back and the setting
+ * never persisted.
+ */
+function buildCategoryPrefs(
+  serverPrefs: { notification_category?: string; branch?: string | null }[] | undefined,
+): CategoryPref[] {
+  return NOTIFICATION_CATEGORY_ORDER.map((category) => {
+    const saved = serverPrefs?.find(
+      (p) => p.notification_category === category && !p.branch,
+    ) as Partial<CategoryPref> | undefined;
+    return {
+      notification_category: category,
+      in_app_enabled: saved?.in_app_enabled ?? DEFAULT_CATEGORY_PREF.in_app_enabled,
+      email_enabled: saved?.email_enabled ?? DEFAULT_CATEGORY_PREF.email_enabled,
+      push_enabled: saved?.push_enabled ?? DEFAULT_CATEGORY_PREF.push_enabled,
+      digest_mode: saved?.digest_mode ?? DEFAULT_CATEGORY_PREF.digest_mode,
+    };
+  });
+}
+
 function NotificationsSettings() {
   const { t } = useTranslation();
   const { data: preferences, isLoading } = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
-  const [localPrefs, setLocalPrefs] = useState<any[]>([]);
+  const [localPrefs, setLocalPrefs] = useState<CategoryPref[]>(() =>
+    buildCategoryPrefs(undefined),
+  );
 
   const { data: quietHours, isLoading: quietHoursLoading } =
     useNotificationQuietHours();
@@ -1078,7 +1127,7 @@ function NotificationsSettings() {
 
   useEffect(() => {
     if (preferences) {
-      setLocalPrefs(preferences);
+      setLocalPrefs(buildCategoryPrefs(preferences));
     }
   }, [preferences]);
 
@@ -1092,32 +1141,46 @@ function NotificationsSettings() {
     }
   }, [quietHours, localQuietHours]);
 
+  /**
+   * Applies a patch to one category and persists just that row. Sending the
+   * whole table on every flick re-wrote four untouched rows for no reason, and
+   * the row is sent complete so a partial payload can't leave the server
+   * guessing at the flags the user didn't change.
+   */
+  const persistCategory = (
+    notificationCategory: string,
+    patch: Partial<CategoryPref>,
+  ) => {
+    const current =
+      localPrefs.find((p) => p.notification_category === notificationCategory) ??
+      { notification_category: notificationCategory, ...DEFAULT_CATEGORY_PREF };
+    const next = { ...current, ...patch };
+    // Digest is a delayed email; switching email off has to take it down too,
+    // matching what the server enforces.
+    if (!next.email_enabled) next.digest_mode = false;
+    const rollback = localPrefs;
+
+    setLocalPrefs((prev) =>
+      prev.map((p) =>
+        p.notification_category === notificationCategory ? next : p,
+      ),
+    );
+    updatePreferences.mutate([next], {
+      // A switch left flipped after a failed save reads as "saved". Put it back.
+      onError: () => setLocalPrefs(rollback),
+    });
+  };
+
   const handleToggle = (
     notificationCategory: string,
     channel: string,
     enabled: boolean,
-  ) => {
-    const updated = localPrefs.map((p) =>
-      p.notification_category === notificationCategory
-        ? { ...p, [`${channel}_enabled`]: enabled }
-        : p,
-    );
-    setLocalPrefs(updated);
-    updatePreferences.mutate(updated);
-  };
+  ) => persistCategory(notificationCategory, { [`${channel}_enabled`]: enabled });
 
   const handleDigestToggle = (
     notificationCategory: string,
     enabled: boolean,
-  ) => {
-    const updated = localPrefs.map((p) =>
-      p.notification_category === notificationCategory
-        ? { ...p, digest_mode: enabled }
-        : p,
-    );
-    setLocalPrefs(updated);
-    updatePreferences.mutate(updated);
-  };
+  ) => persistCategory(notificationCategory, { digest_mode: enabled });
 
   const handleQuietHoursChange = (
     patch: Partial<{ enabled: boolean; start_time: string; end_time: string }>,
@@ -1208,12 +1271,9 @@ function NotificationsSettings() {
             {notificationTypes.map((type) => {
               const pref = localPrefs.find(
                 (p) => p.notification_category === type.notification_category,
-              ) || {
+              ) ?? {
                 notification_category: type.notification_category,
-                in_app_enabled: true,
-                email_enabled: true,
-                push_enabled: true,
-                digest_mode: false,
+                ...DEFAULT_CATEGORY_PREF,
               };
               const digestEligible = DIGEST_ELIGIBLE_CATEGORIES.includes(
                 type.notification_category,
@@ -1235,6 +1295,7 @@ function NotificationsSettings() {
                   <td className="px-6 py-5 text-center">
                     <Switch
                       checked={pref.in_app_enabled}
+                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.inApp")}`}
                       onCheckedChange={(val) =>
                         handleToggle(type.notification_category, "in_app", val)
                       }
@@ -1243,6 +1304,7 @@ function NotificationsSettings() {
                   <td className="px-6 py-5 text-center">
                     <Switch
                       checked={pref.email_enabled}
+                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.email")}`}
                       onCheckedChange={(val) =>
                         handleToggle(type.notification_category, "email", val)
                       }
@@ -1251,6 +1313,7 @@ function NotificationsSettings() {
                   <td className="px-6 py-5 text-center">
                     <Switch
                       checked={pref.push_enabled}
+                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.push")}`}
                       onCheckedChange={(val) =>
                         handleToggle(type.notification_category, "push", val)
                       }
@@ -1267,6 +1330,7 @@ function NotificationsSettings() {
                       >
                         <Switch
                           checked={!!pref.digest_mode}
+                          aria-label={`${type.label} — ${t("settings.notifications.tableHeader.digest")}`}
                           disabled={!pref.email_enabled}
                           onCheckedChange={(val) =>
                             handleDigestToggle(type.notification_category, val)

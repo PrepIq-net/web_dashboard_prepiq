@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatBubble } from "iconoir-react";
 import { useNotifications } from "@/services/notifications/hooks";
@@ -53,6 +54,19 @@ export function OperationsHub({ user }: { user: CurrentUser }) {
 
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeConversationId;
+
+  // /workspace/chat?conversation=<id> opens that thread. Both the command
+  // palette and team-ping notifications have always emitted this link; until
+  // now nothing read it, so they all landed on whatever thread was default.
+  const searchParams = useSearchParams();
+  const conversationParam = searchParams.get("conversation");
+  const consumedParamRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!conversationParam || consumedParamRef.current === conversationParam) return;
+    consumedParamRef.current = conversationParam;
+    setActiveConversationId(conversationParam);
+    setRailTab("conversations");
+  }, [conversationParam]);
 
   const conversationsQuery = useHubConversations();
   const messagesQuery = useHubMessages(activeConversationId);

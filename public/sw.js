@@ -27,8 +27,16 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  // Route taps to the notifications page, focusing an existing tab if open.
-  const targetPath = '/workspace/notifications';
+  // Hand the notification id to the app rather than resolving a destination
+  // here: the code -> route table lives in lib/notifications/destinations.ts,
+  // and a second copy in this worker would drift the first time a route moved.
+  // The notifications page forwards from ?n=<id>, so an unresolvable alert
+  // simply lands on the feed — the old behaviour, as the fallback.
+  const notificationId =
+    event.notification.data && event.notification.data.notification_id;
+  const targetPath = notificationId
+    ? `/workspace/notifications?n=${encodeURIComponent(notificationId)}`
+    : '/workspace/notifications';
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
