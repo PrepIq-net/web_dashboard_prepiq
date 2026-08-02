@@ -4721,6 +4721,8 @@
       "since": "Compared with {date}",
       "firstWeek": "Your first week — building a baseline.",
       "points": "points"
+    }
+  },
   "billing": {
     "methods": {
       "samePrice": "The price is the same either way. What differs is how soon your plan turns on.",

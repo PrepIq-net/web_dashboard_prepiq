@@ -81,7 +81,11 @@ export default async function RootLayout({
         className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}
       >
         {impersonation && <ImpersonationBanner context={impersonation} />}
-        <Providers>{children}</Providers>
+        <Providers
+          cacheScope={impersonation ? `imp:${impersonation.email}` : undefined}
+        >
+          {children}
+        </Providers>
       </body>
     </html>
   );

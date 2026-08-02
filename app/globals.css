@@ -201,3 +201,18 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Read-only impersonation bar ──────────────────────────────────────────
+   The bar is fixed at the top of the viewport, so everything else has to be
+   inset by its height or it covers content. Body padding handles the normal
+   flow; the workspace sidebar is `fixed top-0 h-screen` and ignores that, so
+   it is moved down and shortened explicitly. Both read the height the banner
+   measures at runtime, with a sane fallback for the first paint. */
+html[data-impersonating] body {
+  padding-top: var(--impersonation-bar, 44px);
+}
+
+html[data-impersonating] [data-app-chrome="sidebar"] {
+  top: var(--impersonation-bar, 44px);
+  height: calc(100vh - var(--impersonation-bar, 44px));
+}

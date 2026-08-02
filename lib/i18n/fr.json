@@ -4721,6 +4721,8 @@
       "since": "Comparé au {date}",
       "firstWeek": "Votre première semaine — constitution de la référence.",
       "points": "points"
+    }
+  },
   "billing": {
     "methods": {
       "samePrice": "Le prix est identique dans les deux cas. Ce qui change, c'est la rapidité d'activation de votre offre.",

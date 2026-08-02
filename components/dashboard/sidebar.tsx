@@ -134,6 +134,10 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 
   return (
     <aside
+      // Hook for the impersonation bar: being `fixed` this element ignores the
+      // body padding that insets everything else, so globals.css moves it down
+      // by the bar's height. See components/impersonation-banner.tsx.
+      data-app-chrome="sidebar"
       className={`fixed left-0 top-0 z-20 flex h-screen flex-col border-r border-[#1C1C1F] bg-[#141416] transition-[width] duration-200 ${
         collapsed ? "w-20" : "w-60"
       }`}

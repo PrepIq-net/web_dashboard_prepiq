@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIES } from "@/lib/auth/cookies";
 
+/**
+ * Routes that establish a session rather than requiring one.
+ *
+ * `/impersonate` redeems a single-use support code and writes the resulting
+ * cookies itself. Gating it behind "already has a cookie" made the feature
+ * usable only by an admin who happened to be signed into the dashboard already
+ * — every other case bounced to /login with the code unspent. Its own
+ * credential is the code, which the backend accepts once and only for a minute.
+ */
+const SESSION_ENTRY_PAGES = new Set(["/impersonate"]);
+
 const AUTH_PAGES = new Set([
   "/login",
   "/register",
@@ -27,7 +38,11 @@ function isPublicAsset(pathname: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/api") || isPublicAsset(pathname)) {
+  if (
+    pathname.startsWith("/api") ||
+    isPublicAsset(pathname) ||
+    SESSION_ENTRY_PAGES.has(pathname)
+  ) {
     return NextResponse.next();
   }
 

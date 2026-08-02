@@ -68,7 +68,11 @@ export async function GET(request: Request) {
     return failure(request, "invalid-response");
   }
 
-  const response = NextResponse.redirect(new URL("/workspace", request.url));
+  // "/" rather than "/workspace": the root is the router that decides where
+  // this particular user belongs (onboarding / Today / Dashboard), and
+  // /workspace itself has no page — landing there is a 404. An admin must see
+  // the same first screen the customer sees.
+  const response = NextResponse.redirect(new URL("/", request.url));
 
   // Cookie lifetimes match the token's own TTL rather than the usual login
   // durations — when the read-only session dies, the cookies go with it

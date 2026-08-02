@@ -16,11 +16,22 @@ import { LanguageProvider } from "@/lib/i18n/language-context";
 
 type ProvidersProps = {
   children: ReactNode;
+  /**
+   * Who this browser is currently acting as. Folded into the persistence
+   * buster so switching identity — an admin starting a read-only support
+   * session on a browser already signed in as themselves — throws away the
+   * previous identity's persisted cache instead of rehydrating it under the
+   * new one. The denylist already keeps profile/branch/billing off disk; this
+   * covers everything else, which is branch-scoped and would otherwise be one
+   * shared org away from showing the wrong numbers.
+   */
+  cacheScope?: string;
 };
 
-export function Providers({ children }: ProvidersProps) {
+export function Providers({ children, cacheScope }: ProvidersProps) {
   const [queryClient] = useState(() => createQueryClient());
   const [persister] = useState(() => createPersister());
+  const buster = cacheScope ? `${PERSIST_BUSTER}:${cacheScope}` : PERSIST_BUSTER;
 
   return (
     <LanguageProvider>
@@ -29,7 +40,7 @@ export function Providers({ children }: ProvidersProps) {
       persistOptions={{
         persister,
         maxAge: PERSIST_MAX_AGE,
-        buster: PERSIST_BUSTER,
+        buster,
         dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
       }}
     >

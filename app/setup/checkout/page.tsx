@@ -2,8 +2,10 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Bank,
   CheckCircle,
   ShieldCheck,
   CreditCard,
@@ -22,6 +24,8 @@ import {
   useSubscriptionPlanPricing,
 } from "@/services/payment/hooks";
 import { useBranches, useCurrentUserProfile } from "@/services";
+import { OfflinePaymentPanel } from "@/components/billing/offline-payment-panel";
+import { getPaymentMethodOptions } from "@/services/payment/manual";
 import { formatMoney } from "@/lib/currencies";
 import { useTranslation } from "@/lib/i18n";
 import type { Branch } from "@/services/branches/types";
@@ -55,7 +59,9 @@ export default function CheckoutPage() {
     "MONTHLY",
   );
   const [selectedBranchId, setSelectedBranchId] = useState("");
-  const paymentMethod = "CARD";
+  // Card stays the default: it is instant, and the offline route costs the
+  // customer a wait for manual verification.
+  const [payMethod, setPayMethod] = useState<"CARD" | "OFFLINE">("CARD");
   const [businessName, setBusinessName] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -139,6 +145,30 @@ export default function CheckoutPage() {
       : toNumber(selectedPlan.yearly_price);
   }, [selectedPlan, billingCycle]);
 
+  // Either route can be switched off platform-wide from the admin panel, and
+  // the offline one only counts as available once there is somewhere to send
+  // the money. This screen used to hardcode CARD, so bank details entered in
+  // the admin panel never reached the one checkout most customers see first.
+  const methodsQuery = useQuery({
+    queryKey: ["payment", "manual", "options", selectedPlanId, billingCycle],
+    queryFn: () =>
+      getPaymentMethodOptions({
+        planId: selectedPlanId,
+        billingCycle,
+      }),
+  });
+  const onlineEnabled = methodsQuery.data?.online.enabled ?? true;
+  const offlineEnabled = methodsQuery.data?.offline.enabled ?? false;
+  const reviewHours = methodsQuery.data?.offline.review_hours ?? 24;
+
+  // If instant checkout is off, land on the route that actually works rather
+  // than showing a selected option that would be refused on submit.
+  useEffect(() => {
+    if (!methodsQuery.data) return;
+    if (!onlineEnabled && offlineEnabled) setPayMethod("OFFLINE");
+    if (onlineEnabled && !offlineEnabled) setPayMethod("CARD");
+  }, [methodsQuery.data, onlineEnabled, offlineEnabled]);
+
   // Subscriptions are billed in USD only — the branch's operating currency
   // never applies to billing, so there is no conversion to show.
   const displayPrice = (v: number) => formatMoney(v, "USD");
@@ -163,7 +193,7 @@ export default function CheckoutPage() {
         plan_id: selectedPlanId,
         branch_id: selectedBranchId,
         billing_cycle: billingCycle,
-        payment_method: paymentMethod,
+        payment_method: "CARD",
         business_name: businessName,
         billing_email: billingEmail,
         phone_number: phoneNumber,
@@ -382,23 +412,107 @@ export default function CheckoutPage() {
                 </h2>
               </div>
 
-              <div className="p-6 rounded-card border border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)] flex items-center gap-4">
-                <CreditCard className="h-6 w-6 text-brand-gold shrink-0" />
-                <div className="flex-1">
-                  <p className="font-semibold text-[15px]">
-                    {t("setup.checkout.card")}
-                  </p>
-                  <p className="text-[12px] text-text-muted mt-0.5">
-                    {t("setup.checkout.cardAccepted")}
-                  </p>
-                </div>
-                <CheckCircle className="h-4 w-4 text-brand-gold shrink-0" />
+              {/* Both routes cost the same and both end at a bank. What
+                  actually differs is how soon the plan turns on, so that is
+                  what the options lead with. */}
+              {onlineEnabled && offlineEnabled && (
+                <p className="-mt-4 text-[12px] leading-relaxed text-text-secondary">
+                  {t("billing.methods.samePrice")}
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {onlineEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod("CARD")}
+                    aria-pressed={payMethod === "CARD"}
+                    className={`flex w-full items-center gap-4 rounded-card border p-6 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
+                      payMethod === "CARD"
+                        ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
+                        : "border-border-default hover:bg-surface-3/40"
+                    }`}
+                  >
+                    <CreditCard className="h-6 w-6 shrink-0 text-brand-gold" />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[15px] font-semibold">
+                          {t("billing.methods.instantTitle")}
+                        </p>
+                        {/* Tint carries the meaning — success green is 4.3:1
+                            and fails AA at this size (DESIGN.md §8). */}
+                        <span className="rounded-full bg-status-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-primary">
+                          {t("billing.methods.instantBadge")}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-text-muted">
+                        {t("billing.methods.instantHint")}
+                      </p>
+                    </div>
+                    {payMethod === "CARD" && (
+                      <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
+                    )}
+                  </button>
+                )}
+
+                {offlineEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod("OFFLINE")}
+                    aria-pressed={payMethod === "OFFLINE"}
+                    className={`flex w-full items-center gap-4 rounded-card border p-6 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
+                      payMethod === "OFFLINE"
+                        ? "border-brand-gold bg-brand-gold/5 shadow-[0_0_0_1px_rgba(168,130,31,0.2)]"
+                        : "border-border-default hover:bg-surface-3/40"
+                    }`}
+                  >
+                    <Bank className="h-6 w-6 shrink-0 text-brand-gold" />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[15px] font-semibold">
+                          {t("billing.methods.transferTitle")}
+                        </p>
+                        <span className="rounded-full bg-surface-4 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+                          {t("billing.methods.transferBadge", {
+                            hours: String(reviewHours),
+                          })}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-text-muted">
+                        {t("billing.methods.transferHint")}
+                      </p>
+                    </div>
+                    {payMethod === "OFFLINE" && (
+                      <CheckCircle className="h-4 w-4 shrink-0 text-brand-gold" />
+                    )}
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] text-text-muted">
-                <ShieldCheck className="h-3.5 w-3.5 text-brand-gold" />
-                {t("setup.checkout.securePayment")}
-              </div>
+              {!onlineEnabled && offlineEnabled && (
+                <div className="flex items-start gap-3 rounded-card border border-status-warning/30 bg-status-warning/10 px-4 py-3">
+                  <InfoCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
+                  <p className="text-[12px] leading-relaxed text-text-secondary">
+                    {t("billing.methods.onlineUnavailable")}
+                  </p>
+                </div>
+              )}
+
+              {payMethod === "CARD" ? (
+                <div className="flex items-center gap-2 text-[11px] text-text-muted">
+                  <ShieldCheck className="h-3.5 w-3.5 text-brand-gold" />
+                  {t("setup.checkout.securePayment")}
+                </div>
+              ) : (
+                <div className="border-t border-border-default pt-8">
+                  <OfflinePaymentPanel
+                    planId={selectedPlanId}
+                    branchId={selectedBranchId}
+                    billingCycle={billingCycle}
+                    expectedAmountUsd={String(price)}
+                  />
+                </div>
+              )}
             </section>
           </div>
 
@@ -463,21 +577,32 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
-                    <Button
-                      fullWidth
-                      className="h-14 text-[16px] font-semibold"
-                      onClick={handleCheckout}
-                      disabled={checkoutMutation.isPending}
-                    >
-                      {checkoutMutation.isPending ? (
-                        <span className="flex items-center gap-2">
-                          <Spinner size="sm" />
-                          {t("setup.checkout.processing")}
-                        </span>
-                      ) : (
-                        t("setup.checkout.pay", { amount: displayPrice(price) })
-                      )}
-                    </Button>
+                    {/* Pay button — card only. The offline route has its own
+                        submit inside the panel, and a "Pay $49" button that
+                        does nothing for a bank transfer would be a trap. */}
+                    {payMethod === "CARD" ? (
+                      <Button
+                        fullWidth
+                        className="h-14 text-[16px] font-semibold"
+                        onClick={handleCheckout}
+                        disabled={checkoutMutation.isPending}
+                      >
+                        {checkoutMutation.isPending ? (
+                          <span className="flex items-center gap-2">
+                            <Spinner size="sm" />
+                            {t("setup.checkout.processing")}
+                          </span>
+                        ) : (
+                          t("setup.checkout.pay", { amount: displayPrice(price) })
+                        )}
+                      </Button>
+                    ) : (
+                      <p className="rounded-card border border-border-default bg-surface-3/40 px-4 py-3 text-center text-[11px] leading-relaxed text-text-secondary">
+                        {t("billing.offline.reviewNotice", {
+                          hours: String(reviewHours),
+                        })}
+                      </p>
+                    )}
 
                     <p className="mt-4 text-[11px] text-center text-text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: t("setup.checkout.termsPrivacy").replace("PrepIQ's Terms of Service", `<a href="#" class="underline hover:text-brand-gold">PrepIQ's Terms of Service</a>`).replace("Privacy Policy", `<a href="#" class="underline hover:text-brand-gold">Privacy Policy</a>`) }} />
                   </div>
