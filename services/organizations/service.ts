@@ -1,7 +1,13 @@
-import { apiClientWithSchema } from "@/lib/api/client";
+import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { organizationsEndpoints } from "./endpoints";
 import {
   addOrganizationMemberPayloadSchema,
+  memberAccessSchema,
+  memberPermissionGrantSchema,
+  type GrantMemberPermissionPayload,
+  type MemberAccess,
+  type MemberPermissionGrant,
+  type RevokeMemberPermissionPayload,
   organizationSchema,
   organizationMemberSchema,
   organizationRegisterPayloadSchema,
@@ -272,6 +278,41 @@ export async function deleteOrganizationRole(
       method: "DELETE",
     },
   );
+}
+
+export async function getMemberAccess(
+  id: string,
+  userId: string,
+): Promise<MemberAccess> {
+  return apiClientWithSchema(
+    organizationsEndpoints.memberAccess(id, userId),
+    memberAccessSchema,
+    { method: "GET" },
+  );
+}
+
+export async function grantMemberPermission(
+  id: string,
+  userId: string,
+  payload: GrantMemberPermissionPayload,
+): Promise<MemberPermissionGrant> {
+  return apiClientWithSchema(
+    organizationsEndpoints.memberAccess(id, userId),
+    memberPermissionGrantSchema,
+    { method: "POST", body: payload },
+  );
+}
+
+export async function revokeMemberPermission(
+  id: string,
+  userId: string,
+  payload: RevokeMemberPermissionPayload,
+): Promise<void> {
+  // 204 No Content — nothing to parse.
+  await apiClient(organizationsEndpoints.memberAccess(id, userId), {
+    method: "DELETE",
+    body: payload,
+  });
 }
 
 export type LifecycleReason = {

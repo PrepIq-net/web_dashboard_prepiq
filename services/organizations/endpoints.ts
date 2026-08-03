@@ -21,4 +21,7 @@ export const organizationsEndpoints = {
   roles: (id: string) => `/api/organizations/${id}/roles/`,
   roleDetail: (id: string, roleId: string) =>
     `/api/organizations/${id}/roles/${roleId}/`,
+  /** GET the member's effective access; POST/DELETE their direct grants. */
+  memberAccess: (id: string, userId: string) =>
+    `/api/organizations/${id}/members/${userId}/access/`,
 } as const;
