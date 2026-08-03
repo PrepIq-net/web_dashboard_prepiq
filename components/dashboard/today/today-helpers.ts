@@ -200,6 +200,51 @@ export function popularityLabel(t: Translator, rank: number) {
   return t("today.popularity.rank", { rank });
 }
 
+// ── Preparation type ─────────────────────────────────────────────────────────
+
+export type PreparationCode = "PREPARED" | "ASSEMBLED" | "STOCKED";
+
+/**
+ * Items that need a production decision this morning.
+ *
+ * STOCKED items are excluded: a chef does not prep forty Cokes, and mixing them
+ * into this list did real damage rather than just adding noise — drinks are the
+ * top sellers by order count almost everywhere, so the popularity rank put a
+ * soft drink at the head of the prep plan and pushed the dishes that actually
+ * need a decision down the page.
+ */
+export function isPrepDecision(item: PrepPlanItem): boolean {
+  return item.preparation_type?.code !== "STOCKED";
+}
+
+/** Split a reviewed row set into the prep decision list and the restock list. */
+export function splitByPreparation<T extends { item: PrepPlanItem }>(rows: T[]) {
+  const prepRows: T[] = [];
+  const stockRows: T[] = [];
+  for (const row of rows) {
+    (isPrepDecision(row.item) ? prepRows : stockRows).push(row);
+  }
+  return { prepRows, stockRows };
+}
+
+export function preparationLabel(t: Translator, code: PreparationCode) {
+  return t(`today.preparation.${code.toLowerCase()}`);
+}
+
+/**
+ * The category chip's text. Prefers the item's own category, falling back to
+ * the preparation type so a row is never unlabelled — an uncategorised POS
+ * product is common, and a blank chip reads as a rendering bug.
+ */
+export function categoryChipLabel(
+  t: Translator,
+  item: PrepPlanItem,
+): string | null {
+  if (item.product_category) return item.product_category;
+  const code = item.preparation_type?.code;
+  return code ? preparationLabel(t, code) : null;
+}
+
 export function signalLabel(t: Translator, key: string): string {
   const map: Record<string, string> = {
     reservation: t("today.signalLabel.reservation"),

@@ -3,8 +3,10 @@ import * as organizationService from "./service";
 import { toast } from "react-hot-toast";
 import type {
   AddOrganizationMemberPayload,
+  GrantMemberPermissionPayload,
   OrganizationRegisterPayload,
   OrganizationFinancialOverviewQuery,
+  RevokeMemberPermissionPayload,
   RoleCreateUpdatePayload,
 } from "./types";
 import { usersQueryKeys } from "../users/hooks";
@@ -20,6 +22,8 @@ export const organizationKeys = {
   roles: (id: string) => [...organizationKeys.all, "roles", id] as const,
   roleDetail: (id: string, roleId: string) =>
     [...organizationKeys.all, "role", id, roleId] as const,
+  memberAccess: (id: string, userId: string) =>
+    [...organizationKeys.all, "member-access", id, userId] as const,
   financialOverview: (
     id: string,
     params?: OrganizationFinancialOverviewQuery,
@@ -225,6 +229,72 @@ export function useDeleteOrganizationRole(id: string) {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to delete role.");
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Member access — per-person permission grants on top of their role
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Backend refusals worth explaining rather than echoing the raw code. */
+const GRANT_ERROR_MESSAGES: Record<string, string> = {
+  PERMISSION_NOT_HELD_BY_ACTOR:
+    "You can only grant permissions you hold yourself.",
+  PERMISSION_ALREADY_IN_ROLE:
+    "Their role already includes this — no extra grant needed.",
+  PERMISSION_ALREADY_GRANTED: "That permission is already granted.",
+  ORG_ADMIN_REQUIRED: "You do not have permission to manage this team.",
+};
+
+function grantErrorMessage(error: any, fallback: string): string {
+  const raw = String(error?.message ?? "");
+  for (const [code, message] of Object.entries(GRANT_ERROR_MESSAGES)) {
+    if (raw.includes(code)) return message;
+  }
+  return raw || fallback;
+}
+
+export function useMemberAccess(id: string, userId?: string) {
+  return useQuery({
+    queryKey: organizationKeys.memberAccess(id, userId ?? ""),
+    queryFn: () => organizationService.getMemberAccess(id, userId as string),
+    enabled: !!id && !!userId,
+  });
+}
+
+export function useGrantMemberPermission(id: string, userId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: GrantMemberPermissionPayload) =>
+      organizationService.grantMemberPermission(id, userId as string, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.memberAccess(id, userId ?? ""),
+      });
+      queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
+      toast.success("Permission granted.");
+    },
+    onError: (error: any) => {
+      toast.error(grantErrorMessage(error, "Failed to grant permission."));
+    },
+  });
+}
+
+export function useRevokeMemberPermission(id: string, userId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: RevokeMemberPermissionPayload) =>
+      organizationService.revokeMemberPermission(id, userId as string, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.memberAccess(id, userId ?? ""),
+      });
+      queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) });
+      toast.success("Permission revoked.");
+    },
+    onError: (error: any) => {
+      toast.error(grantErrorMessage(error, "Failed to revoke permission."));
     },
   });
 }

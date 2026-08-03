@@ -17,7 +17,6 @@ import {
   InfoCircle,
   Plus,
   Trash,
-  Edit,
   HelpCircle,
   EvPlug,
   Clock,
@@ -41,9 +40,6 @@ import {
   useBranch,
   useUpdateBranch,
   useDeleteBranch,
-  useBranchAssignments,
-  useUpsertBranchAssignment,
-  useRemoveBranchAssignment,
 } from "@/services/branches/hooks";
 import type { UpdateBranchPayload } from "@/services/branches/types";
 import { BranchForm } from "@/components/branches/branch-form";
@@ -72,7 +68,6 @@ import {
 import { ModalShell } from "@/components/ui/modal-shell";
 import type { OrganizationMember, Role } from "@/services/organizations/types";
 import {
-  SYSTEM_ROLE_OPTIONS,
   SYSTEM_ROLE_SLUG,
   PERMISSIONS,
   resolveMemberRoleLabel,
@@ -84,6 +79,12 @@ import { Select } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
+import { MemberAccessDrawer } from "@/components/dashboard/settings/member-access-drawer";
+import {
+  RoleEditorModal,
+  type RoleFormValues,
+} from "@/components/dashboard/settings/role-editor-modal";
+import { SectionHeader } from "@/components/ui/section-header";
 import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
 import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
@@ -1651,6 +1652,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   );
   const { data: permissions } = useOrganizationPermissions(orgId || "");
   const { data: roles } = useOrganizationRoles(orgId || "");
+  const { data: orgBranches } = useBranches(orgId || "");
   const addMember = useAddOrganizationMember(orgId || "");
   const updateMember = useUpdateOrganizationMember(orgId || "");
   const removeMember = useRemoveOrganizationMember(orgId || "");
@@ -1658,28 +1660,21 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   const updateRole = useUpdateOrganizationRole(orgId || "");
   const deleteRole = useDeleteOrganizationRole(orgId || "");
 
-  // Members modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newMember, setNewMember] = useState({
     user_email: "",
-    custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value as string,
+    custom_role_slug: SYSTEM_ROLE_SLUG.MEMBER as string,
   });
 
-  // Custom roles modal state
+  // Role editor — a null role means "create", a system role opens read-only.
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [roleFormMode, setRoleFormMode] = useState<"create" | "edit">("create");
-  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
-  const [roleForm, setRoleForm] = useState({
-    name: "",
-    description: "",
-    slug: "",
-    permission_codes: [] as string[],
-  });
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [isConfirmRoleDeleteOpen, setIsConfirmRoleDeleteOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<{
     id: string;
     name: string;
   } | null>(null);
+
   const [isConfirmMemberRemoveOpen, setIsConfirmMemberRemoveOpen] =
     useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{
@@ -1687,52 +1682,27 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     label: string;
   } | null>(null);
 
-  // Per-branch role management — a member can hold a different role at each
-  // location they work at.
-  const { data: orgBranches } = useBranches(orgId || "");
-  const [branchModalMember, setBranchModalMember] =
-    useState<OrganizationMember | null>(null);
-  const { data: memberAssignments, isLoading: assignmentsLoading } =
-    useBranchAssignments(
-      orgId || "",
-      branchModalMember ? String(branchModalMember.user) : undefined,
-    );
-  const upsertAssignment = useUpsertBranchAssignment(orgId || "");
-  const removeAssignment = useRemoveBranchAssignment(orgId || "");
-  const [assignForm, setAssignForm] = useState({
-    branch_id: "",
-    custom_role_slug: "",
-  });
+  // The access drawer is the single place a person's role, locations and
+  // individual permission grants are edited.
+  const [drawerMember, setDrawerMember] = useState<OrganizationMember | null>(
+    null,
+  );
 
-  // Get all available roles for member dropdown (system + custom).
-  // The owner role is never listed: ownership moves only through Transfer
-  // Ownership in the Danger Zone, so it can't be granted from here.
-  const availableRoles = [
-    ...SYSTEM_ROLE_OPTIONS.filter(
-      (option) => option.value !== SYSTEM_ROLE_SLUG.SUPER_ADMIN,
-    ),
-    ...(roles
-      ?.filter((r) => !r.is_system)
-      .map((r) => ({ label: r.name, value: r.slug })) || []),
-  ];
+  // Ownership moves only through Transfer Ownership in the Danger Zone, so the
+  // owner role is never offered as something to assign.
+  const roleOptions = useMemo(
+    () =>
+      (roles ?? [])
+        .filter((role) => role.slug !== SYSTEM_ROLE_SLUG.SUPER_ADMIN)
+        .map((role) => ({ label: role.name, value: role.slug })),
+    [roles],
+  );
 
-  const handleOpenBranchModal = (member: OrganizationMember) => {
-    setBranchModalMember(member);
-    setAssignForm({ branch_id: "", custom_role_slug: "" });
-  };
+  const systemRoles = (roles ?? []).filter((role) => role.is_system);
+  const customRoles = (roles ?? []).filter((role) => !role.is_system);
 
-  const handleAssignBranch = () => {
-    if (!branchModalMember || !assignForm.branch_id) return;
-    upsertAssignment.mutate(
-      {
-        user_id: String(branchModalMember.user),
-        branch_id: assignForm.branch_id,
-        custom_role_slug: assignForm.custom_role_slug || undefined,
-      },
-      {
-        onSuccess: () => setAssignForm({ branch_id: "", custom_role_slug: "" }),
-      },
-    );
+  const handleUpdateOrgRole = (userId: string, custom_role_slug: string) => {
+    updateMember.mutate({ userId, custom_role_slug });
   };
 
   const handleAddMember = () => {
@@ -1741,14 +1711,10 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         setIsAddModalOpen(false);
         setNewMember({
           user_email: "",
-          custom_role_slug: SYSTEM_ROLE_OPTIONS[2].value,
+          custom_role_slug: SYSTEM_ROLE_SLUG.MEMBER,
         });
       },
     });
-  };
-
-  const handleUpdateRole = (userId: string, custom_role_slug: string) => {
-    updateMember.mutate({ userId, custom_role_slug });
   };
 
   const handleRemoveMember = (userId: string, label: string) => {
@@ -1766,87 +1732,26 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     });
   };
 
-  // Custom role handlers
-  const handleOpenNewRoleModal = () => {
-    setRoleFormMode("create");
-    setEditingRoleId(null);
-    setRoleForm({
-      name: "",
-      description: "",
-      slug: "",
-      permission_codes: [],
-    });
+  const handleOpenRoleModal = (role: Role | null) => {
+    setEditingRole(role);
     setIsRoleModalOpen(true);
   };
 
-  const handleOpenEditRoleModal = (role: Role) => {
-    setRoleFormMode("edit");
-    setEditingRoleId(role.id);
-    setRoleForm({
-      name: role.name,
-      description: role.description || "",
-      slug: role.slug,
-      permission_codes: role.permission_codes,
-    });
-    setIsRoleModalOpen(true);
-  };
-
-  const handleTogglePermission = (permissionCode: string) => {
-    setRoleForm((prev) => ({
-      ...prev,
-      permission_codes: prev.permission_codes.includes(permissionCode)
-        ? prev.permission_codes.filter((p) => p !== permissionCode)
-        : [...prev.permission_codes, permissionCode],
-    }));
-  };
-
-  const handleSaveRole = () => {
-    if (!roleForm.name.trim()) {
-      toast.error(t("settings.roles.modal.nameError"));
-      return;
-    }
-
+  const handleSaveRole = (values: RoleFormValues) => {
     const payload = {
-      name: roleForm.name,
-      description: roleForm.description || undefined,
-      slug: roleForm.slug || undefined,
-      permission_codes: roleForm.permission_codes,
+      name: values.name,
+      description: values.description || undefined,
+      permission_codes: values.permission_codes,
     };
-
-    if (roleFormMode === "create") {
-      createRole.mutate(payload, {
-        onSuccess: () => {
-          setIsRoleModalOpen(false);
-          setRoleForm({
-            name: "",
-            description: "",
-            slug: "",
-            permission_codes: [],
-          });
-        },
-      });
-    } else if (editingRoleId) {
-      updateRole.mutate(
-        { roleId: editingRoleId, payload },
-        {
-          onSuccess: () => {
-            setIsRoleModalOpen(false);
-            setRoleForm({
-              name: "",
-              description: "",
-              slug: "",
-              permission_codes: [],
-            });
-            setEditingRoleId(null);
-          },
-        },
-      );
+    const onSuccess = () => {
+      setIsRoleModalOpen(false);
+      setEditingRole(null);
+    };
+    if (editingRole) {
+      updateRole.mutate({ roleId: editingRole.id, payload }, { onSuccess });
+    } else {
+      createRole.mutate(payload, { onSuccess });
     }
-  };
-
-  const handleDeleteRole = (roleId: string, roleName: string) => {
-    setRoleToDelete({ id: roleId, name: roleName });
-    setIsConfirmRoleDeleteOpen(true);
   };
 
   const handleConfirmDeleteRole = () => {
@@ -1868,14 +1773,21 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           const member = info.row.original as OrganizationMember;
           return (
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-[#1C1C1F] flex items-center justify-center text-xs font-semibold text-brand-gold border border-[#2A2A2E]">
-                {member.first_name?.[0] || member.email?.[0]?.toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-primary">
-                  {member.first_name} {member.last_name}
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-4 bg-surface-2 text-xs font-semibold text-brand-gold">
+                {(
+                  member.first_name?.[0] ||
+                  member.email?.[0] ||
+                  "?"
+                ).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-text-primary">
+                  {`${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() ||
+                    member.email}
                 </p>
-                <p className="text-xs text-text-muted">{member.email}</p>
+                <p className="truncate text-xs text-text-muted">
+                  {member.email}
+                </p>
               </div>
             </div>
           );
@@ -1886,28 +1798,6 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         header: t("settings.users.table.role"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
-          const currentSlug =
-            member.custom_role_slug ?? SYSTEM_ROLE_OPTIONS[2].value;
-          return (
-            <select
-              value={currentSlug}
-              onChange={(e) => handleUpdateRole(member.user, e.target.value)}
-              className="bg-[#1C1C1F] text-brand-gold text-[10px] font-semibold border border-brand-gold/20 rounded-md px-2 py-1 outline-none cursor-pointer"
-            >
-              {availableRoles.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: "role_label",
-        header: t("settings.users.table.assignedRole"),
-        cell: (info) => {
-          const member = info.row.original as OrganizationMember;
           return (
             <span className="text-sm text-text-secondary">
               {resolveMemberRoleLabel(member)}
@@ -1916,18 +1806,57 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         },
       }),
       columnHelper.display({
-        id: "branch",
-        header: t("settings.users.table.branch"),
+        id: "locations",
+        header: t("settings.users.table.locations"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
+          const assignments = member.branch_assignments ?? [];
+          if (assignments.length === 0) {
+            return (
+              <span className="text-xs text-text-muted">
+                {t("settings.users.table.noLocations")}
+              </span>
+            );
+          }
           return (
-            <button
-              onClick={() => handleOpenBranchModal(member)}
-              className="text-sm text-text-secondary underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-gold"
-              title={t("settings.users.manageBranchRoles")}
-            >
-              {member.branch_name || t("settings.users.table.allBranches")}
-            </button>
+            <div className="flex flex-wrap gap-1">
+              {assignments.slice(0, 2).map((assignment) => (
+                <span
+                  key={assignment.branch_id}
+                  className="inline-flex items-center rounded-full border border-surface-4 bg-surface-2 px-2 py-0.5 text-[11px] text-text-secondary"
+                  title={
+                    assignment.role_name
+                      ? `${assignment.branch_name} — ${assignment.role_name}`
+                      : assignment.branch_name
+                  }
+                >
+                  {assignment.branch_name}
+                </span>
+              ))}
+              {assignments.length > 2 ? (
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] text-text-muted">
+                  {t("settings.roles.table.more", {
+                    n: assignments.length - 2,
+                  })}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: "extra",
+        header: t("settings.users.table.extraPermissions"),
+        cell: (info) => {
+          const member = info.row.original as OrganizationMember;
+          const count = member.extra_permission_codes?.length ?? 0;
+          if (count === 0) {
+            return <span className="text-xs text-text-muted">—</span>;
+          }
+          return (
+            <Badge variant="default">
+              {t("settings.users.table.extraCount", { n: count })}
+            </Badge>
           );
         },
       }),
@@ -1936,25 +1865,34 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         header: t("settings.users.table.actions"),
         cell: (info) => {
           const member = info.row.original as OrganizationMember;
+          const label =
+            `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() ||
+            member.email;
           return (
-            <button
-              onClick={() =>
-                handleRemoveMember(
-                  member.user,
-                  `${member.first_name || "User"} ${member.last_name || member.email}`,
-                )
-              }
-              className="p-2 text-text-muted hover:text-red-500 transition-colors"
-              title={t("settings.users.removeMember")}
-            >
-              <Trash className="h-4 w-4" />
-            </button>
+            <div className="flex items-center justify-end gap-1">
+              <button
+                type="button"
+                onClick={() => setDrawerMember(member)}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-brand-gold transition-colors hover:bg-surface-3"
+              >
+                {t("settings.users.manageAccess")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveMember(member.user, label)}
+                aria-label={t("settings.users.removeMember")}
+                title={t("settings.users.removeMember")}
+                className="p-2 text-text-muted transition-colors hover:text-status-critical"
+              >
+                <Trash className="h-4 w-4" />
+              </button>
+            </div>
           );
         },
       }),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [members],
+    [members, t],
   );
 
   const table = useReactTable({
@@ -1964,161 +1902,148 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
 
   if (membersLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-gold" />
+      <div className="flex h-64 items-center justify-center">
+        <Spinner />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-12">
-      {/* Custom Roles Management Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">
-              {t("settings.roles.title")}
-            </h3>
-            <p className="text-sm text-text-muted mt-1">
-              {t("settings.roles.description")}
-            </p>
-          </div>
-          <Button
-            onClick={handleOpenNewRoleModal}
-            leftIcon={<Plus className="h-4 w-4" />}
-            className="font-semibold px-4"
-          >
-            {t("settings.roles.newRole")}
-          </Button>
-        </div>
+  const memberCount = members?.length ?? 0;
+  const grantedCount =
+    members?.filter((member) => (member.extra_permission_codes?.length ?? 0) > 0)
+      .length ?? 0;
 
-        {roles && roles.length > 0 && roles.some((r) => !r.is_system) ? (
-          <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {t("settings.roles.table.name")}
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {t("settings.roles.table.description")}
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {t("settings.roles.table.permissions")}
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {t("settings.roles.table.actions")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roles
-                    .filter((r) => !r.is_system)
-                    .map((role) => (
-                      <tr
-                        key={role.id}
-                        className="border-b border-[#1C1C1F]/50 last:border-0 hover:bg-[#1C1C1F]/20 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-medium text-text-primary">
-                            {role.name}
-                          </p>
-                          <p className="text-xs text-text-muted mt-1">
-                            {role.slug}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-text-secondary">
-                            {role.description || "—"}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {role.permission_codes.slice(0, 2).map((code) => (
-                              <span
-                                key={code}
-                                className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-brand-gold border border-brand-gold/20"
-                              >
-                                {code}
-                              </span>
-                            ))}
-                            {role.permission_codes.length > 2 && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#1C1C1F] text-xs font-medium text-text-muted">
-                                {t("settings.roles.table.more", {
-                                  n: role.permission_codes.length - 2,
-                                })}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenEditRoleModal(role)}
-                              className="p-2 text-text-muted hover:text-brand-gold transition-colors"
-                              title={t("settings.roles.editRole")}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDeleteRole(role.id, role.name)
-                              }
-                              className="p-2 text-text-muted hover:text-red-500 transition-colors"
-                              title={t("settings.roles.deleteRole")}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+  return (
+    <div className="space-y-14">
+      {/* ── Roles ──────────────────────────────────────────────────────── */}
+      <section className="space-y-5">
+        <SectionHeader
+          eyebrow={t("settings.roles.eyebrow")}
+          title={t("settings.roles.title")}
+          supporting={
+            <>
+              <span>
+                {t("settings.roles.stats.custom", { n: customRoles.length })}
+              </span>
+              <span>
+                {t("settings.roles.stats.system", { n: systemRoles.length })}
+              </span>
+            </>
+          }
+          actions={
+            <Button
+              onClick={() => handleOpenRoleModal(null)}
+              leftIcon={<Plus className="h-4 w-4" />}
+              className="font-semibold px-4"
+            >
+              {t("settings.roles.newRole")}
+            </Button>
+          }
+        />
+        <p className="max-w-2xl text-sm text-text-secondary">
+          {t("settings.roles.description")}
+        </p>
+
+        <ul className="divide-y divide-surface-4 border-y border-surface-4">
+          {[...systemRoles, ...customRoles].map((role) => (
+            <li
+              key={role.id}
+              className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-text-primary">
+                    {role.name}
+                  </p>
+                  <Badge variant={role.is_system ? "secondary" : "default"}>
+                    {role.is_system
+                      ? t("settings.roles.badge.system")
+                      : t("settings.roles.badge.custom")}
+                  </Badge>
+                </div>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-text-secondary">
+                  {role.description ||
+                    t("settings.roles.noDescription")}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-xs text-text-muted">
+                  {t("settings.roles.permissionCount", {
+                    n: role.permission_codes.length,
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenRoleModal(role)}
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-brand-gold transition-colors hover:bg-surface-3"
+                >
+                  {role.is_system
+                    ? t("settings.roles.viewRole")
+                    : t("settings.roles.editRole")}
+                </button>
+                {role.is_system ? null : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoleToDelete({ id: role.id, name: role.name });
+                      setIsConfirmRoleDeleteOpen(true);
+                    }}
+                    aria-label={t("settings.roles.deleteRole")}
+                    title={t("settings.roles.deleteRole")}
+                    className="p-2 text-text-muted transition-colors hover:text-status-critical"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ── Members ────────────────────────────────────────────────────── */}
+      <section className="space-y-5">
+        <SectionHeader
+          eyebrow={t("settings.users.eyebrow")}
+          title={t("settings.users.title")}
+          supporting={
+            <>
+              <span>{t("settings.users.stats.members", { n: memberCount })}</span>
+              <span>
+                {t("settings.users.stats.granted", { n: grantedCount })}
+              </span>
+            </>
+          }
+          actions={
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              leftIcon={<Plus className="h-4 w-4" />}
+              className="font-semibold px-4"
+            >
+              {t("settings.users.addMember")}
+            </Button>
+          }
+        />
+        <p className="max-w-2xl text-sm text-text-secondary">
+          {t("settings.users.description")}
+        </p>
+
+        {memberCount === 0 ? (
+          <p className="rounded-lg border border-dashed border-surface-4 px-6 py-10 text-center text-sm text-text-muted">
+            {t("settings.users.empty")}
+          </p>
         ) : (
-          <div className="rounded-xl border border-[#1C1C1F] p-8 text-center">
-            <p className="text-sm text-text-muted">
-              {t("settings.roles.empty.title")}
-            </p>
-            <p className="text-xs text-text-muted mt-2">
-              {t("settings.roles.empty.description")}
-            </p>
+          <div className="overflow-hidden rounded-xl border border-surface-4">
+            <NativeTable
+              table={table}
+              headerClassName="bg-surface-2 border-b border-surface-4"
+              cellClassName="border-b border-surface-4 last:border-0"
+            />
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Members Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">
-              {t("settings.users.title")}
-            </h3>
-            <p className="text-sm text-text-muted mt-1">
-              {t("settings.users.description")}
-            </p>
-          </div>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            leftIcon={<Plus className="h-4 w-4" />}
-            className="font-semibold px-4"
-          >
-            {t("settings.users.addMember")}
-          </Button>
-        </div>
-
-        <div className="rounded-xl border border-[#1C1C1F] overflow-hidden">
-          <NativeTable
-            table={table}
-            headerClassName="bg-[#1C1C1F]/50 border-b border-[#1C1C1F]"
-            cellClassName="border-b border-[#1C1C1F]/50 last:border-0"
-          />
-        </div>
-      </div>
-
+      {/* ── Add member ─────────────────────────────────────────────────── */}
       <ModalShell
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -2141,9 +2066,12 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             onChange={(val: string) =>
               setNewMember({ ...newMember, custom_role_slug: val })
             }
-            options={availableRoles}
+            options={roleOptions}
           />
-          <div className="flex justify-end gap-3 pt-4">
+          <p className="text-xs leading-relaxed text-text-secondary">
+            {t("settings.users.addMemberModal.hint")}
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
               {t("settings.users.addMemberModal.cancel")}
             </Button>
@@ -2159,222 +2087,29 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         </div>
       </ModalShell>
 
-      {/* Per-branch roles — a member can hold a different role at each location */}
-      <ModalShell
-        open={Boolean(branchModalMember)}
-        onClose={() => setBranchModalMember(null)}
-        title={t("settings.users.branchRolesModal.title")}
-        description={
-          branchModalMember
-            ? t("settings.users.branchRolesModal.description", {
-                name:
-                  `${branchModalMember.first_name ?? ""} ${branchModalMember.last_name ?? ""}`.trim() ||
-                  branchModalMember.email,
-              })
-            : ""
-        }
-      >
-        <div className="space-y-6 py-4 px-1">
-          {assignmentsLoading ? (
-            <p className="text-sm text-text-muted">
-              {t("settings.users.branchRolesModal.loading")}
-            </p>
-          ) : memberAssignments && memberAssignments.length > 0 ? (
-            <ul className="space-y-2">
-              {memberAssignments.map((assignment) => (
-                <li
-                  key={assignment.id}
-                  className="flex items-center justify-between rounded-lg border border-surface-4 bg-surface-2 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      {assignment.branch_name}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {assignment.role_name ||
-                        t("settings.users.branchRolesModal.inheritsOrgRole")}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      branchModalMember &&
-                      removeAssignment.mutate({
-                        user_id: String(branchModalMember.user),
-                        branch_id: assignment.branch,
-                      })
-                    }
-                    disabled={removeAssignment.isPending}
-                    className="p-2 text-text-muted transition-colors hover:text-red-500 disabled:opacity-50"
-                    title={t("settings.users.branchRolesModal.remove")}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-muted">
-              {t("settings.users.branchRolesModal.empty")}
-            </p>
-          )}
+      <MemberAccessDrawer
+        open={Boolean(drawerMember)}
+        orgId={orgId || ""}
+        member={drawerMember}
+        branches={orgBranches ?? []}
+        permissions={permissions ?? []}
+        roleOptions={roleOptions}
+        onClose={() => setDrawerMember(null)}
+        onChangeOrgRole={handleUpdateOrgRole}
+        isChangingOrgRole={updateMember.isPending}
+      />
 
-          <div className="space-y-4 border-t border-surface-4 pt-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-              {t("settings.users.branchRolesModal.addTitle")}
-            </p>
-            <Select
-              label={t("settings.users.branchRolesModal.branchLabel")}
-              value={assignForm.branch_id}
-              onChange={(val: string) =>
-                setAssignForm({ ...assignForm, branch_id: val })
-              }
-              options={(orgBranches ?? [])
-                .filter((branch) => branch.is_active)
-                .map((branch) => ({ label: branch.name, value: branch.id }))}
-            />
-            <Select
-              label={t("settings.users.branchRolesModal.roleLabel")}
-              value={assignForm.custom_role_slug}
-              onChange={(val: string) =>
-                setAssignForm({ ...assignForm, custom_role_slug: val })
-              }
-              options={[
-                {
-                  label: t("settings.users.branchRolesModal.inheritsOrgRole"),
-                  value: "",
-                },
-                ...availableRoles,
-              ]}
-            />
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => setBranchModalMember(null)}>
-                {t("settings.users.addMemberModal.cancel")}
-              </Button>
-              <Button
-                onClick={handleAssignBranch}
-                disabled={upsertAssignment.isPending || !assignForm.branch_id}
-              >
-                {upsertAssignment.isPending
-                  ? t("settings.users.branchRolesModal.saving")
-                  : t("settings.users.branchRolesModal.save")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </ModalShell>
-
-      {/* Custom Role Modal */}
-      <ModalShell
+      <RoleEditorModal
         open={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-        title={
-          roleFormMode === "create"
-            ? t("settings.roles.createModal.title")
-            : t("settings.roles.editModal.title")
-        }
-        description={
-          roleFormMode === "create"
-            ? t("settings.roles.createModal.description")
-            : t("settings.roles.editModal.description")
-        }
-        maxWidthClassName="max-w-3xl"
-      >
-        <div className="space-y-6 py-4 px-1 max-h-[70vh] overflow-y-auto">
-          <Input
-            label={t("settings.roles.modal.roleNameLabel")}
-            value={roleForm.name}
-            onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
-            placeholder={t("settings.roles.modal.roleNamePlaceholder")}
-          />
-          <Input
-            label={t("settings.roles.modal.descriptionLabel")}
-            value={roleForm.description}
-            onChange={(e) =>
-              setRoleForm({ ...roleForm, description: e.target.value })
-            }
-            placeholder={t("settings.roles.modal.descriptionPlaceholder")}
-          />
-          {/* Slug is auto-generated by the backend from the role name; no user input needed. */}
-
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <label className="block text-sm font-medium text-text-primary">
-                {t("settings.roles.modal.permissionsLabel")}
-              </label>
-              <p className="text-sm text-text-muted">
-                {t("settings.roles.modal.selected", {
-                  n: roleForm.permission_codes.length,
-                  m: permissions?.length ?? 0,
-                })}
-              </p>
-            </div>
-            <div className="max-h-72 overflow-y-auto rounded-3xl border border-[#2A2A2E] bg-[#0F0F11] p-3 shadow-inner shadow-black/20">
-              {permissions && permissions.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {permissions.map((permission) => {
-                    const checked = roleForm.permission_codes.includes(
-                      permission.code,
-                    );
-                    return (
-                      <button
-                        key={permission.code}
-                        type="button"
-                        onClick={() => handleTogglePermission(permission.code)}
-                        className={`w-full text-left rounded-3xl border px-4 py-4 transition-all duration-150 flex items-start gap-3 ${
-                          checked
-                            ? "border-brand-gold bg-[#241F0F] shadow-[0_0_0_1px_rgba(168,130,31,0.35)]"
-                            : "border-[#2A2A2E] bg-[#141418] hover:border-[#A8821F]/70 hover:bg-[#1F1F23]"
-                        }`}
-                        aria-pressed={checked}
-                      >
-                        <span
-                          className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${
-                            checked
-                              ? "border-brand-gold bg-brand-gold text-[#141416]"
-                              : "border-[#3A3A3F] bg-transparent text-text-secondary"
-                          }`}
-                        >
-                          {checked ? "✓" : ""}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-text-primary">
-                            {permission.label}
-                          </p>
-                          <p className="text-xs text-text-muted leading-relaxed">
-                            {permission.code}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-text-muted text-center py-4">
-                  {t("settings.roles.noPermissions")}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>
-              {t("settings.roles.modal.cancel")}
-            </Button>
-            <Button
-              onClick={handleSaveRole}
-              disabled={createRole.isPending || updateRole.isPending}
-            >
-              {roleFormMode === "create"
-                ? createRole.isPending
-                  ? t("settings.roles.modal.creating")
-                  : t("settings.roles.modal.create")
-                : updateRole.isPending
-                  ? t("settings.roles.modal.updating")
-                  : t("settings.roles.modal.update")}
-            </Button>
-          </div>
-        </div>
-      </ModalShell>
+        role={editingRole}
+        permissions={permissions ?? []}
+        isSaving={createRole.isPending || updateRole.isPending}
+        onClose={() => {
+          setIsRoleModalOpen(false);
+          setEditingRole(null);
+        }}
+        onSave={handleSaveRole}
+      />
 
       <ConfirmActionModal
         open={isConfirmRoleDeleteOpen}

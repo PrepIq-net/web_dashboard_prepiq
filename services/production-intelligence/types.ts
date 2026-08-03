@@ -86,11 +86,26 @@ export const coldStartOriginSchema = z.object({
 });
 export type ColdStartOrigin = z.infer<typeof coldStartOriginSchema>;
 
+/**
+ * Whether an item consumes ingredients, and whether it is made ahead of
+ * service. STOCKED items (bottled drinks, packaged snacks) need a stock level,
+ * not a production decision — mixing them into the prep list made a Coke read
+ * as the day's most important prep item, because it genuinely is the highest
+ * seller by order count.
+ */
+export const preparationTypeSchema = z.object({
+  code: z.enum(["PREPARED", "ASSEMBLED", "STOCKED"]),
+  basis: z.string(),
+});
+export type PreparationType = z.infer<typeof preparationTypeSchema>;
+
 export const prepPlanItemSchema = z.object({
   id: z.string().uuid(),
   product_id: z.string().uuid(),
   product_title: z.string(),
   product_image_url: z.string().nullable().optional(),
+  product_category: z.string().nullable().optional(),
+  preparation_type: preparationTypeSchema.nullable().optional(),
   suggested_quantity: z.number(),
   forecast_qty: z.number().optional(),
   forecast_confidence: z.number().optional(),

@@ -134,6 +134,22 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Branch assignment — one place a member works, and the role they hold there.
+// A member can be staffed at several branches with a different role at each.
+// ─────────────────────────────────────────────────────────────────────────────
+export const memberBranchAssignmentSchema = z.object({
+  branch_id: z.string().uuid(),
+  branch_name: z.string(),
+  is_primary_branch: z.boolean().default(false),
+  /** Null means this branch inherits the member's organization-level role. */
+  role_slug: z.string().nullable().default(null),
+  role_name: z.string().nullable().default(null),
+});
+export type MemberBranchAssignment = z.infer<
+  typeof memberBranchAssignmentSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OrganizationMember — now carries custom_role_name / custom_role_slug
 // The legacy `role` CharField is kept as an optional passthrough so existing
 // data still parses; new code should read custom_role_slug / custom_role_name.
@@ -155,6 +171,10 @@ export const organizationMemberSchema = z.object({
   joined_at: z.string().datetime(),
   branch_name: z.string().nullable(),
   branch_id: z.string().uuid().nullable(),
+  /** Every branch this person works at — a member can hold several. */
+  branch_assignments: z.array(memberBranchAssignmentSchema).default([]),
+  /** Permission codes granted to this person directly, on top of their role. */
+  extra_permission_codes: z.array(z.string()).default([]),
 });
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 
@@ -370,8 +390,40 @@ export const permissionSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   label: z.string(),
+  /** Grouping key — mirrors backend PERM_CATEGORY_*. */
+  category: z.string().default("ORG"),
+  /** Human-readable group heading for `category`. */
+  category_label: z.string().default("Organization & Team"),
+  /**
+   * Plain-English answer to "what does holding this let someone do?".
+   * Authored on the backend so every client explains a permission the same way.
+   */
+  description: z.string().default(""),
 });
 export type Permission = z.infer<typeof permissionSchema>;
+
+/** Groups permissions by category, preserving the API's ordering. */
+export function groupPermissionsByCategory(
+  permissions: Permission[],
+): { category: string; label: string; permissions: Permission[] }[] {
+  const groups = new Map<
+    string,
+    { category: string; label: string; permissions: Permission[] }
+  >();
+  for (const permission of permissions) {
+    const existing = groups.get(permission.category);
+    if (existing) {
+      existing.permissions.push(permission);
+      continue;
+    }
+    groups.set(permission.category, {
+      category: permission.category,
+      label: permission.category_label,
+      permissions: [permission],
+    });
+  }
+  return [...groups.values()];
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Role — represents a collection of permissions, either system or custom
@@ -399,6 +451,55 @@ export const roleCreateUpdatePayloadSchema = z.object({
 export type RoleCreateUpdatePayload = z.infer<
   typeof roleCreateUpdatePayloadSchema
 >;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Member access — the full picture of what one person can do: what their role
+// carries, what was granted to them personally, and where they work.
+// ─────────────────────────────────────────────────────────────────────────────
+export const memberPermissionGrantSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  label: z.string(),
+  description: z.string().default(""),
+  category: z.string().default("ORG"),
+  /** Null means the grant applies at every branch the member works at. */
+  branch_id: z.string().uuid().nullable().default(null),
+  branch_name: z.string().nullable().default(null),
+  note: z.string().default(""),
+  granted_at: z.string(),
+  granted_by_name: z.string().nullable().default(null),
+});
+export type MemberPermissionGrant = z.infer<typeof memberPermissionGrantSchema>;
+
+export const memberAccessSchema = z.object({
+  user_id: z.string().uuid(),
+  email: z.string(),
+  full_name: z.string(),
+  role: roleSchema.nullable(),
+  /** Codes the member holds because of their role — not individually revocable. */
+  role_permission_codes: z.array(z.string()).default([]),
+  /** Codes handed to this person directly. These are the revocable ones. */
+  granted_permissions: z.array(memberPermissionGrantSchema).default([]),
+  branch_assignments: z.array(memberBranchAssignmentSchema).default([]),
+  effective_permission_codes: z.array(z.string()).default([]),
+});
+export type MemberAccess = z.infer<typeof memberAccessSchema>;
+
+export const grantMemberPermissionPayloadSchema = z.object({
+  permission_code: z.string().min(1),
+  /** Omit for an org-wide grant. */
+  branch_id: z.string().uuid().optional(),
+  note: z.string().optional(),
+});
+export type GrantMemberPermissionPayload = z.infer<
+  typeof grantMemberPermissionPayloadSchema
+>;
+
+export type RevokeMemberPermissionPayload = {
+  permission_code?: string;
+  grant_id?: string;
+  branch_id?: string;
+};
 
 export type OrganizationFinancialOverviewQuery = {
   timeframe?: "7d" | "30d" | "90d";

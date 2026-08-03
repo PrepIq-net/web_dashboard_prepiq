@@ -1580,6 +1580,19 @@
       "confidenceUnknown": "not measurable yet",
       "next": "Next:",
       "toGo": "to go"
+    },
+    "preparation": {
+      "prepared": "Prepared ahead",
+      "assembled": "Made to order",
+      "stocked": "Stocked item"
+    },
+    "stock": {
+      "title": "Stock levels",
+      "subtitle": "Bottled & packaged items",
+      "explainer": "These are sold exactly as they arrive, so there's nothing to prep — just enough on hand. They don't consume ingredients and aren't part of the prep decisions above.",
+      "expectedToSell": "Expected to sell",
+      "haveOnHand": "Have on hand",
+      "markOutOfStock": "Mark out of stock"
     }
   },
   "profile": {
@@ -1956,7 +1969,26 @@
         "descriptionDefault": "This action cannot be undone.",
         "confirmLabel": "Delete role"
       },
-      "noPermissions": "No permissions available."
+      "noPermissions": "No permissions available.",
+      "eyebrow": "Access",
+      "stats": {
+        "custom": "{n} custom",
+        "system": "{n} built-in"
+      },
+      "badge": {
+        "system": "Built-in",
+        "custom": "Custom"
+      },
+      "noDescription": "No description.",
+      "permissionCount": "{n} permissions",
+      "viewRole": "View",
+      "viewModal": {
+        "title": "{name} — what this role can do",
+        "description": "Built-in roles are managed by PrepIQ and cannot be edited. Create a custom role if you need a different set.",
+        "close": "Close",
+        "systemNotice": "This is a built-in role, so it is read-only. To give one person something extra, grant it to them directly from their profile instead of building a near-duplicate role.",
+        "count": "{n} permissions"
+      }
     },
     "users": {
       "title": "Team Members",
@@ -1965,10 +1997,11 @@
       "table": {
         "user": "User",
         "role": "Role",
-        "assignedRole": "Assigned Role",
-        "branch": "Branch",
         "actions": "Actions",
-        "allBranches": "All Branches"
+        "locations": "Locations",
+        "noLocations": "No location",
+        "extraPermissions": "Extra",
+        "extraCount": "+{n} permissions"
       },
       "removeMember": "Remove Member",
       "addMemberModal": {
@@ -1979,7 +2012,8 @@
         "roleLabel": "Assign Role",
         "cancel": "Cancel",
         "add": "Add Member",
-        "adding": "Adding..."
+        "adding": "Adding...",
+        "hint": "You can staff them at locations and grant extra permissions after they are added."
       },
       "removeModal": {
         "title": "Remove {label}?",
@@ -1988,20 +2022,13 @@
         "descriptionDefault": "This action will remove the member from the organization.",
         "confirmLabel": "Remove member"
       },
-      "manageBranchRoles": "Manage locations & roles",
-      "branchRolesModal": {
-        "title": "Locations & roles",
-        "description": "Choose which locations {name} works at, and the role they hold at each one.",
-        "loading": "Loading assignments…",
-        "empty": "Not assigned to any location yet.",
-        "inheritsOrgRole": "Inherits organization role",
-        "addTitle": "Assign to a location",
-        "branchLabel": "Location",
-        "roleLabel": "Role at this location",
-        "save": "Assign",
-        "saving": "Assigning…",
-        "remove": "Remove from location"
-      }
+      "eyebrow": "People",
+      "stats": {
+        "members": "{n} members",
+        "granted": "{n} with extra permissions"
+      },
+      "empty": "No one has been added to this organization yet.",
+      "manageAccess": "Manage access"
     },
     "danger": {
       "title": "Danger zone",
@@ -2084,6 +2111,56 @@
         "justTesting": "Just testing / created by mistake",
         "tooHard": "Too hard to set up / never got value",
         "pausing": "Pausing — seasonal or temporary"
+      }
+    },
+    "permissions": {
+      "none": "No permissions available.",
+      "searchPlaceholder": "Search permissions",
+      "noMatches": "No permissions match \"{query}\".",
+      "selectGroup": "Select all",
+      "clearGroup": "Clear all"
+    },
+    "memberDrawer": {
+      "title": "Access for {name}",
+      "close": "Close",
+      "loading": "Loading…",
+      "role": {
+        "title": "Organization role",
+        "help": "The role sets their baseline across the whole organization. Everyone on a role gets exactly the same permissions.",
+        "label": "Role",
+        "none": "No role",
+        "summary": "{role} carries {n} permissions."
+      },
+      "branches": {
+        "title": "Where they work",
+        "help": "Someone can work at more than one location, and hold a different role at each. Permissions only apply at locations they are assigned to.",
+        "empty": "Not assigned to any location yet.",
+        "inherits": "Inherits organization role",
+        "inheritsNamed": "Inherits organization role ({role})",
+        "roleAt": "Role at {branch}",
+        "remove": "Remove from {branch}",
+        "addLabel": "Add a location",
+        "addPlaceholder": "Choose a location",
+        "addRoleLabel": "Role there",
+        "add": "Assign",
+        "adding": "Assigning…"
+      },
+      "extra": {
+        "title": "Extra permissions",
+        "help": "Give this person something their role does not include — without changing the role or promoting them. Anyone else on the same role is unaffected.",
+        "empty": "Nothing granted beyond their role.",
+        "add": "Grant a permission",
+        "done": "Done",
+        "fromRole": "From role",
+        "allBranches": "All locations",
+        "scopedTo": "{branch} only",
+        "scopeLabel": "Apply at",
+        "scopeHelp": "Scope a grant to one location when it should not follow them everywhere. Leave it on all locations to apply it wherever they work.",
+        "revoke": "Revoke {permission}"
+      },
+      "effective": {
+        "title": "Effective access",
+        "summary": "{total} permissions in total — {role} from their role, {extra} granted directly."
       }
     }
   },

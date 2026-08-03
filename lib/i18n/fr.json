@@ -1580,6 +1580,19 @@
       "confidenceUnknown": "pas encore mesurable",
       "next": "Prochaine étape :",
       "toGo": "restants"
+    },
+    "preparation": {
+      "prepared": "Préparé à l'avance",
+      "assembled": "Préparé à la commande",
+      "stocked": "Article en stock"
+    },
+    "stock": {
+      "title": "Niveaux de stock",
+      "subtitle": "Articles en bouteille et emballés",
+      "explainer": "Ces articles sont vendus tels qu'ils arrivent : rien à préparer, il suffit d'en avoir assez. Ils ne consomment pas d'ingrédients et ne font pas partie des décisions de préparation ci-dessus.",
+      "expectedToSell": "Ventes prévues",
+      "haveOnHand": "Stock disponible",
+      "markOutOfStock": "Signaler une rupture"
     }
   },
   "profile": {
@@ -1956,7 +1969,26 @@
         "descriptionDefault": "Cette action est irréversible.",
         "confirmLabel": "Supprimer le rôle"
       },
-      "noPermissions": "Aucune permission disponible."
+      "noPermissions": "Aucune permission disponible.",
+      "eyebrow": "Accès",
+      "stats": {
+        "custom": "{n} personnalisés",
+        "system": "{n} intégrés"
+      },
+      "badge": {
+        "system": "Intégré",
+        "custom": "Personnalisé"
+      },
+      "noDescription": "Aucune description.",
+      "permissionCount": "{n} permissions",
+      "viewRole": "Consulter",
+      "viewModal": {
+        "title": "{name} — ce que ce rôle permet",
+        "description": "Les rôles intégrés sont gérés par PrepIQ et ne peuvent pas être modifiés. Créez un rôle personnalisé si vous avez besoin d'un autre ensemble.",
+        "close": "Fermer",
+        "systemNotice": "Ce rôle est intégré, donc en lecture seule. Pour donner quelque chose de plus à une seule personne, accordez-le lui directement depuis son profil plutôt que de créer un rôle presque identique.",
+        "count": "{n} permissions"
+      }
     },
     "users": {
       "title": "Membres de l'équipe",
@@ -1965,10 +1997,11 @@
       "table": {
         "user": "Utilisateur",
         "role": "Rôle",
-        "assignedRole": "Rôle attribué",
-        "branch": "Succursale",
         "actions": "Actions",
-        "allBranches": "Toutes les succursales"
+        "locations": "Établissements",
+        "noLocations": "Aucun établissement",
+        "extraPermissions": "Supplément",
+        "extraCount": "+{n} permissions"
       },
       "removeMember": "Supprimer le membre",
       "addMemberModal": {
@@ -1979,7 +2012,8 @@
         "roleLabel": "Attribuer un rôle",
         "cancel": "Annuler",
         "add": "Ajouter un membre",
-        "adding": "Ajout en cours..."
+        "adding": "Ajout en cours...",
+        "hint": "Vous pourrez l'affecter à des établissements et accorder des permissions supplémentaires après l'ajout."
       },
       "removeModal": {
         "title": "Supprimer {label} ?",
@@ -1988,20 +2022,13 @@
         "descriptionDefault": "Cette action supprimera le membre de l’organisation.",
         "confirmLabel": "Supprimer le membre"
       },
-      "manageBranchRoles": "Gérer les emplacements et rôles",
-      "branchRolesModal": {
-        "title": "Emplacements et rôles",
-        "description": "Choisissez les emplacements où {name} travaille, et le rôle occupé à chacun.",
-        "loading": "Chargement des affectations…",
-        "empty": "Aucun emplacement assigné pour le moment.",
-        "inheritsOrgRole": "Hérite du rôle de l'organisation",
-        "addTitle": "Assigner à un emplacement",
-        "branchLabel": "Emplacement",
-        "roleLabel": "Rôle à cet emplacement",
-        "save": "Assigner",
-        "saving": "Affectation…",
-        "remove": "Retirer de l'emplacement"
-      }
+      "eyebrow": "Équipe",
+      "stats": {
+        "members": "{n} membres",
+        "granted": "{n} avec des permissions supplémentaires"
+      },
+      "empty": "Personne n'a encore été ajouté à cette organisation.",
+      "manageAccess": "Gérer l'accès"
     },
     "danger": {
       "title": "Zone de danger",
@@ -2084,6 +2111,56 @@
         "justTesting": "Simple test / créé par erreur",
         "tooHard": "Trop difficile à configurer / jamais rentabilisé",
         "pausing": "En pause — saisonnier ou temporaire"
+      }
+    },
+    "permissions": {
+      "none": "Aucune permission disponible.",
+      "searchPlaceholder": "Rechercher une permission",
+      "noMatches": "Aucune permission ne correspond à \"{query}\".",
+      "selectGroup": "Tout sélectionner",
+      "clearGroup": "Tout désélectionner"
+    },
+    "memberDrawer": {
+      "title": "Accès de {name}",
+      "close": "Fermer",
+      "loading": "Chargement…",
+      "role": {
+        "title": "Rôle dans l'organisation",
+        "help": "Le rôle définit la base pour toute l'organisation. Toutes les personnes ayant ce rôle reçoivent exactement les mêmes permissions.",
+        "label": "Rôle",
+        "none": "Aucun rôle",
+        "summary": "{role} comporte {n} permissions."
+      },
+      "branches": {
+        "title": "Lieux de travail",
+        "help": "Une personne peut travailler dans plusieurs établissements et y tenir un rôle différent. Les permissions ne s'appliquent qu'aux établissements auxquels elle est affectée.",
+        "empty": "Affectée à aucun établissement pour l'instant.",
+        "inherits": "Hérite du rôle de l'organisation",
+        "inheritsNamed": "Hérite du rôle de l'organisation ({role})",
+        "roleAt": "Rôle à {branch}",
+        "remove": "Retirer de {branch}",
+        "addLabel": "Ajouter un établissement",
+        "addPlaceholder": "Choisir un établissement",
+        "addRoleLabel": "Rôle sur place",
+        "add": "Affecter",
+        "adding": "Affectation…"
+      },
+      "extra": {
+        "title": "Permissions supplémentaires",
+        "help": "Donnez à cette personne quelque chose que son rôle n'inclut pas — sans modifier le rôle ni la promouvoir. Les autres personnes ayant le même rôle ne sont pas affectées.",
+        "empty": "Rien accordé au-delà de son rôle.",
+        "add": "Accorder une permission",
+        "done": "Terminé",
+        "fromRole": "Via le rôle",
+        "allBranches": "Tous les établissements",
+        "scopedTo": "{branch} uniquement",
+        "scopeLabel": "Appliquer à",
+        "scopeHelp": "Limitez une permission à un seul établissement si elle ne doit pas suivre la personne partout. Laissez sur tous les établissements pour l'appliquer partout où elle travaille.",
+        "revoke": "Révoquer {permission}"
+      },
+      "effective": {
+        "title": "Accès effectif",
+        "summary": "{total} permissions au total — {role} via le rôle, {extra} accordées directement."
       }
     }
   },
