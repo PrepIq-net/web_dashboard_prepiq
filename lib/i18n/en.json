@@ -1580,6 +1580,19 @@
       "confidenceUnknown": "not measurable yet",
       "next": "Next:",
       "toGo": "to go"
+    },
+    "preparation": {
+      "prepared": "Prepared ahead",
+      "assembled": "Made to order",
+      "stocked": "Stocked item"
+    },
+    "stock": {
+      "title": "Stock levels",
+      "subtitle": "Bottled & packaged items",
+      "explainer": "These are sold exactly as they arrive, so there's nothing to prep — just enough on hand. They don't consume ingredients and aren't part of the prep decisions above.",
+      "expectedToSell": "Expected to sell",
+      "haveOnHand": "Have on hand",
+      "markOutOfStock": "Mark out of stock"
     }
   },
   "profile": {

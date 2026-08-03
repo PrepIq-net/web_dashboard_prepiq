@@ -68,6 +68,7 @@ import {
   computePlanRiskScore,
   deriveDecisionSummary,
   deriveLiveRows,
+  splitByPreparation,
   tierLiveRows,
   type ImpactPreview,
   type MorningRiskAlert,
@@ -398,15 +399,35 @@ function TodayWorkspacePageContent() {
       ),
     [rows],
   );
+
+  // Bottled drinks and packaged goods need a stock level, not a production
+  // decision, so they get their own section rather than competing for the top
+  // of the prep list — which they always won, being the highest sellers by
+  // order count in most kitchens.
+  const { prepRows, stockRows } = useMemo(
+    () => splitByPreparation(forecastRowsByDemand),
+    [forecastRowsByDemand],
+  );
+
+  // Ranked within the prep list only, so "#1 most popular" answers "of the
+  // things you have to cook" rather than being permanently claimed by a Coke.
   const forecastRankById = useMemo(() => {
     const rankMap: Record<string, number> = {};
-    forecastRowsByDemand.forEach((row, index) => {
+    prepRows.forEach((row, index) => {
+      rankMap[row.item.id] = index + 1;
+    });
+    stockRows.forEach((row, index) => {
       rankMap[row.item.id] = index + 1;
     });
     return rankMap;
-  }, [forecastRowsByDemand]);
+  }, [prepRows, stockRows]);
 
-  const decisionSummary = useMemo(() => deriveDecisionSummary(rows), [rows]);
+  // Scoped to the prep list: "12 of 14 reviewed" must count the decisions the
+  // lock button actually gates on, not bottled drinks that need no decision.
+  const decisionSummary = useMemo(
+    () => deriveDecisionSummary(prepRows),
+    [prepRows],
+  );
   const morningRiskAlerts = useMemo(
     () => buildMorningRiskAlerts(t, rows),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1052,8 +1073,9 @@ function TodayWorkspacePageContent() {
 
               <PrepPlanSection
                 branchDay={branchDay}
-                rows={forecastRowsByDemand}
-                totalRowCount={forecastRowsByDemand.length}
+                rows={prepRows}
+                stockRows={stockRows}
+                totalRowCount={prepRows.length}
                 forecastRankById={forecastRankById}
                 decisionSummary={decisionSummary}
                 isPlanLocked={isPlanLocked}

@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
+import { Cutlery, GlassHalf, Package } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import {
   formatMoney,
@@ -16,6 +17,7 @@ import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { ItemImage } from "./item-image";
 import {
   buildFinancialSnapshot,
+  categoryChipLabel,
   confidenceLabel,
   hasPricing,
   humanizeReasoning,
@@ -26,8 +28,10 @@ import {
   riskKindHint,
   riskTone,
   signalLabel,
+  splitByPreparation,
   type DecisionSummary,
   type ImpactPreview,
+  type PreparationCode,
   type PrepRow,
   type Translator,
 } from "./today-helpers";
@@ -39,6 +43,8 @@ import {
 export type PrepPlanSectionProps = {
   branchDay: BranchDayToday;
   rows: PrepRow[];
+  /** STOCKED items — shown as stock levels, never as production decisions. */
+  stockRows?: PrepRow[];
   totalRowCount: number;
   forecastRankById: Record<string, number>;
   decisionSummary: DecisionSummary;
@@ -97,6 +103,43 @@ function rowAccent(item: PrepPlanItem, riskScore: number) {
   return { isAccepted, isOverride, isHighRisk: riskScore >= 0.45 };
 }
 
+/** Icon for a preparation type, or a plate when the item isn't classified. */
+function PreparationIcon({
+  code,
+  className = "",
+}: {
+  code: PreparationCode | undefined;
+  className?: string;
+}) {
+  const Icon =
+    code === "STOCKED" ? Package : code === "ASSEMBLED" ? GlassHalf : Cutlery;
+  return <Icon className={className} strokeWidth={1.5} aria-hidden />;
+}
+
+/**
+ * What kind of thing this row is.
+ *
+ * The payload carried a thumbnail and a title and nothing else, so a bottled
+ * Coke and a slow-cooked luwombo were presented identically — same controls,
+ * same "AI suggests", same prep language. The chip is the smallest honest fix:
+ * it says what the item is before the numbers claim what to do with it.
+ */
+function CategoryChip({ item }: { item: PrepPlanItem }) {
+  const { t } = useTranslation();
+  const label = categoryChipLabel(t, item);
+  if (!label) return null;
+  const code = item.preparation_type?.code;
+  return (
+    <span
+      title={item.preparation_type?.basis || undefined}
+      className="inline-flex max-w-full items-center gap-1 rounded-full border border-surface-4 bg-surface-3/60 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary"
+    >
+      <PreparationIcon code={code} className="h-3 w-3 shrink-0" />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
 function ItemIdentity({
   item,
   rank,
@@ -118,13 +161,16 @@ function ItemIdentity({
         title={item.product_title}
         className={imgCls}
       />
-      <div>
+      <div className="min-w-0">
         <p className="text-sm font-semibold leading-tight text-text-primary">
           {item.product_title}
         </p>
-        <p className="mt-0.5 text-[11px] text-text-muted">
-          {popularityLabel(t, rank)}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <CategoryChip item={item} />
+          <span className="text-[11px] text-text-muted">
+            {popularityLabel(t, rank)}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -710,6 +756,141 @@ function WhyPanel({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Stock levels — the STOCKED tier
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Bottled drinks and packaged goods.
+ *
+ * Deliberately a much thinner surface than a prep row. Everything dropped here
+ * was meaningless for this tier and actively misleading in aggregate: there is
+ * no recipe, so no "why this quantity" panel; a sealed bottle does not spoil,
+ * so the waste-risk badge was noise; and an override reason for "I stocked 48
+ * instead of 50" is not training data worth collecting. What remains is the
+ * one useful question — how many will sell, and how many do you want on hand.
+ */
+function StockLevelsSection({
+  rows,
+  forecastRankById,
+  plannedQtyByItem,
+  onPlannedChange,
+  onAcceptSuggestion,
+  onKeepMyPlan,
+  actionErrorByItem,
+  editingDisabled,
+  branchId,
+  isMorning,
+  onMarkUnavailable,
+  readOnly,
+}: {
+  rows: PrepRow[];
+  forecastRankById: Record<string, number>;
+  plannedQtyByItem: PrepPlanSectionProps["plannedQtyByItem"];
+  onPlannedChange: PrepPlanSectionProps["onPlannedChange"];
+  onAcceptSuggestion: PrepPlanSectionProps["onAcceptSuggestion"];
+  onKeepMyPlan: PrepPlanSectionProps["onKeepMyPlan"];
+  actionErrorByItem: Record<string, string>;
+  editingDisabled: boolean;
+  branchId: string;
+  isMorning: boolean;
+  onMarkUnavailable: PrepPlanSectionProps["onMarkUnavailable"];
+  readOnly: boolean;
+}) {
+  const { t } = useTranslation();
+  if (!rows.length) return null;
+
+  return (
+    <section className="mb-11">
+      <div className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+          {t("today.stock.title")}
+        </p>
+        <h3 className="font-display text-xl font-semibold text-text-primary sm:text-2xl">
+          {t("today.stock.subtitle")}
+        </h3>
+        <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
+          {t("today.stock.explainer")}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {rows.map(({ item, planned }) => (
+          <article
+            key={`stock-${item.id}`}
+            className="rounded-xl border border-surface-4 bg-surface-2 p-4"
+          >
+            <ItemIdentity
+              item={item}
+              rank={forecastRankById[item.id] ?? 999}
+              size="lg"
+            />
+
+            <div className="mt-3 flex items-end justify-between gap-3 border-t border-surface-4/60 pt-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {t("today.stock.expectedToSell")}
+                </p>
+                <p className="mt-0.5 font-display text-lg font-semibold text-text-primary">
+                  {formatQuantity(item.suggested_quantity, item.unit)}
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {t("today.stock.haveOnHand")}
+                </p>
+                <PlannedInput
+                  item={item}
+                  value={plannedQtyByItem[item.id] ?? ""}
+                  disabled={editingDisabled}
+                  onChange={(value) => onPlannedChange(item.id, value, item.unit)}
+                  widthClass="w-20"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <AcceptKeepButtons
+                item={item}
+                planned={planned}
+                disabled={editingDisabled}
+                onAccept={onAcceptSuggestion}
+                onKeep={onKeepMyPlan}
+              />
+              <Link
+                href={`/workspace/items/${item.product_id}?branch=${branchId}`}
+                className="ml-auto text-[11px] font-medium text-text-muted transition-colors hover:text-brand-gold"
+              >
+                {t("today.table.trackRecord")}
+              </Link>
+              {isMorning && !readOnly ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onMarkUnavailable({
+                      id: item.product_id,
+                      title: item.product_title,
+                    })
+                  }
+                  className="text-[11px] font-medium text-text-muted transition-colors hover:text-status-warning"
+                >
+                  {t("today.stock.markOutOfStock")}
+                </button>
+              ) : null}
+            </div>
+
+            <DecisionFeedback
+              item={item}
+              error={actionErrorByItem[item.id]}
+              className="mt-2"
+            />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Section
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -718,6 +899,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
   const {
     branchDay,
     rows,
+    stockRows = [],
     totalRowCount,
     forecastRankById,
     decisionSummary,
@@ -778,6 +960,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
   );
 
   return (
+    <>
     <section className="mb-11">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -1162,5 +1345,21 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
         <div className="flex items-center gap-2">{lockStartButtons}</div>
       </div>
     </section>
+
+    <StockLevelsSection
+      rows={stockRows}
+      forecastRankById={forecastRankById}
+      plannedQtyByItem={plannedQtyByItem}
+      onPlannedChange={onPlannedChange}
+      onAcceptSuggestion={onAcceptSuggestion}
+      onKeepMyPlan={onKeepMyPlan}
+      actionErrorByItem={actionErrorByItem}
+      editingDisabled={editingDisabled}
+      branchId={branchId}
+      isMorning={isMorning}
+      onMarkUnavailable={onMarkUnavailable}
+      readOnly={readOnly}
+    />
+    </>
   );
 }

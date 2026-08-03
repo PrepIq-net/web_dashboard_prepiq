@@ -1580,6 +1580,19 @@
       "confidenceUnknown": "pas encore mesurable",
       "next": "Prochaine étape :",
       "toGo": "restants"
+    },
+    "preparation": {
+      "prepared": "Préparé à l'avance",
+      "assembled": "Préparé à la commande",
+      "stocked": "Article en stock"
+    },
+    "stock": {
+      "title": "Niveaux de stock",
+      "subtitle": "Articles en bouteille et emballés",
+      "explainer": "Ces articles sont vendus tels qu'ils arrivent : rien à préparer, il suffit d'en avoir assez. Ils ne consomment pas d'ingrédients et ne font pas partie des décisions de préparation ci-dessus.",
+      "expectedToSell": "Ventes prévues",
+      "haveOnHand": "Stock disponible",
+      "markOutOfStock": "Signaler une rupture"
     }
   },
   "profile": {
