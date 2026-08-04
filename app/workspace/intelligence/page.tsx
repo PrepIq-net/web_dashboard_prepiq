@@ -36,10 +36,20 @@ import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
 
+type IntelligenceTab =
+  | "WEEK"
+  | "PROGRESS"
+  | "CONFDENCE"
+  | "TEACH"
+  | "CAPABILITIES"
+  | "KITCHEN";
+
 function IntelligencePageInner() {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
+
+  const [activeTab, setActiveTab] = useState<IntelligenceTab>("WEEK");
 
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const branches = branchesQuery.data ?? EMPTY_LIST;
@@ -70,6 +80,18 @@ function IntelligencePageInner() {
 
   const journey = journeyQuery.data;
 
+  const tabs: { id: IntelligenceTab; label: string }[] = [
+    { id: "WEEK", label: t("intelligence.section.digestEyebrow") },
+    { id: "PROGRESS", label: t("intelligence.section.progressEyebrow") },
+    { id: "CONFDENCE", label: t("intelligence.section.confidenceEyebrow") },
+    { id: "TEACH", label: t("intelligence.section.teachEyebrow") },
+    {
+      id: "CAPABILITIES",
+      label: t("intelligence.section.capabilitiesEyebrow"),
+    },
+    { id: "KITCHEN", label: t("intelligence.section.dnaEyebrow") },
+  ];
+
   return (
     <WorkspaceShell
       eyebrow={t("intelligence.eyebrow")}
@@ -77,7 +99,7 @@ function IntelligencePageInner() {
       description={t("intelligence.description")}
       insight=""
     >
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-surface-4/60 pb-6">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-45">
           <Select
             label={t("intelligence.branchLabel")}
@@ -113,6 +135,22 @@ function IntelligencePageInner() {
           </button>
         </div>
       </div>
+      <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-4/60">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex h-10 shrink-0 items-center px-4 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-gold text-brand-gold"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {!branchId ? (
         <p className="py-16 text-center text-sm text-text-secondary">
@@ -129,69 +167,83 @@ function IntelligencePageInner() {
         </p>
       ) : journey ? (
         <div className="space-y-14">
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.stageEyebrow")}
-              title={journey.stage.label}
-            />
-            <StageLadder journey={journey} />
-          </section>
+          {activeTab == "WEEK" ? (
+            <div>
+              <section className="space-y-6">
+                <SectionHeader
+                  eyebrow={t("intelligence.section.stageEyebrow")}
+                  title={journey.stage.label}
+                />
+                <StageLadder journey={journey} />
+              </section>
 
-          {journey.learning_digest ? (
+              {journey.learning_digest ? (
+                <section className="space-y-6">
+                  <SectionHeader
+                    eyebrow={t("intelligence.section.digestEyebrow")}
+                    title={t("intelligence.section.digestTitle")}
+                  />
+                  <LearningDigest digest={journey.learning_digest} />
+                </section>
+              ) : null}
+            </div>
+          ) : null}
+
+          {activeTab == "PROGRESS" ? (
             <section className="space-y-6">
               <SectionHeader
-                eyebrow={t("intelligence.section.digestEyebrow")}
-                title={t("intelligence.section.digestTitle")}
+                eyebrow={t("intelligence.section.progressEyebrow")}
+                title={t("intelligence.section.progressTitle")}
+                supporting={t("intelligence.section.progressSupporting")}
               />
-              <LearningDigest digest={journey.learning_digest} />
+              <ProgressLedger progress={journey.progress} />
             </section>
           ) : null}
 
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.progressEyebrow")}
-              title={t("intelligence.section.progressTitle")}
-              supporting={t("intelligence.section.progressSupporting")}
-            />
-            <ProgressLedger progress={journey.progress} />
-          </section>
+          {activeTab == "CONFDENCE" ? (
+            <section className="space-y-6">
+              <SectionHeader
+                eyebrow={t("intelligence.section.confidenceEyebrow")}
+                title={t("intelligence.section.confidenceTitle")}
+              />
+              <ConfidencePanel
+                confidence={journey.confidence}
+                blendMix={journey.blend_mix}
+              />
+            </section>
+          ) : null}
 
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.confidenceEyebrow")}
-              title={t("intelligence.section.confidenceTitle")}
-            />
-            <ConfidencePanel
-              confidence={journey.confidence}
-              blendMix={journey.blend_mix}
-            />
-          </section>
+          {activeTab == "TEACH" ? (
+            <section className="space-y-6">
+              <SectionHeader
+                eyebrow={t("intelligence.section.teachEyebrow")}
+                title={t("intelligence.section.teachTitle")}
+                supporting={t("intelligence.section.teachSupporting")}
+              />
+              <TeachPanel branchId={branchId} />
+            </section>
+          ) : null}
 
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.teachEyebrow")}
-              title={t("intelligence.section.teachTitle")}
-              supporting={t("intelligence.section.teachSupporting")}
-            />
-            <TeachPanel branchId={branchId} />
-          </section>
+          {activeTab == "CAPABILITIES" ? (
+            <section className="space-y-6">
+              <SectionHeader
+                eyebrow={t("intelligence.section.capabilitiesEyebrow")}
+                title={t("intelligence.section.capabilitiesTitle")}
+              />
+              <CapabilityList capabilities={journey.capabilities} />
+            </section>
+          ) : null}
 
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.capabilitiesEyebrow")}
-              title={t("intelligence.section.capabilitiesTitle")}
-            />
-            <CapabilityList capabilities={journey.capabilities} />
-          </section>
-
-          <section className="space-y-6">
-            <SectionHeader
-              eyebrow={t("intelligence.section.dnaEyebrow")}
-              title={t("intelligence.section.dnaTitle")}
-              supporting={t("intelligence.section.dnaSupporting")}
-            />
-            <KitchenDNA entries={journey.kitchen_dna} />
-          </section>
+          {activeTab == "KITCHEN" ? (
+            <section className="space-y-6">
+              <SectionHeader
+                eyebrow={t("intelligence.section.dnaEyebrow")}
+                title={t("intelligence.section.dnaTitle")}
+                supporting={t("intelligence.section.dnaSupporting")}
+              />
+              <KitchenDNA entries={journey.kitchen_dna} />
+            </section>
+          ) : null}
         </div>
       ) : null}
     </WorkspaceShell>
