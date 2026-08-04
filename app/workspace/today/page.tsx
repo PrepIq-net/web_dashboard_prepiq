@@ -10,6 +10,7 @@ import { UUID_PATTERN } from "@/lib/constants";
 import { resolvePermissions } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { isDiscreteUnit, todayIso } from "@/lib/format";
+import { BranchCurrencyProvider } from "@/lib/branch-currency";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import { OperationalCalendar } from "@/components/ui/operational-calendar";
@@ -436,7 +437,7 @@ function TodayWorkspacePageContent() {
     [prepRows],
   );
   const morningRiskAlerts = useMemo(
-    () => buildMorningRiskAlerts(t, rows),
+    () => buildMorningRiskAlerts(t, rows, branchDay?.currency || "USD"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rows],
   );
@@ -895,411 +896,413 @@ function TodayWorkspacePageContent() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <WorkspaceShell
-      eyebrow={t("today.eyebrow")}
-      title={t("today.title")}
-      description={t("today.description")}
-      insight={t("today.insight")}
-    >
-      {/* Slim context bar — no heavy card */}
-      <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
-        <div className="flex-1 min-w-[180px] max-w-xs">
-          <Select
-            label={t("today.branch.label")}
-            leadingIcon={<Shop className="h-4 w-4" />}
-            options={branchOptions.map((branch) => ({
-              value: branch.id,
-              label: branch.name,
-            }))}
-            value={branchId}
-            onChange={setBranchId}
-            disabled={noBranchContext}
-            placeholder={
-              noBranchContext
-                ? t("today.branch.noBranches")
-                : t("today.branch.selectBranch")
-            }
-          />
-        </div>
+    <BranchCurrencyProvider currency={branchDay?.currency}>
+      <WorkspaceShell
+        eyebrow={t("today.eyebrow")}
+        title={t("today.title")}
+        description={t("today.description")}
+        insight={t("today.insight")}
+      >
+        {/* Slim context bar — no heavy card */}
+        <div className="mb-8 flex flex-wrap items-end gap-4 border-b border-surface-4/60 pb-6">
+          <div className="flex-1 min-w-[180px] max-w-xs">
+            <Select
+              label={t("today.branch.label")}
+              leadingIcon={<Shop className="h-4 w-4" />}
+              options={branchOptions.map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              }))}
+              value={branchId}
+              onChange={setBranchId}
+              disabled={noBranchContext}
+              placeholder={
+                noBranchContext
+                  ? t("today.branch.noBranches")
+                  : t("today.branch.selectBranch")
+              }
+            />
+          </div>
 
-        <div className="flex-1 min-w-[160px] max-w-xs">
-          <OperationalCalendar
-            label={t("today.date.label")}
-            value={targetDate}
-            onChange={setTargetDate}
-          />
-        </div>
+          <div className="flex-1 min-w-[160px] max-w-xs">
+            <OperationalCalendar
+              label={t("today.date.label")}
+              value={targetDate}
+              onChange={setTargetDate}
+            />
+          </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
-          {!canOperateToday && !loading ? (
-            <span
-              className="inline-flex h-7 items-center rounded-full border border-surface-4 bg-surface-3/60 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
-              title={t("today.viewOnly.hint")}
-            >
-              {t("today.viewOnly.badge")}
-            </span>
-          ) : null}
-          {branchDay && !loading ? (
-            <DayPhaseStepper status={branchDay.status as "MORNING" | "LIVE" | "CLOSED"} />
-          ) : (
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
+            {!canOperateToday && !loading ? (
               <span
-                className={`h-2 w-2 rounded-full ${
-                  loading
-                    ? "bg-text-muted animate-pulse"
-                    : noBranchContext
-                      ? "bg-status-critical"
-                      : "bg-status-warning"
-                }`}
-              />
-              <p className="text-sm text-text-muted">{statusLabel}</p>
-            </div>
-          )}
+                className="inline-flex h-7 items-center rounded-full border border-surface-4 bg-surface-3/60 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
+                title={t("today.viewOnly.hint")}
+              >
+                {t("today.viewOnly.badge")}
+              </span>
+            ) : null}
+            {branchDay && !loading ? (
+              <DayPhaseStepper status={branchDay.status as "MORNING" | "LIVE" | "CLOSED"} />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    loading
+                      ? "bg-text-muted animate-pulse"
+                      : noBranchContext
+                        ? "bg-status-critical"
+                        : "bg-status-warning"
+                  }`}
+                />
+                <p className="text-sm text-text-muted">{statusLabel}</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {safeBranchId && !subLoading && shouldBlockAccess ? (
-        <SubscriptionRequiredState
-          variant={gateVariant}
-          canManageBilling={canManageBilling}
-          billingContacts={billingContacts}
-          branchId={safeBranchId}
-          compact
-        />
-      ) : (
-        <>
-          {walkthroughActive ? (
-            <InitializationWalkthrough
-              isPending={initializeMutation.isPending}
-              isError={initializeMutation.isError}
-              errorMessage={todayQueryErrorMessage}
-              stats={pipelineStats}
-              onRetry={
-                safeBranchId
-                  ? () =>
+        {safeBranchId && !subLoading && shouldBlockAccess ? (
+          <SubscriptionRequiredState
+            variant={gateVariant}
+            canManageBilling={canManageBilling}
+            billingContacts={billingContacts}
+            branchId={safeBranchId}
+            compact
+          />
+        ) : (
+          <>
+            {walkthroughActive ? (
+              <InitializationWalkthrough
+                isPending={initializeMutation.isPending}
+                isError={initializeMutation.isError}
+                errorMessage={todayQueryErrorMessage}
+                stats={pipelineStats}
+                onRetry={
+                  safeBranchId
+                    ? () =>
+                        initializeMutation.mutate({
+                          branch_id: safeBranchId,
+                          date: targetDate,
+                        })
+                    : undefined
+                }
+                onDone={() => setWalkthroughDismissed(true)}
+              />
+            ) : todayQuery.isError && !initializeMutation.isSuccess ? (
+              <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
+                <p className="font-semibold">{t("today.error.dayDataNotAvailable")}</p>
+                <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
+                {canInitializeDay && safeBranchId ? (
+                  <button
+                    type="button"
+                    disabled={initializeMutation.isPending}
+                    onClick={() =>
                       initializeMutation.mutate({
                         branch_id: safeBranchId,
                         date: targetDate,
                       })
-                  : undefined
-              }
-              onDone={() => setWalkthroughDismissed(true)}
-            />
-          ) : todayQuery.isError && !initializeMutation.isSuccess ? (
-            <div className="mb-6 rounded-r-lg border-l-4 border-l-status-warning bg-status-warning/8 px-4 py-3 text-xs text-status-warning">
-              <p className="font-semibold">{t("today.error.dayDataNotAvailable")}</p>
-              <p className="mt-1 text-text-secondary">{todayQueryErrorMessage}</p>
-              {canInitializeDay && safeBranchId ? (
-                <button
-                  type="button"
-                  disabled={initializeMutation.isPending}
-                  onClick={() =>
-                    initializeMutation.mutate({
-                      branch_id: safeBranchId,
-                      date: targetDate,
-                    })
-                  }
-                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t("today.error.initializeDay")}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Day zero: no plan yet, but the journey can still answer "what do
-              you actually know about us?" — which is the question a new
-              customer is really asking. */}
-          {!walkthroughActive && !branchDay && preInitJourney ? (
-            <IntelligenceJourneyBanner summary={preInitJourney} />
-          ) : null}
-
-          {noBranchContext ? (
-            <div className="mt-8 py-16 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
-                <Shop className="h-6 w-6 text-status-warning" />
+                    }
+                    className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-status-warning/50 px-3 text-xs font-semibold text-status-warning hover:bg-status-warning/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t("today.error.initializeDay")}
+                  </button>
+                ) : null}
               </div>
-              <p className="text-sm text-text-secondary max-w-md mx-auto">
-                {t("today.error.noBranchContext")}
-              </p>
-            </div>
-          ) : null}
+            ) : null}
 
-          <RefreshingBar active={isBackgroundRefreshing} />
+            {/* Day zero: no plan yet, but the journey can still answer "what do
+                you actually know about us?" — which is the question a new
+                customer is really asking. */}
+            {!walkthroughActive && !branchDay && preInitJourney ? (
+              <IntelligenceJourneyBanner summary={preInitJourney} />
+            ) : null}
 
-          {showSkeleton ? <TodaySkeleton phase={lastPhaseRef.current} /> : null}
+            {noBranchContext ? (
+              <div className="mt-8 py-16 text-center">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-warning/20 mb-4">
+                  <Shop className="h-6 w-6 text-status-warning" />
+                </div>
+                <p className="text-sm text-text-secondary max-w-md mx-auto">
+                  {t("today.error.noBranchContext")}
+                </p>
+              </div>
+            ) : null}
 
-          {/* ── How much PrepIQ actually knows about this kitchen yet ──
-              Sits above the signals because it frames everything below it: a
-              number is read differently once you know it is borrowed. */}
-          {!walkthroughActive && branchDay?.intelligence_journey ? (
-            <IntelligenceJourneyBanner
-              summary={branchDay.intelligence_journey}
-            />
-          ) : null}
+            <RefreshingBar active={isBackgroundRefreshing} />
 
-          {/* ── Persistent Demand Signals banner — all three phases ── */}
-          {!walkthroughActive && branchDay ? (
-            <DemandSignalsBanner branchDay={branchDay} />
-          ) : null}
+            {showSkeleton ? <TodaySkeleton phase={lastPhaseRef.current} /> : null}
 
-          {/* ── MORNING: review and lock the prep plan ── */}
-          {!walkthroughActive && isMorning && branchDay ? (
-            <>
-              <MorningBriefStrip
-                loading={morningBriefQuery.isLoading}
-                brief={morningBrief}
-                userName={user?.first_name || "Chef"}
-                onOpenBrief={() => setBriefDrawerOpen(true)}
+            {/* ── How much PrepIQ actually knows about this kitchen yet ──
+                Sits above the signals because it frames everything below it: a
+                number is read differently once you know it is borrowed. */}
+            {!walkthroughActive && branchDay?.intelligence_journey ? (
+              <IntelligenceJourneyBanner
+                summary={branchDay.intelligence_journey}
               />
+            ) : null}
 
-              <MorningOutlook
+            {/* ── Persistent Demand Signals banner — all three phases ── */}
+            {!walkthroughActive && branchDay ? (
+              <DemandSignalsBanner branchDay={branchDay} />
+            ) : null}
+
+            {/* ── MORNING: review and lock the prep plan ── */}
+            {!walkthroughActive && isMorning && branchDay ? (
+              <>
+                <MorningBriefStrip
+                  loading={morningBriefQuery.isLoading}
+                  brief={morningBrief}
+                  userName={user?.first_name || "Chef"}
+                  onOpenBrief={() => setBriefDrawerOpen(true)}
+                />
+
+                <MorningOutlook
+                  branchDay={branchDay}
+                  rows={rows}
+                  rowsByDemand={forecastRowsByDemand}
+                  onExplainReliability={
+                    canUseAssistant
+                      ? () =>
+                          setExplainRequest({
+                            topic: "what the plan reliability score means for today and whether my inventory buffer is safe",
+                            nonce: Date.now(),
+                          })
+                      : undefined
+                  }
+                />
+
+                <MorningRiskAlerts
+                  alerts={morningRiskAlerts}
+                  isPlanLocked={isPlanLocked || !canOperateToday}
+                  canUseAssistant={canUseAssistant}
+                  onExplain={(topic) =>
+                    setExplainRequest({ topic, nonce: Date.now() })
+                  }
+                  onApplyFix={applyRiskAlertFix}
+                />
+
+                <PrepPlanSection
+                  branchDay={branchDay}
+                  rows={prepRows}
+                  stockRows={stockRows}
+                  totalRowCount={prepRows.length}
+                  forecastRankById={forecastRankById}
+                  decisionSummary={decisionSummary}
+                  isPlanLocked={isPlanLocked}
+                  isMorning={isMorning}
+                  lockPending={lockPlanMutation.isPending}
+                  startPending={updateBranchDayStatusMutation.isPending}
+                  onLockPlan={lockPlan}
+                  onStartService={() => setConfirmAction("START_LIVE")}
+                  plannedQtyByItem={plannedQtyByItem}
+                  onPlannedChange={onPlannedChange}
+                  onAcceptSuggestion={acceptSuggestion}
+                  onKeepMyPlan={keepMyPlan}
+                  onOverrideReason={setOverrideReason}
+                  actionErrorByItem={actionErrorByItem}
+                  expandedItemIds={expandedItemIds}
+                  onToggleExpand={toggleItemExpand}
+                  onMarkUnavailable={setMarkUnavailableItem}
+                  branchId={safeBranchId}
+                  targetDate={targetDate}
+                  orgId={user?.organization_id ?? ""}
+                  readOnly={!canOperateToday}
+                />
+
+                {/* Single ingredient view: store-room requirement + BOM prep
+                    sheet merged, styled per the Ingredient requirements layout. */}
+                <section className="mt-8 mb-4">
+                  <IngredientRequirements
+                    branchId={safeBranchId}
+                    targetDate={targetDate}
+                    orgId={user?.organization_id ?? ""}
+                    requirement={branchDay?.ingredient_requirement}
+                    prepSheet={morningBrief?.prep_sheet}
+                    isPlanLocked={isPlanLocked}
+                  />
+                </section>
+
+                <TasksStrip
+                  branchId={safeBranchId}
+                  targetDate={targetDate}
+                  enabled={canFetchData && isPlanLocked}
+                />
+              </>
+            ) : null}
+
+            {/* ── LIVE: tiered stock monitor ── */}
+            {!walkthroughActive && isLive && branchDay ? (
+              <>
+              <TasksStrip
+                branchId={safeBranchId}
+                targetDate={targetDate}
+                enabled={canFetchData}
+              />
+              <LiveMonitorSection
                 branchDay={branchDay}
-                rows={rows}
-                rowsByDemand={forecastRowsByDemand}
-                onExplainReliability={
-                  canUseAssistant
-                    ? () =>
-                        setExplainRequest({
-                          topic: "what the plan reliability score means for today and whether my inventory buffer is safe",
-                          nonce: Date.now(),
-                        })
-                    : undefined
-                }
-              />
-
-              <MorningRiskAlerts
-                alerts={morningRiskAlerts}
-                isPlanLocked={isPlanLocked || !canOperateToday}
-                canUseAssistant={canUseAssistant}
-                onExplain={(topic) =>
-                  setExplainRequest({ topic, nonce: Date.now() })
-                }
-                onApplyFix={applyRiskAlertFix}
-              />
-
-              <PrepPlanSection
-                branchDay={branchDay}
-                rows={prepRows}
-                stockRows={stockRows}
-                totalRowCount={prepRows.length}
-                forecastRankById={forecastRankById}
-                decisionSummary={decisionSummary}
-                isPlanLocked={isPlanLocked}
-                isMorning={isMorning}
-                lockPending={lockPlanMutation.isPending}
-                startPending={updateBranchDayStatusMutation.isPending}
-                onLockPlan={lockPlan}
-                onStartService={() => setConfirmAction("START_LIVE")}
-                plannedQtyByItem={plannedQtyByItem}
-                onPlannedChange={onPlannedChange}
-                onAcceptSuggestion={acceptSuggestion}
-                onKeepMyPlan={keepMyPlan}
-                onOverrideReason={setOverrideReason}
-                actionErrorByItem={actionErrorByItem}
-                expandedItemIds={expandedItemIds}
-                onToggleExpand={toggleItemExpand}
-                onMarkUnavailable={setMarkUnavailableItem}
+                criticalRows={criticalRows}
+                watchRows={watchRows}
+                okRows={okRows}
+                paceSummary={paceSummary}
+                paceAlertByProductId={paceAlertByProductId}
+                timeline={timelineQuery.data}
+                showCsvImportBanner={showCsvImportBanner}
+                onDismissCsvBanner={dismissCsvBanner}
+                closePending={updateBranchDayStatusMutation.isPending}
+                onCloseDay={() => setConfirmAction("CLOSE_DAY")}
+                onRecordProduction={setRecordItem}
+                onQuickSale={quickTapSale}
+                onLogWaste={setWasteItem}
                 branchId={safeBranchId}
                 targetDate={targetDate}
                 orgId={user?.organization_id ?? ""}
                 readOnly={!canOperateToday}
               />
+              </>
+            ) : null}
 
-              {/* Single ingredient view: store-room requirement + BOM prep
-                  sheet merged, styled per the Ingredient requirements layout. */}
-              <section className="mt-8 mb-4">
-                <IngredientRequirements
-                  branchId={safeBranchId}
-                  targetDate={targetDate}
-                  orgId={user?.organization_id ?? ""}
-                  requirement={branchDay?.ingredient_requirement}
-                  prepSheet={morningBrief?.prep_sheet}
-                  isPlanLocked={isPlanLocked}
-                />
-              </section>
-
-              <TasksStrip
+            {/* ── CLOSED: day review ── */}
+            {!walkthroughActive && isClosed && branchDay ? (
+              <ClosedDayReview
+                branchDay={branchDay}
                 branchId={safeBranchId}
-                targetDate={targetDate}
-                enabled={canFetchData && isPlanLocked}
+                provenanceStats={provenanceStats}
               />
-            </>
-          ) : null}
+            ) : null}
 
-          {/* ── LIVE: tiered stock monitor ── */}
-          {!walkthroughActive && isLive && branchDay ? (
-            <>
-            <TasksStrip
-              branchId={safeBranchId}
-              targetDate={targetDate}
-              enabled={canFetchData}
+            {branchDay &&
+            branchDay.status !== "MORNING" &&
+            branchDay.status !== "LIVE" &&
+            branchDay.status !== "CLOSED" ? (
+              <div className="mt-8 py-12 text-center">
+                <Calendar className="mx-auto h-8 w-8 text-text-muted mb-3" />
+                <p className="text-sm text-text-secondary">
+                  {t("today.statusIs")}{" "}
+                  <span className="font-semibold text-text-primary">
+                    {branchDay.status}
+                  </span>
+                  .
+                </p>
+              </div>
+            ) : null}
+
+            {!loading &&
+            branchDay &&
+            branchDay.status === "MORNING" &&
+            branchDay.prep_plan_items.length === 0 ? (
+              <div className="mt-8 py-12 text-center">
+                <Calendar className="mx-auto h-8 w-8 text-status-warning mb-3" />
+                <p className="text-sm text-text-secondary">
+                  {t("today.noActivePrepItems")}
+                </p>
+              </div>
+            ) : null}
+
+            <ConfirmActionModal
+              open={confirmAction === "START_LIVE"}
+              title={t("today.modal.startServiceTitle")}
+              description={t("today.modal.startServiceDescription")}
+              confirmLabel={t("today.modal.startServiceConfirm")}
+              isConfirming={updateBranchDayStatusMutation.isPending}
+              onClose={() => setConfirmAction(null)}
+              onConfirm={startLiveService}
             />
-            <LiveMonitorSection
-              branchDay={branchDay}
-              criticalRows={criticalRows}
-              watchRows={watchRows}
-              okRows={okRows}
-              paceSummary={paceSummary}
-              paceAlertByProductId={paceAlertByProductId}
-              timeline={timelineQuery.data}
-              showCsvImportBanner={showCsvImportBanner}
-              onDismissCsvBanner={dismissCsvBanner}
-              closePending={updateBranchDayStatusMutation.isPending}
-              onCloseDay={() => setConfirmAction("CLOSE_DAY")}
-              onRecordProduction={setRecordItem}
-              onQuickSale={quickTapSale}
-              onLogWaste={setWasteItem}
-              branchId={safeBranchId}
-              targetDate={targetDate}
-              orgId={user?.organization_id ?? ""}
-              readOnly={!canOperateToday}
+
+            <ConfirmActionModal
+              open={confirmAction === "CLOSE_DAY"}
+              title={t("today.modal.closeDayTitle")}
+              description={t("today.modal.closeDayDescription")}
+              confirmLabel={t("today.modal.closeDayConfirm")}
+              tone="critical"
+              isConfirming={updateBranchDayStatusMutation.isPending}
+              onClose={() => setConfirmAction(null)}
+              onConfirm={closeServiceDay}
             />
-            </>
-          ) : null}
 
-          {/* ── CLOSED: day review ── */}
-          {!walkthroughActive && isClosed && branchDay ? (
-            <ClosedDayReview
-              branchDay={branchDay}
-              branchId={safeBranchId}
-              provenanceStats={provenanceStats}
+            <LogWasteModal
+              open={Boolean(wasteItem)}
+              itemTitle={wasteItem?.title ?? ""}
+              unit={wasteItem?.unit ?? ""}
+              isSubmitting={createProductionLogMutation.isPending}
+              onClose={() => setWasteItem(null)}
+              onSubmit={(wasteQuantity) => {
+                if (!wasteItem) return;
+                logWaste(wasteItem.id, wasteQuantity);
+              }}
             />
-          ) : null}
 
-          {branchDay &&
-          branchDay.status !== "MORNING" &&
-          branchDay.status !== "LIVE" &&
-          branchDay.status !== "CLOSED" ? (
-            <div className="mt-8 py-12 text-center">
-              <Calendar className="mx-auto h-8 w-8 text-text-muted mb-3" />
-              <p className="text-sm text-text-secondary">
-                {t("today.statusIs")}{" "}
-                <span className="font-semibold text-text-primary">
-                  {branchDay.status}
-                </span>
-                .
-              </p>
-            </div>
-          ) : null}
+            <RecordProductionModal
+              open={Boolean(recordItem)}
+              itemTitle={recordItem?.title ?? ""}
+              unit={recordItem?.unit ?? ""}
+              isSubmitting={createProductionLogMutation.isPending}
+              onClose={() => setRecordItem(null)}
+              onSubmit={(quantityProduced) => {
+                if (!recordItem) return;
+                logProduction(
+                  recordItem.id,
+                  quantityProduced,
+                  t("today.reason.recordedManually"),
+                );
+                setRecordItem(null);
+              }}
+            />
 
-          {!loading &&
-          branchDay &&
-          branchDay.status === "MORNING" &&
-          branchDay.prep_plan_items.length === 0 ? (
-            <div className="mt-8 py-12 text-center">
-              <Calendar className="mx-auto h-8 w-8 text-status-warning mb-3" />
-              <p className="text-sm text-text-secondary">
-                {t("today.noActivePrepItems")}
-              </p>
-            </div>
-          ) : null}
+            <MarkUnavailableModal
+              open={Boolean(markUnavailableItem)}
+              onClose={() => setMarkUnavailableItem(null)}
+              branchId={safeBranchId}
+              item={markUnavailableItem}
+              onSuccess={() => {
+                queryClient.invalidateQueries({
+                  queryKey: productionIntelligenceQueryKeys.branchDayToday({
+                    branch_id: safeBranchId,
+                    date: targetDate,
+                  }),
+                });
+                queryClient.invalidateQueries({
+                  queryKey: inventoryQueryKeys.availabilityOverrides(safeBranchId),
+                });
+              }}
+            />
+          </>
+        )}
 
-          <ConfirmActionModal
-            open={confirmAction === "START_LIVE"}
-            title={t("today.modal.startServiceTitle")}
-            description={t("today.modal.startServiceDescription")}
-            confirmLabel={t("today.modal.startServiceConfirm")}
-            isConfirming={updateBranchDayStatusMutation.isPending}
-            onClose={() => setConfirmAction(null)}
-            onConfirm={startLiveService}
-          />
-
-          <ConfirmActionModal
-            open={confirmAction === "CLOSE_DAY"}
-            title={t("today.modal.closeDayTitle")}
-            description={t("today.modal.closeDayDescription")}
-            confirmLabel={t("today.modal.closeDayConfirm")}
-            tone="critical"
-            isConfirming={updateBranchDayStatusMutation.isPending}
-            onClose={() => setConfirmAction(null)}
-            onConfirm={closeServiceDay}
-          />
-
-          <LogWasteModal
-            open={Boolean(wasteItem)}
-            itemTitle={wasteItem?.title ?? ""}
-            unit={wasteItem?.unit ?? ""}
-            isSubmitting={createProductionLogMutation.isPending}
-            onClose={() => setWasteItem(null)}
-            onSubmit={(wasteQuantity) => {
-              if (!wasteItem) return;
-              logWaste(wasteItem.id, wasteQuantity);
-            }}
-          />
-
-          <RecordProductionModal
-            open={Boolean(recordItem)}
-            itemTitle={recordItem?.title ?? ""}
-            unit={recordItem?.unit ?? ""}
-            isSubmitting={createProductionLogMutation.isPending}
-            onClose={() => setRecordItem(null)}
-            onSubmit={(quantityProduced) => {
-              if (!recordItem) return;
-              logProduction(
-                recordItem.id,
-                quantityProduced,
-                t("today.reason.recordedManually"),
-              );
-              setRecordItem(null);
-            }}
-          />
-
-          <MarkUnavailableModal
-            open={Boolean(markUnavailableItem)}
-            onClose={() => setMarkUnavailableItem(null)}
-            branchId={safeBranchId}
-            item={markUnavailableItem}
-            onSuccess={() => {
-              queryClient.invalidateQueries({
-                queryKey: productionIntelligenceQueryKeys.branchDayToday({
-                  branch_id: safeBranchId,
-                  date: targetDate,
-                }),
-              });
-              queryClient.invalidateQueries({
-                queryKey: inventoryQueryKeys.availabilityOverrides(safeBranchId),
-              });
-            }}
-          />
-        </>
-      )}
-
-      <MorningBriefDrawer
-        open={briefDrawerOpen}
-        onClose={() => setBriefDrawerOpen(false)}
-        brief={morningBrief}
-        canAsk={canUseAssistant}
-        onAsk={(question) => setAskRequest({ question, nonce: Date.now() })}
-        onOpenProvenance={() => setProvenanceOpen(true)}
-      />
-
-      <PlanProvenanceDrawer
-        open={provenanceOpen}
-        onClose={() => setProvenanceOpen(false)}
-        stats={provenanceStats}
-        activeSignals={morningBrief?.drivers?.active_signals ?? []}
-        learnedPatterns={morningBrief?.drivers?.learned_patterns ?? []}
-        canAskAssistant={canUseAssistant}
-        onAskAssistant={() =>
-          setExplainRequest({
-            topic: "how today's prep plan was made",
-            nonce: Date.now(),
-          })
-        }
-      />
-
-      {safeBranchId && canUseAssistant ? (
-        <AssistantLauncher
-          branchId={safeBranchId}
-          date={targetDate}
-          onActionApplied={handleAssistantActionApplied}
-          explainRequest={explainRequest}
-          askRequest={askRequest}
-          autoOpen={autoOpenAssistant}
+        <MorningBriefDrawer
+          open={briefDrawerOpen}
+          onClose={() => setBriefDrawerOpen(false)}
+          brief={morningBrief}
+          canAsk={canUseAssistant}
+          onAsk={(question) => setAskRequest({ question, nonce: Date.now() })}
+          onOpenProvenance={() => setProvenanceOpen(true)}
         />
-      ) : null}
-    </WorkspaceShell>
+
+        <PlanProvenanceDrawer
+          open={provenanceOpen}
+          onClose={() => setProvenanceOpen(false)}
+          stats={provenanceStats}
+          activeSignals={morningBrief?.drivers?.active_signals ?? []}
+          learnedPatterns={morningBrief?.drivers?.learned_patterns ?? []}
+          canAskAssistant={canUseAssistant}
+          onAskAssistant={() =>
+            setExplainRequest({
+              topic: "how today's prep plan was made",
+              nonce: Date.now(),
+            })
+          }
+        />
+
+        {safeBranchId && canUseAssistant ? (
+          <AssistantLauncher
+            branchId={safeBranchId}
+            date={targetDate}
+            onActionApplied={handleAssistantActionApplied}
+            explainRequest={explainRequest}
+            askRequest={askRequest}
+            autoOpen={autoOpenAssistant}
+          />
+        ) : null}
+      </WorkspaceShell>
+    </BranchCurrencyProvider>
   );
 }
 

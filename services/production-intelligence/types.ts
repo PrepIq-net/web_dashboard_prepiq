@@ -594,6 +594,9 @@ export const branchDayTodaySchema = z.object({
   id: z.string().uuid(),
   branch_id: z.string().uuid(),
   branch_name: z.string(),
+  // The currency every money value on this payload is denominated in. Optional
+  // only so an older backend doesn't hard-fail parsing; callers fall back to USD.
+  currency: z.string().optional(),
   date: z.string(),
   status: z.enum(["MORNING", "LIVE", "CLOSED"]),
   expected_demand_index: z.number(),
@@ -1283,6 +1286,23 @@ export type PrepPlanEvaluatePayload = z.infer<
   typeof prepPlanEvaluatePayloadSchema
 >;
 
+/** What came of the last few comparable overrides on this item. */
+export const overridePrecedentSchema = z.object({
+  sample_size: z.number(),
+  // USER when this is the chef's own record, BRANCH when their history was too
+  // thin and we widened to the kitchen — the copy must say which.
+  scope: z.enum(["USER", "BRANCH"]),
+  direction: z.enum(["INCREASE", "DECREASE"]),
+  threshold_pct: z.number(),
+  beat_model_rate: z.number(),
+  avg_leftover_units: z.number(),
+  avg_shortfall_units: z.number(),
+  avg_unsold_cost: z.number().nullable(),
+  currency: z.string().optional(),
+  verdict: z.enum(["CAUTION", "SUPPORTED", "MIXED"]),
+});
+export type OverridePrecedent = z.infer<typeof overridePrecedentSchema>;
+
 export const prepPlanEvaluateResponseSchema = z.object({
   delta_quantity: z.number(),
   waste_risk_increase: z.number(),
@@ -1301,6 +1321,13 @@ export const prepPlanEvaluateResponseSchema = z.object({
     stockout_probability_change: z.number(),
     margin_savings: z.number(),
   }),
+  // The backend has always sent these three; leaving them off the schema meant
+  // z.object stripped them, so the money-at-risk line downstream never had a
+  // value to render.
+  narrative: z.string().optional(),
+  food_cost_at_risk: z.number().optional(),
+  shortfall_margin_risk: z.number().optional(),
+  historical_precedent: overridePrecedentSchema.nullish(),
 });
 export type PrepPlanEvaluateResponse = z.infer<
   typeof prepPlanEvaluateResponseSchema

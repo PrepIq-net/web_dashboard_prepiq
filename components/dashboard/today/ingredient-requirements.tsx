@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
+import { useMoney } from "@/lib/branch-currency";
 import { useRecomputeIngredientRequirement } from "@/services/production-intelligence/hooks";
 import type {
   IngredientRequirement,
@@ -47,6 +47,7 @@ export function IngredientRequirements({
   isPlanLocked,
 }: Props) {
   const { t } = useTranslation();
+  const { money } = useMoney();
   const recompute = useRecomputeIngredientRequirement();
 
   const recipesHref = `/workspace/inventory?branch=${branchId}&org=${orgId}&tab=recipes`;
@@ -83,7 +84,7 @@ export function IngredientRequirements({
           </p>
           <p className="mt-0.5 text-sm text-text-secondary">
             {requirement
-              ? summaryLine(t, requirement)
+              ? summaryLine(t, requirement, money)
               : t("today.ingredients.subtitle")}
           </p>
         </div>
@@ -211,6 +212,7 @@ function IngredientRow({
   line: IngredientRequirementLine;
   t: Translate;
 }) {
+  const { money } = useMoney();
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-surface-3/40">
       <div className="min-w-0">
@@ -240,7 +242,7 @@ function IngredientRow({
             </p>
             {line.estimated_cost ? (
               <p className="text-xs tabular-nums text-text-muted">
-                ~{formatMoney(line.estimated_cost)}
+                ~{money(line.estimated_cost)}
                 {line.supplier_name ? ` · ${line.supplier_name}` : ""}
               </p>
             ) : null}
@@ -255,7 +257,11 @@ function IngredientRow({
   );
 }
 
-function summaryLine(t: Translate, requirement: IngredientRequirement): string {
+function summaryLine(
+  t: Translate,
+  requirement: IngredientRequirement,
+  money: (value: number) => string,
+): string {
   const parts = [
     t("today.ingredients.countSummary", { count: requirement.ingredient_count }),
   ];
@@ -270,7 +276,7 @@ function summaryLine(t: Translate, requirement: IngredientRequirement): string {
     if (requirement.total_estimated_cost) {
       parts.push(
         t("today.ingredients.costSummary", {
-          amount: formatMoney(requirement.total_estimated_cost),
+          amount: money(requirement.total_estimated_cost),
         }),
       );
     }

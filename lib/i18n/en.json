@@ -897,7 +897,7 @@
       "sold": "Sold",
       "ofPrepped": "of {quantity} prepped",
       "wasteCost": "Waste cost",
-      "wasteLine": "{amount} waste",
+      "wasteLine": "{amount} lost to waste",
       "revenueProtected": "Revenue protected",
       "missedRevenue": "{amount} missed revenue",
       "stockouts": "Stockouts",
@@ -964,7 +964,7 @@
           "OTHER": "Other"
         }
       },
-      "discardedCost": "Discarded cost",
+      "discardedCost": "Lost to waste",
       "unaccountedSub": "{quantity} units still unaccounted",
       "discardedQty": "Discarded {quantity}",
       "unaccountedQty": "{quantity} unaccounted — tell us below",
@@ -1129,6 +1129,21 @@
       "experience": "Experience",
       "holiday": "Holiday",
       "other": "Other"
+    },
+    "precedent": {
+      "you": {
+        "caution": "Your last {count} changes of {threshold}%+ here didn't pay off",
+        "supported": "Your last {count} changes of {threshold}%+ here beat the forecast",
+        "mixed": "Your last {count} changes of {threshold}%+ here were mixed"
+      },
+      "branch": {
+        "caution": "This kitchen's last {count} changes of {threshold}%+ here didn't pay off",
+        "supported": "This kitchen's last {count} changes of {threshold}%+ here beat the forecast",
+        "mixed": "This kitchen's last {count} changes of {threshold}%+ here were mixed"
+      },
+      "leftUnsold": "{units} left unsold on average",
+      "fellShort": "{units} short on average",
+      "costClause": "≈{cost} in food cost"
     },
     "reason": {
       "demandSpike": "Demand spike",

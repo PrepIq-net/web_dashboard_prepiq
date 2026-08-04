@@ -5,13 +5,12 @@ import Link from "next/link";
 import { Cutlery, GlassHalf, Package, Sparks } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import {
-  formatMoney,
   formatQuantity,
-  formatSignedMoney,
   isDiscreteUnit,
   percent01,
   signedQuantity,
 } from "@/lib/format";
+import { useMoney } from "@/lib/branch-currency";
 import type { PrepPlanItem, BranchDayToday } from "@/services/production-intelligence/types";
 import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { ItemImage } from "./item-image";
@@ -24,6 +23,7 @@ import {
   isUnconfirmedSuggestion,
   netSuggestedQty,
   overrideImpactLine,
+  overridePrecedentLine,
   planRiskBreakdown,
   popularityLabel,
   qualifiedRiskLabel,
@@ -345,7 +345,20 @@ function VarianceLine({
   suggestedQuantity: number;
 }) {
   const { t } = useTranslation();
-  const line = overrideImpactLine(t, impact, variance, suggestedQuantity);
+  const { currency } = useMoney();
+  const line = overrideImpactLine(
+    t,
+    impact,
+    variance,
+    suggestedQuantity,
+    currency,
+  );
+  const precedent = overridePrecedentLine(
+    t,
+    impact?.historical_precedent,
+    unit,
+    currency,
+  );
   return (
     <>
       <p className="mt-0.5 text-[11px] text-text-muted">
@@ -360,6 +373,19 @@ function VarianceLine({
           className={`mt-0.5 text-[11px] font-medium ${line.tone === "warning" ? "text-status-warning" : "text-status-critical"}`}
         >
           {line.text}
+        </p>
+      ) : null}
+      {precedent ? (
+        <p
+          className={`mt-0.5 text-[11px] ${
+            precedent.tone === "warning"
+              ? "text-status-warning"
+              : precedent.tone === "success"
+                ? "text-status-success"
+                : "text-text-muted"
+          }`}
+        >
+          {precedent.text}
         </p>
       ) : null}
     </>
@@ -607,6 +633,7 @@ function SignalAdjustments({ item }: { item: PrepPlanItem }) {
 
 function ImpactSummary({ impact }: { impact: ImpactPreview | undefined }) {
   const { t } = useTranslation();
+  const { signedMoney } = useMoney();
   if (!impact) return null;
   if (impact.narrative) {
     return (
@@ -630,7 +657,7 @@ function ImpactSummary({ impact }: { impact: ImpactPreview | undefined }) {
       <p
         className={`text-sm font-semibold ${impact.margin_impact_estimate >= 0 ? "text-status-success" : "text-status-critical"}`}
       >
-        {formatSignedMoney(impact.margin_impact_estimate)}
+        {signedMoney(impact.margin_impact_estimate)}
       </p>
     </div>
   );
@@ -643,6 +670,7 @@ function FinancialScenarios({
   item: PrepPlanItem;
   planned: number | null;
 }) {
+  const { money } = useMoney();
   const { t } = useTranslation();
   if (!hasPricing(item)) {
     return (
@@ -666,22 +694,22 @@ function FinancialScenarios({
         <p>
           {financials.marginIfSold != null
             ? t("today.table.ifSoldOutWithMargin", {
-                revenue: formatMoney(financials.revenueIfSold),
-                margin: formatMoney(financials.marginIfSold),
+                revenue: money(financials.revenueIfSold),
+                margin: money(financials.marginIfSold),
               })
             : t("today.table.ifSoldOut", {
-                revenue: formatMoney(financials.revenueIfSold),
+                revenue: money(financials.revenueIfSold),
               })}
         </p>
       )}
       {financials.wasteIfAll != null && (
-        <p>{t("today.table.ifWasted", { cost: formatMoney(financials.wasteIfAll) })}</p>
+        <p>{t("today.table.ifWasted", { cost: money(financials.wasteIfAll) })}</p>
       )}
       {financials.lostMarginIfStockout != null && financials.shortfallQty > 0 && (
         <p>
           {t("today.table.stockoutWarning", {
             quantity: formatQuantity(financials.shortfallQty, financials.unit),
-            margin: formatMoney(financials.lostMarginIfStockout),
+            margin: money(financials.lostMarginIfStockout),
           })}
         </p>
       )}
@@ -914,6 +942,7 @@ function StockLevelsSection({
 
 export function PrepPlanSection(props: PrepPlanSectionProps) {
   const { t, language } = useTranslation();
+  const { money } = useMoney();
   const {
     branchDay,
     rows,
@@ -999,7 +1028,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
               <span>
                 {t("today.prepPlan.projectedMargin")}{" "}
                 <span className="font-semibold text-status-success">
-                  {formatMoney(branchDay.morning_overview?.projected_margin_total ?? 0)}
+                  {money(branchDay.morning_overview?.projected_margin_total ?? 0)}
                 </span>
               </span>
             ) : null}

@@ -897,7 +897,7 @@
       "sold": "Vendu",
       "ofPrepped": "sur {quantity} préparés",
       "wasteCost": "Coût du gaspillage",
-      "wasteLine": "{amount} de gaspillage",
+      "wasteLine": "{amount} perdus en gaspillage",
       "revenueProtected": "Revenu protégé",
       "missedRevenue": "{amount} de revenu manqué",
       "stockouts": "Ruptures",
@@ -964,7 +964,7 @@
           "OTHER": "Autre"
         }
       },
-      "discardedCost": "Coût du jeté",
+      "discardedCost": "Perdu en gaspillage",
       "unaccountedSub": "{quantity} unités encore non justifiées",
       "discardedQty": "Jeté {quantity}",
       "unaccountedQty": "{quantity} non justifiés — dites-le ci-dessous",
@@ -1100,6 +1100,21 @@
       "experience": "Expérience",
       "holiday": "Jour férié",
       "other": "Autre"
+    },
+    "precedent": {
+      "you": {
+        "caution": "Vos {count} derniers écarts de {threshold}%+ ici n'ont rien donné",
+        "supported": "Vos {count} derniers écarts de {threshold}%+ ici ont battu la prévision",
+        "mixed": "Vos {count} derniers écarts de {threshold}%+ ici ont donné des résultats mitigés"
+      },
+      "branch": {
+        "caution": "Les {count} derniers écarts de {threshold}%+ de cette cuisine ici n'ont rien donné",
+        "supported": "Les {count} derniers écarts de {threshold}%+ de cette cuisine ici ont battu la prévision",
+        "mixed": "Les {count} derniers écarts de {threshold}%+ de cette cuisine ici ont donné des résultats mitigés"
+      },
+      "leftUnsold": "{units} invendus en moyenne",
+      "fellShort": "{units} de moins en moyenne",
+      "costClause": "≈{cost} de coût matière"
     },
     "reason": {
       "demandSpike": "Pic de demande",
