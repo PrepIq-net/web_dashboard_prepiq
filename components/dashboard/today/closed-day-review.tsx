@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
-import { formatMoney, formatQuantity } from "@/lib/format";
+import { formatQuantity } from "@/lib/format";
+import { useMoney } from "@/lib/branch-currency";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpdateBranchDayNotes } from "@/services/production-intelligence/hooks";
 import { useAvailabilityWeek, useCoverage } from "@/services/schedule/hooks";
@@ -100,6 +101,7 @@ export function ClosedDayReview({
   provenanceStats: PipelineStats | null | undefined;
 }) {
   const { t } = useTranslation();
+  const { money } = useMoney();
   const reactionMessages = useMemo(() => getReactionMessages(t), [t]);
   const updateBranchDayNotesMutation = useUpdateBranchDayNotes();
 
@@ -224,7 +226,7 @@ export function ClosedDayReview({
     },
     {
       label: t("today.closed.discardedCost"),
-      value: formatMoney(wasteCost),
+      value: money(wasteCost),
       sub:
         unaccountedUnits > 0
           ? t("today.closed.unaccountedSub", {
@@ -244,7 +246,7 @@ export function ClosedDayReview({
     },
     {
       label: t("today.closed.revenueProtected"),
-      value: formatMoney(revenueProtected),
+      value: money(revenueProtected),
       sub: t("today.closed.fromAvoidingStockouts"),
       tone: revenueProtected > 0 ? "text-status-success" : "text-text-muted",
     },
@@ -569,7 +571,7 @@ export function ClosedDayReview({
                         sub:
                           row.lost_revenue_estimate > 0
                             ? t("today.closed.missedRevenue", {
-                                amount: formatMoney(row.lost_revenue_estimate),
+                                amount: money(row.lost_revenue_estimate),
                               })
                             : null,
                       }
@@ -656,10 +658,10 @@ export function ClosedDayReview({
                     : 0;
                   const costLine =
                     itemWasteCost > 1
-                      ? t("today.closed.wasteLine", { amount: formatMoney(itemWasteCost) })
+                      ? t("today.closed.wasteLine", { amount: money(itemWasteCost) })
                       : missedRevenue > 1
                         ? t("today.closed.missedLine", {
-                            amount: formatMoney(missedRevenue),
+                            amount: money(missedRevenue),
                           })
                         : null;
                   return (

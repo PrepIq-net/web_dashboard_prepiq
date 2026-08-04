@@ -1,4 +1,8 @@
-import type { BranchDayToday, PrepPlanItem } from "@/services/production-intelligence/types";
+import type {
+  BranchDayToday,
+  OverridePrecedent,
+  PrepPlanItem,
+} from "@/services/production-intelligence/types";
 import {
   formatMoney,
   formatQuantity,
@@ -36,6 +40,7 @@ export type ImpactPreview = {
   narrative?: string;
   food_cost_at_risk?: number;
   shortfall_margin_risk?: number;
+  historical_precedent?: OverridePrecedent | null;
 };
 
 /** One reviewable prep-plan row with its editing state folded in. */
@@ -448,13 +453,14 @@ export function overrideImpactLine(
   impact: ImpactPreview | undefined,
   variance: number | null,
   suggestedQty: number,
+  currency: string,
 ): { text: string; tone: "warning" | "critical" } | null {
   if (!impact || variance == null || Math.abs(variance) < suggestedQty * 0.06)
     return null;
   if (variance > 0 && impact.food_cost_at_risk && impact.food_cost_at_risk > 0) {
     return {
       text: t("today.override.foodAtRisk", {
-        cost: formatMoney(impact.food_cost_at_risk),
+        cost: formatMoney(impact.food_cost_at_risk, currency),
       }),
       tone: "warning",
     };
@@ -466,12 +472,78 @@ export function overrideImpactLine(
   ) {
     return {
       text: t("today.override.marginAtRisk", {
-        cost: formatMoney(impact.shortfall_margin_risk),
+        cost: formatMoney(impact.shortfall_margin_risk, currency),
       }),
       tone: "critical",
     };
   }
   return null;
+}
+
+/**
+ * What came of the last few overrides like this one.
+ *
+ * Everything else under a prep quantity is a projection. This line is the only
+ * one that already happened, which is why it names its sample size and says
+ * plainly whose history it is — a chef reading "your last 4" must not be shown
+ * the kitchen's record instead. Advisory: it never blocks the override, it just
+ * refuses to let the same expensive call be made a sixth time in silence.
+ */
+export function overridePrecedentLine(
+  t: Translator,
+  precedent: OverridePrecedent | null | undefined,
+  unit: string,
+  currency: string,
+): { text: string; tone: "warning" | "success" | "muted" } | null {
+  if (!precedent) return null;
+
+  const scope = precedent.scope === "USER" ? "you" : "branch";
+  const verdict = precedent.verdict.toLowerCase();
+  const headline = t(`today.precedent.${scope}.${verdict}`, {
+    count: precedent.sample_size,
+    threshold: Math.round(precedent.threshold_pct),
+  });
+
+  // Report the failure mode that matches the direction: raising prep leaves
+  // food unsold, cutting it leaves demand unmet.
+  const parts = [headline];
+  if (precedent.direction === "INCREASE" && precedent.avg_leftover_units > 0) {
+    parts.push(
+      t("today.precedent.leftUnsold", {
+        units: formatQuantity(precedent.avg_leftover_units, unit),
+      }),
+    );
+    if (precedent.avg_unsold_cost) {
+      parts.push(
+        t("today.precedent.costClause", {
+          // The payload states its own currency; the page-level one is the
+          // fallback for a backend that predates that field.
+          cost: formatMoney(
+            precedent.avg_unsold_cost,
+            precedent.currency || currency,
+          ),
+        }),
+      );
+    }
+  } else if (
+    precedent.direction === "DECREASE" &&
+    precedent.avg_shortfall_units > 0
+  ) {
+    parts.push(
+      t("today.precedent.fellShort", {
+        units: formatQuantity(precedent.avg_shortfall_units, unit),
+      }),
+    );
+  }
+
+  const tone =
+    precedent.verdict === "CAUTION"
+      ? "warning"
+      : precedent.verdict === "SUPPORTED"
+        ? "success"
+        : "muted";
+
+  return { text: parts.join(" · "), tone };
 }
 
 // ── Derived aggregates ───────────────────────────────────────────────────────
@@ -580,6 +652,7 @@ export type MorningRiskAlert = {
 export function buildMorningRiskAlerts(
   t: Translator,
   rows: PrepRow[],
+  currency: string,
 ): MorningRiskAlert[] {
   const candidates = rows
     .filter(
@@ -649,7 +722,7 @@ export function buildMorningRiskAlerts(
     if (primaryRiskType === "MARGIN" && impact) {
       drivers.push(
         t("today.riskAlert.driver.marginShift", {
-          amount: formatSignedMoney(impact.margin_impact_estimate),
+          amount: formatSignedMoney(impact.margin_impact_estimate, currency),
         }),
       );
     }
