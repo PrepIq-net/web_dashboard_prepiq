@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { formatMoney, formatQuantity, formatSignedMoney } from "@/lib/format";
+import { formatQuantity } from "@/lib/format";
+import { useMoney } from "@/lib/branch-currency";
 import type { MorningRiskAlert } from "./today-helpers";
 
 /** How long the collapse animation runs before the row leaves the list. */
@@ -29,6 +30,7 @@ export function MorningRiskAlerts({
   onExplain: (topic: string) => void;
   onApplyFix: (alert: MorningRiskAlert) => void;
 }) {
+  const { money, signedMoney } = useMoney();
   const { t } = useTranslation();
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
   const timers = useRef<number[]>([]);
@@ -94,7 +96,7 @@ export function MorningRiskAlerts({
                         ? t("today.alert.riskOfWaste")
                         : alert.riskMetrics.marginImpact !== 0
                           ? t("today.alert.marginAtRisk", {
-                              cost: formatMoney(
+                              cost: money(
                                 Math.abs(alert.riskMetrics.marginImpact),
                               ),
                             })
@@ -105,7 +107,7 @@ export function MorningRiskAlerts({
                       ? alert.financials.lostMarginIfStockout != null &&
                         alert.financials.lostMarginIfStockout > 0
                         ? t("today.alert.stockoutRiskWithMargin", {
-                            cost: formatMoney(
+                            cost: money(
                               alert.financials.lostMarginIfStockout,
                             ),
                           })
@@ -114,12 +116,12 @@ export function MorningRiskAlerts({
                         ? alert.financials.wasteIfAll != null &&
                           alert.financials.wasteIfAll > 0
                           ? t("today.alert.wasteRiskWithCost", {
-                              cost: formatMoney(alert.financials.wasteIfAll),
+                              cost: money(alert.financials.wasteIfAll),
                             })
                           : t("today.alert.wasteRisk")
                         : alert.riskMetrics.marginImpact !== 0
                           ? t("today.alert.marginRiskWithImpact", {
-                              cost: formatSignedMoney(
+                              cost: signedMoney(
                                 alert.riskMetrics.marginImpact,
                               ),
                             })
