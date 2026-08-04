@@ -662,7 +662,6 @@ function formatRelativeTime(iso: string | null): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
@@ -721,7 +720,6 @@ function IntegrationsSettings({
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
 
   const createConnectorToken = useCreateConnectorToken();
-
 
   const [generatedToken, setGeneratedToken] = useState<string | "">("");
   const [openTokenDialog, setOpenTokenDialog] = useState(false);
@@ -1046,7 +1044,9 @@ function IntegrationsSettings({
                       className="px-5 py-12 text-center text-sm text-text-muted"
                     >
                       No connectors registered for
-                      {selectedBranch ? ` ${selectedBranch.name}` : " this branch"}{" "}
+                      {selectedBranch
+                        ? ` ${selectedBranch.name}`
+                        : " this branch"}{" "}
                       yet.
                     </td>
                   </tr>
@@ -1093,7 +1093,9 @@ const DEFAULT_CATEGORY_PREF = {
  * never persisted.
  */
 function buildCategoryPrefs(
-  serverPrefs: { notification_category?: string; branch?: string | null }[] | undefined,
+  serverPrefs:
+    | { notification_category?: string; branch?: string | null }[]
+    | undefined,
 ): CategoryPref[] {
   return NOTIFICATION_CATEGORY_ORDER.map((category) => {
     const saved = serverPrefs?.find(
@@ -1101,8 +1103,10 @@ function buildCategoryPrefs(
     ) as Partial<CategoryPref> | undefined;
     return {
       notification_category: category,
-      in_app_enabled: saved?.in_app_enabled ?? DEFAULT_CATEGORY_PREF.in_app_enabled,
-      email_enabled: saved?.email_enabled ?? DEFAULT_CATEGORY_PREF.email_enabled,
+      in_app_enabled:
+        saved?.in_app_enabled ?? DEFAULT_CATEGORY_PREF.in_app_enabled,
+      email_enabled:
+        saved?.email_enabled ?? DEFAULT_CATEGORY_PREF.email_enabled,
       push_enabled: saved?.push_enabled ?? DEFAULT_CATEGORY_PREF.push_enabled,
       digest_mode: saved?.digest_mode ?? DEFAULT_CATEGORY_PREF.digest_mode,
     };
@@ -1152,9 +1156,12 @@ function NotificationsSettings() {
     notificationCategory: string,
     patch: Partial<CategoryPref>,
   ) => {
-    const current =
-      localPrefs.find((p) => p.notification_category === notificationCategory) ??
-      { notification_category: notificationCategory, ...DEFAULT_CATEGORY_PREF };
+    const current = localPrefs.find(
+      (p) => p.notification_category === notificationCategory,
+    ) ?? {
+      notification_category: notificationCategory,
+      ...DEFAULT_CATEGORY_PREF,
+    };
     const next = { ...current, ...patch };
     // Digest is a delayed email; switching email off has to take it down too,
     // matching what the server enforces.
@@ -1176,12 +1183,11 @@ function NotificationsSettings() {
     notificationCategory: string,
     channel: string,
     enabled: boolean,
-  ) => persistCategory(notificationCategory, { [`${channel}_enabled`]: enabled });
+  ) =>
+    persistCategory(notificationCategory, { [`${channel}_enabled`]: enabled });
 
-  const handleDigestToggle = (
-    notificationCategory: string,
-    enabled: boolean,
-  ) => persistCategory(notificationCategory, { digest_mode: enabled });
+  const handleDigestToggle = (notificationCategory: string, enabled: boolean) =>
+    persistCategory(notificationCategory, { digest_mode: enabled });
 
   const handleQuietHoursChange = (
     patch: Partial<{ enabled: boolean; start_time: string; end_time: string }>,
@@ -1910,8 +1916,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
 
   const memberCount = members?.length ?? 0;
   const grantedCount =
-    members?.filter((member) => (member.extra_permission_codes?.length ?? 0) > 0)
-      .length ?? 0;
+    members?.filter(
+      (member) => (member.extra_permission_codes?.length ?? 0) > 0,
+    ).length ?? 0;
 
   return (
     <div className="space-y-14">
@@ -1962,8 +1969,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                   </Badge>
                 </div>
                 <p className="mt-1 max-w-xl text-xs leading-relaxed text-text-secondary">
-                  {role.description ||
-                    t("settings.roles.noDescription")}
+                  {role.description || t("settings.roles.noDescription")}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -2008,7 +2014,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           title={t("settings.users.title")}
           supporting={
             <>
-              <span>{t("settings.users.stats.members", { n: memberCount })}</span>
+              <span>
+                {t("settings.users.stats.members", { n: memberCount })}
+              </span>
               <span>
                 {t("settings.users.stats.granted", { n: grantedCount })}
               </span>
@@ -2037,7 +2045,8 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             <NativeTable
               table={table}
               headerClassName="bg-surface-2 border-b border-surface-4"
-              cellClassName="border-b border-surface-4 last:border-0"
+              bodyClassName="divide-y divide-surface-4"
+              cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
             />
           </div>
         )}
