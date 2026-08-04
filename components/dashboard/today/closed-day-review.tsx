@@ -157,6 +157,7 @@ export function ClosedDayReview({
   const wasteDelta = rp.daily_outcome.metrics.waste_cost.comparison;
   const accDelta = rp.daily_outcome.metrics.forecast_accuracy.comparison;
   const unaccountedUnits = rp.daily_outcome.metrics.unaccounted?.value ?? 0;
+  const profitLost = rp.daily_outcome.metrics.profit_lost;
 
   const grade =
     accuracy >= 85 && stockouts === 0
@@ -224,26 +225,62 @@ export function ClosedDayReview({
             ? "text-status-warning"
             : "text-status-critical",
     },
-    {
-      label: t("today.closed.discardedCost"),
-      value: money(wasteCost),
-      sub:
-        unaccountedUnits > 0
-          ? t("today.closed.unaccountedSub", {
-              quantity: formatQuantity(unaccountedUnits, ""),
-            })
-          : wasteDelta
-            ? t("today.closed.wasteDelta", { direction: wasteDelta.direction })
-            : null,
-      tone:
-        unaccountedUnits > 0
-          ? "text-status-warning"
-          : wasteCost === 0
-            ? "text-status-success"
-            : wasteDelta?.direction === "down"
+    // What the day cost in profit: food thrown away plus the margin on demand
+    // that walked. The breakdown sits in the sub-line because the two losses
+    // have different fixes — one is over-prep, the other under-prep. Falls back
+    // to the waste-only tile against a backend that doesn't send the split yet.
+    profitLost
+      ? {
+          label: t("today.closed.profitLost"),
+          value: money(profitLost.value),
+          sub:
+            profitLost.unpriced_items > 0
+              ? t("today.closed.profitLostPartial", {
+                  count: profitLost.unpriced_items,
+                })
+              : profitLost.unserved_component > 0
+                ? t("today.closed.profitLostBreakdown", {
+                    waste: money(profitLost.waste_component),
+                    unserved: money(profitLost.unserved_component),
+                  })
+                : unaccountedUnits > 0
+                  ? t("today.closed.unaccountedSub", {
+                      quantity: formatQuantity(unaccountedUnits, ""),
+                    })
+                  : profitLost.comparison
+                    ? t("today.closed.wasteDelta", {
+                        direction: profitLost.comparison.direction,
+                      })
+                    : null,
+          tone:
+            profitLost.value === 0
               ? "text-status-success"
-              : "text-status-warning",
-    },
+              : profitLost.comparison?.direction === "down"
+                ? "text-status-success"
+                : "text-status-warning",
+        }
+      : {
+          label: t("today.closed.discardedCost"),
+          value: money(wasteCost),
+          sub:
+            unaccountedUnits > 0
+              ? t("today.closed.unaccountedSub", {
+                  quantity: formatQuantity(unaccountedUnits, ""),
+                })
+              : wasteDelta
+                ? t("today.closed.wasteDelta", {
+                    direction: wasteDelta.direction,
+                  })
+                : null,
+          tone:
+            unaccountedUnits > 0
+              ? "text-status-warning"
+              : wasteCost === 0
+                ? "text-status-success"
+                : wasteDelta?.direction === "down"
+                  ? "text-status-success"
+                  : "text-status-warning",
+        },
     {
       label: t("today.closed.revenueProtected"),
       value: money(revenueProtected),

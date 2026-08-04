@@ -965,6 +965,9 @@
         }
       },
       "discardedCost": "Lost to waste",
+      "profitLost": "Profit lost",
+      "profitLostBreakdown": "{waste} thrown away · {unserved} you couldn't serve",
+      "profitLostPartial": "At least — {count} sold-out items have no price on file",
       "unaccountedSub": "{quantity} units still unaccounted",
       "discardedQty": "Discarded {quantity}",
       "unaccountedQty": "{quantity} unaccounted — tell us below",

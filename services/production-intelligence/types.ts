@@ -1008,6 +1008,26 @@ export const branchDayTodaySchema = z.object({
               })
               .nullable(),
           }),
+          // Waste cost plus margin foregone on unserved demand — the two ways
+          // a day loses profit. Optional so an older backend still parses.
+          profit_lost: z
+            .object({
+              value: z.number(),
+              unit: z.enum(["CURRENCY"]),
+              comparison: z
+                .object({
+                  delta: z.number(),
+                  delta_pct: z.number(),
+                  direction: z.enum(["up", "down", "flat"]),
+                })
+                .nullable(),
+              waste_component: z.number(),
+              unserved_component: z.number(),
+              // Stocked-out items with no cost or price on file; their margin
+              // is unknowable, so value is a floor rather than the full loss.
+              unpriced_items: z.number(),
+            })
+            .optional(),
           revenue_protected: z.object({
             value: z.number(),
             unit: z.enum(["CURRENCY"]),

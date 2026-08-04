@@ -965,6 +965,9 @@
         }
       },
       "discardedCost": "Perdu en gaspillage",
+      "profitLost": "Profit perdu",
+      "profitLostBreakdown": "{waste} jetés · {unserved} non servis",
+      "profitLostPartial": "Au moins — {count} articles épuisés sans prix renseigné",
       "unaccountedSub": "{quantity} unités encore non justifiées",
       "discardedQty": "Jeté {quantity}",
       "unaccountedQty": "{quantity} non justifiés — dites-le ci-dessous",
