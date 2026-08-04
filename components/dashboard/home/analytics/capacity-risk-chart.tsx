@@ -224,7 +224,12 @@ export function CapacityRiskChart({ data }: { data: DashboardCapacityRisk }) {
       {showTable ? (
         <RiskTable data={data} dayLabel={dayLabel} />
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto
+            [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent]
+            [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent
+            [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+        >
           <div
             className="grid min-w-[560px] gap-x-2"
             style={{
@@ -341,7 +346,12 @@ function RiskTable({
   const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-      <div className="overflow-x-auto">
+      <div
+        className="overflow-x-auto
+          [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent]
+          [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+      >
         <table className="w-full min-w-[560px] text-left border-collapse">
           <thead className="bg-surface-3 border-b border-surface-4">
             <tr>

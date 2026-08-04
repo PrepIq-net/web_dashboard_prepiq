@@ -768,7 +768,8 @@
       "batchSize": "(batch size {{size}})",
       "message": "Message",
       "keepMineHint": "Enter a quantity first",
-      "likelyRange": "Likely {lower}–{upper}"
+      "likelyRange": "Likely {lower}–{upper}",
+      "prefilledHint": "Pre-filled with PrepIQ's suggestion — edit to set your own"
     },
     "morning": {
       "lockFirst": "Lock the plan first, then start service.",

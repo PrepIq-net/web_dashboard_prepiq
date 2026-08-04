@@ -787,7 +787,12 @@ export function CommandSection() {
         </div>
       ) : (
         <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto
+              [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent]
+              [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent
+              [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+          >
             <NativeTable
               table={table}
               tableClassName="w-full min-w-[820px]"

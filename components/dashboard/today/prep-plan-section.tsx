@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
-import { Cutlery, GlassHalf, Package } from "iconoir-react";
+import { Cutlery, GlassHalf, Package, Sparks } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import {
   formatMoney,
@@ -21,6 +21,8 @@ import {
   confidenceLabel,
   hasPricing,
   humanizeReasoning,
+  isUnconfirmedSuggestion,
+  netSuggestedQty,
   overrideImpactLine,
   planRiskBreakdown,
   popularityLabel,
@@ -176,16 +178,6 @@ function ItemIdentity({
   );
 }
 
-/** Net quantity to produce: raw demand suggestion minus usable carry-over. */
-function netSuggestedQty(item: PrepPlanItem) {
-  const carryOver = item.carry_over_qty ?? 0;
-  if (carryOver <= 0) return item.suggested_quantity;
-  return (
-    item.net_suggested_quantity ??
-    Math.max(0, item.suggested_quantity - carryOver)
-  );
-}
-
 /** Suggested quantity, or the supply-constrained pill when availability blocks it. */
 function SuggestedQty({ item }: { item: PrepPlanItem }) {
   const { t } = useTranslation();
@@ -298,7 +290,7 @@ function OverrideReasonChips({
 }) {
   const { t } = useTranslation();
   if (!onOverrideReason) return null;
-  const suggested = item.suggested_quantity;
+  const suggested = netSuggestedQty(item);
   // Kept mounted rather than unmounted so the reveal can animate: dropping
   // the node on every keystroke is what made the row snap open and shut.
   const open =
@@ -404,23 +396,48 @@ function PlannedInput({
   disabled,
   onChange,
   widthClass,
+  planned = null,
 }: {
   item: PrepPlanItem;
   value: number | "";
   disabled: boolean;
   onChange: (value: string) => void;
   widthClass: string;
+  /** Resolved numeric value (null when empty) — pass when available so the
+   * "still just a suggestion" styling can be derived without re-parsing. */
+  planned?: number | null;
 }) {
+  const { t } = useTranslation();
+  // Pre-filled with the AI's number but untouched: say so with a quieter,
+  // dashed treatment rather than the solid "this is what you decided" look,
+  // so it reads as editable rather than final.
+  const isSuggested = isUnconfirmedSuggestion(
+    item,
+    planned ?? (value === "" ? null : Number(value)),
+  );
   return (
     <div className="flex items-center gap-2">
-      <input
-        type="number"
-        step={isDiscreteUnit(item.unit) ? 1 : 0.01}
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={`h-8 ${widthClass} rounded-lg border border-surface-4 bg-surface-3 px-2.5 text-sm font-semibold text-text-primary transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60`}
-      />
+      <div className="relative">
+        {isSuggested ? (
+          <Sparks
+            className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-gold/60"
+            strokeWidth={1.5}
+          />
+        ) : null}
+        <input
+          type="number"
+          step={isDiscreteUnit(item.unit) ? 1 : 0.01}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          title={isSuggested ? t("today.table.prefilledHint") : undefined}
+          className={`h-8 ${widthClass} rounded-lg border bg-surface-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30 disabled:opacity-60 ${
+            isSuggested
+              ? "border-dashed border-brand-gold/40 pl-7 pr-2.5 text-text-secondary"
+              : "border-surface-4 px-2.5 text-text-primary"
+          }`}
+        />
+      </div>
       <span className="text-xs text-text-muted">{item.unit}</span>
     </div>
   );
@@ -844,6 +861,7 @@ function StockLevelsSection({
                   disabled={editingDisabled}
                   onChange={(value) => onPlannedChange(item.id, value, item.unit)}
                   widthClass="w-20"
+                  planned={planned}
                 />
               </div>
             </div>
@@ -1092,13 +1110,14 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                       disabled={editingDisabled}
                       onChange={(value) => onPlannedChange(item.id, value, item.unit)}
                       widthClass="w-20"
+                      planned={planned}
                     />
                   </div>
                   <VarianceLine
                     variance={variance}
                     unit={item.unit}
                     impact={impact}
-                    suggestedQuantity={item.suggested_quantity}
+                    suggestedQuantity={netSuggestedQty(item)}
                   />
                 </div>
               </div>
@@ -1249,12 +1268,13 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                         disabled={editingDisabled}
                         onChange={(value) => onPlannedChange(item.id, value, item.unit)}
                         widthClass="w-24"
+                        planned={planned}
                       />
                       <VarianceLine
                         variance={variance}
                         unit={item.unit}
                         impact={impact}
-                        suggestedQuantity={item.suggested_quantity}
+                        suggestedQuantity={netSuggestedQty(item)}
                       />
                       <DecisionFeedback
                         item={item}

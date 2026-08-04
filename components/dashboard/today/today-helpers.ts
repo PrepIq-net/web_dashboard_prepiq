@@ -59,6 +59,39 @@ export type LiveRow = {
 
 // ── Risk ─────────────────────────────────────────────────────────────────────
 
+/** Net quantity to produce: raw demand suggestion minus usable carry-over. */
+export function netSuggestedQty(item: PrepPlanItem): number {
+  const carryOver = item.carry_over_qty ?? 0;
+  if (carryOver <= 0) return item.suggested_quantity;
+  return (
+    item.net_suggested_quantity ??
+    Math.max(0, item.suggested_quantity - carryOver)
+  );
+}
+
+/**
+ * True while "Your Plan" still shows exactly what the chef would see on
+ * pre-fill and nothing else has happened yet — no edit away from that
+ * number, no recorded Accept/Keep decision. Drives the "still just a
+ * suggestion" styling on the input and keeps the pre-fill from silently
+ * counting as a reviewed row.
+ */
+export function isUnconfirmedSuggestion(
+  item: PrepPlanItem,
+  planned: number | null,
+): boolean {
+  const hasDecision =
+    item.decision === "ACCEPTED_AI" ||
+    item.decision === "CHEF_OVERRIDE" ||
+    item.accepted_suggestion === true;
+  if (hasDecision || planned == null) return false;
+  const suggested = netSuggestedQty(item);
+  const normalizedSuggested = isDiscreteUnit(item.unit)
+    ? Math.round(suggested)
+    : suggested;
+  return planned === normalizedSuggested;
+}
+
 /**
  * Risk for a prep row, responsive to the quantity the chef actually entered.
  *
@@ -80,11 +113,7 @@ export function computePlanRiskScore(
   if (planned == null || Number.isNaN(planned)) {
     return Math.min(1, Math.max(baseStockout, baseWaste));
   }
-  const target = Math.max(
-    1,
-    item.net_suggested_quantity ??
-      Math.max(0, item.suggested_quantity - (item.carry_over_qty ?? 0)),
-  );
+  const target = Math.max(1, netSuggestedQty(item));
   const coverage = planned / target;
   const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -144,11 +173,7 @@ export function planRiskBreakdown(
       kind: baseStockout >= baseWaste ? "stockout" : "waste",
     };
   }
-  const target = Math.max(
-    1,
-    item.net_suggested_quantity ??
-      Math.max(0, item.suggested_quantity - (item.carry_over_qty ?? 0)),
-  );
+  const target = Math.max(1, netSuggestedQty(item));
   const coverage = planned / target;
   const stockoutRisk = baseStockout * clamp(1.5 - coverage, 0, 1.5);
   const wasteRisk = baseWaste * clamp(coverage - 0.5, 0, 1.5);
@@ -452,7 +477,12 @@ export function overrideImpactLine(
 // ── Derived aggregates ───────────────────────────────────────────────────────
 
 export function deriveDecisionSummary(rows: PrepRow[]) {
-  const reviewed = rows.filter((row) => row.planned != null).length;
+  // An untouched pre-filled suggestion isn't a review yet — only a plan the
+  // chef actually edited or explicitly accepted/kept counts.
+  const reviewed = rows.filter(
+    (row) =>
+      row.planned != null && !isUnconfirmedSuggestion(row.item, row.planned),
+  ).length;
   const accepted = rows.filter(
     (row) =>
       row.item.decision === "ACCEPTED_AI" || row.item.accepted_suggestion,

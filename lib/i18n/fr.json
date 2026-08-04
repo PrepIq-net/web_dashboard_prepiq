@@ -768,7 +768,8 @@
       "batchSize": "(taille de lot {{size}})",
       "message": "Message",
       "keepMineHint": "Saisissez d'abord une quantité",
-      "likelyRange": "Probablement {lower}–{upper}"
+      "likelyRange": "Probablement {lower}–{upper}",
+      "prefilledHint": "Pré-rempli avec la suggestion de PrepIQ — modifiez pour indiquer la vôtre"
     },
     "morning": {
       "lockFirst": "Verrouillez le plan avant de commencer le service.",

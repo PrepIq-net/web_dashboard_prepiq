@@ -68,6 +68,7 @@ import {
   computePlanRiskScore,
   deriveDecisionSummary,
   deriveLiveRows,
+  netSuggestedQty,
   splitByPreparation,
   tierLiveRows,
   type ImpactPreview,
@@ -353,20 +354,23 @@ function TodayWorkspacePageContent() {
   ]);
 
   // Seed the editable quantities whenever a new branch day arrives.
-  // "Your Plan" starts EMPTY unless the chef already saved a number: chefs
-  // type their own plan (or press Accept to take the AI's), the input never
-  // pre-fills with the suggestion.
+  // "Your Plan" pre-fills with the AI's suggested (net-of-carry-over)
+  // quantity so the chef reviews a number rather than a blank box — the
+  // field itself marks it as unconfirmed (see PlannedInput's isSuggested
+  // styling) until they either edit it or press Accept/Keep to record a
+  // decision. A previously saved plan always wins over the suggestion.
   useEffect(() => {
     if (!branchDay) return;
     const initialPlans: Record<string, number | ""> = {};
     for (const item of branchDay.prep_plan_items) {
       const savedPlan = item.planned_quantity;
+      const seed = savedPlan ?? netSuggestedQty(item);
       initialPlans[item.id] =
-        savedPlan == null
+        seed == null
           ? ""
           : isDiscreteUnit(item.unit)
-            ? Math.round(savedPlan)
-            : savedPlan;
+            ? Math.round(seed)
+            : seed;
     }
     setPlannedQtyByItem(initialPlans);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -380,7 +384,10 @@ function TodayWorkspacePageContent() {
         plannedQtyByItem[item.id] === ""
           ? null
           : Number(plannedQtyByItem[item.id]);
-      const variance = planned == null ? null : planned - item.suggested_quantity;
+      // Compared against the net (carry-over-adjusted) suggestion — the same
+      // number the input pre-fills with and Accept commits — so an untouched
+      // or just-accepted row never shows a spurious "below suggestion" line.
+      const variance = planned == null ? null : planned - netSuggestedQty(item);
       const impact = impactByItem[item.id];
       // Risk responds to the entered quantity: covering the suggestion lowers
       // it, deviating raises the relevant side (see computePlanRiskScore).

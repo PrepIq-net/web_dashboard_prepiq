@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MoreHoriz, NavArrowDown } from "iconoir-react";
+import { GraphDown, GraphUp, MoreHoriz, NavArrowDown, WarningTriangle } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { formatQuantity, isDiscreteUnit } from "@/lib/format";
 import type {
@@ -14,7 +14,6 @@ import type {
 import { LivePaceBanner } from "./live-pace-banner";
 import { CsvImportModal } from "./csv-import-modal";
 import { ItemImage } from "./item-image";
-import { Sparkline } from "./live-timeline-section";
 import { ServiceItemChart } from "./service-item-chart";
 import type { LiveRow } from "./today-helpers";
 
@@ -65,20 +64,20 @@ function PaceLine({
   const pos = paceItem?.cumulative_position;
   if (!pos) return null;
   const pctVsTypical = Math.round((pos.cumulative_ratio - 1) * 100);
-  const surgeClass =
-    tone === "critical"
-      ? pos.alert_level === "CRITICAL"
-        ? "text-status-critical"
-        : "text-status-warning"
-      : "text-status-warning";
+  const isSurge = pos.status === "SURGE";
+  const Icon = isSurge ? GraphUp : GraphDown;
+  const iconTone = isSurge
+    ? tone === "critical" && pos.alert_level === "CRITICAL"
+      ? "text-status-critical"
+      : "text-status-warning"
+    : "text-status-info";
   return (
     <p
-      className={`mt-1.5 text-xs font-medium ${
-        pos.status === "SURGE" ? surgeClass : "text-status-info"
-      }`}
+      className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-text-secondary"
       title={paceItem?.alert_reason}
     >
-      {pos.status === "SURGE"
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconTone}`} strokeWidth={1.5} />
+      {isSurge
         ? t("today.pace.itemSurge", {
             pct: `+${pctVsTypical}%`,
             projected: Math.round(pos.projected_total_at_close),
@@ -143,15 +142,19 @@ function LiveAdvisoryLine({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-status-warning/30 bg-status-warning/8 px-3 py-2.5">
-      <p className="text-xs leading-snug text-text-primary">
-        <span className="font-semibold text-status-warning">
-          {t("today.live.advisoryPrefix")}:
-        </span>{" "}
-        {text}
+    <div className="mt-3 rounded-r-lg border-l-4 border-status-warning bg-surface-3/50 px-3 py-2.5">
+      <p className="flex items-start gap-2 text-xs leading-snug text-text-primary">
+        <WarningTriangle
+          className="h-3.5 w-3.5 shrink-0 translate-y-0.5 text-status-warning"
+          strokeWidth={1.5}
+        />
+        <span>
+          <span className="font-semibold">{t("today.live.advisoryPrefix")}:</span>{" "}
+          {text}
+        </span>
       </p>
       {confidence !== null ? (
-        <p className="mt-1 text-[10px] font-medium text-text-muted">
+        <p className="mt-1 pl-5.5 text-[10px] font-medium text-text-muted">
           {t("today.advisory.confidence", { confidence })}
         </p>
       ) : null}
@@ -165,21 +168,21 @@ function LiveAdvisoryLine({
 // the grid doesn't read as a wall of alarms during a normal busy service.
 const STATUS_STYLES: Record<
   RowStatus,
-  { border: string; chip: string; labelKey: string }
+  { accent: string; chip: string; labelKey: string }
 > = {
   action: {
-    border: "border-status-warning/45",
-    chip: "border-status-warning/45 bg-status-warning/12 text-status-warning",
+    accent: "border-t-status-warning",
+    chip: "border-status-warning/40 bg-status-warning/10 text-status-warning",
     labelKey: "today.live.needsAction",
   },
   watch: {
-    border: "border-status-warning/25",
+    accent: "border-t-status-warning/40",
     chip: "border-surface-4 bg-surface-3/60 text-text-secondary",
     labelKey: "today.live.keepEye",
   },
   ok: {
-    border: "border-surface-4",
-    chip: "border-status-success/40 bg-status-success/10 text-status-success",
+    accent: "border-t-surface-4",
+    chip: "border-status-success/35 bg-status-success/8 text-status-success",
     labelKey: "today.live.onTrack",
   },
 };
@@ -212,6 +215,10 @@ function ServiceItemCard({
 }) {
   const { t } = useTranslation();
   const [chartOpen, setChartOpen] = useState(false);
+  // Mounted once on first open, then kept mounted so close/reopen animate in
+  // pure CSS — remounting Recharts on every toggle is what made the collapse
+  // look like a jump-cut instead of a close.
+  const [chartMounted, setChartMounted] = useState(false);
   const { item, monitor, planned, additional, sold, remaining } = row;
   const styles = STATUS_STYLES[status];
   const totalPrepared = planned + additional;
@@ -232,8 +239,13 @@ function ServiceItemCard({
   );
 
   return (
+    // Square-cornered and flat by design: this grid can run a dozen-plus
+    // cards deep during service, so it reads as a dense operational console
+    // rather than a stack of soft cards. The status signal lives in a thin
+    // top-edge accent instead of a left bar or full-color border — quieter
+    // at a glance, still scannable down a row.
     <article
-      className={`flex flex-col rounded-xl border bg-surface-2 p-4 ${styles.border}`}
+      className={`flex flex-col border border-surface-4 border-t-2 bg-surface-2 p-4 ${styles.accent}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
@@ -273,26 +285,20 @@ function ServiceItemCard({
             })}
           </p>
         </div>
-        {timelineItem ? (
-          <Sparkline item={timelineItem} />
-        ) : (
-          <div className="h-2 w-24 shrink-0 self-center rounded-full bg-surface-4">
-            <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                status === "action"
-                  ? "bg-status-critical"
-                  : status === "watch"
-                    ? "bg-status-warning"
-                    : "bg-status-success/70"
-              }`}
-              style={{ width: `${pctRemaining}%` }}
-            />
-          </div>
-        )}
+        {/* A single supporting glance indicator — the detailed curve lives
+            one tap away in the toggle below, so this stays a plain neutral
+            bar rather than a second, status-colored graph. */}
+        <div className="h-2 w-24 shrink-0 self-center rounded-full bg-surface-4">
+          <div
+            className="h-2 rounded-full bg-text-secondary/40 transition-all duration-500"
+            style={{ width: `${pctRemaining}%` }}
+          />
+        </div>
       </div>
 
       {runoutMin !== null && status === "action" ? (
-        <p className="mt-2 text-xs font-semibold text-status-critical">
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-text-primary">
+          <WarningTriangle className="h-3.5 w-3.5 shrink-0 text-status-critical" strokeWidth={1.5} />
           {t("today.live.runoutIn", { runoutMin })}
         </p>
       ) : null}
@@ -317,7 +323,10 @@ function ServiceItemCard({
       <div className="mt-3 border-t border-surface-4/50 pt-2">
         <button
           type="button"
-          onClick={() => setChartOpen((open) => !open)}
+          onClick={() => {
+            setChartOpen((open) => !open);
+            setChartMounted(true);
+          }}
           aria-expanded={chartOpen}
           className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-left text-[11px] font-semibold text-text-secondary transition-colors hover:text-brand-gold"
         >
@@ -325,21 +334,26 @@ function ServiceItemCard({
             {chartOpen ? t("today.live.hideChart") : t("today.live.showChart")}
           </span>
           <NavArrowDown
-            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+            className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
               chartOpen ? "rotate-180" : ""
             }`}
           />
         </button>
         <div
-          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
-            chartOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          className={`grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            chartOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
           }`}
         >
           <div className="overflow-hidden">
-            {/* Mounted only once opened — a dozen live charts per grid is
-                real work, and recharts measures on mount. */}
-            {chartOpen ? (
-              <div className="pt-2">
+            {/* Mounted once on first open — a dozen live charts per grid is
+                real work, and recharts measures on mount — then left mounted
+                so it can fade/slide out instead of vanishing on close. */}
+            {chartMounted ? (
+              <div
+                className={`pt-2 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                  chartOpen ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0"
+                }`}
+              >
                 <ServiceItemChart
                   timelineItem={timelineItem}
                   unit={item.unit}
@@ -508,9 +522,9 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
       <LivePaceBanner pace={paceSummary} />
 
       {operatingHoursMissing ? (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-warning/35 bg-status-warning/10 px-4 py-3">
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-r-xl border-l-4 border-status-warning bg-surface-2 px-4 py-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-warning">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
               {t("today.live.hoursMissingTitle")}
             </p>
             <p className="mt-1 text-sm text-text-primary">
@@ -519,7 +533,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
           </div>
           <Link
             href={`/workspace/branches/${branchId}/edit`}
-            className="shrink-0 text-xs font-semibold text-status-warning hover:text-status-warning/80"
+            className="shrink-0 text-xs font-semibold text-brand-gold hover:text-brand-gold-hover"
           >
             {t("today.live.hoursMissingAction")}
           </Link>
@@ -527,9 +541,9 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
       ) : null}
 
       {showCsvImportBanner ? (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-status-success/35 bg-status-success/10 px-4 py-3">
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-r-xl border-l-4 border-status-success bg-surface-2 px-4 py-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
               {t("today.live.csvImportComplete")}
             </p>
             <p className="mt-1 text-sm text-text-primary">
@@ -539,7 +553,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
           <button
             type="button"
             onClick={onDismissCsvBanner}
-            className="text-xs font-semibold text-status-success hover:text-status-success/80"
+            className="text-xs font-semibold text-text-secondary hover:text-text-primary"
           >
             {t("today.live.dismiss")}
           </button>
@@ -557,10 +571,10 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
           "last sync" surface handled in a separate PR. */}
       {branchDay.system_health && branchDay.system_health.readiness !== "GREEN" ? (
         <div
-          className={`mb-5 flex items-center gap-3 rounded-xl border px-4 py-3 ${
+          className={`mb-5 flex items-center gap-3 rounded-r-xl border-l-4 bg-surface-2 px-4 py-3 ${
             branchDay.system_health.readiness === "RED"
-              ? "border-status-critical/35 bg-status-critical/8"
-              : "border-status-warning/35 bg-status-warning/8"
+              ? "border-status-critical"
+              : "border-status-warning"
           }`}
         >
           <span
@@ -570,13 +584,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
                 : "bg-status-warning animate-pulse"
             }`}
           />
-          <p
-            className={`text-sm font-medium ${
-              branchDay.system_health.readiness === "RED"
-                ? "text-status-critical"
-                : "text-status-warning"
-            }`}
-          >
+          <p className="text-sm font-medium text-text-primary">
             {branchDay.system_health.note}
           </p>
         </div>
@@ -584,7 +592,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
 
       {/* Unified compact grid — how the floor is performing in one glance. */}
       {orderedRows.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {orderedRows.map(({ row, status }) => (
             <ServiceItemCard
               key={row.item.id}
@@ -606,9 +614,9 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
 
       {/* ── ALL CLEAR ── */}
       {criticalRows.length === 0 && watchRows.length === 0 && (
-        <div className="mt-5 mb-7 flex items-center gap-3 rounded-xl border border-status-success/30 bg-status-success/5 px-5 py-4">
+        <div className="mt-5 mb-7 flex items-center gap-3 rounded-r-xl border-l-4 border-status-success bg-surface-2 px-5 py-4">
           <span className="h-2 w-2 shrink-0 rounded-full bg-status-success" />
-          <p className="text-sm text-status-success">{t("today.live.allClear")}</p>
+          <p className="text-sm text-text-primary">{t("today.live.allClear")}</p>
         </div>
       )}
     </section>

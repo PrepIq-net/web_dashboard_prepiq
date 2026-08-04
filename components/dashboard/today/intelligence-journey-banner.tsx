@@ -78,7 +78,7 @@ export function IntelligenceJourneyBanner({
   return (
     <section
       aria-label={t("today.journey.title")}
-      className={`mt-4 rounded-xl border-l-4 bg-surface-2 px-4 py-3.5 ${accent.rule}`}
+      className={`mt-4 mb-6 border-l-4 bg-surface-2 px-4 py-3.5 ${accent.rule}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-2.5">
