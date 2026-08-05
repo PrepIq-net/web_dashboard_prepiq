@@ -18,6 +18,7 @@ import {
   getAvailableSubscriptionAddOns,
   getCurrentSubscription,
   getFxRates,
+  reactivateSubscription,
   getInvoiceDetail,
   getPaymentDetail,
   getSubscriptionDetail,
@@ -279,6 +280,25 @@ export function useCancelSubscription(subscriptionId: string) {
   return useMutation({
     mutationFn: (payload: CancelSubscriptionPayload) =>
       cancelSubscription(subscriptionId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptions(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.subscriptionDetail(subscriptionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: paymentQueryKeys.currentSubscriptions(),
+      });
+    },
+  });
+}
+
+export function useReactivateSubscription(subscriptionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => reactivateSubscription(subscriptionId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: paymentQueryKeys.subscriptions(),

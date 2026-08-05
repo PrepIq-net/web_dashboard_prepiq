@@ -105,6 +105,11 @@ export const subscriptionListSchema = z
     auto_renew: z.boolean().optional(),
     add_ons: z.array(subscriptionAddOnSchema).optional(),
     is_currently_active: z.boolean().optional(),
+    // Cancelled but still riding out the paid window (access retained).
+    cancel_at_period_end: z.boolean().optional(),
+    // Paid via manually-verified offline payment rather than an auto gateway.
+    is_offline_billing: z.boolean().optional(),
+    cancelled_at: z.string().nullable().optional(),
     days_until_renewal: z.number().nullable().optional(),
     is_trial: z.boolean().optional(),
     trial_ends_at: z.string().nullable().optional(),
@@ -158,6 +163,8 @@ export const subscriptionDetailSchema = z
     cancelled_at: z.string().nullable().optional(),
     cancellation_reason: z.string().nullable().optional(),
     cancelled_by_name: z.string().nullable().optional(),
+    cancel_at_period_end: z.boolean().optional(),
+    is_offline_billing: z.boolean().optional(),
     is_currently_active: z.boolean().optional(),
     is_trial: z.boolean().optional(),
     trial_ends_at: z.string().nullable().optional(),

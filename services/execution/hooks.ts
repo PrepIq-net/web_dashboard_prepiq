@@ -19,6 +19,7 @@ export const executionKeys = {
     [...executionKeys.all, "board", branchId, date] as const,
   recommendations: (branchId: string, date: string) =>
     [...executionKeys.all, "recommendations", branchId, date] as const,
+  myTasks: (date: string) => [...executionKeys.all, "my-tasks", date] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,6 +45,16 @@ export function useTaskRecommendations(
     queryFn: () => executionService.getTaskRecommendations(branchId!, date!),
     enabled: enabled && !!branchId && !!date,
     staleTime: 60_000,
+  });
+}
+
+/** Self-service: the signed-in person's own assigned tasks for the day. */
+export function useMyKitchenTasks(date: string, enabled = true) {
+  return useQuery({
+    queryKey: executionKeys.myTasks(date),
+    queryFn: () => executionService.getMyTasks(date),
+    enabled,
+    staleTime: 15_000,
   });
 }
 
@@ -250,6 +261,29 @@ export function useSetTaskStatus() {
     onSettled: (_data, _error, { branchId, date }) => {
       queryClient.invalidateQueries({
         queryKey: executionKeys.board(branchId, date),
+      });
+    },
+  });
+}
+
+/** Self-service task advance (TODO → IN_PROGRESS → DONE), scoped to "my tasks". */
+export function useSetMyTaskStatus(date: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      branchId,
+      status,
+    }: {
+      taskId: string;
+      branchId: string;
+      status: TaskStatus;
+    }) => executionService.setMyTaskStatus(taskId, branchId, status),
+    onError: (error: Error) => toast.error(error.message),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: executionKeys.myTasks(date) });
+      queryClient.invalidateQueries({
+        queryKey: [...executionKeys.all, "board"],
       });
     },
   });

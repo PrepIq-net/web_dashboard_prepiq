@@ -4,6 +4,7 @@ import {
   confirmResponseSchema,
   generateResponseSchema,
   kitchenTaskSchema,
+  myTasksResponseSchema,
   taskBoardSchema,
   taskMutationResponseSchema,
   taskRecommendationsResponseSchema,
@@ -114,4 +115,27 @@ export async function releaseTask(taskId: string, branchId: string) {
     taskMutationResponseSchema,
     { method: "DELETE" },
   );
+}
+
+// ── Self-service "my tasks" ──────────────────────────────────────────────────
+
+export async function getMyTasks(date: string) {
+  return apiClientWithSchema(
+    executionEndpoints.myTasks(date),
+    myTasksResponseSchema,
+    { method: "GET" },
+  );
+}
+
+export async function setMyTaskStatus(
+  taskId: string,
+  branchId: string,
+  status: TaskStatus,
+) {
+  // The response is the manager-shaped task; callers refetch my-tasks on
+  // settle rather than consuming this directly.
+  return apiClient<unknown>(executionEndpoints.taskStatus(taskId, branchId), {
+    method: "POST",
+    body: { status },
+  });
 }
