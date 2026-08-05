@@ -165,8 +165,6 @@ export function RoleEditorDrawer({
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-
         <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
           <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold text-text-primary">
@@ -185,9 +183,7 @@ export function RoleEditorDrawer({
           </button>
         </header>
 
-        {/* Body */}
-
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto design-scrollbar px-6 py-6">
           <div className="space-y-6">
             {isReadOnly ? (
               <div className="rounded-lg border border-surface-4 bg-surface-2 px-4 py-3 text-sm text-text-secondary">
@@ -251,15 +247,7 @@ export function RoleEditorDrawer({
           </div>
         </div>
 
-        {/* Footer */}
-
         <footer className="flex justify-end gap-3 border-t border-surface-4 px-6 py-5">
-          <Button variant="ghost" onClick={onClose}>
-            {isReadOnly
-              ? t("settings.roles.viewModal.close")
-              : t("settings.roles.modal.cancel")}
-          </Button>
-
           {!isReadOnly && (
             <Button onClick={handleSave} disabled={isSaving}>
               {role
