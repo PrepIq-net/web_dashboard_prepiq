@@ -2050,7 +2050,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             <NativeTable
               table={table}
               headerClassName="bg-surface-2 border-b border-surface-4"
-              cellClassName="border-b border-surface-4 last:border-0"
+              cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
             />
           </div>
         )}
