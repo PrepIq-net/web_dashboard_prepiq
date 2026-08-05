@@ -248,6 +248,7 @@ function DashboardContent() {
       {isOrgOverviewMode ? (
         <DashboardView
           canSeeFinancials={canSeeFinancials}
+          isOrgOverviewMode={isOrgOverviewMode}
           analyticsSlot={analyticsSlot}
         />
       ) : isBranchExecutionMode ? (
@@ -273,11 +274,11 @@ function DashboardContent() {
         />
       ) : null}
 
-      {isOrgOverviewMode && (
+      {/* {isOrgOverviewMode && (
         <div className="mt-12 border-t border-surface-4 pt-12">
           <CommandSection />
         </div>
-      )}
+      )} */}
 
       {subtleInsight && <InsightFooter insight={subtleInsight} />}
     </div>
