@@ -15,6 +15,8 @@ export const paymentEndpoints = {
     `${BASE}/subscriptions/${subscriptionId}/cancel/`,
   subscriptionActivate: (subscriptionId: string) =>
     `${BASE}/subscriptions/${subscriptionId}/activate/`,
+  subscriptionReactivate: (subscriptionId: string) =>
+    `${BASE}/subscriptions/${subscriptionId}/reactivate/`,
   subscriptionAvailableAddOns: (subscriptionId: string) =>
     `${BASE}/subscriptions/${subscriptionId}/available-add-ons/`,
   subscriptionAttachAddOn: (subscriptionId: string) =>
