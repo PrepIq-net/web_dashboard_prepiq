@@ -89,11 +89,7 @@ import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-pri
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
 import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
 import { useTranslation } from "@/lib/i18n";
-import {
-  useCreateConnectorToken,
-  usePrepConectors,
-} from "@/services/connector/hook";
-import { ClipboardModal } from "@/components/dashboard/ClipboardModal";
+import { usePrepConectors } from "@/services/connector/hook";
 import { Spinner } from "@/components/ui/spinner";
 
 const columnHelper = createColumnHelper<any>();
@@ -662,7 +658,6 @@ function formatRelativeTime(iso: string | null): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-
 function IntegrationsSettings({
   orgId,
   focusedBranchId,
@@ -720,23 +715,9 @@ function IntegrationsSettings({
   const isFocusedBranchWithIssue =
     !!focusedBranchId && focusedBranchId === selectedBranchId && !isConnected;
 
-  const createConnectorToken = useCreateConnectorToken();
-
-
-  const [generatedToken, setGeneratedToken] = useState<string | "">("");
-  const [openTokenDialog, setOpenTokenDialog] = useState(false);
-
   function handleBranchChange(branchId: string) {
     setSelectedBranchId(branchId);
     onBranchChange?.(branchId);
-  }
-
-  async function handleTokenCreation(branchId: string) {
-    const response = await createConnectorToken.mutateAsync(branchId);
-    toast.loading(<Spinner />);
-
-    setGeneratedToken(response.data.token);
-    setOpenTokenDialog(true);
   }
 
   const handleConnect = (posId: string) => {
@@ -760,6 +741,107 @@ function IntegrationsSettings({
       );
     }
   };
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("machine_id", {
+        header: () => (
+          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Connector
+          </div>
+        ),
+        cell: (info) => (
+          <div className="flex flex-col ">
+            <p className="font-mono items-center text-sm text-text-primary">
+              {info.getValue()}
+            </p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              v{info.row.original.connector_version}
+            </p>
+          </div>
+        ),
+      }),
+
+      columnHelper.accessor("status", {
+        header: () => (
+          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Status
+          </div>
+        ),
+        cell: (info) => {
+          const { is_online, status } = info.row.original;
+
+          return (
+            <div className="flex justify-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-surface-4 bg-surface-3/40 px-2.5 py-1 text-xs font-medium text-text-secondary">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    is_online ? "bg-status-success" : "bg-status-critical"
+                  }`}
+                />
+                {is_online ? "Online" : "Offline"}
+                <span className="text-text-muted">·</span>
+                <span className="text-text-muted">{status}</span>
+              </span>
+            </div>
+          );
+        },
+      }),
+
+      columnHelper.accessor("records_synced_today", {
+        header: () => (
+          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Records today
+          </div>
+        ),
+        cell: (info) => (
+          <div className="text-center text-sm tabular-nums text-text-secondary">
+            {info.getValue().toLocaleString()}
+          </div>
+        ),
+      }),
+
+      columnHelper.accessor("last_sync_at", {
+        header: () => (
+          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Last sync
+          </div>
+        ),
+        cell: (info) => (
+          <div className="text-center text-sm text-text-secondary">
+            {info.getValue()}
+          </div>
+        ),
+      }),
+
+      columnHelper.accessor("is_active", {
+        header: () => (
+          <div className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Active
+          </div>
+        ),
+        cell: (info) => (
+          <div className="flex justify-center">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                info.getValue()
+                  ? "bg-status-success/10 text-status-success"
+                  : "bg-surface-3 text-text-muted"
+              }`}
+            >
+              {info.getValue() ? "Active" : "Inactive"}
+            </span>
+          </div>
+        ),
+      }),
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: connectors || [],
+    columns,
+  });
 
   return (
     <div className="space-y-10">
@@ -971,88 +1053,11 @@ function IntegrationsSettings({
 
         <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-surface-4 bg-surface-3/40">
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Connector
-                  </th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Status
-                  </th>
-                  <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Records today
-                  </th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Last sync
-                  </th>
-                  <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                    Active
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-4">
-                {connectors.length ? (
-                  connectors.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="transition-colors duration-200 hover:bg-surface-3/30"
-                    >
-                      <td className="px-5 py-4">
-                        <p className="font-mono text-sm text-text-primary">
-                          {row.machine_id}
-                        </p>
-                        <p className="mt-0.5 text-xs text-text-muted">
-                          v{row.connector_version}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-surface-4 bg-surface-3/40 px-2.5 py-1 text-xs font-medium text-text-secondary">
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              row.is_online
-                                ? "bg-status-success"
-                                : "bg-status-critical"
-                            }`}
-                          />
-                          {row.is_online ? "Online" : "Offline"}
-                          <span className="text-text-muted">·</span>
-                          <span className="text-text-muted">{row.status}</span>
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right text-sm tabular-nums text-text-secondary">
-                        {row.records_synced_today.toLocaleString()}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-text-secondary">
-                        {formatRelativeTime(row.last_sync_at)}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                            row.is_active
-                              ? "bg-status-success/10 text-status-success"
-                              : "bg-surface-3 text-text-muted"
-                          }`}
-                        >
-                          {row.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-sm text-text-muted"
-                    >
-                      No connectors registered for
-                      {selectedBranch ? ` ${selectedBranch.name}` : " this branch"}{" "}
-                      yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <NativeTable
+              table={table}
+              headerClassName="bg-surface-2 border-b border-surface-4"
+              cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
+            />
           </div>
         </div>
       </section>
@@ -1093,7 +1098,9 @@ const DEFAULT_CATEGORY_PREF = {
  * never persisted.
  */
 function buildCategoryPrefs(
-  serverPrefs: { notification_category?: string; branch?: string | null }[] | undefined,
+  serverPrefs:
+    | { notification_category?: string; branch?: string | null }[]
+    | undefined,
 ): CategoryPref[] {
   return NOTIFICATION_CATEGORY_ORDER.map((category) => {
     const saved = serverPrefs?.find(
@@ -1101,8 +1108,10 @@ function buildCategoryPrefs(
     ) as Partial<CategoryPref> | undefined;
     return {
       notification_category: category,
-      in_app_enabled: saved?.in_app_enabled ?? DEFAULT_CATEGORY_PREF.in_app_enabled,
-      email_enabled: saved?.email_enabled ?? DEFAULT_CATEGORY_PREF.email_enabled,
+      in_app_enabled:
+        saved?.in_app_enabled ?? DEFAULT_CATEGORY_PREF.in_app_enabled,
+      email_enabled:
+        saved?.email_enabled ?? DEFAULT_CATEGORY_PREF.email_enabled,
       push_enabled: saved?.push_enabled ?? DEFAULT_CATEGORY_PREF.push_enabled,
       digest_mode: saved?.digest_mode ?? DEFAULT_CATEGORY_PREF.digest_mode,
     };
@@ -1142,7 +1151,7 @@ function NotificationsSettings() {
     }
   }, [quietHours, localQuietHours]);
 
-  /**
+  /*
    * Applies a patch to one category and persists just that row. Sending the
    * whole table on every flick re-wrote four untouched rows for no reason, and
    * the row is sent complete so a partial payload can't leave the server
@@ -1152,9 +1161,12 @@ function NotificationsSettings() {
     notificationCategory: string,
     patch: Partial<CategoryPref>,
   ) => {
-    const current =
-      localPrefs.find((p) => p.notification_category === notificationCategory) ??
-      { notification_category: notificationCategory, ...DEFAULT_CATEGORY_PREF };
+    const current = localPrefs.find(
+      (p) => p.notification_category === notificationCategory,
+    ) ?? {
+      notification_category: notificationCategory,
+      ...DEFAULT_CATEGORY_PREF,
+    };
     const next = { ...current, ...patch };
     // Digest is a delayed email; switching email off has to take it down too,
     // matching what the server enforces.
@@ -1176,12 +1188,11 @@ function NotificationsSettings() {
     notificationCategory: string,
     channel: string,
     enabled: boolean,
-  ) => persistCategory(notificationCategory, { [`${channel}_enabled`]: enabled });
+  ) =>
+    persistCategory(notificationCategory, { [`${channel}_enabled`]: enabled });
 
-  const handleDigestToggle = (
-    notificationCategory: string,
-    enabled: boolean,
-  ) => persistCategory(notificationCategory, { digest_mode: enabled });
+  const handleDigestToggle = (notificationCategory: string, enabled: boolean) =>
+    persistCategory(notificationCategory, { digest_mode: enabled });
 
   const handleQuietHoursChange = (
     patch: Partial<{ enabled: boolean; start_time: string; end_time: string }>,
@@ -1910,8 +1921,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
 
   const memberCount = members?.length ?? 0;
   const grantedCount =
-    members?.filter((member) => (member.extra_permission_codes?.length ?? 0) > 0)
-      .length ?? 0;
+    members?.filter(
+      (member) => (member.extra_permission_codes?.length ?? 0) > 0,
+    ).length ?? 0;
 
   return (
     <div className="space-y-14">
@@ -1962,8 +1974,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                   </Badge>
                 </div>
                 <p className="mt-1 max-w-xl text-xs leading-relaxed text-text-secondary">
-                  {role.description ||
-                    t("settings.roles.noDescription")}
+                  {role.description || t("settings.roles.noDescription")}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -2008,7 +2019,9 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           title={t("settings.users.title")}
           supporting={
             <>
-              <span>{t("settings.users.stats.members", { n: memberCount })}</span>
+              <span>
+                {t("settings.users.stats.members", { n: memberCount })}
+              </span>
               <span>
                 {t("settings.users.stats.granted", { n: grantedCount })}
               </span>
@@ -2037,7 +2050,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             <NativeTable
               table={table}
               headerClassName="bg-surface-2 border-b border-surface-4"
-              cellClassName="border-b border-surface-4 last:border-0"
+              cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
             />
           </div>
         )}
