@@ -88,6 +88,31 @@ export const taskBoardSchema = z.object({
 });
 export type TaskBoard = z.infer<typeof taskBoardSchema>;
 
+// ── Self-service "my tasks" (mirrors mobile-app/src/services/execution/types.ts) ──
+// The `/me/tasks/` endpoint mobile already consumes; the web endpoint constant
+// existed unused (executionEndpoints.myTasks) until this port.
+
+export const myKitchenTaskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  category: z.string(),
+  status: z.enum(TASK_STATUSES),
+  priority: z.string(),
+  estimated_minutes: z.number().nullable(),
+  links: z.array(kitchenTaskLinkSchema),
+  branch_id: z.string(),
+  branch_name: z.string(),
+  date: z.string(),
+});
+export type MyKitchenTask = z.infer<typeof myKitchenTaskSchema>;
+
+export const myTasksResponseSchema = z.object({
+  date: z.string(),
+  tasks: z.array(myKitchenTaskSchema),
+});
+export type MyTasksResponse = z.infer<typeof myTasksResponseSchema>;
+
 /** A predictive recommendation mined from the branch's task history. */
 export const taskRecommendationSchema = z.object({
   title: z.string(),

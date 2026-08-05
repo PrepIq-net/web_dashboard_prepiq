@@ -15,6 +15,9 @@ import {
   WarningTriangle,
   ArrowUpCircle,
   Mail,
+  RefreshDouble,
+  Xmark,
+  Bank,
 } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { ModalShell } from "@/components/ui/modal-shell";
@@ -29,6 +32,8 @@ import {
   useDownloadInvoicePDF,
   useDownloadBillingReport,
   useSubscriptionPlanPricing,
+  useCancelSubscription,
+  useReactivateSubscription,
 } from "@/services";
 import { Branch } from "@/services/branches/types";
 import { Invoice, SubscriptionList } from "@/services/payment/types";
@@ -247,6 +252,140 @@ function PaymentMethodModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CancelSubscriptionModal({
+  subscription,
+  onClose,
+}: {
+  subscription: SubscriptionList;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { mutate, isPending } = useCancelSubscription(subscription.id);
+  const [reason, setReason] = useState<string>("");
+  const [notes, setNotes] = useState("");
+
+  const reasons = [
+    ["tooExpensive", t("workspace.billing.cancelModal.reasonTooExpensive")],
+    ["missingFeatures", t("workspace.billing.cancelModal.reasonMissingFeatures")],
+    ["notUsing", t("workspace.billing.cancelModal.reasonNotUsing")],
+    ["switching", t("workspace.billing.cancelModal.reasonSwitching")],
+    ["other", t("workspace.billing.cancelModal.reasonOther")],
+  ] as const;
+
+  const planLabel = subscription.plan_name ?? subscription.plan_type ?? "";
+  const endDate = subscription.end_date;
+
+  const submit = () => {
+    const picked = reasons.find(([key]) => key === reason)?.[1] ?? "";
+    const composed = [picked, notes.trim()].filter(Boolean).join(" — ");
+    mutate({ reason: composed }, { onSuccess: onClose });
+  };
+
+  return (
+    <ModalShell
+      open
+      title={t("workspace.billing.cancelModal.title", { plan: planLabel })}
+      description={
+        endDate
+          ? t("workspace.billing.cancelModal.description", { date: formatDate(endDate) })
+          : t("workspace.billing.cancelModal.descriptionNoDate")
+      }
+      onClose={onClose}
+      maxWidthClassName="max-w-md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="inline-flex h-9 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:text-text-primary disabled:opacity-60"
+          >
+            {t("workspace.billing.cancelModal.keep")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isPending}
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-status-critical px-4 text-xs font-semibold text-white transition-all hover:bg-status-critical/90 active:scale-[0.98] disabled:opacity-60"
+          >
+            {isPending ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : null}
+            {isPending
+              ? t("workspace.billing.cancelModal.canceling")
+              : t("workspace.billing.cancelModal.confirm")}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          {t("workspace.billing.cancelModal.reasonPrompt")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {reasons.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setReason(key === reason ? "" : key)}
+              className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors ${
+                reason === key
+                  ? "border-brand-gold/40 bg-brand-gold/10 text-brand-gold"
+                  : "border-surface-4 text-text-muted hover:text-text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder={t("workspace.billing.cancelModal.notesPlaceholder")}
+          className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/40 focus:outline-none"
+        />
+      </div>
+    </ModalShell>
+  );
+}
+
+function GracePeriodBanner({ subscription }: { subscription: SubscriptionList }) {
+  const { t } = useTranslation();
+  const { mutate, isPending } = useReactivateSubscription(subscription.id);
+  const isOffline = Boolean(subscription.is_offline_billing);
+
+  return (
+    <div className="mb-4 flex flex-col gap-3 rounded-xl border border-status-warning/30 bg-status-warning/8 px-4 py-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-start gap-3">
+        <WarningTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
+        <p className="text-sm text-text-primary">
+          {t("workspace.billing.gracePeriod.message", {
+            plan: subscription.plan_name ?? subscription.plan_type ?? "",
+            branch: subscription.branch_name ?? "",
+            date: formatDate(subscription.end_date),
+          })}
+        </p>
+      </div>
+      {/* Offline accounts have no auto-renewal to restore — they renew by
+          recording a new payment, so no reactivate button is offered. */}
+      {!isOffline && (
+        <button
+          type="button"
+          onClick={() => mutate()}
+          disabled={isPending}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-full bg-brand-gold px-4 text-xs font-semibold text-[#141416] transition-all hover:bg-[#B8962E] active:scale-[0.98] disabled:opacity-60 md:self-auto"
+        >
+          <RefreshDouble className="h-3.5 w-3.5" />
+          {isPending
+            ? t("workspace.billing.gracePeriod.reactivating")
+            : t("workspace.billing.gracePeriod.reactivate")}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function BillingPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -258,6 +397,7 @@ export default function BillingPage() {
   const [openInvoice, setOpenInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentSuccessBanner, setPaymentSuccessBanner] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<SubscriptionList | null>(null);
 
   useEffect(() => {
     if (searchParams.get("payment") === "success") {
@@ -375,11 +515,26 @@ export default function BillingPage() {
   const expiringWarnings = useMemo(() => {
     return summarySubscriptions
       .filter((sub: SubscriptionList) => {
+        // A canceling plan won't renew — it gets its own grace banner instead.
+        if (sub.cancel_at_period_end) return false;
         const d = daysUntil(sub.next_billing_date);
         return d !== null && d <= 7 && d >= 0;
       })
       .slice(0, 2);
   }, [summarySubscriptions]);
+
+  // Subscriptions that were cancelled but still ride out a paid window.
+  const cancelingSubscriptions = useMemo(
+    () =>
+      subscriptions.filter(
+        (sub: SubscriptionList) => sub.cancel_at_period_end,
+      ),
+    [subscriptions],
+  );
+
+  const primaryIsOffline = Boolean(
+    primaryBranchSubscription?.is_offline_billing,
+  );
 
   const recommendation = pricingQuery.data?.recommendation;
   const currentPlanName =
@@ -415,6 +570,12 @@ export default function BillingPage() {
       {showPaymentModal && (
         <PaymentMethodModal onClose={() => setShowPaymentModal(false)} />
       )}
+      {cancelTarget && (
+        <CancelSubscriptionModal
+          subscription={cancelTarget}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
 
       {paymentSuccessBanner && (
         <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-status-success/30 bg-status-success/8 px-4 py-3">
@@ -437,6 +598,10 @@ export default function BillingPage() {
           </button>
         </div>
       )}
+
+      {cancelingSubscriptions.map((sub: SubscriptionList) => (
+        <GracePeriodBanner key={sub.id} subscription={sub} />
+      ))}
 
       {expiringWarnings.map((sub: SubscriptionList) => {
         const days = daysUntil(sub.next_billing_date);
@@ -780,7 +945,11 @@ export default function BillingPage() {
                           {latestSub.plan_name ?? latestSub.plan_type}
                         </span>
                       )}
-                      {latestSub?.status ? (
+                      {latestSub?.cancel_at_period_end ? (
+                        <span className="inline-flex items-center rounded-full border border-status-warning/30 bg-status-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-status-warning">
+                          {t("workspace.billing.cancelingBadge")}
+                        </span>
+                      ) : latestSub?.status ? (
                         <span
                           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${subStatusClasses(latestSub.status)}`}
                         >
@@ -796,6 +965,21 @@ export default function BillingPage() {
                           ·{" "}
                           {latestSub.billing_cycle.charAt(0) +
                             latestSub.billing_cycle.slice(1).toLowerCase()}
+                        </span>
+                      )}
+                      {latestSub?.status === "ACTIVE" && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-surface-4 px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                          {latestSub.is_offline_billing ? (
+                            <>
+                              <Bank className="h-3 w-3" />
+                              {t("workspace.billing.manualInvoiceBadge")}
+                            </>
+                          ) : (
+                            <>
+                              <RefreshDouble className="h-3 w-3" />
+                              {t("workspace.billing.autoRenewBadge")}
+                            </>
+                          )}
                         </span>
                       )}
                       {latestSub?.is_currently_active &&
@@ -838,6 +1022,17 @@ export default function BillingPage() {
                     >
                       {t("workspace.billing.changePlan")}
                     </Link>
+                    {latestSub?.status === "ACTIVE" &&
+                      !latestSub.cancel_at_period_end && (
+                        <button
+                          type="button"
+                          onClick={() => setCancelTarget(latestSub)}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-muted transition-colors hover:border-status-critical/40 hover:text-status-critical"
+                        >
+                          <Xmark className="h-3.5 w-3.5" />
+                          {t("workspace.billing.cancelPlan")}
+                        </button>
+                      )}
                   </div>
                 </div>
               );
@@ -982,14 +1177,37 @@ export default function BillingPage() {
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowPaymentModal(true)}
-              className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary"
-            >
-              {t("workspace.billing.updatePaymentMethod")}
-            </button>
+            {primaryIsOffline ? (
+              <a
+                href="mailto:support@prepiq.app?subject=Offline billing"
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                {t("workspace.billing.offlineNotice.contact")}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(true)}
+                className="inline-flex h-8 shrink-0 items-center rounded-full border border-surface-4 px-4 text-xs font-medium text-text-muted transition-colors hover:border-surface-4 hover:text-text-primary"
+              >
+                {t("workspace.billing.updatePaymentMethod")}
+              </button>
+            )}
           </div>
+          {primaryIsOffline && (
+            <div className="mt-4 flex items-start gap-3 rounded-lg border border-surface-4 bg-surface-3/50 px-4 py-3">
+              <Bank className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" />
+              <div>
+                <p className="text-[13px] font-semibold text-text-primary">
+                  {t("workspace.billing.offlineNotice.title")}
+                </p>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  {t("workspace.billing.offlineNotice.body")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </WorkspaceShell>

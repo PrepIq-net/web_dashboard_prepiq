@@ -1404,6 +1404,12 @@
       "counts": "Tasks: {todo} to do · {inProgress} in progress · {done} done",
       "open": "Open the board →"
     },
+    "myTasks": {
+      "title": "My tasks",
+      "count": "{count} open",
+      "start": "Start",
+      "done": "Done"
+    },
     "plan": {
       "carryOver": "− {quantity} stored from yesterday",
       "carryOverTitle": "Demand forecast is {demand}; stored stock covers part of it, so there is less to produce."
@@ -3342,7 +3348,37 @@
       "noPaymentMethod": "No Payment Method",
       "lastCharge": "Last Charge",
       "updatePaymentMethod": "Update Payment Method",
-      "unlimitedLocationsNote": "Unlimited locations — each has its own plan."
+      "unlimitedLocationsNote": "Unlimited locations — each has its own plan.",
+      "manage": "Manage",
+      "cancelPlan": "Cancel Plan",
+      "cancelingBadge": "Canceling",
+      "manualInvoiceBadge": "Manual Invoice",
+      "autoRenewBadge": "Auto-renew",
+      "gracePeriod": {
+        "message": "Your {plan} plan for {branch} stays active until {date}, after which it will not renew.",
+        "reactivate": "Reactivate Subscription",
+        "reactivating": "Reactivating…"
+      },
+      "offlineNotice": {
+        "title": "Offline Billing Account",
+        "body": "This location is billed by manual invoice. Contact support or view your renewal invoice to keep it active.",
+        "contact": "Contact support"
+      },
+      "cancelModal": {
+        "title": "Cancel {plan}?",
+        "description": "You'll keep full access until {date}. No further charges will be made.",
+        "descriptionNoDate": "You'll keep access until the end of your current billing period. No further charges will be made.",
+        "reasonPrompt": "Help us improve — why are you canceling? (optional)",
+        "reasonTooExpensive": "Too expensive",
+        "reasonMissingFeatures": "Missing features",
+        "reasonNotUsing": "Not using it enough",
+        "reasonSwitching": "Switching to another tool",
+        "reasonOther": "Other",
+        "notesPlaceholder": "Anything else you'd like us to know?",
+        "keep": "Keep my plan",
+        "confirm": "Cancel at period end",
+        "canceling": "Canceling…"
+      }
     },
     "salesWaste": {
       "tableItem": "Table Item",

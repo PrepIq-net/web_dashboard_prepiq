@@ -1404,6 +1404,12 @@
       "counts": "Tâches : {todo} à faire · {inProgress} en cours · {done} terminées",
       "open": "Ouvrir le tableau →"
     },
+    "myTasks": {
+      "title": "Mes tâches",
+      "count": "{count} en cours",
+      "start": "Commencer",
+      "done": "Terminé"
+    },
     "plan": {
       "carryOver": "− {quantity} stocké d'hier",
       "carryOverTitle": "Prévision de demande : {demand} ; le stock conservé en couvre une partie, il y a donc moins à produire."
@@ -3342,7 +3348,37 @@
       "noPaymentMethod": "Aucun mode de paiement",
       "lastCharge": "Dernier prélèvement",
       "updatePaymentMethod": "Mettre à jour le mode de paiement",
-      "unlimitedLocationsNote": "Emplacements illimités — chacun a son propre forfait."
+      "unlimitedLocationsNote": "Emplacements illimités — chacun a son propre forfait.",
+      "manage": "Gérer",
+      "cancelPlan": "Annuler le forfait",
+      "cancelingBadge": "Annulation en cours",
+      "manualInvoiceBadge": "Facture manuelle",
+      "autoRenewBadge": "Renouvellement auto",
+      "gracePeriod": {
+        "message": "Votre forfait {plan} pour {branch} reste actif jusqu'au {date}, après quoi il ne sera pas renouvelé.",
+        "reactivate": "Réactiver l'abonnement",
+        "reactivating": "Réactivation…"
+      },
+      "offlineNotice": {
+        "title": "Compte à facturation hors ligne",
+        "body": "Cet emplacement est facturé par facture manuelle. Contactez le support ou consultez votre facture de renouvellement pour le garder actif.",
+        "contact": "Contacter le support"
+      },
+      "cancelModal": {
+        "title": "Annuler {plan} ?",
+        "description": "Vous conservez l'accès complet jusqu'au {date}. Aucun autre prélèvement ne sera effectué.",
+        "descriptionNoDate": "Vous conservez l'accès jusqu'à la fin de votre période de facturation actuelle. Aucun autre prélèvement ne sera effectué.",
+        "reasonPrompt": "Aidez-nous à nous améliorer — pourquoi annulez-vous ? (facultatif)",
+        "reasonTooExpensive": "Trop cher",
+        "reasonMissingFeatures": "Fonctionnalités manquantes",
+        "reasonNotUsing": "Pas assez utilisé",
+        "reasonSwitching": "Passage à un autre outil",
+        "reasonOther": "Autre",
+        "notesPlaceholder": "Autre chose à nous signaler ?",
+        "keep": "Conserver mon forfait",
+        "confirm": "Annuler à la fin de la période",
+        "canceling": "Annulation…"
+      }
     },
     "salesWaste": {
       "tableItem": "Article",

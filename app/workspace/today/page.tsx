@@ -58,6 +58,8 @@ import {
   TodaySkeleton,
 } from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
+import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
+import { SystemHealthBanner } from "@/components/dashboard/today/system-health-banner";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
@@ -1031,6 +1033,11 @@ function TodayWorkspacePageContent() {
 
             {showSkeleton ? <TodaySkeleton phase={lastPhaseRef.current} /> : null}
 
+            {/* ── Work assigned to this person today. Renders nothing if none. ── */}
+            {!walkthroughActive && branchDay ? (
+              <MyTasksCard date={branchDay.date} />
+            ) : null}
+
             {/* ── How much PrepIQ actually knows about this kitchen yet ──
                 Sits above the signals because it frames everything below it: a
                 number is read differently once you know it is borrowed. */}
@@ -1137,6 +1144,7 @@ function TodayWorkspacePageContent() {
                 targetDate={targetDate}
                 enabled={canFetchData}
               />
+              <SystemHealthBanner systemHealth={branchDay.system_health} />
               <LiveMonitorSection
                 branchDay={branchDay}
                 criticalRows={criticalRows}

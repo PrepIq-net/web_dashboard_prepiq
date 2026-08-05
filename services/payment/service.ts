@@ -201,6 +201,14 @@ export async function activateSubscription(subscriptionId: string) {
   );
 }
 
+export async function reactivateSubscription(subscriptionId: string) {
+  return apiClientWithSchema(
+    paymentEndpoints.subscriptionReactivate(subscriptionId),
+    subscriptionDetailSchema,
+    { method: "POST" },
+  );
+}
+
 export async function getAvailableSubscriptionAddOns(subscriptionId: string) {
   const response = await apiClientWithSchema(
     paymentEndpoints.subscriptionAvailableAddOns(subscriptionId),
