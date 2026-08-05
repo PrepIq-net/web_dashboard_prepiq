@@ -260,7 +260,7 @@ export function PlanProvenanceDrawer({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto design-scrollbar px-5 py-5">
           {stats ? (
             <ol>
               {steps.map((step, index) => {
@@ -331,7 +331,9 @@ export function PlanProvenanceDrawer({
                         {pct != null ? (
                           <span
                             className={`text-xs font-semibold ${
-                              pct >= 0 ? "text-status-success" : "text-status-critical"
+                              pct >= 0
+                                ? "text-status-success"
+                                : "text-status-critical"
                             }`}
                           >
                             {pct >= 0 ? "+" : ""}

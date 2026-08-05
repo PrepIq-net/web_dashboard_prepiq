@@ -50,7 +50,7 @@ export function AssistantInput({
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Ask about today…"
-        className="max-h-40 min-h-[44px] flex-1 resize-none overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none"
+        className="max-h-40 min-h-[44px] flex-1 resize-none overflow-y-auto design-scrollbar rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none"
       />
       <button
         type="button"

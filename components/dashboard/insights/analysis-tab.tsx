@@ -91,7 +91,11 @@ export function AnalysisTab({ branchId }: { branchId: string }) {
             disabled={openWeek.isPending}
             className="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 text-[13px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-60"
           >
-            {openWeek.isPending ? <Spinner /> : <Calendar width={15} height={15} />}
+            {openWeek.isPending ? (
+              <Spinner />
+            ) : (
+              <Calendar width={15} height={15} />
+            )}
             {t("workspace.insights.analysis.openWeek")}
           </button>
           <button
@@ -133,7 +137,10 @@ export function AnalysisTab({ branchId }: { branchId: string }) {
             }
           />
         ) : (
-          <StartState onOpenWeek={handleOpenWeek} pending={openWeek.isPending} />
+          <StartState
+            onOpenWeek={handleOpenWeek}
+            pending={openWeek.isPending}
+          />
         )}
       </section>
     </div>
@@ -377,7 +384,7 @@ function Transcript({
 
   return (
     <div className="flex h-[calc(100vh-22rem)] min-h-[26rem] flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto design-scrollbar pr-1">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Spinner />

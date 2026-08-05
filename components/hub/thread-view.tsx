@@ -67,7 +67,9 @@ export function ThreadView({
     setEditingTitle(false);
   }, [conversation.id, conversation.display_title]);
 
-  const others = conversation.members.filter((m) => m.user.id !== currentUserId);
+  const others = conversation.members.filter(
+    (m) => m.user.id !== currentUserId,
+  );
   // The assistant is omnipresent: chat/services.py fires it on an @PrepIQ
   // mention in ANY conversation, not only ones it was added to. Gating the
   // autocomplete on includes_assistant hid a mention that worked perfectly
@@ -170,7 +172,8 @@ export function ThreadView({
           </div>
         </div>
 
-        {conversation.conversation_type !== "DIRECT" && conversation.branch_id ? (
+        {conversation.conversation_type !== "DIRECT" &&
+        conversation.branch_id ? (
           <label className="flex flex-shrink-0 cursor-pointer items-center gap-2 text-xs text-text-muted">
             <input
               type="checkbox"
@@ -197,7 +200,7 @@ export function ThreadView({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-3">
+      <div className="flex-1 overflow-y-auto design-scrollbar py-3">
         {hasMore ? (
           <div className="mb-2 flex justify-center">
             <button
@@ -261,12 +264,15 @@ export function ThreadView({
 
         {typingUsers.length > 0 ? (
           <p className="px-4 py-1 text-xs italic text-text-muted">
-            {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing…
+            {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"}{" "}
+            typing…
           </p>
         ) : null}
 
         {lastMineSeen ? (
-          <p className="px-4 pb-1 text-right text-[11px] text-text-disabled">Seen</p>
+          <p className="px-4 pb-1 text-right text-[11px] text-text-disabled">
+            Seen
+          </p>
         ) : null}
 
         <div ref={bottomRef} />

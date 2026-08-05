@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { Xmark } from "iconoir-react";
 
@@ -58,7 +64,8 @@ export function ModalShell({
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     const previousPaddingRight = document.body.style.paddingRight;
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const scrollBarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
     if (scrollBarWidth > 0) {
       document.body.style.paddingRight = `${scrollBarWidth}px`;
     }
@@ -113,7 +120,7 @@ export function ModalShell({
           <div className="relative flex-1 min-h-0">
             <div
               ref={scrollRef}
-              className="h-full overflow-y-auto overscroll-contain px-5 py-4"
+              className="h-full overflow-y-auto design-scrollbar overscroll-contain px-5 py-4"
               onScroll={updateScrollIndicators}
             >
               {children}
@@ -122,7 +129,10 @@ export function ModalShell({
               <button
                 type="button"
                 onClick={() => {
-                  scrollRef.current?.scrollBy({ top: -160, behavior: "smooth" });
+                  scrollRef.current?.scrollBy({
+                    top: -160,
+                    behavior: "smooth",
+                  });
                 }}
                 aria-label="Scroll up"
                 className="pointer-events-auto absolute left-1/2 top-2 flex -translate-x-1/2 items-center justify-center rounded-full border border-surface-4 bg-surface-2/90 px-3 py-1 text-[11px] font-semibold text-text-secondary shadow-sm transition-colors hover:bg-surface-3"

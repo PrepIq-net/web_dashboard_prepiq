@@ -81,7 +81,7 @@ function ItemPicker({
         />
       </div>
 
-      <div className="max-h-36 overflow-y-auto rounded-xl border border-surface-4 bg-surface-1">
+      <div className="max-h-36 overflow-y-auto design-scrollbar rounded-xl border border-surface-4 bg-surface-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
@@ -277,7 +277,9 @@ export function CreateEventModal({
           discount_value: "0",
           promotion_channel: form.promotion_channel,
           expected_uplift:
-            form.expected_uplift !== "" ? Number(form.expected_uplift) / 100 : null,
+            form.expected_uplift !== ""
+              ? Number(form.expected_uplift) / 100
+              : null,
           is_recurring: false,
           affected_items: selectedItemIds,
         };
@@ -476,7 +478,9 @@ export function CreateEventModal({
                 >
                   <option value="IN_STORE">{t("planning.in_store")}</option>
                   <option value="ONLINE">{t("planning.online")}</option>
-                  <option value="SOCIAL_MEDIA">{t("planning.social_media")}</option>
+                  <option value="SOCIAL_MEDIA">
+                    {t("planning.social_media")}
+                  </option>
                   <option value="ALL">{t("planning.all_channels")}</option>
                 </NativeSelect>
               </Field>

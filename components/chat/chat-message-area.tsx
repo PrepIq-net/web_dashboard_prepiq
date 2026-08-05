@@ -1,24 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { 
-  Xmark, 
-  Send, 
-  Attachment, 
-  MoreHoriz, 
+import {
+  Xmark,
+  Send,
+  Attachment,
+  MoreHoriz,
   User,
   Clock,
-  CheckCircle 
+  CheckCircle,
 } from "iconoir-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ChatMessage } from "./chat-message";
 import { ChatMessageInput } from "./chat-message-input";
 import { ChatThreadHeader } from "./chat-thread-header";
-import { 
-  useChatThread, 
-  useChatThreadMessages, 
+import {
+  useChatThread,
+  useChatThreadMessages,
   useCreateChatThreadMessage,
-  useMarkChatThreadAsRead 
+  useMarkChatThreadAsRead,
 } from "@/services";
 import type { UserProfile } from "@/services/users/types";
 
@@ -28,7 +28,11 @@ interface ChatMessageAreaProps {
   onClose: () => void;
 }
 
-export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProps) {
+export function ChatMessageArea({
+  threadId,
+  user,
+  onClose,
+}: ChatMessageAreaProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -36,7 +40,7 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   const [sendError, setSendError] = useState<string | null>(null);
   const previousMessageCountRef = useRef(0);
   const readRequestSentForThreadRef = useRef<string | null>(null);
-  
+
   const threadQuery = useChatThread(threadId);
   const messagesQuery = useChatThreadMessages(threadId);
   const createMessageMutation = useCreateChatThreadMessage();
@@ -59,7 +63,11 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
   // Scroll to bottom on initial load
   useEffect(() => {
-    if (orderedMessages.length > 0 && !hasScrolledToBottom && messagesEndRef.current) {
+    if (
+      orderedMessages.length > 0 &&
+      !hasScrolledToBottom &&
+      messagesEndRef.current
+    ) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
       setHasScrolledToBottom(true);
       previousMessageCountRef.current = orderedMessages.length;
@@ -68,7 +76,11 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
   // Auto-scroll to bottom when new messages arrive (only if already at bottom)
   useEffect(() => {
-    if (orderedMessages.length > previousMessageCountRef.current && isAtBottom && messagesEndRef.current) {
+    if (
+      orderedMessages.length > previousMessageCountRef.current &&
+      isAtBottom &&
+      messagesEndRef.current
+    ) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
     previousMessageCountRef.current = orderedMessages.length;
@@ -112,19 +124,22 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
     }
   };
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    setIsAtBottom(isNearBottom);
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setIsAtBottom(isNearBottom);
 
-    // Infinite scroll: load more when scrolling to top
-    const isNearTop = scrollTop < 100;
-    if (isNearTop && !messagesQuery.isLoading && !messagesQuery.isFetching) {
-      // TODO: Implement pagination when backend supports it
-      // For now, all messages are loaded at once
-      console.log("Near top - would load more messages here");
-    }
-  }, [messagesQuery.isLoading, messagesQuery.isFetching]);
+      // Infinite scroll: load more when scrolling to top
+      const isNearTop = scrollTop < 100;
+      if (isNearTop && !messagesQuery.isLoading && !messagesQuery.isFetching) {
+        // TODO: Implement pagination when backend supports it
+        // For now, all messages are loaded at once
+        console.log("Near top - would load more messages here");
+      }
+    },
+    [messagesQuery.isLoading, messagesQuery.isFetching],
+  );
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -149,8 +164,13 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-status-critical/20 mb-4">
             <Xmark className="h-6 w-6 text-status-critical" />
           </div>
-          <p className="text-sm text-text-secondary mb-2">Conversation not found</p>
-          <p className="text-xs text-text-muted">This conversation may have been deleted or you don't have access to it.</p>
+          <p className="text-sm text-text-secondary mb-2">
+            Conversation not found
+          </p>
+          <p className="text-xs text-text-muted">
+            This conversation may have been deleted or you don't have access to
+            it.
+          </p>
         </div>
       </div>
     );
@@ -159,16 +179,12 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <ChatThreadHeader 
-        thread={thread} 
-        user={user} 
-        onClose={onClose} 
-      />
+      <ChatThreadHeader thread={thread} user={user} onClose={onClose} />
 
       {/* Messages */}
-      <div 
+      <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+        className="flex-1 overflow-y-auto design-scrollbar p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
         onScroll={handleScroll}
       >
         {messagesQuery.isLoading ? (
@@ -181,8 +197,12 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-3 mb-4">
                 <User className="h-6 w-6 text-text-muted" />
               </div>
-              <p className="text-sm text-text-secondary mb-2">No messages yet</p>
-              <p className="text-xs text-text-muted">Start the conversation by sending a message below.</p>
+              <p className="text-sm text-text-secondary mb-2">
+                No messages yet
+              </p>
+              <p className="text-xs text-text-muted">
+                Start the conversation by sending a message below.
+              </p>
             </div>
           </div>
         ) : (
@@ -196,9 +216,10 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
 
             {orderedMessages.map((message, index) => {
               const prevMessage = index > 0 ? orderedMessages[index - 1] : null;
-              const showDateSeparator = prevMessage && 
-                format(new Date(message.created_at), 'yyyy-MM-dd') !== 
-                format(new Date(prevMessage.created_at), 'yyyy-MM-dd');
+              const showDateSeparator =
+                prevMessage &&
+                format(new Date(message.created_at), "yyyy-MM-dd") !==
+                  format(new Date(prevMessage.created_at), "yyyy-MM-dd");
 
               return (
                 <div key={message.id}>
@@ -207,19 +228,21 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
                       <div className="flex items-center gap-4 w-full max-w-xs">
                         <div className="h-px bg-[#2A2A2E] flex-1" />
                         <span className="text-xs font-medium text-text-muted bg-[#1C1C1F] px-4 py-1.5 rounded-full border border-[#2A2A2E]">
-                          {format(new Date(message.created_at), 'MMMM d, yyyy')}
+                          {format(new Date(message.created_at), "MMMM d, yyyy")}
                         </span>
                         <div className="h-px bg-[#2A2A2E] flex-1" />
                       </div>
                     </div>
                   )}
-                  <ChatMessage 
-                    message={message} 
+                  <ChatMessage
+                    message={message}
                     user={user}
                     showAvatar={
-                      !prevMessage || 
+                      !prevMessage ||
                       prevMessage.sender?.id !== message.sender?.id ||
-                      new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime() > 300000 // 5 minutes
+                      new Date(message.created_at).getTime() -
+                        new Date(prevMessage.created_at).getTime() >
+                        300000 // 5 minutes
                     }
                   />
                 </div>
@@ -237,8 +260,18 @@ export function ChatMessageArea({ threadId, user, onClose }: ChatMessageAreaProp
             onClick={scrollToBottom}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#A8821F] to-[#8F6F18] text-[#141416] shadow-[0_4px_12px_rgba(168,130,31,0.35)] transition-all duration-200 hover:shadow-[0_6px_16px_rgba(168,130,31,0.45)] hover:scale-105 active:scale-95"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 14l-7 7m0 0l-7-7m7 7V3"
+              />
             </svg>
           </button>
         </div>

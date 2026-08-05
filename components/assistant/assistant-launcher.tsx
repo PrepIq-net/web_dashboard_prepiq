@@ -59,7 +59,8 @@ export function AssistantLauncher({
   const sendMessage = useSendAssistantMessage();
   const explain = useExplainAlert();
 
-  const sending = startConversation.isPending || sendMessage.isPending || explain.isPending;
+  const sending =
+    startConversation.isPending || sendMessage.isPending || explain.isPending;
 
   // Rehydrate the persisted day thread on load / branch or date change so a
   // reload restores the transcript instead of starting over. Only seed while the
@@ -87,7 +88,8 @@ export function AssistantLauncher({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoOpen]);
 
-  const greeting = suggested.data?.greeting ?? "I've prepared today's briefing.";
+  const greeting =
+    suggested.data?.greeting ?? "I've prepared today's briefing.";
   const questions = suggested.data?.suggested_questions ?? [];
 
   const handleClose = () => {
@@ -164,7 +166,8 @@ export function AssistantLauncher({
           onSuccess: (reply) => {
             if ("message" in reply) appendReply(reply);
           },
-          onError: () => toast.error("The assistant couldn't respond. Try again."),
+          onError: () =>
+            toast.error("The assistant couldn't respond. Try again."),
         },
       );
       return;
@@ -174,14 +177,17 @@ export function AssistantLauncher({
       { conversationId, payload: { message: text, date } },
       {
         onSuccess: appendReply,
-        onError: () => toast.error("The assistant couldn't respond. Try again."),
+        onError: () =>
+          toast.error("The assistant couldn't respond. Try again."),
       },
     );
   };
 
   const clearPendingAction = (messageId: string) => {
     setMessages((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, pending_action: null } : m)),
+      prev.map((m) =>
+        m.id === messageId ? { ...m, pending_action: null } : m,
+      ),
     );
   };
 
@@ -192,7 +198,8 @@ export function AssistantLauncher({
     if (!action || !conversationId) return;
     setActionBusyId(message.id);
     try {
-      const { confirmAssistantAction } = await import("@/services/assistant/service");
+      const { confirmAssistantAction } =
+        await import("@/services/assistant/service");
       const result = await confirmAssistantAction(conversationId, {
         applied,
         message_id: message.id,
@@ -213,9 +220,11 @@ export function AssistantLauncher({
     }
   };
 
-  const handleConfirm = (message: AssistantMessage) => resolveAction(message, true);
+  const handleConfirm = (message: AssistantMessage) =>
+    resolveAction(message, true);
 
-  const handleDismiss = (message: AssistantMessage) => resolveAction(message, false);
+  const handleDismiss = (message: AssistantMessage) =>
+    resolveAction(message, false);
 
   const subtitle =
     suggested.data?.phase === "LIVE"
@@ -248,7 +257,7 @@ export function AssistantLauncher({
       >
         <div
           ref={scrollRef}
-          className="flex-1 space-y-4 overflow-y-auto px-4 py-4 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+          className="flex-1 space-y-4 overflow-y-auto design-scrollbar px-4 py-4 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
         >
           {messages.length === 0 ? (
             <div className="flex items-start gap-2.5">
@@ -262,9 +271,14 @@ export function AssistantLauncher({
               <div key={message.id} className="space-y-2">
                 <AssistantMessageBubble
                   message={message}
-                  animateIn={message.id === animatingMsgId && message.role === "assistant"}
+                  animateIn={
+                    message.id === animatingMsgId &&
+                    message.role === "assistant"
+                  }
                   onAnimationDone={() =>
-                    setAnimatingMsgId((current) => (current === message.id ? null : current))
+                    setAnimatingMsgId((current) =>
+                      current === message.id ? null : current,
+                    )
                   }
                 />
                 {message.pending_action ? (
@@ -289,7 +303,9 @@ export function AssistantLauncher({
                   <span
                     key={i}
                     className="h-1.5 w-1.5 rounded-full bg-text-muted"
-                    style={{ animation: `thinking-dot 1.2s ease-in-out ${i * 0.2}s infinite` }}
+                    style={{
+                      animation: `thinking-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                    }}
                   />
                 ))}
               </span>
@@ -297,12 +313,17 @@ export function AssistantLauncher({
           ) : null}
         </div>
 
-        <SuggestedQuestions questions={questions} onPick={handleSend} disabled={sending} />
+        <SuggestedQuestions
+          questions={questions}
+          onPick={handleSend}
+          disabled={sending}
+        />
         <AssistantInput onSend={handleSend} disabled={sending} />
 
         {/* Disclaimer */}
         <p className="border-t border-surface-4 px-4 py-2 text-center text-[11px] text-text-disabled">
-          AI can make mistakes · The more you use PrepIQ, the smarter it learns your kitchen
+          AI can make mistakes · The more you use PrepIQ, the smarter it learns
+          your kitchen
         </p>
       </AssistantDrawer>
     </>
