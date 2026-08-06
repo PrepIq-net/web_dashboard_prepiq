@@ -92,6 +92,24 @@ section look interesting.
 Motion confirms a state change. It never entertains. Honor
 `prefers-reduced-motion` on every non-trivial animation.
 
+**Exception — media playback surfaces.** Playback UI may exceed these limits
+where the motion is a *readout of live media state*: waveform amplitude,
+playback position, buffering. That motion is data, not decoration, and it earns
+the exception only by behaving like data — driven by a real signal off the media
+element, stopping when playback stops, and replaced by a static equivalent under
+`prefers-reduced-motion`. Everything else on such a surface (its chrome, its
+transport controls, its entrance) obeys the normal rules, and the ban on bounce,
+elastic and spring easing is unchanged for every non-media surface.
+
+The only surface holding this exception today is the Today's Brief player
+(`components/dashboard/today/todays-brief-modal.tsx`). Adding a second one is a
+design decision, not a precedent to follow silently.
+
+A rAF loop is **not** covered by the global `prefers-reduced-motion` rule in
+`globals.css` — that rule collapses CSS transitions and cannot reach a canvas.
+Media surfaces must check `matchMedia('(prefers-reduced-motion: reduce)')` in
+JS and subscribe to its `change` event.
+
 ## 6. Voice
 
 Measured, strategic, precise. State facts:
@@ -169,10 +187,20 @@ which is genuinely dual-mode.)
 
 ### Motion
 
-No `framer-motion` in this repo. Animations are CSS keyframes in `globals.css`,
-exposed as utilities: `.animate-fade-in`, `.animate-step-forward`,
-`.animate-step-backward`, `.assistant-drawer-panel`. Reuse these before writing a
-new keyframe, and drive durations from `--motion-duration-standard`.
+Animations are CSS keyframes in `globals.css`, exposed as utilities:
+`.animate-fade-in`, `.animate-step-forward`, `.animate-step-backward`,
+`.assistant-drawer-panel`. Reuse these before writing a new keyframe, and drive
+durations from `--motion-duration-standard`.
+
+`framer-motion` is available but is **not** the default tool. Reach for it only
+when CSS genuinely cannot do the job:
+
+- a shared-element transition spanning two separate components (`layoutId`)
+- a media-playback surface, per the exception in §5
+
+Anything a CSS keyframe can express — a fade, a slide, a width change — stays a
+CSS keyframe. Wrap any `framer-motion` tree in `<MotionConfig reducedMotion="user">`
+so the library honors the OS setting without each component remembering to.
 
 ### Icons
 

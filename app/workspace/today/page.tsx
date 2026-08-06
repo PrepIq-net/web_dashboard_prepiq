@@ -43,6 +43,9 @@ import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/s
 import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
+import { TodaysBriefModal } from "@/components/dashboard/today/todays-brief-modal";
+import { TodaysBriefTrigger } from "@/components/dashboard/today/todays-brief-trigger";
+import { useMorningBriefVoice } from "@/services/assistant/hooks";
 import { InitializationWalkthrough } from "@/components/dashboard/today/initialization-walkthrough";
 import {
   MorningBriefDrawer,
@@ -80,6 +83,10 @@ import {
 import type { PendingAction } from "@/services/assistant/types";
 import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
 import { intelligenceJourneySummarySchema } from "@/services/production-intelligence/types";
+
+// Shared-element id tying the brief trigger to the modal it morphs into.
+// framer-motion matches the two by this string, so both must reference it.
+const BRIEF_LAYOUT_ID = "todays-brief-surface";
 
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
@@ -231,6 +238,8 @@ function TodayWorkspacePageContent() {
     unit: string;
   }>(null);
   const [briefDrawerOpen, setBriefDrawerOpen] = useState(false);
+  const [briefAudioOpen, setBriefAudioOpen] = useState(false);
+  const briefVoice = useMorningBriefVoice();
   const [explainRequest, setExplainRequest] = useState<{
     topic: string;
     nonce: number;
@@ -312,6 +321,15 @@ function TodayWorkspacePageContent() {
     }
     return map;
   }, [paceSummary]);
+
+  // Open the player first, then fetch: the modal owns the preparing state, and
+  // a cold brief takes several seconds to synthesize. Opening on success would
+  // leave the button looking inert for the whole wait.
+  const openBriefAudio = () => {
+    if (!safeBranchId) return;
+    setBriefAudioOpen(true);
+    briefVoice.mutate({ branch_id: safeBranchId, date: targetDate });
+  };
 
   // Assistant actions are executed server-side on confirm — just refresh the
   // data the action may have changed.
@@ -935,6 +953,15 @@ function TodayWorkspacePageContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
+            {safeBranchId && canUseAssistant ? (
+              <TodaysBriefTrigger
+                layoutId={BRIEF_LAYOUT_ID}
+                label={t("today.briefAudio.trigger")}
+                hint={t("today.briefAudio.triggerHint")}
+                loading={briefVoice.isPending}
+                onClick={openBriefAudio}
+              />
+            ) : null}
             {!canOperateToday && !loading ? (
               <span
                 className="inline-flex h-7 items-center rounded-full border border-surface-4 bg-surface-3/60 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
@@ -1274,6 +1301,19 @@ function TodayWorkspacePageContent() {
             />
           </>
         )}
+
+        <TodaysBriefModal
+          open={briefAudioOpen}
+          onClose={() => setBriefAudioOpen(false)}
+          loading={briefVoice.isPending}
+          brief={briefVoice.data ?? null}
+          error={briefVoice.isError ? t("today.briefAudio.error") : null}
+          layoutId={BRIEF_LAYOUT_ID}
+          // Re-requesting is the same call: the backend re-synthesizes a brief
+          // whose audio failed or has been purged, from the script it kept.
+          onGenerate={openBriefAudio}
+          generating={briefVoice.isPending}
+        />
 
         <MorningBriefDrawer
           open={briefDrawerOpen}

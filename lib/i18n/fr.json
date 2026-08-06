@@ -1618,6 +1618,23 @@
       "expectedToSell": "Ventes prévues",
       "haveOnHand": "Stock disponible",
       "markOutOfStock": "Signaler une rupture"
+    },
+    "briefAudio": {
+      "eyebrow": "Briefing audio",
+      "title": "Le brief du jour",
+      "trigger": "Le brief du jour",
+      "triggerHint": "Écouter le brief du jour",
+      "play": "Lire",
+      "pause": "Pause",
+      "replay": "Réécouter depuis le début",
+      "close": "Fermer le brief",
+      "speed": "Vitesse de lecture",
+      "transcript": "Transcription",
+      "preparing": "Préparation de votre brief. Cela prend quelques secondes la première fois chaque jour.",
+      "unavailable": "L'audio n'est pas disponible pour le moment. Le brief écrit est ci-dessous.",
+      "error": "Impossible de charger le brief du jour. Réessayez dans un instant.",
+      "generate": "Générer l'audio",
+      "generating": "Génération"
     }
   },
   "profile": {

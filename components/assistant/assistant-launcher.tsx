@@ -110,6 +110,7 @@ export function AssistantLauncher({
       role: "user",
       content: `Explain: ${explainRequest.topic}`,
       pending_action: null,
+      metadata: null,
       created_at: new Date().toISOString(),
     };
     setMessages([userMsg]);
@@ -153,6 +154,7 @@ export function AssistantLauncher({
         role: "user",
         content: text,
         pending_action: null,
+        metadata: null,
         created_at: new Date().toISOString(),
       },
     ]);
