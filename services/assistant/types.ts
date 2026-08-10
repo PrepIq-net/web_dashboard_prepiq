@@ -31,8 +31,23 @@ export type AssistantMessage = {
   role: AssistantRole;
   content: string;
   pending_action: PendingAction | null;
+  /**
+   * Open-ended annotations on a turn, discriminated by `kind`. Currently only
+   * `morning_brief_audio`, which marks a turn as a spoken brief the player can
+   * reopen and replay. Unknown kinds must render as a plain message.
+   */
+  metadata: AssistantMessageMetadata | null;
   created_at: string;
 };
+
+export type AssistantMessageMetadata =
+  | {
+      kind: "morning_brief_audio";
+      audio_id: string;
+      target_date: string;
+      duration_ms: number | null;
+    }
+  | { kind: string; [key: string]: unknown };
 
 export type AssistantConversation = {
   id: string;
@@ -177,4 +192,62 @@ export type CommandResponse = {
   proposal?: CommandProposal;
   answer?: string;
   error?: { code: CommandErrorCode; detail: string };
+};
+
+/* ── Spoken morning brief ("Today's Brief") ───────────────────────────────── */
+
+export type BriefSectionKey =
+  | "greeting"
+  | "context"
+  | "prep"
+  | "supply"
+  | "signoff";
+
+export type BriefScriptSection = {
+  /** Backend may add sections; treat unknown keys as renderable prose. */
+  key: BriefSectionKey | (string & {});
+  text: string;
+  start_ms: number;
+  end_ms: number;
+};
+
+export type BriefAudioTrack = {
+  url: string;
+  mime_type: string;
+  duration_ms: number | null;
+  voice: string;
+  provider: string;
+  expires_at: string | null;
+};
+
+export type MorningBriefVoiceStatus = "PENDING" | "READY" | "FAILED" | "PURGED";
+
+export type MorningBriefVoice = {
+  id: string;
+  branch_id: string;
+  target_date: string;
+  status: MorningBriefVoiceStatus;
+  locale: string;
+  generated_by: string;
+  script: {
+    text: string;
+    sections: BriefScriptSection[];
+    /**
+     * True when section offsets were apportioned by character count rather
+     * than reported by the speech engine. The player rescales them against the
+     * real audio duration before using them to highlight.
+     */
+    timings_estimated: boolean;
+  };
+  /** Null whenever synthesis was unavailable — the transcript still renders. */
+  audio: BriefAudioTrack | null;
+  unavailable_reason: string;
+  conversation_id: string | null;
+  message_id: string | null;
+  created_at: string;
+};
+
+export type MorningBriefVoicePayload = {
+  branch_id: string;
+  date?: string;
 };

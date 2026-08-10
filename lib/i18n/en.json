@@ -1618,6 +1618,23 @@
       "expectedToSell": "Expected to sell",
       "haveOnHand": "Have on hand",
       "markOutOfStock": "Mark out of stock"
+    },
+    "briefAudio": {
+      "eyebrow": "Spoken brief",
+      "title": "Today's Brief",
+      "trigger": "Today's Brief",
+      "triggerHint": "Listen to today's brief",
+      "play": "Play",
+      "pause": "Pause",
+      "replay": "Replay from the start",
+      "close": "Close brief",
+      "speed": "Playback speed",
+      "transcript": "Transcript",
+      "preparing": "Preparing your brief. This takes a few seconds the first time each day.",
+      "unavailable": "Audio isn't available right now. The written brief is below.",
+      "error": "Couldn't load today's brief. Try again in a moment.",
+      "generate": "Generate audio",
+      "generating": "Generating"
     }
   },
   "profile": {
