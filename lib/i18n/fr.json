@@ -126,6 +126,7 @@
     "otpVerificationFailed": "Échec de la vérification du code.",
     "networkError": "Erreur réseau. Veuillez réessayer.",
     "securityProtocol": "Protocole de sécurité",
+    "verificationSequence": "Séquence de vérification",
     "resetPasswordTitle": "Réinitialiser le mot de passe.",
     "resetPasswordSubtitle": "Entrez votre e-mail professionnel pour recevoir les instructions de récupération.",
     "registeredEmail": "E-mail enregistré",
