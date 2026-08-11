@@ -202,6 +202,24 @@ Anything a CSS keyframe can express — a fade, a slide, a width change — stay
 CSS keyframe. Wrap any `framer-motion` tree in `<MotionConfig reducedMotion="user">`
 so the library honors the OS setting without each component remembering to.
 
+### Scrollbars
+
+Any scrollable container (`overflow-y-auto`, `overflow-x-auto`) uses the
+`.scrollbar-thin` utility class from `globals.css` — a 4px thumb,
+fully rounded, transparent track, `--color-scrollbar-thumb` at rest and
+`--color-scrollbar-thumb-hover` on hover. Reference implementation: the
+dashboard sidebar's nav list (`components/dashboard/sidebar.tsx`).
+
+```tsx
+<div className="overflow-y-auto scrollbar-thin">…</div>
+```
+
+Do not re-inline `[scrollbar-width:thin] [&::-webkit-scrollbar]:...` —
+that arbitrary-value pattern was copy-pasted across a dozen components with
+drifting widths (4px vs 6px) and an un-tokenized hover hex before it was
+consolidated into this one class. `scrollbar-none` (Tailwind core) is still
+correct for the rare case where a scrollbar should be hidden entirely.
+
 ### Icons
 
 `iconoir-react`, outlined, `strokeWidth 1.5`, sized in `em` so they track text.
@@ -286,3 +304,4 @@ Typical order for a UI task: `design-tokens` (if tokens involved) → build →
 - [ ] Interactive elements have a visible focus ring
 - [ ] Copy is factual and operational
 - [ ] No `dark:` variants added (this app is dark-only)
+- [ ] Scrollable containers use `.scrollbar-thin`, not an inlined `[&::-webkit-scrollbar]` block

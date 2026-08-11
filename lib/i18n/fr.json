@@ -157,7 +157,24 @@
     "passwordResetSuccess": "Mot de passe réinitialisé. Redirection vers la connexion...",
     "resetPasswordsMismatch": "Les mots de passe ne correspondent pas.",
     "resetPasswordTooShort": "Le mot de passe doit comporter au moins 8 caractères.",
-    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer."
+    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer.",
+    "showcase": {
+      "today": {
+        "route": "Signal IA · Aujourd'hui",
+        "headline": "Commencez la journée en sachant déjà quoi préparer",
+        "pitch": "Matin, service en direct et clôture — un seul écran suit la cuisine par rapport au plan toute la journée, et reste honnête en cas d'écart."
+      },
+      "analysis": {
+        "route": "Signal IA · Analyse",
+        "headline": "Il vous dit ce que signifient les chiffres",
+        "pitch": "Un résumé quotidien, des explications de cause profonde et des opportunités concrètes — pas un simple tableau de bord de plus."
+      },
+      "planning": {
+        "route": "Signal IA · Planification",
+        "headline": "Indiquez-lui ce qui s'annonce, il se met à prévoir",
+        "pitch": "Promotions, événements, météo, jours fériés — chaque signal du calendrier affine la prévision de demain."
+      }
+    }
   },
   "dashboard": {
     "sidebar": {

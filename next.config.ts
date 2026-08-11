@@ -42,6 +42,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
       // Django backend — used in dev (local filesystem storage)
       backendImagePattern(),
+      // Stock photos for the /login showcase panel (components/auth/showcase-carousel.tsx)
+      { protocol: "https", hostname: "images.nappy.co" },
+      { protocol: "https", hostname: "images.pexels.com" },
     ],
   },
 };

@@ -31,7 +31,7 @@ export function ConversationReadonly({
       title="Conversation"
       subtitle={conversation ? PHASE_LABEL[conversation.phase] ?? "" : ""}
     >
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 scrollbar-thin">
         {detail.isLoading ? (
           <p className="text-sm text-text-muted">Loading conversation…</p>
         ) : messages.length === 0 ? (
