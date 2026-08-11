@@ -59,7 +59,19 @@ export type NavPageId =
   | "profile"
   | "support";
 
-export type NavSectionKey = "operations" | "analytics" | "management" | "workspace";
+// "operations" used to be one 8-item bucket covering everything from the
+// daily prep plan to staff rosters to inventory — busy enough that new items
+// kept landing in it by default. Split by how the page is actually used:
+// `execution` is "working the floor right now", `planningResources` is
+// "setting up for a day that hasn't happened yet". `overview` is unlabeled
+// visual weight for the two pages that double as someone's landing page
+// (see `homeHref` in the sidebar).
+export type NavSectionKey =
+  | "overview"
+  | "execution"
+  | "planningResources"
+  | "analytics"
+  | "management";
 
 export interface NavPage {
   id: NavPageId;
@@ -75,18 +87,26 @@ export interface NavPage {
   anyPermission?: string[];
   /** Sidebar section; pages without one are palette/deep-link only. */
   sectionKey?: NavSectionKey;
+  /**
+   * One-line "what is this" shown as a hover tooltip in the sidebar. Optional
+   * on purpose — only worth writing for pages whose purpose or name isn't
+   * self-evident; skip it rather than pad every entry with filler.
+   */
+  descriptionKey?: string;
   /** Lowercase search terms for palette filtering (labels match too). */
   keywords: string[];
 }
 
 export const NAV_SECTION_TITLES: { key: NavSectionKey; titleKey: string }[] = [
-  { key: "operations", titleKey: "dashboard.sidebar.operations" },
+  { key: "overview", titleKey: "sidebar.section.overview" },
+  { key: "execution", titleKey: "sidebar.section.execution" },
+  { key: "planningResources", titleKey: "sidebar.section.planningResources" },
   { key: "analytics", titleKey: "sidebar.section.analytics" },
   { key: "management", titleKey: "sidebar.section.management" },
-  { key: "workspace", titleKey: "sidebar.section.workspace" },
 ];
 
 export const NAV_PAGES: NavPage[] = [
+  // ── Overview — the two pages that function as someone's landing page ────
   {
     id: "dashboard",
     href: "/workspace/dashboard",
@@ -95,7 +115,8 @@ export const NAV_PAGES: NavPage[] = [
     // The page redirects anyone without one of these to Today, so showing the
     // link to them was an invitation to a bounce.
     anyPermission: DASHBOARD_ACCESS_PERMISSIONS,
-    sectionKey: "operations",
+    sectionKey: "overview",
+    descriptionKey: "sidebar.description.dashboard",
     keywords: ["home", "overview", "main", "control tower"],
   },
   {
@@ -104,48 +125,20 @@ export const NAV_PAGES: NavPage[] = [
     labelKey: "sidebar.today",
     icon: Clock,
     permission: PERMISSIONS.VIEW_FORECASTS,
-    sectionKey: "operations",
+    sectionKey: "overview",
+    descriptionKey: "sidebar.description.today",
     keywords: ["today's plan", "day plan", "prep plan", "forecast"],
   },
-  {
-    id: "planning",
-    href: "/workspace/planning",
-    labelKey: "sidebar.planning",
-    icon: Calendar,
-    permission: PERMISSIONS.VIEW_CALENDAR,
-    // "schedule" now belongs to the Schedule page below; leaving it here would
-    // make the deterministic router send "open the schedule" to the calendar.
-    keywords: ["calendar", "planner", "events"],
-    sectionKey: "operations",
-  },
-  {
-    id: "schedule",
-    href: "/workspace/schedule",
-    labelKey: "sidebar.schedule",
-    icon: Community,
-    permission: PERMISSIONS.VIEW_TEAM_SCHEDULE,
-    sectionKey: "operations",
-    keywords: [
-      "schedule",
-      "team schedule",
-      "staff schedule",
-      "shifts",
-      "roster",
-      "rota",
-      "staffing",
-      "availability",
-      "coverage",
-      "labor",
-      "who works",
-    ],
-  },
+
+  // ── Daily execution — working the floor right now ───────────────────────
   {
     id: "tasks",
     href: "/workspace/tasks",
     labelKey: "sidebar.tasks",
     icon: TaskList,
     permission: PERMISSIONS.VIEW_TASK_BOARD,
-    sectionKey: "operations",
+    sectionKey: "execution",
+    descriptionKey: "sidebar.description.tasks",
     // "prep plan" stays with Today: the plan is quantities, the board is
     // who is doing what. Mirrors backend ai_assistant/command/pages.py.
     keywords: [
@@ -166,8 +159,55 @@ export const NAV_PAGES: NavPage[] = [
     labelKey: "sidebar.production",
     icon: GraphUp,
     permission: PERMISSIONS.CREATE_PRODUCTION_BATCH,
-    sectionKey: "operations",
+    sectionKey: "execution",
+    descriptionKey: "sidebar.description.production",
     keywords: ["production batches", "batches", "kitchen production"],
+  },
+  {
+    id: "chat",
+    href: "/workspace/chat",
+    labelKey: "sidebar.chat",
+    icon: ChatBubble,
+    permission: PERMISSIONS.ACCESS_GLOBAL_CHAT,
+    sectionKey: "execution",
+    descriptionKey: "sidebar.description.chat",
+    keywords: ["operations hub", "hub", "messages", "team chat"],
+  },
+
+  // ── Planning & resources — setting up for a day that hasn't happened yet ─
+  {
+    id: "planning",
+    href: "/workspace/planning",
+    labelKey: "sidebar.planning",
+    icon: Calendar,
+    permission: PERMISSIONS.VIEW_CALENDAR,
+    // "schedule" now belongs to the Schedule page below; leaving it here would
+    // make the deterministic router send "open the schedule" to the calendar.
+    keywords: ["calendar", "planner", "events"],
+    sectionKey: "planningResources",
+    descriptionKey: "sidebar.description.planning",
+  },
+  {
+    id: "schedule",
+    href: "/workspace/schedule",
+    labelKey: "sidebar.schedule",
+    icon: Community,
+    permission: PERMISSIONS.VIEW_TEAM_SCHEDULE,
+    sectionKey: "planningResources",
+    descriptionKey: "sidebar.description.schedule",
+    keywords: [
+      "schedule",
+      "team schedule",
+      "staff schedule",
+      "shifts",
+      "roster",
+      "rota",
+      "staffing",
+      "availability",
+      "coverage",
+      "labor",
+      "who works",
+    ],
   },
   {
     id: "inventory",
@@ -175,18 +215,12 @@ export const NAV_PAGES: NavPage[] = [
     labelKey: "sidebar.inventory",
     icon: Package,
     permission: PERMISSIONS.VIEW_INVENTORY,
-    sectionKey: "operations",
+    sectionKey: "planningResources",
+    descriptionKey: "sidebar.description.inventory",
     keywords: ["stock", "items", "recipes", "menu items"],
   },
-  {
-    id: "history",
-    href: "/workspace/history",
-    labelKey: "sidebar.history",
-    icon: ClockRotateRight,
-    permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
-    sectionKey: "operations",
-    keywords: ["past days", "operations history", "day history"],
-  },
+
+  // ── Analytics — what happened, why, and what it means ───────────────────
   {
     id: "analysis",
     href: "/workspace/analysis",
@@ -200,6 +234,7 @@ export const NAV_PAGES: NavPage[] = [
       PERMISSIONS.VIEW_PRODUCTION_REPORTS,
     ],
     sectionKey: "analytics",
+    descriptionKey: "sidebar.description.analysis",
     keywords: [
       "analyst",
       "prepiq analyst",
@@ -228,6 +263,7 @@ export const NAV_PAGES: NavPage[] = [
       PERMISSIONS.VIEW_INVENTORY,
     ],
     sectionKey: "analytics",
+    descriptionKey: "sidebar.description.intelligenceJourney",
     // "intelligence" stays here but is absent from the backend registry: the
     // palette lists every match, so sharing the word with `analysis` is
     // helpful, whereas the assistant's router resolves to one page and would
@@ -252,6 +288,7 @@ export const NAV_PAGES: NavPage[] = [
     icon: StatsReport,
     permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
     sectionKey: "analytics",
+    descriptionKey: "sidebar.description.salesWaste",
     keywords: ["sales", "waste", "sales report", "waste report"],
   },
   {
@@ -261,6 +298,7 @@ export const NAV_PAGES: NavPage[] = [
     icon: Coins,
     permission: PERMISSIONS.VIEW_FINANCIAL_DATA,
     sectionKey: "analytics",
+    descriptionKey: "sidebar.description.financial",
     keywords: ["finance", "financials", "money", "revenue"],
   },
   {
@@ -270,8 +308,23 @@ export const NAV_PAGES: NavPage[] = [
     icon: Group,
     permission: PERMISSIONS.MANAGE_TEAM,
     sectionKey: "analytics",
+    descriptionKey: "sidebar.description.staffPerformance",
     keywords: ["staff performance", "team performance", "team", "employees"],
   },
+  {
+    id: "history",
+    href: "/workspace/history",
+    labelKey: "sidebar.history",
+    icon: ClockRotateRight,
+    permission: PERMISSIONS.VIEW_PRODUCTION_REPORTS,
+    // Lives with the rest of Analytics now — it's a lookback, not a same-day
+    // execution tool, so it never belonged next to Tasks and Production.
+    sectionKey: "analytics",
+    descriptionKey: "sidebar.description.history",
+    keywords: ["past days", "operations history", "day history"],
+  },
+
+  // ── Management — org- and branch-level configuration ────────────────────
   {
     id: "branches",
     href: "/workspace/branches",
@@ -279,6 +332,7 @@ export const NAV_PAGES: NavPage[] = [
     icon: Shop,
     permission: PERMISSIONS.MANAGE_BRANCHES,
     sectionKey: "management",
+    descriptionKey: "sidebar.description.branches",
     keywords: ["locations", "stores", "sites", "branch list"],
   },
   {
@@ -288,6 +342,7 @@ export const NAV_PAGES: NavPage[] = [
     icon: Cart,
     permission: PERMISSIONS.MANAGE_INVENTORY,
     sectionKey: "management",
+    descriptionKey: "sidebar.description.purchasing",
     keywords: ["procurement", "purchase orders", "buying", "suppliers"],
   },
   {
@@ -297,6 +352,7 @@ export const NAV_PAGES: NavPage[] = [
     icon: ShieldAlert,
     permission: PERMISSIONS.VIEW_COMPLIANCE,
     sectionKey: "management",
+    descriptionKey: "sidebar.description.risk",
     keywords: ["risks", "alerts", "risk center", "compliance"],
   },
   {
@@ -306,25 +362,23 @@ export const NAV_PAGES: NavPage[] = [
     icon: CreditCard,
     permission: PERMISSIONS.MANAGE_BILLING,
     sectionKey: "management",
+    descriptionKey: "sidebar.description.billing",
     keywords: ["billing settings", "subscription", "plan", "payment", "invoices", "upgrade"],
-  },
-  {
-    id: "chat",
-    href: "/workspace/chat",
-    labelKey: "sidebar.chat",
-    icon: ChatBubble,
-    permission: PERMISSIONS.ACCESS_GLOBAL_CHAT,
-    sectionKey: "workspace",
-    keywords: ["operations hub", "hub", "messages", "team chat"],
   },
   {
     id: "settings",
     href: "/workspace/settings",
     labelKey: "sidebar.settings",
     icon: Settings,
-    sectionKey: "workspace",
+    // Was its own single-item "Workspace" section; org/workspace configuration
+    // reads more naturally next to Branches, Purchasing, Risk, and Billing
+    // than alone under its own heading.
+    sectionKey: "management",
+    descriptionKey: "sidebar.description.settings",
     keywords: ["workspace settings", "preferences", "configuration", "security"],
   },
+
+  // ── Palette / deep-link only — already one click away via the top bar ───
   {
     id: "notifications",
     href: "/workspace/notifications",
