@@ -1,9 +1,9 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -60,8 +60,7 @@ function coachingTone(value: StaffPerformanceRow["coaching_priority"]) {
 
 export default function StaffPerformancePage() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_TEAM);
   const canManageStaff = permissions.has(PERMISSIONS.MANAGE_TEAM);
@@ -84,11 +83,7 @@ export default function StaffPerformancePage() {
     canAccess,
   );
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const branches = (branchesQuery.data ?? EMPTY_BRANCHES) as typeof branchesQuery.data extends Array<infer T>
     ? T[]

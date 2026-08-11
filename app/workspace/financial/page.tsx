@@ -1,9 +1,9 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -86,8 +86,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 
 export default function FinancialPage() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
 
@@ -114,11 +113,7 @@ export default function FinancialPage() {
     canAccess && Boolean(user?.organization_id),
   );
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [isLoading, canAccess]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const financialData = financialQuery.data;
 

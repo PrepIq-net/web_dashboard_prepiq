@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Plus, EditPencil, ArrowRight, MediaImage, SparksSolid, Check } from "iconoir-react";
 import {
   createColumnHelper,
@@ -18,6 +18,7 @@ import {
   useProductionIntelligenceAccessScope,
 } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useSelectedBranch } from "@/services/context/branch-store";
 import {
@@ -68,12 +69,11 @@ export default function InventoryPage() {
 }
 
 function InventoryPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const urlBranchId = searchParams.get("branch") ?? "";
   const urlTab = searchParams.get("tab") as TabId | null;
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
@@ -107,9 +107,7 @@ function InventoryPageContent() {
     urlTab && TAB_IDS.some((id) => id === urlTab) ? urlTab : "ingredients"
   );
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const canLoadData = Boolean(branchId && user?.organization_id);
