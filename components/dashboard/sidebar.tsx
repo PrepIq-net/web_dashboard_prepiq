@@ -202,10 +202,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 
       {/* ── Navigation ─────────────────────────────────────────────────── */}
       <div
-        className={`flex-1 overflow-y-auto py-4
-          [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent]
-          [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent
-          [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]
+        className={`flex-1 overflow-y-auto py-4 scrollbar-thin
           ${collapsed ? "px-2" : "px-3"}`}
       >
         {visibleSections.map((section, index) => (

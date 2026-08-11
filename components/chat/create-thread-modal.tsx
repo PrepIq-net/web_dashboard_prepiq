@@ -134,7 +134,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-6 max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Conversation Type"
@@ -235,7 +235,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
                 className="h-10 w-full rounded-lg border border-surface-4 bg-surface-3 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted transition-colors hover:border-surface-4 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
               />
             </div>
-            <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 p-2 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 p-2 scrollbar-thin">
               {filteredMembers.length ? (
                 filteredMembers.map((member) => {
                   const selected = selectedParticipantIds.includes(member.userId);

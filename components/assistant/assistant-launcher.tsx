@@ -250,7 +250,7 @@ export function AssistantLauncher({
       >
         <div
           ref={scrollRef}
-          className="flex-1 space-y-4 overflow-y-auto px-4 py-4 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+          className="flex-1 space-y-4 overflow-y-auto px-4 py-4 scrollbar-thin"
         >
           {messages.length === 0 ? (
             <div className="flex items-start gap-2.5">

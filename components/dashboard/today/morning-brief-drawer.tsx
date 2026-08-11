@@ -138,7 +138,7 @@ export function MorningBriefDrawer({
           </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 [scrollbar-width:thin]">
+        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 scrollbar-thin">
           {/* Full narrative */}
           <p className="text-sm leading-relaxed text-text-secondary">
             {brief.narrative}

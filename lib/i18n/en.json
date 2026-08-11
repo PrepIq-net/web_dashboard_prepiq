@@ -157,7 +157,24 @@
     "passwordResetSuccess": "Password reset successfully. Redirecting to login...",
     "resetPasswordsMismatch": "Passwords do not match.",
     "resetPasswordTooShort": "Password must be at least 8 characters.",
-    "resetFailed": "Reset failed. Please try again."
+    "resetFailed": "Reset failed. Please try again.",
+    "showcase": {
+      "today": {
+        "route": "AI Signal · Today",
+        "headline": "Start the day already knowing what to cook",
+        "pitch": "Morning, live, and closed — one screen tracks the kitchen against the plan all day, and stays honest when it drifts."
+      },
+      "analysis": {
+        "route": "AI Signal · Analysis",
+        "headline": "It tells you what the numbers mean",
+        "pitch": "A daily summary, root-cause explanations, and concrete opportunities — not just another dashboard."
+      },
+      "planning": {
+        "route": "AI Signal · Planning",
+        "headline": "Tell it what's coming, it starts predicting",
+        "pitch": "Promotions, events, weather, holidays — every signal on the calendar sharpens tomorrow's forecast."
+      }
+    }
   },
   "dashboard": {
     "sidebar": {
