@@ -8,6 +8,7 @@ import { Shop, Calendar } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { isDiscreteUnit, todayIso } from "@/lib/format";
 import { BranchCurrencyProvider } from "@/lib/branch-currency";
@@ -95,7 +96,7 @@ function TodayWorkspacePageContent() {
   const searchParams = useSearchParams();
 
   // ── Context: user, branches, date ─────────────────────────────────────────
-  const { user, branchOptions, defaultBranch, isLoading } = useBranchOptions();
+  const { user, branchOptions, defaultBranch, isLoading, isError } = useBranchOptions();
   const canAccess = Boolean(user?.has_organization);
 
   // Mirror of the backend gate on branch-day mutations (status, lock, plan
@@ -138,12 +139,7 @@ function TodayWorkspacePageContent() {
     setBranchId(defaultBranch.id);
   }, [branchId, branchOptions, defaultBranch?.id, setBranchId]);
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canAccess]);
+  useAccessGate({ canAccess, isPending: isLoading, isError });
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
   const {

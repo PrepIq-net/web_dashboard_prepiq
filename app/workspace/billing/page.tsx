@@ -1,10 +1,11 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Brain,
   CheckCircle,
@@ -388,9 +389,8 @@ function GracePeriodBanner({ subscription }: { subscription: SubscriptionList })
 
 export default function BillingPage() {
   const { t } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.MANAGE_BILLING);
 
@@ -438,9 +438,7 @@ export default function BillingPage() {
   const summarySubscriptions =
     activeSubscriptions.length > 0 ? activeSubscriptions : subscriptions;
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const activeBranches = useMemo(
     () => branches.filter((b: Branch) => b.is_active),
