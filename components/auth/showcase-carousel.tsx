@@ -69,27 +69,30 @@ const TICK_MS = 100;
  */
 export function ShowcaseCarousel() {
   const { t } = useTranslation();
-  const [active, setActive] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
+  // active + elapsed are one state object, updated by one setState call per
+  // tick, whose updater is pure (no nested setState). Splitting these into
+  // two useState calls previously meant the elapsed-updater triggered
+  // setActive as a side effect — React is allowed to invoke a functional
+  // updater more than once per commit, which occasionally fired setActive
+  // twice for a single tick and skipped a slide (0 -> 2 instead of 0 -> 1).
+  const [{ active, elapsed }, setSlideState] = useState({ active: 0, elapsed: 0 });
   const [photoFailed, setPhotoFailed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const id = setInterval(() => {
-      setElapsed((current) => {
-        const next = current + TICK_MS;
-        if (next >= SLIDE_DURATION_MS) {
-          setActive((a) => (a + 1) % SLIDES.length);
-          return 0;
+      setSlideState((current) => {
+        const nextElapsed = current.elapsed + TICK_MS;
+        if (nextElapsed >= SLIDE_DURATION_MS) {
+          return { active: (current.active + 1) % SLIDES.length, elapsed: 0 };
         }
-        return next;
+        return { ...current, elapsed: nextElapsed };
       });
     }, TICK_MS);
     return () => clearInterval(id);
   }, []);
 
   function goTo(index: number) {
-    setActive(index);
-    setElapsed(0);
+    setSlideState({ active: index, elapsed: 0 });
   }
 
   const progress = Math.min(100, (elapsed / SLIDE_DURATION_MS) * 100);
