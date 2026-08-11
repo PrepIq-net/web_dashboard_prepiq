@@ -30,7 +30,6 @@ import {
   useEvaluatePrepPlan,
   useInitializeBranchDay,
   useLockBranchDayPlan,
-  useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
   productionIntelligenceQueryKeys,
@@ -63,7 +62,6 @@ import {
 } from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
 import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
-import { SystemHealthBanner } from "@/components/dashboard/today/system-health-banner";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
@@ -165,9 +163,6 @@ function TodayWorkspacePageContent() {
   const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
   const createProductionLogMutation = useCreateProductionLog({
-    skipInvalidate: true,
-  });
-  const salesQuickEntryMutation = useSalesManualQuickEntry({
     skipInvalidate: true,
   });
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
@@ -751,75 +746,18 @@ function TodayWorkspacePageContent() {
     );
   };
 
-  const quickTapSale = (
-    prepPlanItemId: string,
-    item: { product_id: string; unit: string },
-    quantitySold: number,
-  ) => {
-    if (!branchId) return;
-    const normalizedQty = isDiscreteUnit(item.unit)
-      ? Math.round(quantitySold)
-      : quantitySold;
-    const snapshot = applyOptimisticLiveMonitor(prepPlanItemId, (live) => ({
-      sold: live.sold + normalizedQty,
-    }));
-    salesQuickEntryMutation.mutate(
-      {
-        branch_id: branchId,
-        target_date: targetDate,
-        items: [
-          {
-            item_id: item.product_id,
-            quantity_sold: normalizedQty,
-            unit: item.unit,
-            notes: "Live quick tap sale",
-          },
-        ],
-      },
-      {
-        onSuccess: (data) => {
-          const liveMap = data?.live_monitor_by_item ?? {};
-          if (!snapshot || !Object.keys(liveMap).length) return;
-          queryClient.setQueryData(
-            snapshot.queryKey,
-            (existing: typeof branchDay | undefined) => {
-              if (!existing) return existing;
-              return {
-                ...existing,
-                prep_plan_items: existing.prep_plan_items.map((row) =>
-                  liveMap[row.id] ? { ...row, live_monitor: liveMap[row.id] } : row,
-                ),
-              };
-            },
-          );
-        },
-        onError: () => {
-          if (snapshot) {
-            queryClient.setQueryData(snapshot.queryKey, snapshot.previous);
-          }
-        },
-      },
-    );
-  };
-
   // Slow safety refetch behind the version cursor: catches anything the
   // version signal misses (e.g. Redis down) without hammering the API.
   useEffect(() => {
     if (!isLive || !branchDay?.id) return;
-    if (createProductionLogMutation.isPending || salesQuickEntryMutation.isPending) {
+    if (createProductionLogMutation.isPending) {
       return;
     }
     const interval = window.setInterval(() => {
       todayQuery.refetch();
     }, 120_000);
     return () => window.clearInterval(interval);
-  }, [
-    isLive,
-    branchDay?.id,
-    todayQuery,
-    createProductionLogMutation.isPending,
-    salesQuickEntryMutation.isPending,
-  ]);
+  }, [isLive, branchDay?.id, todayQuery, createProductionLogMutation.isPending]);
 
   // ── Status line ───────────────────────────────────────────────────────────
   const loading = isLoading || todayQuery.isLoading || initializeMutation.isPending;
@@ -1061,15 +999,6 @@ function TodayWorkspacePageContent() {
               <MyTasksCard date={branchDay.date} />
             ) : null}
 
-            {/* ── How much PrepIQ actually knows about this kitchen yet ──
-                Sits above the signals because it frames everything below it: a
-                number is read differently once you know it is borrowed. */}
-            {!walkthroughActive && branchDay?.intelligence_journey ? (
-              <IntelligenceJourneyBanner
-                summary={branchDay.intelligence_journey}
-              />
-            ) : null}
-
             {/* ── Persistent Demand Signals banner — all three phases ── */}
             {!walkthroughActive && branchDay ? (
               <DemandSignalsBanner branchDay={branchDay} />
@@ -1167,7 +1096,9 @@ function TodayWorkspacePageContent() {
                 targetDate={targetDate}
                 enabled={canFetchData}
               />
-              <SystemHealthBanner systemHealth={branchDay.system_health} />
+              {/* LiveMonitorSection renders this same system_health note
+                  itself, right above the grid it's actually about — a
+                  second copy up here just duplicated it. */}
               <LiveMonitorSection
                 branchDay={branchDay}
                 criticalRows={criticalRows}
@@ -1181,7 +1112,6 @@ function TodayWorkspacePageContent() {
                 closePending={updateBranchDayStatusMutation.isPending}
                 onCloseDay={() => setConfirmAction("CLOSE_DAY")}
                 onRecordProduction={setRecordItem}
-                onQuickSale={quickTapSale}
                 onLogWaste={setWasteItem}
                 branchId={safeBranchId}
                 targetDate={targetDate}
@@ -1226,6 +1156,17 @@ function TodayWorkspacePageContent() {
                   {t("today.noActivePrepItems")}
                 </p>
               </div>
+            ) : null}
+
+            {/* ── How much PrepIQ actually knows about this kitchen yet ──
+                Last on the page by design: everything above is what that
+                knowledge produced today (plan, signals, live status), so
+                the "how sure should you be" framing reads better as a
+                closing note than as the first thing a chef sees. */}
+            {!walkthroughActive && branchDay?.intelligence_journey ? (
+              <IntelligenceJourneyBanner
+                summary={branchDay.intelligence_journey}
+              />
             ) : null}
 
             <ConfirmActionModal

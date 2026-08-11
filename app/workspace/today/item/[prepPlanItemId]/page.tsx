@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { ScenarioBarChart } from "@/components/dashboard/scenario-bar-chart";
@@ -11,10 +12,12 @@ import { ConfidenceBreakdown } from "@/components/dashboard/today/confidence-bre
 import { ItemVelocityChart } from "@/components/dashboard/today/item-velocity-chart";
 import { useCurrentUserProfile } from "@/services";
 import {
+  productionIntelligenceQueryKeys,
   useAdvancedForecast,
   useBranchDayToday,
   useForecastMetrics,
   useIntradayTimeline,
+  useSalesManualQuickEntry,
   useUpdatePrepPlanItem,
 } from "@/services/production-intelligence/hooks";
 import { useIngredientDemand } from "@/services/inventory/hooks";
@@ -325,6 +328,7 @@ function DeepDiveContent() {
 
   const { data: user } = useCurrentUserProfile();
   const resolvedOrgId = orgId || user?.organization_id || "";
+  const queryClient = useQueryClient();
 
   const advancedForecastQuery = useAdvancedForecast(
     { branch_id: branchId, item_id: productId, target_date: targetDate },
@@ -346,6 +350,12 @@ function DeepDiveContent() {
   );
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
   const ingredientDemandMutation = useIngredientDemand(branchId, targetDate, productId);
+  // Manual "+1 Sold" lives here, not on the Today grid card — it's a low-key
+  // nudge for a sale the POS/connector/CSV feed hasn't caught up on yet, not
+  // the default way to record sales. skipInvalidate: the click handler below
+  // patches the cache optimistically and again from the response, so an
+  // auto-invalidate refetch on top would just be a redundant GET.
+  const quickSaleMutation = useSalesManualQuickEntry({ skipInvalidate: true });
 
   const [ingredientData, setIngredientData] = useState<any>(null);
   const [ingredientLoaded, setIngredientLoaded] = useState(false);
@@ -509,6 +519,75 @@ function DeepDiveContent() {
     } catch {
       setSubmitState("error");
     }
+  }
+
+  function handleQuickSale() {
+    if (!branchId || !productId || !prepPlanItemId || quickSaleMutation.isPending) {
+      return;
+    }
+
+    // Optimistic: bump sold/remaining in the cache immediately so the tap
+    // feels instant, rather than sitting on a spinner for the round trip.
+    // Reconciled with the server's real numbers on success, rolled back on
+    // failure.
+    const queryKey = productionIntelligenceQueryKeys.branchDayToday({
+      branch_id: branchId,
+      date: targetDate,
+    });
+    const previous = queryClient.getQueryData<typeof branchDay>(queryKey);
+    if (previous) {
+      queryClient.setQueryData(queryKey, {
+        ...previous,
+        prep_plan_items: previous.prep_plan_items.map((row) => {
+          if (row.id !== prepPlanItemId || !row.live_monitor) return row;
+          const live = row.live_monitor;
+          return {
+            ...row,
+            live_monitor: {
+              ...live,
+              sold_today: live.sold_today + 1,
+              remaining_qty:
+                live.remaining_qty != null
+                  ? Math.max(0, live.remaining_qty - 1)
+                  : live.remaining_qty,
+            },
+          };
+        }),
+      });
+    }
+
+    quickSaleMutation.mutate(
+      {
+        branch_id: branchId,
+        target_date: targetDate,
+        items: [
+          {
+            item_id: productId,
+            quantity_sold: 1,
+            unit,
+            notes: "Live quick tap sale",
+          },
+        ],
+      },
+      {
+        onSuccess: (data) => {
+          const updatedMonitor = data?.live_monitor_by_item?.[prepPlanItemId];
+          if (!updatedMonitor) return;
+          queryClient.setQueryData(queryKey, (existing: typeof branchDay | undefined) => {
+            if (!existing) return existing;
+            return {
+              ...existing,
+              prep_plan_items: existing.prep_plan_items.map((row) =>
+                row.id === prepPlanItemId ? { ...row, live_monitor: updatedMonitor } : row,
+              ),
+            };
+          });
+        },
+        onError: () => {
+          if (previous) queryClient.setQueryData(queryKey, previous);
+        },
+      },
+    );
   }
 
   const isLoading = advancedForecastQuery.isLoading || todayQuery.isLoading;
@@ -1021,6 +1100,56 @@ function DeepDiveContent() {
                 )}
               </div>
             </div>
+
+            {/* ── Live status — only once service has started. A modest
+                secondary action, not this page's main CTA: sales normally
+                sync from the POS/connector/CSV feed, so this is a nudge for
+                the rare sale the feed hasn't caught up on yet. */}
+            {isLiveDay && prepItem?.live_monitor ? (
+              <div className="rounded-xl border border-surface-4 bg-surface-2 px-5 py-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                  {t("workspace.today.itemDetail.live.title")}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {t("workspace.today.itemDetail.live.sold")}
+                    </p>
+                    <p className="mt-1 font-display text-xl font-semibold text-text-primary">
+                      {fmtQty(prepItem.live_monitor.sold_today, unit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                      {t("workspace.today.itemDetail.live.remaining")}
+                    </p>
+                    <p className="mt-1 font-display text-xl font-semibold text-text-primary">
+                      {prepItem.live_monitor.remaining_qty != null
+                        ? fmtQty(prepItem.live_monitor.remaining_qty, unit)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickSale}
+                  disabled={quickSaleMutation.isPending || !branchId || !productId}
+                  className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {quickSaleMutation.isPending
+                    ? t("workspace.today.itemDetail.live.logging")
+                    : t("workspace.today.itemDetail.live.plusOneSold")}
+                </button>
+                {quickSaleMutation.isError && (
+                  <p className="mt-2 text-[11px] text-status-critical">
+                    {t("workspace.today.itemDetail.live.error")}
+                  </p>
+                )}
+                <p className="mt-2 text-[10px] leading-relaxed text-text-muted">
+                  {t("workspace.today.itemDetail.live.hint")}
+                </p>
+              </div>
+            ) : null}
 
             {/* ── Risk snapshot ── */}
             {prepItem?.forecast_context && (

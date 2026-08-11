@@ -860,7 +860,12 @@
       "recordCooked": "Enregistrer ce qui a été cuisiné",
       "soldLabel": "Vendus à ce stade",
       "ofPlanned": "sur {quantity} planifiés",
-      "runoutIn": "Rupture possible dans ~{runoutMin} min",
+      "runoutIn": "Rupture possible {phrase}",
+      "runoutPhraseAnyMinute": "d'une minute à l'autre",
+      "runoutPhraseWithin30": "dans les 30 prochaines minutes",
+      "runoutPhraseUnderHour": "d'ici moins d'une heure",
+      "runoutPhraseAboutHour": "d'ici environ une heure",
+      "runoutPhraseAboutHours": "d'ici environ {hours} heures",
       "details": "Détails",
       "moreActions": "Plus d'actions",
       "advisoryPrefix": "Attention requise",
@@ -1435,7 +1440,7 @@
     "advisory": {
       "surgeWindow": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer un petit lot supplémentaire (~{quantity}) dans les {window} prochaines minutes pour réduire le risque de rupture.",
       "surge": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer bientôt un petit lot supplémentaire (~{quantity}) pour réduire le risque de rupture.",
-      "runoutSoon": "Au rythme actuel, rupture dans environ {runoutMin} min, et un lot prend {prepTimeMin} min — mieux vaut décider bientôt.",
+      "runoutSoon": "Au rythme actuel, rupture possible {phrase}, et un lot prend {prepTimeMin} min — mieux vaut décider bientôt.",
       "watchPace": "La demande s'écarte du plan — à surveiller.",
       "confidence": "Confiance : {confidence} %"
     },
@@ -4403,6 +4408,15 @@
           "qtyPlaceholder": "Qté",
           "setOverride": "Définir une dérogation",
           "planLocked": "Le plan est verrouillé — aucune modification possible."
+        },
+        "live": {
+          "title": "Statut en direct",
+          "sold": "Vendus à ce stade",
+          "remaining": "Restant",
+          "plusOneSold": "+1 Vendu",
+          "logging": "Enregistrement…",
+          "error": "Impossible d'enregistrer cette vente — réessayez.",
+          "hint": "Les ventes se synchronisent normalement depuis votre caisse, connecteur ou import CSV — n'utilisez ceci que si une vente vient d'avoir lieu et que le flux n'est pas encore à jour."
         },
         "risk": {
           "riskToday": "Risque aujourd'hui",

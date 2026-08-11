@@ -860,7 +860,12 @@
       "recordCooked": "Record what you cooked",
       "soldLabel": "Sold so far",
       "ofPlanned": "of {quantity} planned",
-      "runoutIn": "May run out in ~{runoutMin} min",
+      "runoutIn": "May run out {phrase}",
+      "runoutPhraseAnyMinute": "any minute now",
+      "runoutPhraseWithin30": "within 30 min",
+      "runoutPhraseUnderHour": "in under an hour",
+      "runoutPhraseAboutHour": "in about an hour",
+      "runoutPhraseAboutHours": "in about {hours} hours",
       "details": "Details",
       "moreActions": "More actions",
       "advisoryPrefix": "Needs attention",
@@ -1435,7 +1440,7 @@
     "advisory": {
       "surgeWindow": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready within the next {window} minutes to reduce stockout risk.",
       "surge": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready soon to reduce stockout risk.",
-      "runoutSoon": "At the current pace this runs out in about {runoutMin} min, and a batch takes {prepTimeMin} min — worth deciding soon.",
+      "runoutSoon": "At the current pace this may run out {phrase}, and a batch takes {prepTimeMin} min — worth deciding soon.",
       "watchPace": "Demand is moving away from the plan — worth keeping an eye on the pace.",
       "confidence": "Confidence: {confidence}%"
     },
@@ -4403,6 +4408,15 @@
           "qtyPlaceholder": "Qty",
           "setOverride": "Set override",
           "planLocked": "Plan is locked — no further changes."
+        },
+        "live": {
+          "title": "Live status",
+          "sold": "Sold so far",
+          "remaining": "Remaining",
+          "plusOneSold": "+1 Sold",
+          "logging": "Logging…",
+          "error": "Couldn't log that sale — try again.",
+          "hint": "Sales normally sync from your POS, connector, or CSV import — use this only if one just sold and the feed hasn't caught up yet."
         },
         "risk": {
           "riskToday": "Risk today",

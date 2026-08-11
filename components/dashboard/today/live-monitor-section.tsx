@@ -15,7 +15,7 @@ import { LivePaceBanner } from "./live-pace-banner";
 import { CsvImportModal } from "./csv-import-modal";
 import { ItemImage } from "./item-image";
 import { ServiceItemChart } from "./service-item-chart";
-import type { LiveRow } from "./today-helpers";
+import { runoutPhrase, type LiveRow } from "./today-helpers";
 
 type PaceItem = BranchPaceSummary["items"][number];
 
@@ -39,11 +39,6 @@ export type LiveMonitorSectionProps = {
     title: string;
     unit: string;
   }) => void;
-  onQuickSale: (
-    prepPlanItemId: string,
-    item: { product_id: string; unit: string },
-    quantitySold: number,
-  ) => void;
   onLogWaste: (item: { id: string; title: string; unit: string }) => void;
   branchId: string;
   targetDate: string;
@@ -136,7 +131,10 @@ function LiveAdvisoryLine({
       ),
     });
   } else if (startBatchNow && runoutMin !== null) {
-    text = t("today.advisory.runoutSoon", { runoutMin, prepTimeMin });
+    text = t("today.advisory.runoutSoon", {
+      phrase: runoutPhrase(t, runoutMin),
+      prepTimeMin,
+    });
   } else {
     text = t("today.advisory.watchPace");
   }
@@ -194,7 +192,6 @@ function ServiceItemCard({
   timelineItem,
   paceItem,
   onRecordProduction,
-  onQuickSale,
   onLogWaste,
   branchId,
   targetDate,
@@ -206,7 +203,6 @@ function ServiceItemCard({
   timelineItem: IntradayTimelineItem | undefined;
   paceItem: PaceItem | undefined;
   onRecordProduction: LiveMonitorSectionProps["onRecordProduction"];
-  onQuickSale: LiveMonitorSectionProps["onQuickSale"];
   onLogWaste: LiveMonitorSectionProps["onLogWaste"];
   branchId: string;
   targetDate: string;
@@ -225,8 +221,14 @@ function ServiceItemCard({
   // The POS-synced count. The live monitor aggregate is authoritative; the
   // timeline's hourly cumulative backfills it if the monitor lags a refresh.
   const soldDisplay = Math.max(sold, Math.round(timelineItem?.sold_so_far ?? 0));
-  const pctRemaining =
-    totalPrepared > 0 ? Math.round((remaining / totalPrepared) * 100) : 0;
+  // Sold progress, not remaining stock: this sits right beside the "Sold so
+  // far" count, so it needs to fill up as the day goes rather than track a
+  // separate "stock remaining" fraction that starts full and empties —
+  // paired with a different number, that read as broken/empty at a glance.
+  const pctSold =
+    totalPrepared > 0
+      ? Math.round((Math.min(soldDisplay, totalPrepared) / totalPrepared) * 100)
+      : 0;
   const runoutMin =
     typeof monitor?.risk_engine?.runout_minutes === "number"
       ? Math.round(monitor.risk_engine.runout_minutes)
@@ -254,9 +256,12 @@ function ServiceItemCard({
             title={item.product_title}
             className="h-9 w-9 shrink-0 rounded-lg border border-surface-4"
           />
-          <p className="truncate text-sm font-semibold text-text-primary">
+          <Link
+            href={`/workspace/today/item/${item.id}?branch=${branchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${orgId}`}
+            className="truncate text-sm font-semibold text-text-primary transition-colors hover:text-brand-gold hover:underline"
+          >
             {item.product_title}
-          </p>
+          </Link>
         </div>
         <span
           className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${styles.chip}`}
@@ -287,11 +292,19 @@ function ServiceItemCard({
         </div>
         {/* A single supporting glance indicator — the detailed curve lives
             one tap away in the toggle below, so this stays a plain neutral
-            bar rather than a second, status-colored graph. */}
-        <div className="h-2 w-24 shrink-0 self-center rounded-full bg-surface-4">
+            bar rather than a second, status-colored graph. Fills as sold
+            climbs toward prepared, mirroring the count to its left. */}
+        <div
+          className="h-2 w-24 shrink-0 self-center rounded-full bg-surface-4"
+          role="progressbar"
+          aria-valuenow={pctSold}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t("today.live.soldLabel")}
+        >
           <div
             className="h-2 rounded-full bg-text-secondary/40 transition-all duration-500"
-            style={{ width: `${pctRemaining}%` }}
+            style={{ width: `${pctSold}%` }}
           />
         </div>
       </div>
@@ -299,7 +312,7 @@ function ServiceItemCard({
       {runoutMin !== null && status === "action" ? (
         <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-text-primary">
           <WarningTriangle className="h-3.5 w-3.5 shrink-0 text-status-critical" strokeWidth={1.5} />
-          {t("today.live.runoutIn", { runoutMin })}
+          {t("today.live.runoutIn", { phrase: runoutPhrase(t, runoutMin) })}
         </p>
       ) : null}
       <PaceLine
@@ -365,25 +378,18 @@ function ServiceItemCard({
         </div>
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-        <Link
-          href={`/workspace/today/item/${item.id}?branch=${branchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${orgId}`}
-          className="inline-flex h-8 items-center rounded-full border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10"
-        >
-          {t("today.live.details")}
-        </Link>
+      {/* The item title link above is the way into details now — this row is
+          just the remaining quick actions, right-aligned on their own. */}
+      <div className="mt-auto flex items-center justify-end gap-2 pt-3">
         {readOnly ? null : (
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onQuickSale(item.id, item, 1)}
-              className="inline-flex h-8 items-center rounded-full border border-surface-4 px-2.5 text-[11px] font-medium text-text-secondary hover:bg-surface-3 active:scale-[0.97]"
-            >
-              {t("today.live.plusOneSold")}
-            </button>
-            {/* "Record what you cooked" is deliberately demoted: production
-                normally syncs from the POS, so manual entry lives behind a
-                low-profile menu instead of posing as the page CTA. */}
+            {/* Quick-tap "+1 Sold" lives on the item detail page now, not
+                here: this grid is a glance surface, and a per-card sale
+                counter competed with "Details" for the primary action.
+                "Record what you cooked" is deliberately demoted too —
+                production normally syncs from the POS, so manual entry
+                lives behind a low-profile menu instead of posing as the
+                page CTA. */}
             <details className="group relative">
               <summary
                 className="inline-flex h-8 cursor-pointer list-none items-center rounded-full border border-surface-4 px-2 text-text-muted hover:bg-surface-3 [&::-webkit-details-marker]:hidden"
@@ -444,7 +450,6 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
     closePending,
     onCloseDay,
     onRecordProduction,
-    onQuickSale,
     onLogWaste,
     branchId,
     targetDate,
@@ -601,7 +606,6 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
               timelineItem={timelineByProductId.get(row.item.product_id)}
               paceItem={paceAlertByProductId.get(row.item.product_id)}
               onRecordProduction={onRecordProduction}
-              onQuickSale={onQuickSale}
               onLogWaste={onLogWaste}
               branchId={branchId}
               targetDate={targetDate}
