@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { NavArrowLeft } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { canAccessDashboard, resolvePermissions } from "@/lib/permissions";
@@ -24,6 +24,8 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   permission?: string;
+  /** One-liner shown as a hover/focus tooltip. Omitted for self-evident pages. */
+  description?: string;
 }
 
 interface NavSection {
@@ -45,36 +47,83 @@ function SidebarLink({
   active: boolean;
   collapsed: boolean;
 }) {
+  const anchorRef = useRef<HTMLAnchorElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Positioned with `fixed` + coordinates read off the anchor, rather than a
+  // plain CSS `absolute` tooltip: the nav list scrolls (`overflow-y-auto`),
+  // which forces `overflow-x` to `auto` too per the CSS overflow spec — an
+  // absolutely-positioned tooltip popping out past the rail would get
+  // silently clipped by its own scroll container.
+  function showTooltip() {
+    if (!item.description) return;
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTooltipPos(
+      collapsed
+        ? { top: rect.top + rect.height / 2, left: rect.right + 10 }
+        : { top: rect.bottom + 6, left: rect.left },
+    );
+  }
+  function hideTooltip() {
+    setTooltipPos(null);
+  }
+
   return (
-    <Link
-      href={item.href}
-      title={collapsed ? item.label : undefined}
-      scroll={false}
-      className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150
-        ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
-        ${
-          active
-            ? "bg-[#1C1C1F] text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
-            : "text-text-secondary hover:bg-[#1C1C1F]/60 hover:text-text-primary"
-        }`}
+    <div
+      className="relative"
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
-      )}
-      <span
-        className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-150
+      <Link
+        ref={anchorRef}
+        href={item.href}
+        scroll={false}
+        className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150
+          ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
           ${
             active
-              ? "bg-[#232327] text-brand-gold"
-              : "bg-[#1C1C1F] text-text-muted group-hover:text-text-secondary"
+              ? "bg-[#1C1C1F] text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+              : "text-text-secondary hover:bg-[#1C1C1F]/60 hover:text-text-primary"
           }`}
       >
-        {item.icon}
-      </span>
-      {!collapsed && (
-        <span className="truncate tracking-[-0.01em]">{item.label}</span>
+        {active && (
+          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
+        )}
+        <span
+          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-150
+            ${
+              active
+                ? "bg-[#232327] text-brand-gold"
+                : "bg-[#1C1C1F] text-text-muted group-hover:text-text-secondary"
+            }`}
+        >
+          {item.icon}
+        </span>
+        {!collapsed && (
+          <span className="truncate tracking-[-0.01em]">{item.label}</span>
+        )}
+      </Link>
+
+      {item.description && tooltipPos && (
+        <div
+          role="tooltip"
+          style={{
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            transform: collapsed ? "translateY(-50%)" : undefined,
+          }}
+          className="pointer-events-none fixed z-30 w-60 rounded-lg border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2 text-xs leading-relaxed text-text-secondary shadow-[0_8px_24px_rgba(0,0,0,0.45)] animate-fade-in"
+        >
+          {!collapsed ? null : (
+            <p className="mb-0.5 font-semibold text-text-primary">{item.label}</p>
+          )}
+          <p>{item.description}</p>
+        </div>
       )}
-    </Link>
+    </div>
   );
 }
 
@@ -117,6 +166,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
           href: page.href,
           icon: <page.icon className="h-4 w-4" />,
           permission: page.permission,
+          description: page.descriptionKey ? t(page.descriptionKey) : undefined,
         })),
       })).filter((section) => section.items.length > 0),
     [permissions, t],
