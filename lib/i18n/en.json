@@ -126,6 +126,7 @@
     "otpVerificationFailed": "OTP verification failed.",
     "networkError": "Network error. Please try again.",
     "securityProtocol": "Security Protocol",
+    "verificationSequence": "Verification Sequence",
     "resetPasswordTitle": "Reset Password.",
     "resetPasswordSubtitle": "Enter your work email to receive recovery instructions.",
     "registeredEmail": "Registered Email",
