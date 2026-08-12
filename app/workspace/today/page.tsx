@@ -36,6 +36,7 @@ import {
 } from "@/services/production-intelligence/hooks";
 import { useGenerateTasks } from "@/services";
 import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
+import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
 import { useBranchStore } from "@/services/context/branch-store";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSubscriptionTier } from "@/services/payment/hooks";
@@ -196,6 +197,15 @@ function TodayWorkspacePageContent() {
   }, [router, safeBranchId, t]);
 
   useTaskBoardRealtime(safeBranchId || undefined, targetDate, showAiTasksToast);
+  // A recipe image/ingredients edited on the Inventory page, via the AI
+  // assistant, or via the recipe-review panel reaches this open Today tab
+  // immediately — the item's photo/name on today's cards can otherwise go
+  // stale for the rest of the shift.
+  useMenuItemRealtime(safeBranchId || undefined, () => {
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today", safeBranchId],
+    });
+  });
 
   const branchDay = todayQuery.data;
   const pipelineStats = initializeMutation.data?.meta?.pipeline_stats ?? null;

@@ -13,6 +13,8 @@ import type {
   ExplainPayload,
   MorningBriefVoice,
   MorningBriefVoicePayload,
+  RecipeReviewPayload,
+  RecipeReviewResponse,
   SendMessagePayload,
   StartConversationPayload,
   SuggestedQuestionsResponse,
@@ -103,6 +105,20 @@ export async function runAssistantCommand(
   payload: CommandRequestPayload,
 ): Promise<CommandResponse> {
   return apiClient<CommandResponse>(`${BASE}/command/`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+/**
+ * Diagnose one menu item's recipe/image and get back proposed fixes — never
+ * applies anything. Each returned proposal confirms through the same
+ * `confirmAssistantAction` endpoint above.
+ */
+export async function runRecipeReview(
+  payload: RecipeReviewPayload,
+): Promise<RecipeReviewResponse> {
+  return apiClient<RecipeReviewResponse>(`${BASE}/recipe-review/`, {
     method: "POST",
     body: payload,
   });

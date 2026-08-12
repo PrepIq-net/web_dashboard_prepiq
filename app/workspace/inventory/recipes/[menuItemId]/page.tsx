@@ -13,6 +13,8 @@ import {
   useCreateRecipe,
   useDeleteRecipe,
 } from "@/services/inventory/hooks";
+import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
+import { RecipeAiReviewPanel } from "@/components/dashboard/inventory/recipe-ai-review-panel";
 import type { Ingredient, Recipe } from "@/services/inventory/types";
 
 // ============================================================================
@@ -45,6 +47,11 @@ function RecipeBuilderContent() {
 
   const { data: user, isLoading: userLoading } = useCurrentUserProfile();
   const resolvedOrgId = orgId || user?.organization_id || "";
+
+  // Someone editing this same dish elsewhere (another tab, the AI review
+  // panel below, the assistant chat) refreshes this page's lines/image
+  // without a reload.
+  useMenuItemRealtime(branchId || undefined);
 
   const ingredientsQuery = useIngredients(resolvedOrgId, Boolean(resolvedOrgId));
   const recipesQuery = useRecipes(menuItemId, Boolean(menuItemId));
@@ -282,6 +289,9 @@ function RecipeBuilderContent() {
             RIGHT: Summary panel
         ================================================================ */}
         <div className="space-y-6">
+          {/* AI review */}
+          <RecipeAiReviewPanel branchId={branchId} menuItemId={menuItemId} />
+
           {/* Recipe stats */}
           <div className="bg-surface-2 rounded-xl border border-surface-4 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold mb-4">
