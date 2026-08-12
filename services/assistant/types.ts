@@ -1,5 +1,6 @@
 export type AssistantPhase = "MORNING" | "LIVE" | "CLOSED";
 
+// Mirrors ai_assistant/actions.py ALL_ACTIONS.
 export type AssistantActionType =
   | "set_planned_quantity"
   | "mark_unavailable"
@@ -9,7 +10,23 @@ export type AssistantActionType =
   | "lock_plan"
   | "start_service"
   | "close_day"
-  | "update_day_notes";
+  | "update_day_notes"
+  | "attribute_remaining"
+  | "assign_kitchen_task"
+  | "publish_task_list"
+  | "publish_schedule"
+  | "generate_schedule"
+  | "adjust_recipe_line"
+  | "generate_recipe"
+  | "resolve_recipe_image"
+  | "copy_recipe_to_branches"
+  | "update_prep_steps"
+  | "update_menu_item"
+  | "create_menu_item"
+  | "set_menu_item_image_url"
+  | "log_ingredient_waste"
+  | "record_stock_count"
+  | "set_dish_yield";
 
 export type PendingAction = {
   type: AssistantActionType;
@@ -24,6 +41,25 @@ export type PendingAction = {
   notes?: string;
 };
 
+/**
+ * A write the assistant already applied on its own during a turn. Routine
+ * changes (prep quantities, waste, sales, notes, tasks, recipes generation)
+ * execute server-side the moment the assistant decides on them; only the
+ * irreversible ones listed in actions.CONFIRM_REQUIRED_ACTIONS still arrive as
+ * a `pending_action`.
+ *
+ * This is a record of what happened, not a question — never render it with
+ * confirm/dismiss affordances. Its job is to tell the host page that data it is
+ * showing just changed underneath it.
+ */
+export type AppliedAction = {
+  type: AssistantActionType;
+  item_title: string | null;
+  quantity: number | null;
+  summary: string;
+  action_log_id: string;
+};
+
 export type AssistantRole = "user" | "assistant" | "tool" | "system";
 
 export type AssistantMessage = {
@@ -31,6 +67,7 @@ export type AssistantMessage = {
   role: AssistantRole;
   content: string;
   pending_action: PendingAction | null;
+  applied_actions: AppliedAction[] | null;
   /**
    * Open-ended annotations on a turn, discriminated by `kind`. Currently only
    * `morning_brief_audio`, which marks a turn as a spoken brief the player can
