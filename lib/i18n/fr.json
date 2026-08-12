@@ -3854,7 +3854,9 @@
         "foodCost": "Coût alimentaire",
         "wasteCost": "Coût du gaspillage",
         "grossMargin": "Marge brute",
-        "marginPct": "% Marge"
+        "marginPct": "% Marge",
+        "ingredientWasteCost": "Gaspillage d'ingrédients (USD)",
+        "ingredientCoverage": "Couverture d'ingrédients"
       },
       "timeframe": {
         "7d": "7j",

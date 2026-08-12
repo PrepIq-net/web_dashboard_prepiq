@@ -3854,7 +3854,9 @@
         "foodCost": "Food Cost",
         "wasteCost": "Waste Cost",
         "grossMargin": "Gross Margin",
-        "marginPct": "Margin Pct"
+        "marginPct": "Margin Pct",
+        "ingredientWasteCost": "Ingredient Waste (USD)",
+        "ingredientCoverage": "Ingredient Coverage"
       },
       "timeframe": {
         "7d": "7d",
