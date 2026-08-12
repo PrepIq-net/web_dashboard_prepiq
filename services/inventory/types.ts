@@ -333,6 +333,17 @@ export const purchaseRecommendationSchema = z.object({
 });
 export type PurchaseRecommendation = z.infer<typeof purchaseRecommendationSchema>;
 
+export const ingredientVarianceCauseResponseSchema = z.object({
+  usage_id: z.string(),
+  ingredient_id: z.string(),
+  cause: z.string(),
+  cause_note: z.string(),
+  cause_recorded_at: z.string().nullable(),
+});
+export type IngredientVarianceCauseResponse = z.infer<
+  typeof ingredientVarianceCauseResponseSchema
+>;
+
 export const receiveDeliveryResponseSchema = z.object({
   movement_id: z.string(),
   ingredient_id: z.string(),

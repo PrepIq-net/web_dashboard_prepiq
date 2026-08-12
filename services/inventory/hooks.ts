@@ -36,6 +36,7 @@ import {
   getIngredientCostTrend,
   getCostVariance,
   getPurchasingEfficiency,
+  updateIngredientVarianceCause,
   type IngredientPayload,
   type MenuItemPayload,
   type OnHandPayload,
@@ -43,6 +44,7 @@ import {
   type BatchRulePayload,
   type AvailabilityOverridePayload,
   type ReceiveDeliveryPayload,
+  type IngredientVarianceCausePayload,
 } from "./service";
 // ============================================================================
 // QUERY KEYS
@@ -414,6 +416,20 @@ export function useReceiveDelivery(branchId: string, date?: string) {
       queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.purchasingEfficiency(branchId) });
       queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.onHand(branchId) });
     },
+  });
+}
+
+// Records why one ingredient's actual usage missed prediction. Mirrors
+// production-intelligence's useUpdateBranchDayNotes: no query invalidation —
+// the EOD wizard keeps its own optimistic per-row state, same as
+// DayVarianceCausePrompt does for the day-level cause.
+export function useUpdateIngredientVarianceCause(branchId: string) {
+  return useMutation({
+    mutationFn: ({
+      usageId,
+      ...payload
+    }: { usageId: string } & IngredientVarianceCausePayload) =>
+      updateIngredientVarianceCause(branchId, usageId, payload),
   });
 }
 

@@ -47,6 +47,12 @@ export const inventoryEndpoints = {
     recordActual: "/api/inventory/demand/record-actual/",
   },
 
+  // Ingredient consumption variance — the "why" behind an IngredientUsageDaily miss
+  ingredientUsage: {
+    variance: (branchId: string, usageId: string) =>
+      `/api/inventory/branches/${branchId}/ingredient-usage/${usageId}/variance/`,
+  },
+
   // Prep Batches
   prepBatches: {
     list: (branchId: string) => `/api/inventory/branches/${branchId}/prep-batches/`,

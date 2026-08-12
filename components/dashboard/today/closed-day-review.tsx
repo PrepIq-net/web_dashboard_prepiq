@@ -11,6 +11,7 @@ import { useUpdateBranchDayNotes } from "@/services/production-intelligence/hook
 import { useAvailabilityWeek, useCoverage } from "@/services/schedule/hooks";
 import { weekStart, toIso } from "@/components/dashboard/schedule/schedule-helpers";
 import { DayVarianceCausePrompt } from "./day-variance-cause-prompt";
+import { IngredientVarianceCausePrompt } from "./ingredient-variance-cause-prompt";
 import { RemainingAttributionPrompt } from "./remaining-attribution-prompt";
 import { ItemImage } from "./item-image";
 import type {
@@ -451,6 +452,8 @@ export function ClosedDayReview({
           <RemainingAttributionPrompt branchDay={branchDay} />
 
           <DayVarianceCausePrompt branchDay={branchDay} />
+
+          <IngredientVarianceCausePrompt branchDay={branchDay} branchId={branchId} />
 
           <section className="space-y-6">
             <div>

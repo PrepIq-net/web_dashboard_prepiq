@@ -878,6 +878,9 @@
       "chartExpectedSeries": "Typical pace",
       "chartPlannedSeries": "Planned"
     },
+    "liveAlerts": {
+      "snooze": "Snooze"
+    },
     "closed": {
       "dayComplete": "Day closed",
       "outcome": "Today's Outcome",
@@ -984,6 +987,20 @@
           "SUPPLIER_ISSUE": "Supplier issue",
           "EQUIPMENT_FAILURE": "Equipment failure",
           "POWER_OUTAGE": "Power outage",
+          "OTHER": "Other"
+        }
+      },
+      "ingredientVariance": {
+        "title": "Ingredients that missed prediction",
+        "subtitle": "These ran higher or lower than the plan expected. Telling us why keeps the model from learning the wrong lesson.",
+        "predictedVsActual": "Predicted {predicted} · Used {actual}",
+        "cause": {
+          "OVER_PORTIONING": "Over-portioning",
+          "RECIPE_CHANGE": "Recipe change",
+          "EXTRA_WASTE": "Extra waste",
+          "SHRINKAGE_OR_THEFT": "Shrinkage or theft",
+          "COUNT_ERROR": "Count error",
+          "HIGHER_SALES": "Higher sales than planned",
           "OTHER": "Other"
         }
       },

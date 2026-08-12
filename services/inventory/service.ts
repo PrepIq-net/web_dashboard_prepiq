@@ -20,6 +20,7 @@ import {
   itemBatchRuleSchema,
   itemAvailabilityOverrideSchema,
   purchaseRecommendationSchema,
+  ingredientVarianceCauseResponseSchema,
   receiveDeliveryResponseSchema,
   purchaseRecommendationLineSchema,
   supplierSummarySchema,
@@ -326,6 +327,23 @@ export async function updatePurchaseRecommendationLine(
     inventoryEndpoints.purchaseRecommendation.updateLine(branchId, lineId),
     purchaseRecommendationLineSchema,
     { method: "PATCH", body: { manager_override_qty: managerOverrideQty } }
+  );
+}
+
+export type IngredientVarianceCausePayload = {
+  cause: string;
+  cause_note?: string;
+};
+
+export async function updateIngredientVarianceCause(
+  branchId: string,
+  usageId: string,
+  data: IngredientVarianceCausePayload,
+) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredientUsage.variance(branchId, usageId),
+    ingredientVarianceCauseResponseSchema,
+    { method: "PATCH", body: data }
   );
 }
 

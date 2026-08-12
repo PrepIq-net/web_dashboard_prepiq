@@ -14,6 +14,7 @@ import type {
 import { LivePaceBanner } from "./live-pace-banner";
 import { CsvImportModal } from "./csv-import-modal";
 import { ItemImage } from "./item-image";
+import { LiveIngredientRiskAlerts } from "./live-ingredient-risk-alerts";
 import { ServiceItemChart } from "./service-item-chart";
 import { runoutPhrase, type LiveRow } from "./today-helpers";
 
@@ -525,6 +526,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
         )}
       </div>
       <LivePaceBanner pace={paceSummary} />
+      <LiveIngredientRiskAlerts branchDay={branchDay} />
 
       {operatingHoursMissing ? (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-r-xl border-l-4 border-status-warning bg-surface-2 px-4 py-3">
