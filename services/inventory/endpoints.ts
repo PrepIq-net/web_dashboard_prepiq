@@ -47,6 +47,12 @@ export const inventoryEndpoints = {
     recordActual: "/api/inventory/demand/record-actual/",
   },
 
+  // Ingredient consumption variance — the "why" behind an IngredientUsageDaily miss
+  ingredientUsage: {
+    variance: (branchId: string, usageId: string) =>
+      `/api/inventory/branches/${branchId}/ingredient-usage/${usageId}/variance/`,
+  },
+
   // Prep Batches
   prepBatches: {
     list: (branchId: string) => `/api/inventory/branches/${branchId}/prep-batches/`,
@@ -80,6 +86,27 @@ export const inventoryEndpoints = {
   // Phase 4 — Purchase forecast
   purchaseForecast: {
     get: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-forecast/`,
+  },
+
+  // Phase 3/4 — Unified purchase recommendation (approvable, persisted)
+  purchaseRecommendation: {
+    get: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-recommendation/`,
+    recompute: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-recommendation/`,
+    approve: (branchId: string, recommendationId: string) =>
+      `/api/inventory/branches/${branchId}/purchase-recommendation/${recommendationId}/approve/`,
+    updateLine: (branchId: string, lineId: string) =>
+      `/api/inventory/branches/${branchId}/purchase-recommendation/lines/${lineId}/`,
+  },
+  receiveDelivery: {
+    create: (branchId: string) => `/api/inventory/branches/${branchId}/receive-delivery/`,
+  },
+
+  // Phase 4 — Purchasing page analytics (Suppliers / Trends / Variance / Efficiency)
+  purchasingAnalytics: {
+    suppliers: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/suppliers/`,
+    costTrend: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/cost-trend/`,
+    costVariance: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/cost-variance/`,
+    efficiency: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/efficiency/`,
   },
 
   // Phase 5 — Batch rules (catalog-scoped)

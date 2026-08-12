@@ -14,6 +14,7 @@ import type {
 import { LivePaceBanner } from "./live-pace-banner";
 import { CsvImportModal } from "./csv-import-modal";
 import { ItemImage } from "./item-image";
+import { LiveIngredientRiskAlerts } from "./live-ingredient-risk-alerts";
 import { ServiceItemChart } from "./service-item-chart";
 import { runoutPhrase, type LiveRow } from "./today-helpers";
 
@@ -241,28 +242,27 @@ function ServiceItemCard({
   );
 
   return (
-    // Square-cornered and flat by design: this grid can run a dozen-plus
-    // cards deep during service, so it reads as a dense operational console
-    // rather than a stack of soft cards. The status signal lives in a thin
-    // top-edge accent instead of a left bar or full-color border — quieter
-    // at a glance, still scannable down a row.
+    // The status signal stays a thin top-edge accent rather than a left bar
+    // or full-color border — quieter at a glance, still scannable down a
+    // dozen-plus cards. The photo now carries first-glance recognition
+    // (identifying a dish by sight beats reading its name mid-rush), so it
+    // leads the card full-bleed; everything operational stays below it in
+    // the same dense, console-like block this grid always had.
     <article
-      className={`flex flex-col border border-surface-4 border-t-2 bg-surface-2 p-4 ${styles.accent}`}
+      className={`flex flex-col overflow-hidden rounded-xl border border-surface-4 border-t-2 bg-surface-2 ${styles.accent}`}
     >
+      <div className="h-32 w-full shrink-0 bg-surface-3">
+        <ItemImage item={item} className="h-full w-full" iconClassName="h-10 w-10" />
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <ItemImage
-            src={item.product_image_url}
-            title={item.product_title}
-            className="h-9 w-9 shrink-0 rounded-lg border border-surface-4"
-          />
-          <Link
-            href={`/workspace/today/item/${item.id}?branch=${branchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${orgId}`}
-            className="truncate text-sm font-semibold text-text-primary transition-colors hover:text-brand-gold hover:underline"
-          >
-            {item.product_title}
-          </Link>
-        </div>
+        <Link
+          href={`/workspace/today/item/${item.id}?branch=${branchId}&date=${targetDate}&title=${encodeURIComponent(item.product_title)}&product_id=${item.product_id}&org=${orgId}`}
+          className="min-w-0 truncate text-sm font-semibold text-text-primary transition-colors hover:text-brand-gold hover:underline"
+        >
+          {item.product_title}
+        </Link>
         <span
           className={`shrink-0 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${styles.chip}`}
         >
@@ -431,6 +431,7 @@ function ServiceItemCard({
           </div>
         )}
       </div>
+      </div>
     </article>
   );
 }
@@ -525,6 +526,7 @@ export function LiveMonitorSection(props: LiveMonitorSectionProps) {
         )}
       </div>
       <LivePaceBanner pace={paceSummary} />
+      <LiveIngredientRiskAlerts branchDay={branchDay} />
 
       {operatingHoursMissing ? (
         <div className="mb-4 flex items-start justify-between gap-3 rounded-r-xl border-l-4 border-status-warning bg-surface-2 px-4 py-3">

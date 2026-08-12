@@ -37,6 +37,7 @@ import {
   useDeactivateAvailabilityOverride,
   useConfirmMenuItemReview,
 } from "@/services/inventory/hooks";
+import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
@@ -111,6 +112,10 @@ function InventoryPageContent() {
 
   const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const canLoadData = Boolean(branchId && user?.organization_id);
+
+  // A recipe/image edited elsewhere (another tab, the AI assistant, the
+  // command palette) refreshes this page's lists without a reload.
+  useMenuItemRealtime(branchId || undefined);
 
   const ingredientsQuery = useIngredients(user?.organization_id ?? "", canLoadData);
   const menuItemsQuery = useMenuItems(branchId, canLoadData);

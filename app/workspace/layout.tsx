@@ -194,7 +194,7 @@ export default function WorkspaceLayout({
       <div className="flex min-h-screen bg-surface-1">
         <DashboardSidebarWrapper user={memoizedUser} />
         <main
-          className={`flex-1 py-8 transition-[margin-left] duration-200 ${
+          className={`min-w-0 flex-1 py-8 transition-[margin-left] duration-200 ${
             collapsed ? "ml-20" : "ml-64"
           }`}
         >

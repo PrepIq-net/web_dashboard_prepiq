@@ -11,6 +11,7 @@ import {
   getSuggestedQuestions,
   listAssistantConversations,
   runAssistantCommand,
+  runRecipeReview,
   sendAssistantMessage,
   startAssistantConversation,
 } from "./service";
@@ -19,6 +20,7 @@ import type {
   ConfirmActionPayload,
   ExplainPayload,
   MorningBriefVoicePayload,
+  RecipeReviewPayload,
   SendMessagePayload,
   StartConversationPayload,
 } from "./types";
@@ -127,6 +129,15 @@ export function useExplainAlert() {
 export function useRunAssistantCommand() {
   return useMutation({
     mutationFn: (payload: CommandRequestPayload) => runAssistantCommand(payload),
+  });
+}
+
+// Diagnoses one recipe/image and returns proposals — nothing is applied
+// here, same "only the confirm step changes anything" contract as the
+// command palette above.
+export function useRunRecipeReview() {
+  return useMutation({
+    mutationFn: (payload: RecipeReviewPayload) => runRecipeReview(payload),
   });
 }
 

@@ -239,6 +239,11 @@ function IngredientRow({
             <p className="text-sm font-semibold tabular-nums text-status-warning">
               {t("today.ingredients.short")} {formatQty(line.net_need)}{" "}
               {line.unit}
+              {line.coverage_pct != null ? (
+                <span className="ml-1 font-normal text-text-muted">
+                  · {line.coverage_pct.toFixed(0)}%
+                </span>
+              ) : null}
             </p>
             {line.estimated_cost ? (
               <p className="text-xs tabular-nums text-text-muted">

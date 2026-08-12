@@ -878,6 +878,9 @@
       "chartExpectedSeries": "Rythme habituel",
       "chartPlannedSeries": "Planifié"
     },
+    "liveAlerts": {
+      "snooze": "Reporter"
+    },
     "closed": {
       "dayComplete": "Journée clôturée",
       "outcome": "Résultat du jour",
@@ -984,6 +987,20 @@
           "SUPPLIER_ISSUE": "Problème fournisseur",
           "EQUIPMENT_FAILURE": "Panne d'équipement",
           "POWER_OUTAGE": "Coupure de courant",
+          "OTHER": "Autre"
+        }
+      },
+      "ingredientVariance": {
+        "title": "Ingrédients qui n'ont pas suivi la prévision",
+        "subtitle": "Ces ingrédients ont été utilisés plus ou moins que prévu. Nous en indiquer la raison évite au modèle d'en tirer une mauvaise leçon.",
+        "predictedVsActual": "Prévu {predicted} · Utilisé {actual}",
+        "cause": {
+          "OVER_PORTIONING": "Portions trop généreuses",
+          "RECIPE_CHANGE": "Changement de recette",
+          "EXTRA_WASTE": "Gaspillage supplémentaire",
+          "SHRINKAGE_OR_THEFT": "Perte ou vol",
+          "COUNT_ERROR": "Erreur de comptage",
+          "HIGHER_SALES": "Ventes supérieures aux prévisions",
           "OTHER": "Autre"
         }
       },
@@ -1419,7 +1436,10 @@
       "footerFromLock": "Calculé lors du verrouillage du plan",
       "footerFromManual": "Recalculé manuellement",
       "goToPurchasing": "Commander ce qui manque →",
-      "uncountedSummary": "{count} non inventorié(s)"
+      "uncountedSummary": "{count} non inventorié(s)",
+      "risksNeedAttention": "{count} risque(s) d'inventaire nécessitent une attention",
+      "coveragePct": "{pct} % des besoins sont couverts",
+      "viewDetails": "Voir les détails"
     },
     "tasksStrip": {
       "suggested": "{count} tâche(s) suggérée(s) en attente de votre validation",
@@ -3834,7 +3854,9 @@
         "foodCost": "Coût alimentaire",
         "wasteCost": "Coût du gaspillage",
         "grossMargin": "Marge brute",
-        "marginPct": "% Marge"
+        "marginPct": "% Marge",
+        "ingredientWasteCost": "Gaspillage d'ingrédients (USD)",
+        "ingredientCoverage": "Couverture d'ingrédients"
       },
       "timeframe": {
         "7d": "7j",

@@ -231,6 +231,28 @@ export type CommandResponse = {
   error?: { code: CommandErrorCode; detail: string };
 };
 
+/* ── Recipe review ("Ask AI to review this recipe") ───────────────────────── */
+
+/** "image" skips the recipe-quantity checks — the standalone "regenerate
+ * photo" shortcut on the recipe editor. */
+export type RecipeReviewScope = "full" | "image";
+
+export type RecipeReviewPayload = {
+  branch_id: string;
+  menu_item_id: string;
+  scope?: RecipeReviewScope;
+};
+
+export type RecipeReviewResponse = {
+  conversation_id: string;
+  /** One card per finding — each independently confirmable, same
+   * PendingAction/confirm-endpoint shape a chat or command proposal uses. */
+  proposals: CommandProposal[];
+  /** Present (with no proposals) when the recipe looked sound. */
+  message?: string;
+  message_id?: string;
+};
+
 /* ── Spoken morning brief ("Today's Brief") ───────────────────────────────── */
 
 export type BriefSectionKey =

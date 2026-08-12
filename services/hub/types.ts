@@ -248,4 +248,17 @@ export type HubSocketEvent =
   | {
       event: "execution.tasks_generated";
       payload: { branch_id: string; date: string; count: number; generated_by: string };
+    }
+  // Menu item / recipe signals (backend/inventory/realtime.py). Fires on
+  // both a manual edit (inventory page) and an AI-confirmed one (assistant
+  // chat/palette/recipe review) — identifier-only, same as the task board.
+  | {
+      event: "inventory.menu_item_changed";
+      payload: {
+        branch_id: string;
+        menu_item_id: string;
+        catalog_item_id: string | null;
+        reason: "details" | "recipe";
+        actor_id: string | null;
+      };
     };
