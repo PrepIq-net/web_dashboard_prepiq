@@ -1419,7 +1419,10 @@
       "footerFromLock": "Calculated when the plan was locked",
       "footerFromManual": "Recalculated by hand",
       "goToPurchasing": "Order what's short →",
-      "uncountedSummary": "{count} not counted"
+      "uncountedSummary": "{count} not counted",
+      "risksNeedAttention": "{count} inventory risk(s) need attention",
+      "coveragePct": "{pct}% of what's needed is covered",
+      "viewDetails": "View details"
     },
     "tasksStrip": {
       "suggested": "{count} suggested task(s) waiting for your review",

@@ -266,6 +266,9 @@ export const ingredientRequirementLineSchema = z.object({
   needed: z.number(),
   on_hand: z.number(),
   net_need: z.number(),
+  /** Share of `needed` that `on_hand` covers, capped at 100. Null when
+   *  `stock_known` is false — there is nothing to compute a percentage of. */
+  coverage_pct: z.number().nullable().optional(),
   purchase_qty: z.number().nullable().optional(),
   estimated_cost: z.number().nullable().optional(),
   supplier_name: z.string().optional(),

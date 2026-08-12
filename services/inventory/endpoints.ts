@@ -82,6 +82,27 @@ export const inventoryEndpoints = {
     get: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-forecast/`,
   },
 
+  // Phase 3/4 — Unified purchase recommendation (approvable, persisted)
+  purchaseRecommendation: {
+    get: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-recommendation/`,
+    recompute: (branchId: string) => `/api/inventory/branches/${branchId}/purchase-recommendation/`,
+    approve: (branchId: string, recommendationId: string) =>
+      `/api/inventory/branches/${branchId}/purchase-recommendation/${recommendationId}/approve/`,
+    updateLine: (branchId: string, lineId: string) =>
+      `/api/inventory/branches/${branchId}/purchase-recommendation/lines/${lineId}/`,
+  },
+  receiveDelivery: {
+    create: (branchId: string) => `/api/inventory/branches/${branchId}/receive-delivery/`,
+  },
+
+  // Phase 4 — Purchasing page analytics (Suppliers / Trends / Variance / Efficiency)
+  purchasingAnalytics: {
+    suppliers: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/suppliers/`,
+    costTrend: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/cost-trend/`,
+    costVariance: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/cost-variance/`,
+    efficiency: (branchId: string) => `/api/inventory/branches/${branchId}/purchasing/efficiency/`,
+  },
+
   // Phase 5 — Batch rules (catalog-scoped)
   batchRule: {
     get:    (itemId: string) => `/api/catalog/items/${itemId}/batch-rule/`,

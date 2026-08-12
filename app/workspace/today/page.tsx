@@ -66,6 +66,7 @@ import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
+import { InventoryRiskBanner } from "@/components/dashboard/today/inventory-risk-banner";
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
 import { LiveMonitorSection } from "@/components/dashboard/today/live-monitor-section";
 import { ClosedDayReview } from "@/components/dashboard/today/closed-day-review";
@@ -1039,6 +1040,10 @@ function TodayWorkspacePageContent() {
                   }
                 />
 
+                <InventoryRiskBanner
+                  requirement={branchDay?.ingredient_requirement}
+                />
+
                 <MorningRiskAlerts
                   alerts={morningRiskAlerts}
                   isPlanLocked={isPlanLocked || !canOperateToday}
@@ -1079,7 +1084,7 @@ function TodayWorkspacePageContent() {
 
                 {/* Single ingredient view: store-room requirement + BOM prep
                     sheet merged, styled per the Ingredient requirements layout. */}
-                <section className="mt-8 mb-4">
+                <section id="ingredient-requirements" className="mt-8 mb-4 scroll-mt-6">
                   <IngredientRequirements
                     branchId={safeBranchId}
                     targetDate={targetDate}

@@ -1419,7 +1419,10 @@
       "footerFromLock": "Calculé lors du verrouillage du plan",
       "footerFromManual": "Recalculé manuellement",
       "goToPurchasing": "Commander ce qui manque →",
-      "uncountedSummary": "{count} non inventorié(s)"
+      "uncountedSummary": "{count} non inventorié(s)",
+      "risksNeedAttention": "{count} risque(s) d'inventaire nécessitent une attention",
+      "coveragePct": "{pct} % des besoins sont couverts",
+      "viewDetails": "Voir les détails"
     },
     "tasksStrip": {
       "suggested": "{count} tâche(s) suggérée(s) en attente de votre validation",
