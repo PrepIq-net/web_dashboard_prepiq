@@ -31,9 +31,15 @@ export const metadata: Metadata = {
     "Prep IQ",
   ],
   robots: "index, follow",
+  applicationName: "PrepIQ",
   authors: [{ name: "PrepIQ Engineering" }],
   creator: "PrepIQ",
   publisher: "PrepIQ",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PrepIQ",
+  },
   alternates: {
     canonical: "/",
   },
@@ -51,8 +57,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/og-dashboard.png",
-        width: 1200,
-        height: 630,
+        width: 1600,
+        height: 896,
         alt: "PrepIQ Kitchen Intelligence & Operational AI Platform",
       },
     ],
@@ -76,11 +82,33 @@ export const metadata: Metadata = {
   },
 };
 
+const APP_URL = "https://app.prepiq.com";
+
+const buildJsonLd = () => ({
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${APP_URL}/#software`,
+  name: "PrepIQ",
+  url: APP_URL,
+  description:
+    "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "Restaurant Management Software",
+  operatingSystem: "Web",
+  publisher: {
+    "@type": "Organization",
+    name: "PrepIQ",
+    url: APP_URL,
+  },
+});
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = buildJsonLd();
+
   const headersList = await headers();
   const lang = resolveHtmlLang(headersList.get("accept-language"));
 
@@ -93,6 +121,15 @@ export default async function RootLayout({
 
   return (
     <html lang={lang}>
+      <head>
+        {/* Plain <script>, not next/script: JSON-LD must be in the initial HTML
+            response. next/script defers injection to the client, so crawlers
+            that do not execute JS see no structured data at all. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}
       >

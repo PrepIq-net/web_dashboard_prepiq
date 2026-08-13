@@ -31,7 +31,7 @@ function isPublicAsset(pathname: string): boolean {
     pathname.startsWith("/logo") ||
     pathname.startsWith("/fonts") ||
     pathname.startsWith("/public") ||
-    /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt)$/.test(pathname)
+    /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|xml)$/.test(pathname)
   );
 }
 
