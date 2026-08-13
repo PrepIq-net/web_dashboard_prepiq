@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { useCreateIngredient, useUpdateIngredient } from "@/services/inventory/hooks";
 import type { Ingredient } from "@/services/inventory/types";
 
@@ -121,7 +121,7 @@ export function IngredientModal({ open, onClose, organizationId, ingredient }: P
   }
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Ingredient" : "Add Ingredient"}
@@ -130,7 +130,7 @@ export function IngredientModal({ open, onClose, organizationId, ingredient }: P
           ? "Update this ingredient's details. Changes apply across all branches."
           : "Add a new ingredient to your org-wide catalog. It will be available to all branches."
       }
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -254,6 +254,6 @@ export function IngredientModal({ open, onClose, organizationId, ingredient }: P
           </p>
         )}
       </form>
-    </ModalShell>
+    </DrawerShell>
   );
 }

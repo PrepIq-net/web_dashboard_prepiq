@@ -143,7 +143,7 @@ export function TodaysBriefModal({
       <AnimatePresence>
         <motion.div
           key="brief-backdrop"
-          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/65 p-6 backdrop-blur-sm"
+          className="fixed inset-0 z-9999 flex"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -157,10 +157,10 @@ export function TodaysBriefModal({
             role="dialog"
             aria-modal="true"
             aria-label={t("today.briefAudio.title")}
-            className="w-full max-w-xl overflow-hidden rounded-modal border border-surface-4 bg-surface-2 shadow-2xl outline-none"
+            className="flex h-full w-[680px] max-w-[96vw] flex-col overflow-hidden border-l border-surface-4 bg-surface-2 shadow-2xl outline-none"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-4">
+            <div className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
                   {t("today.briefAudio.eyebrow")}
@@ -179,7 +179,7 @@ export function TodaysBriefModal({
               </button>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
               {loading ? (
                 <BriefPreparing message={t("today.briefAudio.preparing")} />
               ) : error ? (

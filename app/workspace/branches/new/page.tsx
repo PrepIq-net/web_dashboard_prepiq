@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/select";
 import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LocationPicker } from "@/components/ui/location-picker";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { formatMoney } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
@@ -618,7 +618,7 @@ export default function NewBranchPage() {
       </form>
 
       {/* ── Step 1: confirm what creating this branch commits to ── */}
-      <ModalShell
+      <DrawerShell
         open={confirmOpen}
         title={t("workspace.branches.new.confirm.title")}
         description={t("workspace.branches.new.confirm.description")}
@@ -703,10 +703,10 @@ export default function NewBranchPage() {
             </p>
           </div>
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* ── Step 2: what was actually created, with its real trial end date ── */}
-      <ModalShell
+      <DrawerShell
         open={Boolean(createdBranch)}
         title={t("workspace.branches.new.created.title", {
           name: createdBranch?.name ?? "",
@@ -766,7 +766,7 @@ export default function NewBranchPage() {
             </ul>
           </div>
         </div>
-      </ModalShell>
+      </DrawerShell>
     </WorkspaceShell>
   );
 }

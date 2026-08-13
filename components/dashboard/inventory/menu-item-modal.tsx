@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, useCallback } from "react";
 import Cropper, { type Point, type Area } from "react-easy-crop";
 import { MediaImage, NavArrowDown, NavArrowUp } from "iconoir-react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { getCroppedImg } from "@/lib/utils/image";
 import {
   useCreateMenuItem,
@@ -302,12 +302,12 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
   // ── Crop step — replaces form content inside same modal ──
   if (cropperSrc) {
     return (
-      <ModalShell
+      <DrawerShell
         open={open}
         onClose={() => setCropperSrc(null)}
         title="Adjust framing"
         description="Drag to reposition · scroll or pinch to zoom"
-        maxWidthClassName="max-w-lg"
+        widthClassName="w-[560px]"
         footer={
           <>
             <button
@@ -359,13 +359,13 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
             className="w-full h-0.75 cursor-pointer appearance-none rounded-full bg-surface-4 accent-brand-gold"
           />
         </div>
-      </ModalShell>
+      </DrawerShell>
     );
   }
 
   // ── Normal form step ──
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Menu Item" : "Add Menu Item"}
@@ -374,7 +374,7 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
           ? "Update this menu item. Upload a new image to replace the current one."
           : "Add a new menu item to this branch."
       }
-      maxWidthClassName="max-w-lg"
+      widthClassName="w-[560px]"
       footer={
         <>
           <button
@@ -531,6 +531,6 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
           </p>
         )}
       </form>
-    </ModalShell>
+    </DrawerShell>
   );
 }

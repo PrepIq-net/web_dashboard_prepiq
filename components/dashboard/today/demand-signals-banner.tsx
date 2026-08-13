@@ -20,7 +20,7 @@ import {
   NavArrowRight,
 } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import type { BranchDayToday } from "@/services/production-intelligence/types";
 import type { Translator } from "./today-helpers";
 
@@ -224,11 +224,11 @@ export function DemandSignalsBanner({
         ))}
       </div>
 
-      <ModalShell
+      <DrawerShell
         open={Boolean(openCard)}
         title={openCard ? cardLabel(t, openCard.key) : ""}
         onClose={() => setOpenKey(null)}
-        maxWidthClassName="max-w-md"
+        widthClassName="w-[480px]"
       >
         {openCard && openTokens && OpenIcon ? (
           <div className="space-y-4">
@@ -279,7 +279,7 @@ export function DemandSignalsBanner({
             </p>
           </div>
         ) : null}
-      </ModalShell>
+      </DrawerShell>
     </section>
   );
 }

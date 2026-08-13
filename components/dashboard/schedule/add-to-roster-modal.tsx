@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { Field, TextInput } from "@/components/ui/form-field";
 import { Select } from "@/components/ui/select";
 import {
@@ -115,12 +115,12 @@ export function AddToRosterModal({
   const pending = assign.isPending || createInvite.isPending;
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       title={t("schedule.roster.title")}
       description={t("schedule.roster.description", { branch: branchName })}
       onClose={onClose}
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -256,6 +256,6 @@ export function AddToRosterModal({
           )}
         </div>
       )}
-    </ModalShell>
+    </DrawerShell>
   );
 }

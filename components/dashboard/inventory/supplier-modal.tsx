@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { useCreateIngredientSupplier } from "@/services/inventory/hooks";
 import type { Ingredient } from "@/services/inventory/types";
 
@@ -80,12 +80,12 @@ export function SupplierModal({ open, onClose, branchId, ingredients }: Props) {
     "w-full h-11 rounded-lg border border-surface-4 bg-surface-3 px-4 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors";
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onClose={onClose}
       title="Add Ingredient Supplier"
       description="Configure pack size, cost, and lead time for an ingredient supplier."
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -234,6 +234,6 @@ export function SupplierModal({ open, onClose, branchId, ingredients }: Props) {
           </p>
         )}
       </form>
-    </ModalShell>
+    </DrawerShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 
 type RecordProductionModalProps = {
   open: boolean;
@@ -46,7 +46,7 @@ export function RecordProductionModal({
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       title={t("today.record.title")}
       description={t("today.record.description", { item: itemTitle })}
@@ -90,6 +90,6 @@ export function RecordProductionModal({
         />
         <p className="text-xs text-text-muted">{t("today.record.hint")}</p>
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }

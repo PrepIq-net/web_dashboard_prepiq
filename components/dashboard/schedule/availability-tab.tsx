@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, Xmark } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { TextArea } from "@/components/ui/form-field";
 import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import type {
@@ -280,7 +280,7 @@ function ReviewModal({
   const week = pending?.submission.week_start_date ?? "";
 
   return (
-    <ModalShell
+    <DrawerShell
       open={pending !== null}
       title={t(isReject ? "schedule.review.rejectTitle" : "schedule.review.approveTitle")}
       description={t(
@@ -288,7 +288,7 @@ function ReviewModal({
         { name, week },
       )}
       onClose={onClose}
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -325,6 +325,6 @@ function ReviewModal({
         )}
         className="mt-2"
       />
-    </ModalShell>
+    </DrawerShell>
   );
 }

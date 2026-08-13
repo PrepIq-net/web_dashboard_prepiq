@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import {
   Field,
   NativeSelect,
@@ -74,7 +74,7 @@ export function EditTaskModal({
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open={task !== null}
       title={t("tasks.edit.title")}
       description={t("tasks.edit.description")}
@@ -189,6 +189,6 @@ export function EditTaskModal({
           </Field>
         </div>
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }

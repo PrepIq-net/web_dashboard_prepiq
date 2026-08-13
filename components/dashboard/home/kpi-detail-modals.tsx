@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "iconoir-react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { formatMoney } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
 import type {
@@ -144,12 +144,12 @@ export function KpiDetailModals({
   return (
     <>
       {/* Revenue modal */}
-      <ModalShell
+      <DrawerShell
         open={openModal === "revenue"}
         onClose={onClose}
         title={t("dashboard.home.kpiModal.revenueTitle")}
         description={t("dashboard.home.kpiModal.revenueDesc")}
-        maxWidthClassName="max-w-2xl"
+        widthClassName="w-[720px]"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
@@ -249,10 +249,10 @@ export function KpiDetailModals({
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* Waste modal */}
-      <ModalShell
+      <DrawerShell
         open={openModal === "waste"}
         onClose={onClose}
         title={
@@ -261,7 +261,7 @@ export function KpiDetailModals({
             : t("dashboard.home.kpiModal.wasteRiskTitle")
         }
         description={t("dashboard.home.kpiModal.wasteDesc")}
-        maxWidthClassName="max-w-2xl"
+        widthClassName="w-[720px]"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
@@ -414,15 +414,15 @@ export function KpiDetailModals({
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* Forecast accuracy modal */}
-      <ModalShell
+      <DrawerShell
         open={openModal === "forecast"}
         onClose={onClose}
         title={t("dashboard.home.kpiModal.forecastTitle")}
         description={t("dashboard.home.kpiModal.forecastDesc")}
-        maxWidthClassName="max-w-2xl"
+        widthClassName="w-[720px]"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-3">
@@ -537,10 +537,10 @@ export function KpiDetailModals({
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* Alerts modal */}
-      <ModalShell
+      <DrawerShell
         open={openModal === "alerts"}
         onClose={onClose}
         title={t("dashboard.home.kpiModal.alertsTitle")}
@@ -559,7 +559,7 @@ export function KpiDetailModals({
               }`
             : t("dashboard.home.kpiModal.alertsDescNone")
         }
-        maxWidthClassName="max-w-xl"
+        widthClassName="w-[680px]"
       >
         {alerts.length === 0 ? (
           <div className="py-10 text-center">
@@ -636,7 +636,7 @@ export function KpiDetailModals({
               })}
           </div>
         )}
-      </ModalShell>
+      </DrawerShell>
     </>
   );
 }

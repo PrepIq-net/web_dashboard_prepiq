@@ -147,12 +147,26 @@ function EventModalFrame({
   footer: React.ReactNode;
   maxWidthClass?: string;
 }) {
+  const drawerWidth =
+    maxWidthClass === "max-w-md"
+      ? "w-[480px]"
+      : maxWidthClass === "max-w-xl"
+        ? "w-[680px]"
+        : maxWidthClass === "max-w-2xl"
+          ? "w-[720px]"
+          : "w-[560px]";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex">
       <div
-        className={`w-full ${maxWidthClass} rounded-2xl border border-surface-4 bg-surface-1 shadow-2xl`}
+        className="flex-1 bg-black/50"
+        onClick={onClose}
+        role="presentation"
+      />
+      <div
+        className={`flex h-full max-w-[96vw] flex-col border-l border-surface-4 bg-surface-1 shadow-2xl animate-in slide-in-from-right duration-200 ${drawerWidth}`}
       >
-        <div className="flex items-center justify-between border-b border-surface-4 px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
               {eyebrow}
@@ -170,7 +184,9 @@ function EventModalFrame({
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto scrollbar-thin">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
+          {children}
+        </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-surface-4 px-6 py-4">
           {footer}

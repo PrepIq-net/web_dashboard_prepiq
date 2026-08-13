@@ -65,7 +65,7 @@ import {
   useReactTable,
   NativeTable,
 } from "@/components/ui/native-table";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import type { OrganizationMember, Role } from "@/services/organizations/types";
 import {
   SYSTEM_ROLE_SLUG,
@@ -80,7 +80,7 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 import { MemberAccessDrawer } from "@/components/dashboard/settings/member-access-drawer";
-import { type RoleFormValues } from "@/components/dashboard/settings/role-editor-modal";
+import { RoleEditorDrawer, type RoleFormValues } from "@/components/dashboard/settings/role-editor-drawer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
@@ -88,7 +88,6 @@ import { ActiveSessions } from "@/components/dashboard/settings/active-sessions"
 import { useTranslation } from "@/lib/i18n";
 import { usePrepConectors } from "@/services/connector/hook";
 import { Spinner } from "@/components/ui/spinner";
-import { RoleEditorDrawer } from "@/components/dashboard/settings/role-editor-drawer";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -1589,7 +1588,7 @@ function BranchSettings({
         </div>
       )}
 
-      <ModalShell
+      <DrawerShell
         open={deleteBranchOpen}
         title={t("settings.branch.delete.title")}
         description={t("settings.branch.delete.confirm", {
@@ -1649,7 +1648,7 @@ function BranchSettings({
             ]}
           />
         </div>
-      </ModalShell>
+      </DrawerShell>
     </div>
   );
 }
@@ -2061,7 +2060,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       </section>
 
       {/* ── Add member ─────────────────────────────────────────────────── */}
-      <ModalShell
+      <DrawerShell
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title={t("settings.users.addMemberModal.title")}
@@ -2102,7 +2101,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             </Button>
           </div>
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       <MemberAccessDrawer
         open={Boolean(drawerMember)}

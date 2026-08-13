@@ -119,9 +119,14 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="mx-auto w-full max-w-2xl rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-        <div className="flex items-center justify-between border-b border-[#2A2A2E] px-6 py-5">
+    <div className="fixed inset-0 z-50 flex">
+      <div
+        className="flex-1 bg-black/50"
+        onClick={onClose}
+        role="presentation"
+      />
+      <div className="flex h-full w-[680px] max-w-[96vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200">
+        <div className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
           <div>
             <h2 className="text-lg font-semibold text-text-primary">Start New Conversation</h2>
             <p className="text-xs text-text-muted mt-0.5">Create a chat thread with your team members</p>
@@ -134,7 +139,7 @@ export function CreateThreadModal({ user, onClose, onSuccess }: CreateThreadModa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-6 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6 scrollbar-thin">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Conversation Type"

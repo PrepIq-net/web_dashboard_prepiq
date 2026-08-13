@@ -21,7 +21,7 @@ import {
   Bank,
 } from "iconoir-react";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import {
   useBranches,
   useCurrentSubscription,
@@ -120,7 +120,7 @@ function InvoiceModal({
   >;
 
   return (
-    <ModalShell
+    <DrawerShell
       open
       title={invoice.invoice_number}
       description={
@@ -129,7 +129,7 @@ function InvoiceModal({
           : t("workspace.billing.invoice.orgInvoice")
       }
       onClose={onClose}
-      maxWidthClassName="max-w-xl"
+      widthClassName="w-[680px]"
       footer={
         <>
           <button
@@ -214,19 +214,19 @@ function InvoiceModal({
       {invoice.notes && (
         <p className="mt-4 text-xs text-text-muted">{invoice.notes}</p>
       )}
-    </ModalShell>
+    </DrawerShell>
   );
 }
 
 function PaymentMethodModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   return (
-    <ModalShell
+    <DrawerShell
       open
       title={t("workspace.billing.paymentMethodModal.title")}
       description={t("workspace.billing.paymentMethodModal.description")}
       onClose={onClose}
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <button
           type="button"
@@ -249,7 +249,7 @@ function PaymentMethodModal({ onClose }: { onClose: () => void }) {
           support@prepiq.app
         </a>
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }
 
@@ -283,7 +283,7 @@ function CancelSubscriptionModal({
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open
       title={t("workspace.billing.cancelModal.title", { plan: planLabel })}
       description={
@@ -292,7 +292,7 @@ function CancelSubscriptionModal({
           : t("workspace.billing.cancelModal.descriptionNoDate")
       }
       onClose={onClose}
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -347,7 +347,7 @@ function CancelSubscriptionModal({
           className="w-full resize-none rounded-xl border border-surface-4 bg-surface-2 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/40 focus:outline-none"
         />
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }
 

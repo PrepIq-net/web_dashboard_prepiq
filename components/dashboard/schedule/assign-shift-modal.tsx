@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { Select } from "@/components/ui/select";
 import { ToggleRow } from "@/components/ui/form-field";
 import { TimeRangePicker, rangeHours, type TimeRange } from "@/components/ui/time-range-picker";
@@ -110,7 +110,7 @@ export function AssignShiftModal({
   const canSave = custom ? !customInvalid : !!templateId;
 
   return (
-    <ModalShell
+    <DrawerShell
       open
       title={editing ? t("schedule.actions.removeShift") : t("schedule.actions.addShift")}
       description={`${person?.name ?? ""} · ${dayLabel}`}
@@ -208,6 +208,6 @@ export function AssignShiftModal({
           label={t("schedule.actions.pinShift")}
         />
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }

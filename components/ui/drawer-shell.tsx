@@ -10,25 +10,37 @@ import {
 import { createPortal } from "react-dom";
 import { Xmark } from "iconoir-react";
 
-type ModalShellProps = {
+// Legacy ModalShell call sites passed max-w-* to size the centered dialog;
+// the same classes now map onto drawer widths so the swap was one import.
+const LEGACY_WIDTHS: Record<string, string> = {
+  "max-w-md": "w-[480px]",
+  "max-w-lg": "w-[560px]",
+  "max-w-xl": "w-[680px]",
+  "max-w-2xl": "w-[720px]",
+  "max-w-3xl": "w-[896px]",
+};
+
+type DrawerShellProps = {
   open: boolean;
   title: string;
   description?: string;
   onClose: () => void;
   children?: ReactNode;
   footer?: ReactNode;
-  maxWidthClassName?: string;
+  /** Drawer width — a Tailwind class like "w-[640px]", or a legacy
+      "max-w-*" value which is mapped onto a matching drawer width. */
+  widthClassName?: string;
 };
 
-export function ModalShell({
+export function DrawerShell({
   open,
   title,
   description,
   onClose,
   children,
   footer,
-  maxWidthClassName = "max-w-lg",
-}: ModalShellProps) {
+  widthClassName,
+}: DrawerShellProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [showScrollUp, setShowScrollUp] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -86,20 +98,26 @@ export function ModalShell({
 
   if (!open || !mounted) return null;
 
-  const modal = (
-    <div
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm"
-      onClick={onClose}
-      role="presentation"
-    >
+  const width = widthClassName?.startsWith("max-w-")
+    ? (LEGACY_WIDTHS[widthClassName] ?? "w-[640px]")
+    : (widthClassName ?? "w-[640px]");
+
+  const drawer = (
+    <div className="fixed inset-0 z-9999 flex">
       <div
-        className={`flex w-full flex-col ${maxWidthClassName} max-h-[calc(100vh-6rem)] min-h-0 overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-2xl`}
+        className="flex-1 bg-black/50"
+        onClick={onClose}
+        role="presentation"
+      />
+
+      <div
+        className={`flex h-full min-h-0 flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200 ${width} max-w-[96vw]`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <header className="flex items-start justify-between border-b border-surface-4 px-5 py-4">
-          <div>
+        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
+          <div className="min-w-0">
             <h2 className="font-display text-xl font-semibold text-text-primary">
               {title}
             </h2>
@@ -111,7 +129,7 @@ export function ModalShell({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary"
           >
             <Xmark className="h-5 w-5" />
           </button>
@@ -120,7 +138,7 @@ export function ModalShell({
           <div className="relative flex-1 min-h-0">
             <div
               ref={scrollRef}
-              className="h-full overflow-y-auto overscroll-contain px-5 py-4 scrollbar-thin"
+              className="h-full overflow-y-auto overscroll-contain px-6 py-6 scrollbar-thin"
               onScroll={updateScrollIndicators}
             >
               {children}
@@ -179,7 +197,7 @@ export function ModalShell({
           </div>
         ) : null}
         {footer ? (
-          <footer className="flex items-center justify-end gap-2 border-t border-surface-4 px-5 py-4">
+          <footer className="flex items-center justify-end gap-2 border-t border-surface-4 px-6 py-5">
             {footer}
           </footer>
         ) : null}
@@ -189,5 +207,5 @@ export function ModalShell({
 
   // Portal renders at document.body — escapes any ancestor transform/filter/backdrop-filter
   // that would otherwise trap position:fixed inside a sub-stacking-context.
-  return createPortal(modal, document.body);
+  return createPortal(drawer, document.body);
 }

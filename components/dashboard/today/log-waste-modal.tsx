@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 
 type LogWasteModalProps = {
   open: boolean;
@@ -40,7 +40,7 @@ export function LogWasteModal({
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       title="Log Waste"
       description={`Record waste for ${itemTitle}.`}
@@ -80,6 +80,6 @@ export function LogWasteModal({
           className="h-11 w-full rounded-full border border-surface-4 bg-surface-3 px-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-status-critical/20"
         />
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }

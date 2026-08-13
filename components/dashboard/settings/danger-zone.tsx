@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { WarningTriangle, Trash, LogOut } from "iconoir-react";
 import { toast } from "react-hot-toast";
 
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -295,7 +295,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
       />
 
       {/* ── Account deletion modal ── */}
-      <ModalShell
+      <DrawerShell
         open={accountOpen}
         title={t("settings.danger.account.modalTitle")}
         description={t("settings.danger.account.modalDescription")}
@@ -361,10 +361,10 @@ export function DangerZone({ orgId }: { orgId?: string }) {
             placeholder="DELETE"
           />
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* ── Leave org confirm ── */}
-      <ModalShell
+      <DrawerShell
         open={leaveOpen}
         title={t("settings.danger.leave.title")}
         description={t("settings.danger.leave.confirm")}
@@ -398,10 +398,10 @@ export function DangerZone({ orgId }: { orgId?: string }) {
             { value: "OTHER", label: t("settings.danger.reasons.other") },
           ]}
         />
-      </ModalShell>
+      </DrawerShell>
 
       {/* ── Transfer ownership ── */}
-      <ModalShell
+      <DrawerShell
         open={transferOpen}
         title={t("settings.danger.transfer.title")}
         description={t("settings.danger.transfer.modalDescription")}
@@ -445,10 +445,10 @@ export function DangerZone({ orgId }: { orgId?: string }) {
             ]}
           />
         </div>
-      </ModalShell>
+      </DrawerShell>
 
       {/* ── Delete org (typed confirm) ── */}
-      <ModalShell
+      <DrawerShell
         open={orgDeleteOpen}
         title={t("settings.danger.org.modalTitle")}
         description={t("settings.danger.org.modalDescription")}
@@ -503,7 +503,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
             placeholder={org?.name ?? ""}
           />
         </div>
-      </ModalShell>
+      </DrawerShell>
     </div>
   );
 }

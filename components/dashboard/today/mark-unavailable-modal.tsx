@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { useCreateAvailabilityOverride } from "@/services/inventory/hooks";
 
 type Props = {
@@ -76,12 +76,12 @@ export function MarkUnavailableModal({ open, onClose, branchId, item, onSuccess 
     "w-full h-11 rounded-lg border border-surface-4 bg-surface-3 px-4 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors";
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onClose={onClose}
       title="Mark Item Unavailable"
       description={item ? `Configure an availability override for ${item.title}.` : ""}
-      maxWidthClassName="max-w-md"
+      widthClassName="w-[480px]"
       footer={
         <>
           <button
@@ -203,6 +203,6 @@ export function MarkUnavailableModal({ open, onClose, branchId, item, onSuccess 
           </p>
         )}
       </form>
-    </ModalShell>
+    </DrawerShell>
   );
 }

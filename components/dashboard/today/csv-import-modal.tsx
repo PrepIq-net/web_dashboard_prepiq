@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { parseCSVFile } from "@/services/production-intelligence/csv-mapping";
 import { useCSVUploadSessionStore } from "@/services/production-intelligence/csv-upload-session";
 import { productionIntelligenceEndpoints } from "@/services/production-intelligence/endpoints";
@@ -110,12 +110,12 @@ export function CsvImportModal({
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onClose={close}
       title={t("today.csv.modalTitle")}
       description={t("today.csv.modalDescription")}
-      maxWidthClassName="max-w-xl"
+      widthClassName="w-[680px]"
       footer={
         <>
           <button
@@ -187,6 +187,6 @@ export function CsvImportModal({
           ) : null}
         </div>
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }

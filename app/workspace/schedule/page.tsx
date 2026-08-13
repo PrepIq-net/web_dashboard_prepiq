@@ -23,7 +23,7 @@ import { useSelectedBranch } from "@/services/context/branch-store";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Button } from "@/components/ui/button";
-import { ModalShell } from "@/components/ui/modal-shell";
+import { DrawerShell } from "@/components/ui/drawer-shell";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
@@ -238,7 +238,7 @@ export default function SchedulePage() {
         onCopyPrevious={() => copyPrevious.mutate()}
       />
 
-      <ModalShell
+      <DrawerShell
         open={pendingRebuild}
         title={t("schedule.rebuild.title")}
         description={t("schedule.rebuild.description", {
