@@ -3,18 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
- * The three things every modal in this app has to get right, extracted so a
- * modal that cannot use `ModalShell` does not quietly ship without them.
- *
- * `ModalShell` owns its own backdrop, panel and entrance, which is right for
- * the 23 dialogs that use it and wrong for a surface doing a shared-element
- * morph. Rather than let such a surface hand-roll its chrome and lose the
- * behaviour along with it, both consume this:
+ * The things every modal-ish surface in this app has to get right, extracted
+ * so a surface that cannot use `DrawerShell` does not quietly ship without
+ * them. Both consume this:
  *
  * - Escape closes.
- * - Body scroll locks, compensating for the scrollbar width so the page
- *   underneath does not visibly jump sideways as it disappears.
  * - `mounted` gates `createPortal`, which cannot run during SSR.
+ *
+ * Body scroll is deliberately NOT locked: drawers overlay the page and the
+ * page stays scrollable behind them, consistent with the assistant drawer.
+ * When the drawer's own content reaches its scroll boundary the wheel keeps
+ * flowing to the page behind (native scroll chaining).
  *
  * Focus containment is deliberately NOT here: it depends on the panel's own
  * DOM, so it belongs to the component that owns the panel.
@@ -35,19 +34,8 @@ export function useModalBehaviour(open: boolean, onClose: () => void) {
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-    if (scrollBarWidth > 0) {
-      document.body.style.paddingRight = `${scrollBarWidth}px`;
-    }
-    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, handleKeyDown]);
 
   return { mounted };

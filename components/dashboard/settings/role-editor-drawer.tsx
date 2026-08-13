@@ -64,9 +64,7 @@ export function RoleEditorDrawer({
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
+    // The page behind stays scrollable, consistent with every other drawer.
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -75,10 +73,7 @@ export function RoleEditorDrawer({
 
     document.addEventListener("keydown", onKeyDown);
 
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
   const visiblePermissions = isReadOnly

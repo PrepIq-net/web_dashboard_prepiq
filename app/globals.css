@@ -195,6 +195,31 @@
     background: var(--color-scrollbar-thumb-hover);
   }
 
+  /* The document scrollbar (the page itself) matches the sidebar's thin
+     scrollbar — DESIGN.md §7 "Scrollbars". */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  }
+
+  html::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+  }
+
   @keyframes assistant-drawer-in {
     from {
       opacity: 0;
