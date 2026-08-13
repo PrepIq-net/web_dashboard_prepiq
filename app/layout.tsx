@@ -16,32 +16,50 @@ function resolveHtmlLang(acceptLanguage: string | null): string {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.prepiq.com"), // Standard for Next.js 14+ relative assets
   title: {
-    template: "%s | PrepIQ",
-    default: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
+    template: "%s | PrepIQ Dashboard",
+    default: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
   },
-  description: "Operational intelligence infrastructure for modern kitchens. Protect margins, reduce waste by up to 40%, and scale production with precision using AI-powered demand forecasting.",
-  keywords: ["kitchen intelligence", "margin protection", "demand forecasting", "waste reduction", "operational excellence", "PrepIQ", "SaaS"],
+  description:
+    "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
+  keywords: [
+    "Kitchen Intelligence",
+    "Restaurant Forecasting",
+    "Food Waste Reduction",
+    "Kitchen AI Analyst",
+    "Prep IQ",
+  ],
+  robots: "index, follow",
+  applicationName: "PrepIQ",
   authors: [{ name: "PrepIQ Engineering" }],
   creator: "PrepIQ",
   publisher: "PrepIQ",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PrepIQ",
+  },
+  alternates: {
+    canonical: "/",
+  },
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://app.prepiq.com"), // Standard for Next.js 14+ relative assets
   openGraph: {
-    title: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
-    description: "AI-powered daily prep intelligence for commercial kitchens. Predict demand, reduce waste, and protect margins.",
+    title: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
+    description:
+      "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
     url: "https://app.prepiq.com",
     siteName: "PrepIQ Dashboard",
     images: [
       {
         url: "/og-dashboard.png",
-        width: 1200,
-        height: 630,
-        alt: "PrepIQ Operational Intelligence Dashboard",
+        width: 1600,
+        height: 896,
+        alt: "PrepIQ Kitchen Intelligence & Operational AI Platform",
       },
     ],
     locale: "en_US",
@@ -49,22 +67,48 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
-    description: "AI-powered daily prep intelligence for commercial kitchens. Predict demand, reduce waste, and protect margins.",
+    title: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
+    description:
+      "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
     images: ["/og-dashboard.png"],
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
+      { url: "/icon-32x32.png", type: "image/png", sizes: "32x32" },
+    ],
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",
   },
 };
+
+const APP_URL = "https://app.prepiq.com";
+
+const buildJsonLd = () => ({
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${APP_URL}/#software`,
+  name: "PrepIQ",
+  url: APP_URL,
+  description:
+    "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "Restaurant Management Software",
+  operatingSystem: "Web",
+  publisher: {
+    "@type": "Organization",
+    name: "PrepIQ",
+    url: APP_URL,
+  },
+});
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = buildJsonLd();
+
   const headersList = await headers();
   const lang = resolveHtmlLang(headersList.get("accept-language"));
 
@@ -77,6 +121,15 @@ export default async function RootLayout({
 
   return (
     <html lang={lang}>
+      <head>
+        {/* Plain <script>, not next/script: JSON-LD must be in the initial HTML
+            response. next/script defers injection to the client, so crawlers
+            that do not execute JS see no structured data at all. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${satoshi.variable} font-sans antialiased`}
       >
