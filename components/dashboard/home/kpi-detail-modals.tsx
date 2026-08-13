@@ -71,7 +71,9 @@ function HorizontalBars({
 }) {
   const max = Math.max(...items.map((d) => d.value), 1);
   if (items.length === 0) {
-    return <p className="text-sm text-text-muted text-center py-6">{emptyText}</p>;
+    return (
+      <p className="text-sm text-text-muted text-center py-6">{emptyText}</p>
+    );
   }
   return (
     <div className="space-y-2.5">
@@ -164,14 +166,20 @@ export function KpiDetailModals({
             />
             <ModalStat
               label={t("dashboard.home.kpiModal.statUnitsSold")}
-              value={(tower?.summary?.total_sold ?? 0).toLocaleString(undefined, {
-                maximumFractionDigits: 0,
-              })}
+              value={(tower?.summary?.total_sold ?? 0).toLocaleString(
+                undefined,
+                {
+                  maximumFractionDigits: 0,
+                },
+              )}
               sub={t("dashboard.home.kpiModal.acrossAllBranches")}
             />
             <ModalStat
               label={t("dashboard.home.kpiModal.statCostSaved")}
-              value={formatMoney(Number(tower?.summary?.cost_saved_today ?? 0), towerCurrency)}
+              value={formatMoney(
+                Number(tower?.summary?.cost_saved_today ?? 0),
+                towerCurrency,
+              )}
               sub={t("dashboard.home.kpiModal.vsUnoptimized")}
             />
           </div>
@@ -190,10 +198,15 @@ export function KpiDetailModals({
                       ? Number(b.revenue_usd ?? b.revenue ?? 0)
                       : Number(b.revenue ?? 0),
                     colorClass: "bg-brand-gold/70",
-                    display: formatMoney(Number(b.revenue ?? 0), b.currency ?? towerCurrency),
+                    display: formatMoney(
+                      Number(b.revenue ?? 0),
+                      b.currency ?? towerCurrency,
+                    ),
                   }))
                   .sort((a, b) => b.value - a.value)}
-                formatVal={(item) => item.display ?? formatMoney(item.value, towerCurrency)}
+                formatVal={(item) =>
+                  item.display ?? formatMoney(item.value, towerCurrency)
+                }
                 emptyText={t("dashboard.home.kpiModal.noRevenueData")}
               />
             </div>
@@ -326,8 +339,12 @@ export function KpiDetailModals({
             </p>
             <HorizontalBars
               items={[...branchGrid]
-                .filter((b) => b.waste_pct !== null && b.waste_pct !== undefined)
-                .sort((a, b) => Number(b.waste_pct ?? 0) - Number(a.waste_pct ?? 0))
+                .filter(
+                  (b) => b.waste_pct !== null && b.waste_pct !== undefined,
+                )
+                .sort(
+                  (a, b) => Number(b.waste_pct ?? 0) - Number(a.waste_pct ?? 0),
+                )
                 .map((b) => {
                   const p = Number(b.waste_pct ?? 0);
                   const mb = marginReport?.branches?.find(
@@ -343,7 +360,10 @@ export function KpiDetailModals({
                           ? "bg-status-warning"
                           : "bg-chart-baseline",
                     display: mb
-                      ? formatMoney(Number(mb.total_waste_cost ?? "0"), mb.currency ?? marginCurrency)
+                      ? formatMoney(
+                          Number(mb.total_waste_cost ?? "0"),
+                          mb.currency ?? marginCurrency,
+                        )
                       : undefined,
                   };
                 })}
@@ -367,7 +387,9 @@ export function KpiDetailModals({
                   .map((b) => ({
                     label: b.branch_name,
                     value: isMultiCurrency
-                      ? Number(b.total_waste_cost_usd ?? b.total_waste_cost ?? "0")
+                      ? Number(
+                          b.total_waste_cost_usd ?? b.total_waste_cost ?? "0",
+                        )
                       : Number(b.total_waste_cost ?? "0"),
                     colorClass: "bg-chart-baseline",
                     display: formatMoney(
@@ -376,7 +398,9 @@ export function KpiDetailModals({
                     ),
                   }))
                   .sort((a, b) => b.value - a.value)}
-                formatVal={(item) => item.display ?? formatMoney(item.value, marginCurrency)}
+                formatVal={(item) =>
+                  item.display ?? formatMoney(item.value, marginCurrency)
+                }
                 emptyText={t("dashboard.home.kpiModal.noCostData")}
               />
             </div>
@@ -550,8 +574,15 @@ export function KpiDetailModals({
           <div className="divide-y divide-surface-4 overflow-y-auto max-h-[calc(100vh-18rem)] scrollbar-thin">
             {[...alerts]
               .sort((a, b) => {
-                const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-                return (order[a.severity ?? ""] ?? 1) - (order[b.severity ?? ""] ?? 1);
+                const order: Record<string, number> = {
+                  HIGH: 0,
+                  MEDIUM: 1,
+                  LOW: 2,
+                };
+                return (
+                  (order[a.severity ?? ""] ?? 1) -
+                  (order[b.severity ?? ""] ?? 1)
+                );
               })
               .map((alert) => {
                 const cta = alertCTA(alert);

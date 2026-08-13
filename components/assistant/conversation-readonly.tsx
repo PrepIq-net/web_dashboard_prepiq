@@ -29,13 +29,15 @@ export function ConversationReadonly({
       open={Boolean(conversation)}
       onClose={onClose}
       title="Conversation"
-      subtitle={conversation ? PHASE_LABEL[conversation.phase] ?? "" : ""}
+      subtitle={conversation ? (PHASE_LABEL[conversation.phase] ?? "") : ""}
     >
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 scrollbar-thin">
         {detail.isLoading ? (
           <p className="text-sm text-text-muted">Loading conversation…</p>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-text-muted">This conversation has no messages.</p>
+          <p className="text-sm text-text-muted">
+            This conversation has no messages.
+          </p>
         ) : (
           messages.map((message) => (
             <AssistantMessageBubble key={message.id} message={message} />

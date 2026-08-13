@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-import { Bell, LogOut, NavArrowDown, Search, ProfileCircle, Settings } from "iconoir-react";
+import {
+  Bell,
+  LogOut,
+  NavArrowDown,
+  Search,
+  ProfileCircle,
+  Settings,
+} from "iconoir-react";
 import { useCommandPalette } from "@/components/command/command-palette-provider";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
 import {
@@ -20,7 +27,8 @@ import { useTranslation } from "@/lib/i18n";
 
 const TopNavComponent = memo(function DashboardTopNav() {
   const { t } = useTranslation();
-  const { enabled: paletteEnabled, setOpen: setPaletteOpen } = useCommandPalette();
+  const { enabled: paletteEnabled, setOpen: setPaletteOpen } =
+    useCommandPalette();
   const [isMac, setIsMac] = useState(false);
   useEffect(() => {
     setIsMac(/mac/i.test(navigator.platform));
@@ -125,7 +133,9 @@ const TopNavComponent = memo(function DashboardTopNav() {
             >
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
               <span className="flex h-10 w-full items-center rounded-[8px] bg-[#232327] pl-9 pr-3 text-[13px] text-[#8E8E93] transition-colors hover:bg-[#2A2A2E]">
-                <span className="flex-1 truncate text-left">{t("command.placeholder")}</span>
+                <span className="flex-1 truncate text-left">
+                  {t("command.placeholder")}
+                </span>
                 <kbd className="ml-2 inline-flex shrink-0 items-center gap-0.5 rounded-[5px] border border-[#2E2E33] bg-[#1C1C1F] px-1.5 py-0.5 font-sans text-[10px] font-medium text-[#8E8E93]">
                   {isMac ? "⌘" : "Ctrl"} K
                 </kbd>
@@ -272,7 +282,8 @@ const TopNavComponent = memo(function DashboardTopNav() {
                 {/* Identity header */}
                 <div className="flex items-center gap-3 px-4 py-4 border-b border-[#2A2A2E]">
                   <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-brand-gold/15 text-brand-gold font-semibold text-[13px] select-none">
-                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                    {user?.first_name?.[0]}
+                    {user?.last_name?.[0]}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-[#F5F5F7]">
@@ -321,7 +332,11 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] text-[#8E8E93] hover:bg-[#2A2A2E] hover:text-[#C44949] transition-colors"
                   >
                     <LogOut className="h-4 w-4 shrink-0" />
-                    <span>{logoutMutation.isPending ? t("dashboard.topNav.signingOut") : t("dashboard.topNav.signOut")}</span>
+                    <span>
+                      {logoutMutation.isPending
+                        ? t("dashboard.topNav.signingOut")
+                        : t("dashboard.topNav.signOut")}
+                    </span>
                   </button>
                 </div>
               </div>

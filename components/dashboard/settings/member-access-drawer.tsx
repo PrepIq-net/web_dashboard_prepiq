@@ -28,10 +28,7 @@ import type {
   OrganizationMember,
   Permission,
 } from "@/services/organizations/types";
-import {
-  PermissionPicker,
-  type PermissionState,
-} from "./permission-picker";
+import { PermissionPicker, type PermissionState } from "./permission-picker";
 
 type RoleOption = { label: string; value: string };
 
@@ -190,7 +187,7 @@ export function MemberAccessDrawer({
         role="presentation"
       />
       <div
-        className="flex h-full w-[560px] max-w-[94vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
+        className="flex h-full w-[720px] max-w-[94vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
         role="dialog"
         aria-modal="true"
         aria-label={t("settings.memberDrawer.title", { name: displayName })}
@@ -198,7 +195,11 @@ export function MemberAccessDrawer({
         <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-surface-4 bg-surface-2 text-sm font-semibold text-brand-gold">
-              {(member.first_name?.[0] || member.email?.[0] || "?").toUpperCase()}
+              {(
+                member.first_name?.[0] ||
+                member.email?.[0] ||
+                "?"
+              ).toUpperCase()}
             </span>
             <div className="min-w-0">
               <h2 className="truncate font-display text-lg font-semibold text-text-primary">
@@ -223,7 +224,10 @@ export function MemberAccessDrawer({
           {/* ── Role ─────────────────────────────────────────────────── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-brand-gold" aria-hidden="true" />
+              <ShieldCheck
+                className="h-4 w-4 text-brand-gold"
+                aria-hidden="true"
+              />
               <h3 className="text-sm font-semibold text-text-primary">
                 {t("settings.memberDrawer.role.title")}
               </h3>
@@ -241,7 +245,8 @@ export function MemberAccessDrawer({
             {access ? (
               <p className="text-xs text-text-muted">
                 {t("settings.memberDrawer.role.summary", {
-                  role: access.role?.name ?? t("settings.memberDrawer.role.none"),
+                  role:
+                    access.role?.name ?? t("settings.memberDrawer.role.none"),
                   n: access.role_permission_codes.length,
                 })}
               </p>
@@ -347,7 +352,9 @@ export function MemberAccessDrawer({
                     label={t("settings.memberDrawer.branches.addLabel")}
                     value={assignBranchId}
                     onChange={setAssignBranchId}
-                    placeholder={t("settings.memberDrawer.branches.addPlaceholder")}
+                    placeholder={t(
+                      "settings.memberDrawer.branches.addPlaceholder",
+                    )}
                     options={unassignedBranches.map((branch) => ({
                       label: branch.name,
                       value: branch.id,
@@ -385,7 +392,10 @@ export function MemberAccessDrawer({
           {/* ── Extra permissions ────────────────────────────────────── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-brand-gold" aria-hidden="true" />
+              <ShieldCheck
+                className="h-4 w-4 text-brand-gold"
+                aria-hidden="true"
+              />
               <h3 className="text-sm font-semibold text-text-primary">
                 {t("settings.memberDrawer.extra.title")}
               </h3>

@@ -331,7 +331,9 @@ export function PlanProvenanceDrawer({
                         {pct != null ? (
                           <span
                             className={`text-xs font-semibold ${
-                              pct >= 0 ? "text-status-success" : "text-status-critical"
+                              pct >= 0
+                                ? "text-status-success"
+                                : "text-status-critical"
                             }`}
                           >
                             {pct >= 0 ? "+" : ""}

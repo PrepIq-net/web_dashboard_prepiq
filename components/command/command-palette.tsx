@@ -32,7 +32,12 @@ const MAX_SEARCH_ROWS = 4;
 
 type PaletteRow =
   | { kind: "nav"; page: NavPage }
-  | { kind: "search"; label: string; href: string; icon: "object" | "conversation" }
+  | {
+      kind: "search";
+      label: string;
+      href: string;
+      icon: "object" | "conversation";
+    }
   | { kind: "ask" };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -56,7 +61,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [result, setResult] = useState<CommandResponse | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [confirmOutcome, setConfirmOutcome] = useState<ConfirmActionResponse | null>(null);
+  const [confirmOutcome, setConfirmOutcome] =
+    useState<ConfirmActionResponse | null>(null);
 
   const commandMutation = useRunAssistantCommand();
   const confirmMutation = useConfirmAssistantAction();
@@ -74,7 +80,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     }
     return filterNavPages(trimmed, permissions, t).slice(0, MAX_NAV_ROWS);
   }, [trimmed, permissions, recents, t]);
-  const showingRecents = !trimmed && recents.length > 0 && navMatches.length > 0;
+  const showingRecents =
+    !trimmed && recents.length > 0 && navMatches.length > 0;
 
   const hubSearch = useHubGlobalSearch(trimmed.length >= 2 ? trimmed : "");
   const searchRows = useMemo((): PaletteRow[] => {
@@ -85,17 +92,22 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       href: object.deep_link,
       icon: "object",
     }));
-    const conversations: PaletteRow[] = hubSearch.data.conversations.map((hit) => ({
-      kind: "search",
-      label: hit.display_title,
-      href: `/workspace/chat?conversation=${hit.conversation_id}`,
-      icon: "conversation",
-    }));
+    const conversations: PaletteRow[] = hubSearch.data.conversations.map(
+      (hit) => ({
+        kind: "search",
+        label: hit.display_title,
+        href: `/workspace/chat?conversation=${hit.conversation_id}`,
+        icon: "conversation",
+      }),
+    );
     return [...objects, ...conversations].slice(0, MAX_SEARCH_ROWS);
   }, [hubSearch.data, hubSearch.isError]);
 
   const rows = useMemo((): PaletteRow[] => {
-    const navRows: PaletteRow[] = navMatches.map((page) => ({ kind: "nav", page }));
+    const navRows: PaletteRow[] = navMatches.map((page) => ({
+      kind: "nav",
+      page,
+    }));
     const askRow: PaletteRow[] = trimmed ? [{ kind: "ask" }] : [];
     return [...navRows, ...searchRows, ...askRow];
   }, [navMatches, searchRows, trimmed]);
@@ -133,10 +145,14 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         const page = getNavPage(page_id);
         // Resolve against the local registry; only trust a server path that
         // stays inside the workspace (defense in depth for the mirrored lists).
-        const base = page?.href ?? (path.startsWith("/workspace/") ? path : null);
+        const base =
+          page?.href ?? (path.startsWith("/workspace/") ? path : null);
         if (base) {
           const search = new URLSearchParams(
-            Object.entries(params ?? {}).map(([key, value]) => [key, String(value)]),
+            Object.entries(params ?? {}).map(([key, value]) => [
+              key,
+              String(value),
+            ]),
           ).toString();
           navigateTo(search ? `${base}?${search}` : base, page?.id);
           return;
@@ -283,7 +299,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
         <div className="max-h-[55vh] overflow-y-auto pb-2 scrollbar-thin">
           {inlineError ? (
-            <p className="px-4 pt-3 text-xs text-status-critical">{inlineError}</p>
+            <p className="px-4 pt-3 text-xs text-status-critical">
+              {inlineError}
+            </p>
           ) : null}
 
           {result ? (
@@ -318,7 +336,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                           ? t("command.declined")
                           : t("command.failed")}
                     </p>
-                    <p className="mt-1 text-sm text-text-primary">{confirmOutcome.summary}</p>
+                    <p className="mt-1 text-sm text-text-primary">
+                      {confirmOutcome.summary}
+                    </p>
                     {confirmOutcome.action_log_id ? (
                       <p className="mt-2 text-[10px] text-text-disabled">
                         {t("command.audited")} · {confirmOutcome.action_log_id}
@@ -335,7 +355,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                 )
               ) : null}
 
-              <p className="text-[10px] text-text-disabled">{t("command.backHint")}</p>
+              <p className="text-[10px] text-text-disabled">
+                {t("command.backHint")}
+              </p>
             </div>
           ) : thinking ? (
             <div className="flex items-center gap-2.5 px-4 py-5">
@@ -347,7 +369,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
               {navMatches.length > 0 ? (
                 <>
                   <SectionLabel>
-                    {showingRecents ? t("command.sectionRecent") : t("command.sectionNavigation")}
+                    {showingRecents
+                      ? t("command.sectionRecent")
+                      : t("command.sectionNavigation")}
                   </SectionLabel>
                   {navMatches.map((page, index) => {
                     const active = activeIndex === index;
@@ -365,8 +389,12 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                         {active ? (
                           <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
                         ) : null}
-                        <Icon className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`} />
-                        <span className="truncate text-sm text-text-primary">{t(page.labelKey)}</span>
+                        <Icon
+                          className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`}
+                        />
+                        <span className="truncate text-sm text-text-primary">
+                          {t(page.labelKey)}
+                        </span>
                       </button>
                     );
                   })}
@@ -394,11 +422,17 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                           <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
                         ) : null}
                         {row.icon === "object" ? (
-                          <Box className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`} />
+                          <Box
+                            className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`}
+                          />
                         ) : (
-                          <ChatBubble className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`} />
+                          <ChatBubble
+                            className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`}
+                          />
                         )}
-                        <span className="truncate text-sm text-text-primary">{row.label}</span>
+                        <span className="truncate text-sm text-text-primary">
+                          {row.label}
+                        </span>
                       </button>
                     );
                   })}
@@ -425,9 +459,12 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                         {active ? (
                           <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
                         ) : null}
-                        <Sparks className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`} />
+                        <Sparks
+                          className={`h-4 w-4 shrink-0 ${active ? "text-brand-gold" : "text-text-muted"}`}
+                        />
                         <span className="truncate text-sm text-text-primary">
-                          {t("command.ask")} <span className="text-text-muted">“{trimmed}”</span>
+                          {t("command.ask")}{" "}
+                          <span className="text-text-muted">“{trimmed}”</span>
                         </span>
                       </button>
                       {disabled ? (
@@ -439,7 +476,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                   );
                 })()
               ) : navMatches.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-text-muted">{t("command.empty")}</p>
+                <p className="px-4 py-6 text-center text-sm text-text-muted">
+                  {t("command.empty")}
+                </p>
               ) : null}
             </>
           )}

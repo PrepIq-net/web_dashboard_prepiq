@@ -70,7 +70,11 @@ export function GlobalSearchOverlay({
             placeholder="Search messages, files, forecasts, inventory, people…"
             className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-disabled focus:outline-none"
           />
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-text-primary">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-text-primary"
+          >
             <Xmark className="h-4.5 w-4.5" />
           </button>
         </div>
@@ -78,11 +82,13 @@ export function GlobalSearchOverlay({
         <div className="max-h-[60vh] overflow-y-auto pb-2 scrollbar-thin">
           {query.trim().length < 2 ? (
             <p className="px-4 py-6 text-center text-sm text-text-muted">
-              Search across conversations, document contents, operational data and
-              your team.
+              Search across conversations, document contents, operational data
+              and your team.
             </p>
           ) : results.isFetching && !data ? (
-            <p className="px-4 py-6 text-center text-sm text-text-muted">Searching…</p>
+            <p className="px-4 py-6 text-center text-sm text-text-muted">
+              Searching…
+            </p>
           ) : empty ? (
             <p className="px-4 py-6 text-center text-sm text-text-muted">
               Nothing found for “{query}”.
@@ -123,7 +129,9 @@ export function GlobalSearchOverlay({
                         <span className="block truncate text-sm text-text-primary">
                           {hit.snippet}
                         </span>
-                        <span className="text-xs text-text-muted">{hit.sender_name}</span>
+                        <span className="text-xs text-text-muted">
+                          {hit.sender_name}
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -189,7 +197,9 @@ export function GlobalSearchOverlay({
                         <span className="block truncate text-sm text-text-primary">
                           {hit.title}
                         </span>
-                        <span className="text-xs text-text-muted">{hit.subtitle}</span>
+                        <span className="text-xs text-text-muted">
+                          {hit.subtitle}
+                        </span>
                       </span>
                     </Link>
                   ))}

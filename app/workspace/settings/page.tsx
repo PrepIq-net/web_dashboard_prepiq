@@ -80,10 +80,7 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 import { MemberAccessDrawer } from "@/components/dashboard/settings/member-access-drawer";
-import {
-  RoleEditorModal,
-  type RoleFormValues,
-} from "@/components/dashboard/settings/role-editor-modal";
+import { type RoleFormValues } from "@/components/dashboard/settings/role-editor-modal";
 import { SectionHeader } from "@/components/ui/section-header";
 import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
@@ -91,6 +88,7 @@ import { ActiveSessions } from "@/components/dashboard/settings/active-sessions"
 import { useTranslation } from "@/lib/i18n";
 import { usePrepConectors } from "@/services/connector/hook";
 import { Spinner } from "@/components/ui/spinner";
+import { RoleEditorDrawer } from "@/components/dashboard/settings/role-editor-drawer";
 
 const columnHelper = createColumnHelper<any>();
 
@@ -1678,7 +1676,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   });
 
   // Role editor — a null role means "create", a system role opens read-only.
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleDrawerOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [isConfirmRoleDeleteOpen, setIsConfirmRoleDeleteOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<{
@@ -1716,6 +1714,16 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     updateMember.mutate({ userId, custom_role_slug });
   };
 
+  const handleOpenRoleDrawer = (role: Role | null) => {
+    setEditingRole(role);
+    setIsRoleDrawerOpen(true);
+  };
+
+  const handleCloseRoleModal = () => {
+    setIsRoleDrawerOpen(false);
+    setEditingRole(null);
+  };
+
   const handleAddMember = () => {
     addMember.mutate(newMember, {
       onSuccess: () => {
@@ -1743,11 +1751,6 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
     });
   };
 
-  const handleOpenRoleModal = (role: Role | null) => {
-    setEditingRole(role);
-    setIsRoleModalOpen(true);
-  };
-
   const handleSaveRole = (values: RoleFormValues) => {
     const payload = {
       name: values.name,
@@ -1755,7 +1758,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
       permission_codes: values.permission_codes,
     };
     const onSuccess = () => {
-      setIsRoleModalOpen(false);
+      setIsRoleDrawerOpen(false);
       setEditingRole(null);
     };
     if (editingRole) {
@@ -1944,7 +1947,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           }
           actions={
             <Button
-              onClick={() => handleOpenRoleModal(null)}
+              onClick={() => handleOpenRoleDrawer(null)}
               leftIcon={<Plus className="h-4 w-4" />}
               className="font-semibold px-4"
             >
@@ -1977,6 +1980,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                   {role.description || t("settings.roles.noDescription")}
                 </p>
               </div>
+
               <div className="flex shrink-0 items-center gap-3">
                 <span className="text-xs text-text-muted">
                   {t("settings.roles.permissionCount", {
@@ -1985,7 +1989,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleOpenRoleModal(role)}
+                  onClick={() => handleOpenRoleDrawer(role)}
                   className="rounded-md px-3 py-1.5 text-xs font-semibold text-brand-gold transition-colors hover:bg-surface-3"
                 >
                   {role.is_system
@@ -2112,15 +2116,12 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
         isChangingOrgRole={updateMember.isPending}
       />
 
-      <RoleEditorModal
+      <RoleEditorDrawer
         open={isRoleModalOpen}
         role={editingRole}
         permissions={permissions ?? []}
         isSaving={createRole.isPending || updateRole.isPending}
-        onClose={() => {
-          setIsRoleModalOpen(false);
-          setEditingRole(null);
-        }}
+        onClose={handleCloseRoleModal}
         onSave={handleSaveRole}
       />
 

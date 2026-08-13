@@ -11,7 +11,10 @@ import {
   useConfirmPlanningEvent,
 } from "@/services/planning/hooks";
 import type { CalendarEventList } from "@/services/planning/types";
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/services/planning/types";
+import {
+  EVENT_TYPE_LABELS,
+  EVENT_TYPE_COLORS,
+} from "@/services/planning/types";
 import type { ItemAvailabilityOverride } from "@/services/inventory/types";
 import { useAssistantConversations } from "@/services/assistant/hooks";
 import type { AssistantConversation } from "@/services/assistant/types";
@@ -195,7 +198,9 @@ export function DayPanel({
             </div>
             {fc.reservation_total_guests > 0 ? (
               <div>
-                <span className="text-text-muted">{t("planning.reservations")}</span>
+                <span className="text-text-muted">
+                  {t("planning.reservations")}
+                </span>
                 <span className="ml-1.5 font-semibold text-text-primary">
                   {fc.reservation_total_guests} {t("planning.guests")}
                 </span>
@@ -203,7 +208,9 @@ export function DayPanel({
             ) : null}
             {fc.local_event_max_attendance > 0 ? (
               <div>
-                <span className="text-text-muted">{t("planning.nearby_crowd")}</span>
+                <span className="text-text-muted">
+                  {t("planning.nearby_crowd")}
+                </span>
                 <span className="ml-1.5 font-semibold text-text-primary">
                   {fc.local_event_max_attendance.toLocaleString()}
                 </span>
@@ -265,7 +272,9 @@ export function DayPanel({
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {pct != null && Math.abs(pct) >= 1 ? (
-                      <span className={`font-semibold ${impactTone(pct / 100)}`}>
+                      <span
+                        className={`font-semibold ${impactTone(pct / 100)}`}
+                      >
                         {formatImpact(pct / 100)}
                       </span>
                     ) : null}
@@ -302,118 +311,124 @@ export function DayPanel({
             const isAiEvent = event.source === "AI_DISCOVERED";
             const isPending = event.confirmation_status === "PENDING";
             return (
-            <div
-              key={event.id}
-              className={`rounded-xl border bg-surface-2 px-3 py-2.5 transition-colors ${
-                isPending
-                  ? "border-dashed border-status-warning/40"
-                  : "border-surface-4 hover:border-surface-4/80"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${EVENT_TYPE_COLORS[event.event_type]}`}
-                    >
-                      {EVENT_TYPE_LABELS[event.event_type]}
-                    </span>
-                    {isPending ? (
-                      <span className="inline-flex rounded-full border border-status-warning/30 bg-status-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-status-warning">
-                        {t("planning.ai_pending_badge")}
-                      </span>
-                    ) : null}
-                    {event.expected_demand_impact != null ? (
+              <div
+                key={event.id}
+                className={`rounded-xl border bg-surface-2 px-3 py-2.5 transition-colors ${
+                  isPending
+                    ? "border-dashed border-status-warning/40"
+                    : "border-surface-4 hover:border-surface-4/80"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className={`text-[10px] font-semibold ${
-                          isPending
-                            ? "text-text-muted"
-                            : impactTone(event.expected_demand_impact)
-                        }`}
+                        className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${EVENT_TYPE_COLORS[event.event_type]}`}
                       >
-                        {formatImpact(event.expected_demand_impact)}
-                        {isPending ? (
-                          <span className="ml-1 font-normal text-text-muted">
-                            {t("planning.ai_if_confirmed")}
-                          </span>
-                        ) : null}
+                        {EVENT_TYPE_LABELS[event.event_type]}
                       </span>
-                    ) : null}
-                    {event.status === "CANCELLED" ? (
-                      <span className="text-[9px] font-semibold text-text-muted line-through">
-                        {t("planning.cancelled")}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-sm font-medium text-text-primary truncate">
-                    {event.title}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-text-muted">
-                    {new Date(event.start_datetime).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    –{" "}
-                    {new Date(event.end_datetime).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {event.branch_name
-                      ? ` · ${event.branch_name}`
-                      : ` · ${t("planning.all_branches")}`}
-                  </p>
-                </div>
-                {/* Actions */}
-                <div className="flex shrink-0 items-center gap-1">
-                  <QuickMessageButton
-                    refType="CALENDAR_EVENT"
-                    objectId={event.id}
-                    title={event.title}
-                    className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onEditClick(event.id)}
-                    className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
-                    title={t("planning.edit_event")}
-                  >
-                    <EditPencil className="h-3 w-3" />
-                  </button>
-                  {confirmDeleteId === event.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          deleteMutation.mutate(event.id);
-                          setConfirmDeleteId(null);
-                        }}
-                        disabled={deleteMutation.isPending}
-                        className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
-                      >
-                        {t("planning.delete")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
-                      >
-                        {t("planning.no")}
-                      </button>
+                      {isPending ? (
+                        <span className="inline-flex rounded-full border border-status-warning/30 bg-status-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-status-warning">
+                          {t("planning.ai_pending_badge")}
+                        </span>
+                      ) : null}
+                      {event.expected_demand_impact != null ? (
+                        <span
+                          className={`text-[10px] font-semibold ${
+                            isPending
+                              ? "text-text-muted"
+                              : impactTone(event.expected_demand_impact)
+                          }`}
+                        >
+                          {formatImpact(event.expected_demand_impact)}
+                          {isPending ? (
+                            <span className="ml-1 font-normal text-text-muted">
+                              {t("planning.ai_if_confirmed")}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                      {event.status === "CANCELLED" ? (
+                        <span className="text-[9px] font-semibold text-text-muted line-through">
+                          {t("planning.cancelled")}
+                        </span>
+                      ) : null}
                     </div>
-                  ) : (
+                    <p className="mt-1 text-sm font-medium text-text-primary truncate">
+                      {event.title}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-text-muted">
+                      {new Date(event.start_datetime).toLocaleTimeString(
+                        "en-US",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}{" "}
+                      –{" "}
+                      {new Date(event.end_datetime).toLocaleTimeString(
+                        "en-US",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
+                      {event.branch_name
+                        ? ` · ${event.branch_name}`
+                        : ` · ${t("planning.all_branches")}`}
+                    </p>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex shrink-0 items-center gap-1">
+                    <QuickMessageButton
+                      refType="CALENDAR_EVENT"
+                      objectId={event.id}
+                      title={event.title}
+                      className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
+                    />
                     <button
                       type="button"
-                      onClick={() => setConfirmDeleteId(event.id)}
-                      className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
-                      title={t("planning.delete_event")}
+                      onClick={() => onEditClick(event.id)}
+                      className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
+                      title={t("planning.edit_event")}
                     >
-                      <Xmark className="h-3 w-3" />
+                      <EditPencil className="h-3 w-3" />
                     </button>
-                  )}
+                    {confirmDeleteId === event.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deleteMutation.mutate(event.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          disabled={deleteMutation.isPending}
+                          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
+                        >
+                          {t("planning.delete")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
+                        >
+                          {t("planning.no")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(event.id)}
+                        className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
+                        title={t("planning.delete_event")}
+                      >
+                        <Xmark className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {isAiEvent ? <AiEventFooter event={event} /> : null}
               </div>
-              {isAiEvent ? <AiEventFooter event={event} /> : null}
-            </div>
             );
           })
         )}
@@ -459,7 +474,9 @@ export function DayPanel({
                     {ov.item_title ?? ov.item_id}
                   </p>
                   {ov.reason && (
-                    <p className="text-[10px] text-text-muted truncate">{ov.reason}</p>
+                    <p className="text-[10px] text-text-muted truncate">
+                      {ov.reason}
+                    </p>
                   )}
                 </div>
               </div>
