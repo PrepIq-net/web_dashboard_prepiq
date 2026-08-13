@@ -1209,7 +1209,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
       </div>
 
       {/* ── Desktop table ── */}
-      <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block scrollbar-thin">
         <table className="w-full min-w-[860px]">
           <thead className="border-b border-surface-4/80 bg-surface-3/40">
             <tr>

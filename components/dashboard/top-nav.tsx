@@ -177,7 +177,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     {t("dashboard.topNav.markAllRead")}
                   </button>
                 </div>
-                <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
+                <div className="max-h-80 space-y-1 overflow-y-auto pr-1 scrollbar-thin">
                   {notificationsQuery.isLoading ? (
                     <p className="py-2 text-[12px] text-[#8E8E93]">
                       {t("common.loading")}

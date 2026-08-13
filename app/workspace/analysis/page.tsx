@@ -189,7 +189,7 @@ export default function InsightsPage() {
         />
       ) : (
         <>
-          <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-4/60">
+          <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
             {tabs.map((tab) => (
               <button
                 key={tab.id}

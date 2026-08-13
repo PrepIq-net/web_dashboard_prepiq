@@ -98,7 +98,7 @@ export function NewChatPopover({
         </div>
       ) : null}
 
-      <div className="mt-2 max-h-64 overflow-y-auto">
+      <div className="mt-2 max-h-64 overflow-y-auto scrollbar-thin">
         {(directory.data ?? []).map((entry) => {
           const isSelected = selected.some((s) => s.user.id === entry.user.id);
           return (

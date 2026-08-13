@@ -197,7 +197,7 @@ export function ThreadView({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-3">
+      <div className="flex-1 overflow-y-auto py-3 scrollbar-thin">
         {hasMore ? (
           <div className="mb-2 flex justify-center">
             <button

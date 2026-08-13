@@ -330,7 +330,7 @@ function BriefTranscript({
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
         {label}
       </p>
-      <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+      <div className="max-h-64 space-y-2 overflow-y-auto pr-1 scrollbar-thin">
         {sections.map((section, index) => {
           const active = index === activeIndex;
           const content = (

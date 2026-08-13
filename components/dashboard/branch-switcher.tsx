@@ -69,7 +69,7 @@ export function BranchSwitcher() {
           <p className="border-b border-[#2A2A2E] px-4 py-3 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
             {t("dashboard.topNav.switchLocation")}
           </p>
-          <div className="max-h-72 overflow-y-auto p-2">
+          <div className="max-h-72 overflow-y-auto p-2 scrollbar-thin">
             {branchOptions.map((branch) => {
               const isActive = branch.id === activeId;
               return (

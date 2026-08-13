@@ -258,7 +258,7 @@ export function TeachPanel({ branchId }: { branchId: string }) {
         ) : null}
       </div>
 
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 overflow-x-auto scrollbar-thin">
         <table className="w-full min-w-[540px] border-collapse">
           <thead>
             <tr className="border-b border-border-default">

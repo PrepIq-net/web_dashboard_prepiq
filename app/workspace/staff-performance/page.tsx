@@ -353,7 +353,7 @@ export default function StaffPerformancePage() {
             }
           </p>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
+        <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 shadow-lg scrollbar-thin">
           {performanceQuery.isLoading ? (
             <p className="px-6 py-6 text-sm text-text-muted">{t("workspace.staffPerformance.loadingStaff")}</p>
           ) : null}

@@ -94,7 +94,7 @@ export function ConversationRail({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
         {activeTab === "conversations" ? (
           isLoading ? (
             <div className="space-y-2 p-3">

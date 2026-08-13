@@ -260,7 +260,7 @@ export function PlanProvenanceDrawer({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-5 py-5 scrollbar-thin">
           {stats ? (
             <ol>
               {steps.map((step, index) => {

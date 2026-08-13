@@ -30,7 +30,7 @@ function renderTable(key: string, rows: string[]): React.ReactNode {
   const header = splitTableRow(rows[0]);
   const bodyRows = rows.slice(2).map(splitTableRow);
   return (
-    <div key={key} className="my-1 overflow-x-auto rounded-lg border border-surface-4">
+    <div key={key} className="my-1 overflow-x-auto rounded-lg border border-surface-4 scrollbar-thin">
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="border-b border-surface-4 bg-surface-3">

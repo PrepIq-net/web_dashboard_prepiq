@@ -697,7 +697,7 @@ export default function FinancialPage() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={branchTable}
                 tableClassName="w-full min-w-[1100px]"

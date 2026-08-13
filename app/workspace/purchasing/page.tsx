@@ -195,7 +195,7 @@ export default function PurchasingPage() {
       </section>
 
       <section className='mt-6'>
-        <div className='flex gap-1 overflow-x-auto border-b-2 border-b-surface-4/60'>
+        <div className='flex gap-1 overflow-x-auto border-b-2 border-b-surface-4/60 scrollbar-thin'>
           {tabs.map((tab) => (
             <button key={tab.id} type='button' onClick={() => setActiveTab(tab.id)}
               className={'inline-flex h-10 shrink-0 items-center px-4 text-sm font-medium transition-all sm:text-base' + (
@@ -221,7 +221,7 @@ export default function PurchasingPage() {
           ) : supplierRows.length === 0 ? (
             <TabEmpty title='No deliveries received yet' desc='Spend and reliability appear here once a delivery is logged for this branch, either from an approved purchase recommendation or an ad hoc receipt.' />
           ) : (
-            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin'>
               <table className='w-full min-w-[680px]'>
                 <thead className='border-b border-surface-4/80 bg-surface-3/40'>
                   <tr>{[t('workspace.purchasing.colSupplier'), t('workspace.purchasing.colTotalSpend'), 'Deliveries', 'Fulfillment'].map((h) => (
@@ -258,7 +258,7 @@ export default function PurchasingPage() {
           ) : trendRows.length === 0 ? (
             <TabEmpty title='No priced deliveries yet' desc='Cost trends appear once at least one delivery with a known cost has been received for an ingredient at this branch.' />
           ) : (
-            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin'>
               <table className='w-full min-w-[780px]'>
                 <thead className='border-b border-surface-4/80 bg-surface-3/40'>
                   <tr>{[t('workspace.purchasing.colItem'), t('workspace.purchasing.colUnitCost'), t('workspace.purchasing.colVariance'), t('workspace.purchasing.colVolatility'), t('workspace.purchasing.colAlert')].map((h) => (
@@ -320,7 +320,7 @@ export default function PurchasingPage() {
           ) : varianceRows.length === 0 ? (
             <TabEmpty title='Nothing to compare yet' desc='This needs both a configured supplier cost and at least one priced delivery for the same ingredient.' />
           ) : (
-            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+            <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin'>
               <table className='w-full min-w-[680px]'>
                 <thead className='border-b border-surface-4/80 bg-surface-3/40'>
                   <tr>{[t('workspace.purchasing.colItem'), t('workspace.purchasing.colExpected'), t('workspace.purchasing.colActual'), t('workspace.purchasing.colFlags')].map((h) => (
@@ -571,7 +571,7 @@ function ForecastTab({
         </div>
       )}
 
-      <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2'>
+      <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin'>
         {recQuery.isLoading ? (
           <TabLoading label='Loading purchase plan…' />
         ) : notComputed ? (

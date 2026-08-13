@@ -86,7 +86,7 @@ export function AvailabilityTab({
       </div>
 
       {data.submissions.length > 0 ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-thin">
           <div className="min-w-[820px] space-y-px overflow-hidden rounded-xl border border-surface-4/60 bg-surface-4/60">
             <div className="grid grid-cols-[200px_repeat(7,1fr)_180px] gap-px">
               <div className="bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">

@@ -96,7 +96,7 @@ function CsvPreview({ attachment, url }: { attachment: HubAttachment; url: strin
           <Download className="h-4 w-4" />
         </a>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border-default">

@@ -178,7 +178,7 @@ export function FinanceView({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[800px]">
               <thead className="bg-surface-3">
                 <tr>

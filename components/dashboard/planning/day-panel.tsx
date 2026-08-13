@@ -283,7 +283,7 @@ export function DayPanel({
       ) : null}
 
       {/* Events list */}
-      <div className="mt-4 flex-1 overflow-y-auto space-y-2">
+      <div className="mt-4 flex-1 overflow-y-auto space-y-2 scrollbar-thin">
         {events.length === 0 ? (
           <div className="py-8 text-center">
             <p className="text-sm text-text-muted">

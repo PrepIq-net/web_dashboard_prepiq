@@ -253,7 +253,7 @@ export function MessageComposer({
                 placeholder="Search forecasts, inventory, batches…"
                 className="w-full rounded-lg border border-border-default bg-surface-3 px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-brand-gold focus:outline-none"
               />
-              <div className="mt-1 max-h-56 overflow-y-auto">
+              <div className="mt-1 max-h-56 overflow-y-auto scrollbar-thin">
                 {(shareables.data ?? []).map((item) => (
                   <button
                     key={`${item.ref_type}-${item.object_id}`}
@@ -392,7 +392,7 @@ export function MessageComposer({
               <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-text-disabled">
                 Mention
               </p>
-              <div className="max-h-56 overflow-y-auto">
+              <div className="max-h-56 overflow-y-auto scrollbar-thin">
                 {mentionSuggestions.map((target, index) => {
                   const active = index === activeMentionIndex;
                   return (

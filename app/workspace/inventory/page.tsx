@@ -398,7 +398,7 @@ function IngredientsTab({
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[640px]"
@@ -1714,7 +1714,7 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
           <p className="text-sm text-text-muted">{t("workspace.inventory.signals.noActivity")}</p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[560px]"

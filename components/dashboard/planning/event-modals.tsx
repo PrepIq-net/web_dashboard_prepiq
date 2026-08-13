@@ -81,7 +81,7 @@ function ItemPicker({
         />
       </div>
 
-      <div className="max-h-36 overflow-y-auto rounded-xl border border-surface-4 bg-surface-1">
+      <div className="max-h-36 overflow-y-auto rounded-xl border border-surface-4 bg-surface-1 scrollbar-thin">
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
@@ -170,7 +170,7 @@ function EventModalFrame({
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto scrollbar-thin">{children}</div>
 
         <div className="flex items-center justify-end gap-3 border-t border-surface-4 px-6 py-4">
           {footer}

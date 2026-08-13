@@ -655,7 +655,7 @@ function IngredientPicker({
         </div>
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin">
           {ingredients.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-text-muted">

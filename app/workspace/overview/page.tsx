@@ -500,7 +500,7 @@ export default function WorkspaceOverviewPage() {
             </article>
           ))}
         </div>
-        <div className="mt-4 overflow-x-auto border-y border-surface-4/60">
+        <div className="mt-4 overflow-x-auto border-y border-surface-4/60 scrollbar-thin">
           <table className="hidden w-full min-w-[860px] lg:table">
             <thead className="border-b border-surface-4/70">
               <tr>

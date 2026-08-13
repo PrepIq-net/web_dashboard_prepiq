@@ -204,7 +204,7 @@ export function QuickMessageButton({
                     placeholder="Search teammates…"
                     className="mt-2 w-full rounded-lg border border-border-default bg-surface-3 px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-brand-gold focus:outline-none"
                   />
-                  <div className="mt-1 max-h-40 overflow-y-auto">
+                  <div className="mt-1 max-h-40 overflow-y-auto scrollbar-thin">
                     {entries.map((entry) => {
                       const active = selected.has(entry.user.id);
                       return (

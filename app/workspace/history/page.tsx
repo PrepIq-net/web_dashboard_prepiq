@@ -223,7 +223,7 @@ function HistoryContent() {
           </div>
         </div>
         {chronoTimeline.length ? (
-          <div className="flex items-end gap-0.5 overflow-x-auto pb-1">
+          <div className="flex items-end gap-0.5 overflow-x-auto pb-1 scrollbar-thin">
             {chronoTimeline.map((day) => {
               const isActive = day.date === selectedDate;
               const barHeight = Math.max(4, Math.round((day.forecast_accuracy / 100) * 64));

@@ -63,7 +63,7 @@ export function CoverageHeatmap({ data }: { data: HourlyCoverage }) {
 
       {/* The grid is wide by nature; it scrolls inside its own container so
           the page body never scrolls sideways. */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <div className="min-w-[720px]">
           <div
             className="grid gap-px"
