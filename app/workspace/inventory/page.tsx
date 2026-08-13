@@ -11,6 +11,7 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { formatMoney } from "@/lib/format";
 import { Select } from "@/components/ui/select";
 import {
   useBranches,
@@ -757,6 +758,15 @@ function RecipesTab({
                       <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
                       <p className="text-[11px] text-text-muted truncate">
                         {item.category || t("workspace.inventory.recipes.uncategorized")}
+                      </p>
+                    </div>
+
+                    {/* Current price — read-only here; editing lives in the detail panel */}
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold tabular-nums text-text-primary">
+                        {item.selling_price != null
+                          ? formatMoney(Number(item.selling_price), item.currency ?? undefined)
+                          : "—"}
                       </p>
                     </div>
 

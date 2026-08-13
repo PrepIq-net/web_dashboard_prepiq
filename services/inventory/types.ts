@@ -63,6 +63,10 @@ export const menuItemSchema = z.object({
   // this item awaits human confirmation.
   needs_review: z.boolean().optional(),
   ai_review: menuItemAiReviewSchema.nullable().optional(),
+  // Current selling price, batch-resolved for the whole list — null when
+  // the item has no catalog link yet or has never been priced.
+  selling_price: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
