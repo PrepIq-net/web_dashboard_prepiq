@@ -27,6 +27,7 @@ import {
   costTrendSchema,
   costVarianceSchema,
   purchasingEfficiencySchema,
+  menuItemPriceSchema,
 } from "./types";
 
 export type IngredientPayload = {
@@ -479,4 +480,33 @@ export async function deactivateAvailabilityOverride(branchId: string, overrideI
     { method: "PATCH", body: { is_active: false } }
   );
   return parsed.data.override;
+}
+
+// ============================================================================
+// PRICE INTELLIGENCE — PHASE A
+// ============================================================================
+
+export async function getMenuItemPrice(branchId: string, menuItemId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.price(branchId, menuItemId),
+    menuItemPriceSchema,
+    { method: "GET" }
+  );
+}
+
+export type UpdateMenuItemPricePayload = {
+  new_price: number;
+  reason?: string;
+};
+
+export async function updateMenuItemPrice(
+  branchId: string,
+  menuItemId: string,
+  data: UpdateMenuItemPricePayload,
+) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.price(branchId, menuItemId),
+    menuItemPriceSchema,
+    { method: "PATCH", body: data }
+  );
 }
