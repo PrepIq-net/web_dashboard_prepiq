@@ -1543,7 +1543,10 @@
       "pastLearnings": "What PrepIQ has learned here",
       "askEyebrow": "Ask about this briefing",
       "askPlaceholder": "e.g. Why is demand up today?",
-      "askCta": "Ask"
+      "askCta": "Ask",
+      "qaError": "The assistant couldn't respond. Try again.",
+      "pendingHint": "Needs your confirmation",
+      "openAssistant": "Open in assistant"
     },
     "expectedDemandHint": "How busy we expect today to be compared with a typical {typicalDay}, based on your sales history plus weather, events, holidays and other live signals. +8% means roughly 8% more orders than normal.",
     "reliability": {

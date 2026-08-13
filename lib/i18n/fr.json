@@ -1543,7 +1543,10 @@
       "pastLearnings": "Ce que PrepIQ a appris ici",
       "askEyebrow": "Question sur ce briefing",
       "askPlaceholder": "ex. Pourquoi la demande est-elle en hausse ?",
-      "askCta": "Demander"
+      "askCta": "Demander",
+      "qaError": "L'assistant n'a pas pu répondre. Réessayez.",
+      "pendingHint": "Nécessite votre confirmation",
+      "openAssistant": "Ouvrir l'assistant"
     },
     "expectedDemandHint": "L'affluence attendue aujourd'hui par rapport à un {typicalDay} typique, d'après votre historique de ventes, la météo, les événements, les jours fériés et d'autres signaux. +8% signifie environ 8% de commandes de plus que la normale.",
     "reliability": {

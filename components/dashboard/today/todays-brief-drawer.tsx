@@ -4,10 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { Headset, Pause, Play, Restart, Xmark } from "iconoir-react";
+import { toast } from "react-hot-toast";
 
 import { useTranslation } from "@/lib/i18n";
 import { useModalBehaviour } from "@/components/ui/use-modal-behaviour";
-import type { MorningBriefVoice } from "@/services/assistant/types";
+import {
+  useCurrentConversation,
+  useSendAssistantMessage,
+  useStartAssistantConversation,
+} from "@/services/assistant/hooks";
+import type { AssistantMessage, AssistantReply, MorningBriefVoice } from "@/services/assistant/types";
 import type { MorningBrief } from "@/services/production-intelligence/types";
 import { BriefVisualizer } from "./brief-visualizer";
 
@@ -28,7 +34,10 @@ type TodaysBriefDrawerProps = {
   /** Written brief — the read side of the surface. */
   readBrief: MorningBrief | null;
   canAsk: boolean;
-  onAsk: (question: string) => void;
+  branchId: string | null;
+  date: string;
+  /** Hand the thread to the full assistant drawer (e.g. to confirm an action). */
+  onOpenAssistant: () => void;
   onOpenProvenance: () => void;
 };
 
@@ -57,13 +66,23 @@ export function TodaysBriefDrawer({
   onListen,
   readBrief,
   canAsk,
-  onAsk,
+  branchId,
+  date,
+  onOpenAssistant,
   onOpenProvenance,
 }: TodaysBriefDrawerProps) {
   const { t } = useTranslation();
   const { mounted } = useModalBehaviour(open, onClose);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // The WebAudio graph belongs here, not to the visualizer: it outlives the
+  // drawer so playback survives closing it, and it is created once because
+  // createMediaElementSource binds an element for its whole life.
+  const contextRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
@@ -73,6 +92,23 @@ export function TodaysBriefDrawer({
   // its corner after playback is *their* active state, never on mount.
   const [engaged, setEngaged] = useState(false);
   const [question, setQuestion] = useState("");
+
+  // Inline Q&A: the thread lives in this drawer so asking never interrupts the
+  // brief or the playback. The assistant conversation is shared — opening the
+  // full assistant drawer later rehydrates the same thread.
+  const startConversation = useStartAssistantConversation();
+  const sendMessage = useSendAssistantMessage();
+  const { data: currentConversation } = useCurrentConversation(branchId ?? undefined, date);
+  const [qaThread, setQaThread] = useState<AssistantMessage[]>([]);
+  const [qaConversationId, setQaConversationId] = useState<string | null>(null);
+  const [qaSending, setQaSending] = useState(false);
+  const qaScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep the latest exchange in view: the thread is short, the input sits
+  // directly below it, and nothing in it is worth hunting for.
+  useEffect(() => {
+    if (qaScrollRef.current) qaScrollRef.current.scrollTop = qaScrollRef.current.scrollHeight;
+  }, [qaThread.length, qaSending]);
 
   const track = brief?.audio ?? null;
   const sections = useMemo(() => brief?.script.sections ?? [], [brief]);
@@ -132,27 +168,73 @@ export function TodaysBriefDrawer({
     if (open && mounted) panelRef.current?.focus();
   }, [open, mounted]);
 
+  // Create the graph lazily inside a play gesture: an AudioContext created at
+  // mount starts suspended under the browser's autoplay policy and stays that
+  // way. The source node is bound to the audio element for its lifetime, so
+  // this runs once and the graph lives until the component unmounts — closing
+  // the drawer mid-play must not silence the voice.
+  const ensureGraph = useCallback((audio: HTMLAudioElement) => {
+    if (analyserRef.current) return analyserRef.current;
+    try {
+      const AudioContextCtor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextCtor) return null;
+      const audioContext = new AudioContextCtor();
+      if (audioContext.state === "suspended") void audioContext.resume();
+      const source = audioContext.createMediaElementSource(audio);
+      const node = audioContext.createAnalyser();
+      node.fftSize = 128;
+      node.smoothingTimeConstant = 0.7;
+      source.connect(node);
+      node.connect(audioContext.destination);
+      contextRef.current = audioContext;
+      sourceRef.current = source;
+      analyserRef.current = node;
+      setAnalyser(node);
+      return node;
+    } catch {
+      // Cross-origin audio without CORS headers taints the graph. Nothing to
+      // recover here — the visualizer's idle canvas covers it.
+      return null;
+    }
+  }, []);
+
+  // Tear the graph down only on unmount (page leave), not on drawer close.
+  useEffect(() => {
+    return () => {
+      analyserRef.current?.disconnect();
+      sourceRef.current?.disconnect();
+      void contextRef.current?.close();
+      contextRef.current = null;
+      sourceRef.current = null;
+      analyserRef.current = null;
+    };
+  }, []);
+
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
+      ensureGraph(audio);
       audio.playbackRate = speed;
       void audio.play();
       setEngaged(true);
     } else {
       audio.pause();
     }
-  }, [speed]);
+  }, [speed, ensureGraph]);
 
   const replay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    ensureGraph(audio);
     audio.currentTime = 0;
     setCurrentMs(0);
     audio.playbackRate = speed;
     void audio.play();
     setEngaged(true);
-  }, [speed]);
+  }, [speed, ensureGraph]);
 
   const seekTo = useCallback((ms: number) => {
     const audio = audioRef.current;
@@ -176,12 +258,80 @@ export function TodaysBriefDrawer({
   const hasAudio = Boolean(track?.url);
   const showMiniPlayer = !open && engaged && hasAudio && brief;
 
+  // Rehydrate the day thread from the server when this drawer mounts so a
+  // reopened drawer (or one opened after asking in the assistant) keeps the
+  // Q&A. Only seed while the local thread is empty so an in-flight ask is
+  // never clobbered.
+  const currentConv = currentConversation?.conversation ?? null;
+  // A branch/date switch belongs to a different day thread — drop the local
+  // Q&A so the seeding effect below loads the correct one.
+  useEffect(() => {
+    setQaConversationId(null);
+    setQaThread([]);
+  }, [branchId, date]);
+  useEffect(() => {
+    if (!currentConv) return;
+    if (qaConversationId || qaThread.length > 0) return;
+    setQaConversationId(currentConv.id);
+    setQaThread(currentConversation?.messages ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentConv?.id]);
+
+  const appendQaReply = (reply: AssistantReply) => {
+    setQaConversationId(reply.conversation.id);
+    setQaThread((prev) => [...prev, reply.message]);
+    setQaSending(false);
+    for (const applied of reply.message.applied_actions ?? []) {
+      toast.success(applied.summary);
+    }
+  };
+
   const submitQuestion = () => {
     const trimmed = question.trim();
-    if (!trimmed) return;
+    if (!trimmed || qaSending) return;
+    if (!branchId) {
+      toast.error("Select a branch first.");
+      return;
+    }
     setQuestion("");
-    onClose();
-    onAsk(trimmed);
+    setQaThread((prev) => [
+      ...prev,
+      {
+        id: `qa-${Date.now()}`,
+        role: "user",
+        content: trimmed,
+        pending_action: null,
+        applied_actions: null,
+        metadata: null,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    setQaSending(true);
+    if (!qaConversationId) {
+      startConversation.mutate(
+        { branch_id: branchId, date, message: trimmed },
+        {
+          onSuccess: (reply) => {
+            if ("message" in reply) appendQaReply(reply);
+          },
+          onError: () => {
+            setQaSending(false);
+            toast.error(t("today.briefDrawer.qaError"));
+          },
+        },
+      );
+      return;
+    }
+    sendMessage.mutate(
+      { conversationId: qaConversationId, payload: { message: trimmed, date } },
+      {
+        onSuccess: appendQaReply,
+        onError: () => {
+          setQaSending(false);
+          toast.error(t("today.briefDrawer.qaError"));
+        },
+      },
+    );
   };
 
   const watchouts = readBrief?.watchouts ?? [];
@@ -293,7 +443,7 @@ export function TodaysBriefDrawer({
                         {hasAudio ? (
                           <>
                             <BriefVisualizer
-                              audioRef={audioRef}
+                              analyser={analyser}
                               playing={playing}
                               progress={progress}
                             />
@@ -490,15 +640,45 @@ export function TodaysBriefDrawer({
                     </div>
                   </div>
 
-                  {/* ── Quick chat about this briefing ─────────────────── */}
+                  {/* ── Ask about this briefing (inline, audio keeps playing) ── */}
                   {canAsk ? (
-                    <form
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        submitQuestion();
-                      }}
-                      className="border-t border-surface-4 px-6 py-4"
-                    >
+                    <div className="border-t border-surface-4 px-6 py-4">
+                      {qaThread.length > 0 ? (
+                        <div
+                          ref={qaScrollRef}
+                          className="mb-3 max-h-56 space-y-2.5 overflow-y-auto pr-1 scrollbar-thin"
+                        >
+                          {qaThread.map((message) => (
+                            <QaMessage
+                              key={message.id}
+                              message={message}
+                              onOpenAssistant={() => {
+                                onClose();
+                                onOpenAssistant();
+                              }}
+                            />
+                          ))}
+                          {qaSending ? (
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[10px] font-bold text-brand-gold">
+                                IQ
+                              </span>
+                              <span className="flex items-center gap-0.5 rounded-lg bg-surface-3 px-3 py-2">
+                                {[0, 1, 2].map((i) => (
+                                  <span
+                                    key={i}
+                                    className="h-1 w-1 rounded-full bg-text-muted"
+                                    style={{
+                                      animation: `thinking-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                                    }}
+                                  />
+                                ))}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                         {t("today.briefDrawer.askEyebrow")}
                       </p>
@@ -507,18 +687,25 @@ export function TodaysBriefDrawer({
                           type="text"
                           value={question}
                           onChange={(event) => setQuestion(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              submitQuestion();
+                            }
+                          }}
                           placeholder={t("today.briefDrawer.askPlaceholder")}
                           className="h-9 flex-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:border-brand-gold focus-visible:ring-2 focus-visible:ring-brand-gold/30"
                         />
                         <button
-                          type="submit"
-                          disabled={!question.trim()}
+                          type="button"
+                          onClick={submitQuestion}
+                          disabled={!question.trim() || qaSending}
                           className="inline-flex h-9 items-center rounded-lg bg-brand-gold px-3.5 text-xs font-semibold text-[#141416] transition-colors hover:bg-brand-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {t("today.briefDrawer.askCta")}
                         </button>
                       </div>
-                    </form>
+                    </div>
                   ) : null}
                 </motion.div>
               </motion.div>
@@ -528,7 +715,7 @@ export function TodaysBriefDrawer({
             {showMiniPlayer ? (
               <motion.div
                 key="brief-mini-player"
-                className="fixed bottom-24 right-5 z-40 w-[340px] max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-[var(--shadow-level-2)]"
+                className="fixed bottom-24 right-5 z-[10000] w-[340px] max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-[var(--shadow-level-2)]"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 16 }}
@@ -605,6 +792,67 @@ export function TodaysBriefDrawer({
         </MotionConfig>
       ) : null}
     </>
+  );
+}
+
+/** Compact inline Q&A row. Tool turns and spoken-brief cards are skipped;
+ * applied writes read as one-line receipts; a pending confirmation hands the
+ * thread to the full assistant drawer rather than stalling here. */
+function QaMessage({
+  message,
+  onOpenAssistant,
+}: {
+  message: AssistantMessage;
+  onOpenAssistant: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (message.role === "tool" || message.role === "system") return null;
+  if (message.metadata?.kind === "morning_brief_audio") return null;
+
+  const isUser = message.role === "user";
+
+  return (
+    <div className={`flex items-start gap-2 ${isUser ? "justify-end" : ""}`}>
+      {!isUser ? (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[10px] font-bold text-brand-gold">
+          IQ
+        </span>
+      ) : null}
+      <div
+        className={`max-w-[85%] rounded-lg px-3 py-2 ${
+          isUser
+            ? "bg-brand-gold/15 text-text-primary"
+            : "bg-surface-3 text-text-secondary"
+        }`}
+      >
+        <p className="whitespace-pre-wrap text-xs leading-relaxed">
+          {message.content}
+        </p>
+        {message.applied_actions && message.applied_actions.length > 0 ? (
+          <ul className="mt-1.5 space-y-1">
+            {message.applied_actions.map((applied) => (
+              <li
+                key={applied.action_log_id}
+                className="text-[11px] font-medium text-status-success"
+              >
+                {applied.summary}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {message.pending_action ? (
+          <button
+            type="button"
+            onClick={onOpenAssistant}
+            className="mt-1.5 inline-flex items-center gap-1.5 rounded-button border border-brand-gold/40 px-2 py-1 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 focus-visible:outline-2 focus-visible:outline-brand-gold"
+          >
+            {t("today.briefDrawer.pendingHint")} —{" "}
+            {t("today.briefDrawer.openAssistant")}
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 type BriefVisualizerProps = {
-  audioRef: React.RefObject<HTMLAudioElement | null>;
+  /**
+   * The analyser node of the shared audio graph, owned by the drawer root so
+   * it outlives this surface (closing the drawer mid-play must keep the voice
+   * running). Null when the graph is unavailable (e.g. cross-origin taint).
+   */
+  analyser: AnalyserNode | null;
   playing: boolean;
   /** 0–1. Drives the static bar when motion is reduced or audio is silent. */
   progress: number;
@@ -21,16 +26,19 @@ const FFT_SIZE = 128;
  * static equivalent for anyone who has asked for less motion. There is no
  * easing, no spring, and nothing animating when nothing is playing.
  *
+ * The analyser belongs to the drawer root: `createMediaElementSource` routes
+ * the element's output through the graph for the element's whole life, so
+ * tearing the graph down when this surface unmounts would silence playback.
+ *
  * Canvas rather than SVG or motion divs: 40 bars at 60fps through React
  * reconciliation would be forty state updates a frame to say one thing.
  */
-export function BriefVisualizer({ audioRef, playing, progress }: BriefVisualizerProps) {
+export function BriefVisualizer({
+  analyser,
+  playing,
+  progress,
+}: BriefVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const contextRef = useRef<AudioContext | null>(null);
-  // createMediaElementSource throws InvalidStateError if called twice for the
-  // same element, so the node is created once and kept for the element's life.
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const frameRef = useRef<number | null>(null);
 
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -47,44 +55,12 @@ export function BriefVisualizer({ audioRef, playing, progress }: BriefVisualizer
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || !playing) return;
-    const audio = audioRef.current;
+    if (reducedMotion || !playing || !analyser) return;
     const canvas = canvasRef.current;
-    if (!audio || !canvas) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    // Built lazily inside a play gesture: an AudioContext created at mount
-    // starts suspended under the browser's autoplay policy and stays that way.
-    if (!contextRef.current) {
-      const AudioContextCtor =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextCtor) return;
-      contextRef.current = new AudioContextCtor();
-    }
-    const audioContext = contextRef.current;
-    if (audioContext.state === "suspended") void audioContext.resume();
-
-    if (!sourceRef.current) {
-      try {
-        sourceRef.current = audioContext.createMediaElementSource(audio);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = FFT_SIZE;
-        analyser.smoothingTimeConstant = 0.7;
-        sourceRef.current.connect(analyser);
-        analyser.connect(audioContext.destination);
-        analyserRef.current = analyser;
-      } catch {
-        // Cross-origin audio without CORS headers taints the graph. Nothing to
-        // recover here — the static bar below covers it.
-        return;
-      }
-    }
-
-    const analyser = analyserRef.current;
-    if (!analyser) return;
 
     const bins = new Uint8Array(analyser.frequencyBinCount);
     // Canvas cannot read Tailwind classes; sample the tokens once per run
@@ -123,21 +99,7 @@ export function BriefVisualizer({ audioRef, playing, progress }: BriefVisualizer
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
     };
-  }, [audioRef, playing, reducedMotion]);
-
-  // Tear the graph down only on unmount: the source node is bound to the audio
-  // element for its lifetime, so closing between plays would break the next one.
-  useEffect(() => {
-    return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-      analyserRef.current?.disconnect();
-      sourceRef.current?.disconnect();
-      void contextRef.current?.close();
-      contextRef.current = null;
-      analyserRef.current = null;
-      sourceRef.current = null;
-    };
-  }, []);
+  }, [analyser, playing, reducedMotion]);
 
   if (reducedMotion) {
     return (

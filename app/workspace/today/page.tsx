@@ -242,8 +242,7 @@ function TodayWorkspacePageContent() {
     topic: string;
     nonce: number;
   } | null>(null);
-  const [askRequest, setAskRequest] = useState<{
-    question: string;
+  const [assistantOpenRequest, setAssistantOpenRequest] = useState<{
     nonce: number;
   } | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
@@ -1268,7 +1267,11 @@ function TodayWorkspacePageContent() {
           onListen={openBriefAudio}
           readBrief={morningBrief}
           canAsk={canUseAssistant}
-          onAsk={(question) => setAskRequest({ question, nonce: Date.now() })}
+          branchId={safeBranchId}
+          date={targetDate}
+          onOpenAssistant={() =>
+            setAssistantOpenRequest({ nonce: Date.now() })
+          }
           onOpenProvenance={() => setProvenanceOpen(true)}
         />
 
@@ -1293,7 +1296,7 @@ function TodayWorkspacePageContent() {
             date={targetDate}
             onActionApplied={handleAssistantActionApplied}
             explainRequest={explainRequest}
-            askRequest={askRequest}
+            openRequest={assistantOpenRequest}
             autoOpen={autoOpenAssistant}
           />
         ) : null}

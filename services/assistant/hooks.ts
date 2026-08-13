@@ -81,7 +81,7 @@ export function useStartAssistantConversation() {
   return useMutation({
     mutationFn: (payload: StartConversationPayload) => startAssistantConversation(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: conversationsPrefix });
+      queryClient.invalidateQueries({ queryKey: assistantQueryKeys.root });
     },
   });
 }
@@ -97,7 +97,7 @@ export function useSendAssistantMessage() {
       payload: SendMessagePayload;
     }) => sendAssistantMessage(conversationId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: conversationsPrefix });
+      queryClient.invalidateQueries({ queryKey: assistantQueryKeys.root });
     },
   });
 }
