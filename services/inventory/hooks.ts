@@ -37,6 +37,8 @@ import {
   getCostVariance,
   getPurchasingEfficiency,
   updateIngredientVarianceCause,
+  getMenuItemPrice,
+  updateMenuItemPrice,
   type IngredientPayload,
   type MenuItemPayload,
   type OnHandPayload,
@@ -45,6 +47,7 @@ import {
   type AvailabilityOverridePayload,
   type ReceiveDeliveryPayload,
   type IngredientVarianceCausePayload,
+  type UpdateMenuItemPricePayload,
 } from "./service";
 // ============================================================================
 // QUERY KEYS
@@ -88,6 +91,8 @@ export const inventoryQueryKeys = {
     [...inventoryQueryKeys.all, "costVariance", branchId] as const,
   purchasingEfficiency: (branchId: string) =>
     [...inventoryQueryKeys.all, "purchasingEfficiency", branchId] as const,
+  menuItemPrice: (branchId: string, menuItemId: string) =>
+    [...inventoryQueryKeys.all, "menuItemPrice", branchId, menuItemId] as const,
 };
 
 // ============================================================================
@@ -526,6 +531,29 @@ export function useDeactivateAvailabilityOverride(branchId: string) {
     mutationFn: (overrideId: string) => deactivateAvailabilityOverride(branchId, overrideId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.availabilityOverrides(branchId) });
+    },
+  });
+}
+
+// ============================================================================
+// HOOKS — PRICE INTELLIGENCE PHASE A
+// ============================================================================
+
+export function useMenuItemPrice(branchId: string, menuItemId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.menuItemPrice(branchId, menuItemId ?? ""),
+    queryFn: () => getMenuItemPrice(branchId, menuItemId as string),
+    enabled: enabled && Boolean(branchId) && Boolean(menuItemId),
+  });
+}
+
+export function useUpdateMenuItemPrice(branchId: string, menuItemId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateMenuItemPricePayload) =>
+      updateMenuItemPrice(branchId, menuItemId as string, payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(inventoryQueryKeys.menuItemPrice(branchId, menuItemId ?? ""), data);
     },
   });
 }

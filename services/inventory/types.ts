@@ -63,6 +63,10 @@ export const menuItemSchema = z.object({
   // this item awaits human confirmation.
   needs_review: z.boolean().optional(),
   ai_review: menuItemAiReviewSchema.nullable().optional(),
+  // Current selling price, batch-resolved for the whole list — null when
+  // the item has no catalog link yet or has never been priced.
+  selling_price: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -440,3 +444,32 @@ export const itemAvailabilityOverrideSchema = z.object({
   is_active: z.boolean(),
 });
 export type ItemAvailabilityOverride = z.infer<typeof itemAvailabilityOverrideSchema>;
+
+// ============================================================================
+// PRICE INTELLIGENCE — PHASE A: price history + margin (Inventory page)
+// ============================================================================
+
+export const priceHistoryEntrySchema = z.object({
+  id: z.string(),
+  old_price: z.coerce.number().nullable(),
+  new_price: z.coerce.number(),
+  currency: z.string(),
+  change_pct: z.coerce.number().nullable(),
+  source_type: z.enum(["MANUAL", "POS_SYNC"]),
+  reason: z.string(),
+  changed_by: z.string().nullable(),
+  occurred_at: z.string(),
+});
+export type PriceHistoryEntry = z.infer<typeof priceHistoryEntrySchema>;
+
+export const menuItemPriceSchema = z.object({
+  has_catalog_link: z.boolean(),
+  selling_price: z.coerce.number().nullable(),
+  standard_cost: z.coerce.number().nullable(),
+  gross_margin: z.coerce.number().nullable(),
+  margin_pct: z.coerce.number().nullable(),
+  currency: z.string(),
+  last_changed_at: z.string().nullable(),
+  history: z.array(priceHistoryEntrySchema),
+});
+export type MenuItemPrice = z.infer<typeof menuItemPriceSchema>;

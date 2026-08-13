@@ -7,11 +7,11 @@ import {
   Calendar,
   EditPencil,
   Plus,
-  SendDiagonal,
-  Sparks,
+  WarningTriangle,
 } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { Spinner } from "@/components/ui/spinner";
+import { AssistantInput } from "@/components/assistant/assistant-input";
 import {
   useAnalystThread,
   useAnalystThreads,
@@ -87,35 +87,60 @@ export function AnalysisTab({ branchId }: { branchId: string }) {
         <div className="space-y-2">
           <button
             type="button"
-            onClick={handleOpenWeek}
-            disabled={openWeek.isPending}
-            className="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 text-[13px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-60"
-          >
-            {openWeek.isPending ? <Spinner /> : <Calendar width={15} height={15} />}
-            {t("workspace.insights.analysis.openWeek")}
-          </button>
-          <button
-            type="button"
             onClick={handleNewThread}
             disabled={createThread.isPending}
-            className="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-surface-4 px-3 text-[13px] text-text-secondary transition-colors hover:text-text-primary disabled:opacity-60"
+            className="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-surface-4 px-3 text-sm text-text-secondary transition-colors hover:border-surface-4 hover:bg-surface-2 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 disabled:opacity-60"
           >
-            <Plus width={15} height={15} />
+            {createThread.isPending ? <Spinner /> : <Plus width={15} height={15} />}
             {t("workspace.insights.analysis.newThread")}
+          </button>
+
+          {/*
+            The one gold element in this rail: not a second peer to "New
+            conversation" but a standing shortcut, always visible rather than
+            buried in the empty state, so a manager reaches for it every
+            Monday rather than only on their very first visit.
+          */}
+          <button
+            type="button"
+            onClick={handleOpenWeek}
+            disabled={openWeek.isPending}
+            className="flex w-full flex-col items-start gap-0.5 rounded-lg border border-brand-gold/25 bg-brand-gold/[0.06] px-3 py-2 text-left transition-colors hover:bg-brand-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-gold">
+              {openWeek.isPending ? (
+                <Spinner />
+              ) : (
+                <Calendar width={14} height={14} />
+              )}
+              {t("workspace.insights.analysis.openWeek")}
+            </span>
+            <span className="text-xs leading-snug text-text-muted">
+              {t("workspace.insights.analysis.openWeekHint")}
+            </span>
           </button>
         </div>
 
-        <ThreadList
-          threads={threads}
-          activeId={activeThreadId}
-          branchId={branchId}
-          onSelect={setActiveThreadId}
-          onDeleted={(id) => {
-            if (id === activeThreadId) setActiveThreadId(null);
-          }}
-        />
+        {threadsQuery.isError ? (
+          <ErrorNotice
+            message={t("workspace.insights.analysis.loadError")}
+            onRetry={() => threadsQuery.refetch()}
+          />
+        ) : (
+          <>
+            <ThreadList
+              threads={threads}
+              activeId={activeThreadId}
+              branchId={branchId}
+              onSelect={setActiveThreadId}
+              onDeleted={(id) => {
+                if (id === activeThreadId) setActiveThreadId(null);
+              }}
+            />
 
-        <MemoryList memories={memories} branchId={branchId} />
+            <MemoryList memories={memories} branchId={branchId} />
+          </>
+        )}
       </aside>
 
       <section className="min-w-0">
@@ -127,15 +152,48 @@ export function AnalysisTab({ branchId }: { branchId: string }) {
             messages={threadQuery.data?.messages ?? []}
             summarizedTurns={threadQuery.data?.summarized_turns ?? 0}
             isLoading={threadQuery.isLoading}
+            isError={threadQuery.isError}
+            onRetry={() => threadQuery.refetch()}
             isSending={sendTurn.isPending}
             onSend={(message) =>
               sendTurn.mutate({ threadId: activeThreadId, message })
             }
           />
         ) : (
-          <StartState onOpenWeek={handleOpenWeek} pending={openWeek.isPending} />
+          <StartState />
         )}
       </section>
+    </div>
+  );
+}
+
+// ── Error notice ────────────────────────────────────────────────────────────
+//
+// The standard alert pattern from DESIGN.md §8: a 4px left border in the
+// status color, message in text-primary. Used wherever a read query fails —
+// which used to fail silently into the same copy as a legitimate empty list.
+
+function ErrorNotice({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md border-l-4 border-status-critical bg-surface-2 py-2.5 pl-3 pr-2.5">
+      <p className="flex items-start gap-2 text-sm text-text-primary">
+        <WarningTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-critical" />
+        {message}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="shrink-0 whitespace-nowrap rounded text-xs font-medium text-brand-gold transition-colors hover:text-brand-gold-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
+      >
+        {t("workspace.insights.analysis.retry")}
+      </button>
     </div>
   );
 }
@@ -163,7 +221,7 @@ function ThreadList({
 
   if (threads.length === 0) {
     return (
-      <p className="text-[13px] text-text-muted">
+      <p className="text-sm text-text-muted">
         {t("workspace.insights.analysis.noThreads")}
       </p>
     );
@@ -195,16 +253,16 @@ function ThreadList({
                     if (event.key === "Enter") commitRename(thread.id);
                     if (event.key === "Escape") setEditingId(null);
                   }}
-                  className="h-8 w-full rounded-md border border-brand-gold/40 bg-surface-2 px-2 text-[13px] text-text-primary outline-none"
+                  className="h-8 w-full rounded-md border border-brand-gold/40 bg-surface-2 px-2 text-sm text-text-primary outline-none"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => onSelect(thread.id)}
-                  className={`flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 pr-14 text-left text-[13px] transition-colors ${
+                  className={`flex w-full items-baseline gap-2 rounded-md border-l-2 py-2 pl-2.5 pr-14 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 ${
                     isActive
-                      ? "bg-surface-3 text-text-primary"
-                      : "text-text-secondary hover:text-text-primary"
+                      ? "border-brand-gold bg-surface-3/70 text-text-primary"
+                      : "border-transparent text-text-secondary hover:bg-surface-3/40 hover:text-text-primary"
                   }`}
                 >
                   <span className="truncate">
@@ -214,7 +272,7 @@ function ThreadList({
               )}
 
               {editingId === thread.id ? null : (
-                <div className="absolute right-1 top-1 hidden items-center gap-0.5 group-hover:flex">
+                <div className="absolute right-1 top-1 hidden items-center gap-0.5 group-hover:flex group-focus-within:flex">
                   <IconAction
                     label={t("workspace.insights.analysis.rename")}
                     onClick={() => {
@@ -258,7 +316,7 @@ function IconAction({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="inline-flex h-6 w-6 items-center justify-center rounded text-text-muted transition-colors hover:text-text-primary"
+      className="inline-flex h-6 w-6 items-center justify-center rounded text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
     >
       {children}
     </button>
@@ -302,7 +360,7 @@ function MemoryList({
                 onClick={() => retire.mutate(memory.id)}
                 aria-label={t("workspace.insights.analysis.stopWatching")}
                 title={t("workspace.insights.analysis.stopWatching")}
-                className="hidden shrink-0 text-text-muted transition-colors hover:text-text-primary group-hover:block"
+                className="hidden shrink-0 text-text-muted transition-colors hover:text-text-primary group-hover:block group-focus-within:block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60"
               >
                 <BinMinusIn width={13} height={13} />
               </button>
@@ -328,10 +386,11 @@ function MemoryList({
 // ── Transcript ──────────────────────────────────────────────────────────────
 
 function Transcript({
-  threadId,
   messages,
   summarizedTurns,
   isLoading,
+  isError,
+  onRetry,
   isSending,
   onSend,
 }: {
@@ -340,11 +399,12 @@ function Transcript({
   messages: AnalystMessage[];
   summarizedTurns: number;
   isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   isSending: boolean;
   onSend: (message: string) => void;
 }) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState("");
   /*
    * The turn in flight, held locally.
    *
@@ -367,21 +427,24 @@ function Transcript({
     if (!isSending) setInFlight(null);
   }, [isSending, messages.length]);
 
-  const submit = () => {
-    const text = draft.trim();
-    if (!text || isSending) return;
+  const handleSend = (text: string) => {
+    if (isSending) return;
     setInFlight(text);
     onSend(text);
-    setDraft("");
   };
 
   return (
     <div className="flex h-[calc(100vh-22rem)] min-h-[26rem] flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Spinner />
           </div>
+        ) : isError ? (
+          <ErrorNotice
+            message={t("workspace.insights.analysis.loadThreadError")}
+            onRetry={onRetry}
+          />
         ) : (
           <>
             {/*
@@ -389,14 +452,14 @@ function Transcript({
               mid-conversation otherwise looks like it lost its own beginning.
             */}
             {summarizedTurns > 0 ? (
-              <p className="mb-8 text-center text-[12px] text-text-muted">
+              <p className="mb-8 text-center text-xs text-text-muted">
                 {t("workspace.insights.analysis.summarized", {
                   count: String(summarizedTurns),
                 })}
               </p>
             ) : null}
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               {messages.map((message) => (
                 <Bubble key={message.id} message={message} />
               ))}
@@ -417,61 +480,42 @@ function Transcript({
         <div ref={endRef} />
       </div>
 
-      <div className="mt-6 flex items-end gap-2 border-t border-surface-4/60 pt-4">
-        <textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              submit();
-            }
-          }}
-          rows={2}
+      <div className="mt-2 border-t border-surface-4/60">
+        <AssistantInput
+          onSend={handleSend}
+          disabled={isSending || isLoading || isError}
           placeholder={t("workspace.insights.analysis.placeholder")}
-          className="min-h-[2.75rem] flex-1 resize-none rounded-lg border border-surface-4 bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-gold/50"
         />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isSending || !draft.trim()}
-          aria-label={t("workspace.insights.analysis.send")}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-brand-gold/30 bg-brand-gold/10 text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-40"
-        >
-          <SendDiagonal width={17} height={17} />
-        </button>
       </div>
     </div>
   );
 }
 
+// Visual language matches the Today assistant drawer (components/assistant) —
+// same gold "IQ" avatar, same bubble shapes and colors — so the analyst reads
+// as one product wearing two hats, not two different chat widgets. Content
+// rendering deliberately does not: this stays whitespace-pre-wrap rather than
+// picking up assistant-message.tsx's bold/bullet/table parser, since model
+// output here is untrusted and plain text is the smaller surface.
 function Bubble({ message }: { message: AnalystMessage }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <p className="max-w-[85%] rounded-xl rounded-br-sm bg-surface-3 px-3.5 py-2.5 text-[14px] leading-relaxed text-text-primary">
+        <div className="max-w-[82%] whitespace-pre-wrap break-words rounded-xl rounded-br-md bg-brand-gold px-3.5 py-2.5 text-sm leading-relaxed text-surface-1">
           {message.content}
-        </p>
+        </div>
       </div>
     );
   }
   return (
-    <div className="flex gap-3">
-      <Sparks
-        width={16}
-        height={16}
-        className="mt-1 shrink-0 text-brand-gold"
-        aria-hidden
-      />
-      {/*
-        whitespace-pre-wrap, not a markdown renderer: the analyst answers in
-        short prose and lists, and rendering untrusted model output as markup
-        is a larger surface than the formatting is worth here.
-      */}
-      <p className="min-w-0 whitespace-pre-wrap text-[14px] leading-relaxed text-text-secondary">
-        {message.content}
-      </p>
+    <div className="flex items-start gap-2.5">
+      <IQAvatar />
+      <div className="min-w-0 max-w-[82%] rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
+        <p className="min-w-0 whitespace-pre-wrap break-words">
+          {message.content}
+        </p>
+      </div>
     </div>
   );
 }
@@ -479,44 +523,48 @@ function Bubble({ message }: { message: AnalystMessage }) {
 function Thinking() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-3 text-[13px] text-text-muted">
-      <Spinner />
-      {t("workspace.insights.analysis.thinking")}
+    <div className="flex items-center gap-2.5 px-1">
+      <IQAvatar />
+      <span className="text-xs text-text-muted">
+        {t("workspace.insights.analysis.thinking")}
+      </span>
+      <span className="flex gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-text-muted"
+            style={{ animation: `thinking-dot 1.2s ease-in-out ${i * 0.2}s infinite` }}
+          />
+        ))}
+      </span>
     </div>
   );
 }
 
-function StartState({
-  onOpenWeek,
-  pending,
-}: {
-  onOpenWeek: () => void;
-  pending: boolean;
-}) {
+function IQAvatar() {
+  return (
+    <div
+      aria-hidden
+      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-[11px] font-bold text-brand-gold"
+    >
+      IQ
+    </div>
+  );
+}
+
+function StartState() {
   const { t } = useTranslation();
   return (
-    <div className="py-16 text-center">
-      <Sparks
-        width={22}
-        height={22}
-        className="mx-auto mb-4 text-brand-gold"
-        aria-hidden
-      />
-      <p className="text-[15px] text-text-primary">
-        {t("workspace.insights.analysis.startTitle")}
-      </p>
-      <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-text-muted">
-        {t("workspace.insights.analysis.startBody")}
-      </p>
-      <button
-        type="button"
-        onClick={onOpenWeek}
-        disabled={pending}
-        className="mt-6 inline-flex h-9 items-center gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-4 text-[13px] font-medium text-brand-gold transition-colors hover:bg-brand-gold/15 disabled:opacity-60"
-      >
-        {pending ? <Spinner /> : <Calendar width={15} height={15} />}
-        {t("workspace.insights.analysis.openWeek")}
-      </button>
+    <div className="flex items-start gap-2.5 py-8">
+      <IQAvatar />
+      <div>
+        <p className="text-base font-medium text-text-primary">
+          {t("workspace.insights.analysis.startTitle")}
+        </p>
+        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-text-secondary">
+          {t("workspace.insights.analysis.startBody")}
+        </p>
+      </div>
     </div>
   );
 }

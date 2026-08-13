@@ -26,6 +26,8 @@ export const inventoryEndpoints = {
       `/api/inventory/branches/${branchId}/menu-items/${menuItemId}/`,
     confirmReview: (branchId: string, menuItemId: string) =>
       `/api/inventory/branches/${branchId}/menu-items/${menuItemId}/confirm-review/`,
+    price: (branchId: string, menuItemId: string) =>
+      `/api/inventory/branches/${branchId}/menu-items/${menuItemId}/price/`,
   },
 
   // Recipes (menu-item scoped)
