@@ -1545,6 +1545,8 @@
       "askPlaceholder": "ex. Pourquoi la demande est-elle en hausse ?",
       "askCta": "Demander",
       "qaError": "L'assistant n'a pas pu répondre. Réessayez.",
+      "qaHeader": "Q&R",
+      "qaOpenFull": "Ouvrir la conversation complète",
       "pendingHint": "Nécessite votre confirmation",
       "openAssistant": "Ouvrir l'assistant"
     },

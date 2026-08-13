@@ -1545,6 +1545,8 @@
       "askPlaceholder": "e.g. Why is demand up today?",
       "askCta": "Ask",
       "qaError": "The assistant couldn't respond. Try again.",
+      "qaHeader": "Q&A",
+      "qaOpenFull": "Open full chat",
       "pendingHint": "Needs your confirmation",
       "openAssistant": "Open in assistant"
     },

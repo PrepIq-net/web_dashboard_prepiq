@@ -20,8 +20,6 @@ import { BriefVisualizer } from "./brief-visualizer";
 const SPEEDS = [1, 1.25] as const;
 
 type TodaysBriefDrawerProps = {
-  /** Must match the trigger's layoutId — this is the morph's other half. */
-  layoutId: string;
   open: boolean;
   onClose: () => void;
   /** Reopen the drawer from the mini player. */
@@ -56,7 +54,6 @@ type TodaysBriefDrawerProps = {
  */
 
 export function TodaysBriefDrawer({
-  layoutId,
   open,
   onClose,
   onOpen,
@@ -379,13 +376,16 @@ export function TodaysBriefDrawer({
                 onClick={onClose}
               >
                 <motion.div
-                  layoutId={layoutId}
                   ref={panelRef}
                   tabIndex={-1}
                   role="dialog"
                   aria-modal="true"
                   aria-label={t("today.briefAudio.title")}
                   className="flex h-full w-[680px] max-w-[96vw] flex-col overflow-hidden border-l border-surface-4 bg-surface-2 shadow-2xl outline-none"
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                   onClick={(event) => event.stopPropagation()}
                 >
                   <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
@@ -644,10 +644,26 @@ export function TodaysBriefDrawer({
                   {canAsk ? (
                     <div className="border-t border-surface-4 px-6 py-4">
                       {qaThread.length > 0 ? (
-                        <div
-                          ref={qaScrollRef}
-                          className="mb-3 max-h-56 space-y-2.5 overflow-y-auto pr-1 scrollbar-thin"
-                        >
+                        <div className="mb-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                              {t("today.briefDrawer.qaHeader")}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onOpenAssistant();
+                              }}
+                              className="rounded-button px-2 py-1 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 focus-visible:outline-2 focus-visible:outline-brand-gold"
+                            >
+                              {t("today.briefDrawer.qaOpenFull")}
+                            </button>
+                          </div>
+                          <div
+                            ref={qaScrollRef}
+                            className="max-h-72 space-y-2.5 overflow-y-auto pr-1 scrollbar-thin"
+                          >
                           {qaThread.map((message) => (
                             <QaMessage
                               key={message.id}
@@ -676,6 +692,7 @@ export function TodaysBriefDrawer({
                               </span>
                             </div>
                           ) : null}
+                        </div>
                         </div>
                       ) : null}
 

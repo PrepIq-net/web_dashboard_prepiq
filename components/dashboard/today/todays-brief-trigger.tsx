@@ -1,11 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Headset } from "iconoir-react";
 
 type TodaysBriefTriggerProps = {
-  /** Must match the modal's layoutId — this is the morph's other half. */
-  layoutId: string;
   label: string;
   hint: string;
   loading: boolean;
@@ -24,15 +21,13 @@ type TodaysBriefTriggerProps = {
  * set, and an emoji would render differently on every platform.
  */
 export function TodaysBriefTrigger({
-  layoutId,
   label,
   hint,
   loading,
   onClick,
 }: TodaysBriefTriggerProps) {
   return (
-    <motion.button
-      layoutId={layoutId}
+    <button
       type="button"
       onClick={onClick}
       disabled={loading}
@@ -42,6 +37,6 @@ export function TodaysBriefTrigger({
     >
       <Headset width="1.05em" height="1.05em" strokeWidth={1.5} />
       {label}
-    </motion.button>
+    </button>
   );
 }

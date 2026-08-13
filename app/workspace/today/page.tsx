@@ -82,10 +82,6 @@ import type { PendingAction } from "@/services/assistant/types";
 import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
 import { intelligenceJourneySummarySchema } from "@/services/production-intelligence/types";
 
-// Shared-element id tying the brief trigger to the modal it morphs into.
-// framer-motion matches the two by this string, so both must reference it.
-const BRIEF_LAYOUT_ID = "todays-brief-surface";
-
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -902,7 +898,6 @@ function TodayWorkspacePageContent() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
             {safeBranchId && canUseAssistant ? (
               <TodaysBriefTrigger
-                layoutId={BRIEF_LAYOUT_ID}
                 label={t("today.briefAudio.trigger")}
                 hint={t("today.briefAudio.triggerHint")}
                 loading={briefVoice.isPending}
@@ -1263,7 +1258,6 @@ function TodayWorkspacePageContent() {
           voiceLoading={briefVoice.isPending}
           brief={briefVoice.data ?? null}
           voiceError={briefVoice.isError ? t("today.briefAudio.error") : null}
-          layoutId={BRIEF_LAYOUT_ID}
           onListen={openBriefAudio}
           readBrief={morningBrief}
           canAsk={canUseAssistant}
