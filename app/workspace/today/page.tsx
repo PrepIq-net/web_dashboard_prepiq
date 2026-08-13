@@ -78,7 +78,7 @@ import {
   type ImpactPreview,
   type MorningRiskAlert,
 } from "@/components/dashboard/today/today-helpers";
-import type { PendingAction } from "@/services/assistant/types";
+import type { AssistantMessage, PendingAction } from "@/services/assistant/types";
 import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
 import { intelligenceJourneySummarySchema } from "@/services/production-intelligence/types";
 
@@ -240,6 +240,8 @@ function TodayWorkspacePageContent() {
   } | null>(null);
   const [assistantOpenRequest, setAssistantOpenRequest] = useState<{
     nonce: number;
+    conversationId: string | null;
+    messages: AssistantMessage[];
   } | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
   const [markUnavailableItem, setMarkUnavailableItem] = useState<{
@@ -1263,8 +1265,8 @@ function TodayWorkspacePageContent() {
           canAsk={canUseAssistant}
           branchId={safeBranchId}
           date={targetDate}
-          onOpenAssistant={() =>
-            setAssistantOpenRequest({ nonce: Date.now() })
+          onOpenAssistant={(handoff) =>
+            setAssistantOpenRequest({ nonce: Date.now(), ...handoff })
           }
           onOpenProvenance={() => setProvenanceOpen(true)}
         />

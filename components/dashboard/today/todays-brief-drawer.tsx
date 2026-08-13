@@ -34,8 +34,12 @@ type TodaysBriefDrawerProps = {
   canAsk: boolean;
   branchId: string | null;
   date: string;
-  /** Hand the thread to the full assistant drawer (e.g. to confirm an action). */
-  onOpenAssistant: () => void;
+  /** Hand the Q&A thread to the full assistant drawer, which rehydrates from
+   * this exact state — no server round-trip, nothing lost in the handoff. */
+  onOpenAssistant: (handoff: {
+    conversationId: string | null;
+    messages: AssistantMessage[];
+  }) => void;
   onOpenProvenance: () => void;
 };
 
@@ -653,9 +657,13 @@ export function TodaysBriefDrawer({
                               type="button"
                               onClick={() => {
                                 onClose();
-                                onOpenAssistant();
+                                onOpenAssistant({
+                                  conversationId: qaConversationId,
+                                  messages: qaThread,
+                                });
                               }}
-                              className="rounded-button px-2 py-1 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 focus-visible:outline-2 focus-visible:outline-brand-gold"
+                              disabled={qaSending}
+                              className="rounded-button px-2 py-1 text-[11px] font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-brand-gold"
                             >
                               {t("today.briefDrawer.qaOpenFull")}
                             </button>
@@ -670,7 +678,10 @@ export function TodaysBriefDrawer({
                               message={message}
                               onOpenAssistant={() => {
                                 onClose();
-                                onOpenAssistant();
+                                onOpenAssistant({
+                                  conversationId: qaConversationId,
+                                  messages: qaThread,
+                                });
                               }}
                             />
                           ))}

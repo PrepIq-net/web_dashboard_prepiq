@@ -28,9 +28,14 @@ export type AssistantLauncherProps = {
   // host page can refetch the data the action changed.
   onActionApplied?: (action: PendingAction) => void;
   explainRequest?: { topic: string; nonce: number } | null;
-  // Opens the drawer without sending anything, e.g. when the brief drawer
-  // hands its Q&A thread over (the drawer rehydrates the shared conversation).
-  openRequest?: { nonce: number } | null;
+  // Opens the drawer and, when a thread is carried over (e.g. the brief
+  // drawer's Q&A), seeds it directly so the handoff shows exactly what the
+  // source surface showed — no server round-trip involved.
+  openRequest?: {
+    nonce: number;
+    conversationId?: string | null;
+    messages?: AssistantMessage[];
+  } | null;
   // Opens the drawer on mount, e.g. when arriving via a "continue chat" deep link.
   autoOpen?: boolean;
 };
@@ -64,7 +69,9 @@ export function AssistantLauncher({
 
   // Rehydrate the persisted day thread on load / branch or date change so a
   // reload restores the transcript instead of starting over. Only seed while the
-  // local session is still empty so an in-flight send is never clobbered.
+  // local session is still empty so an in-flight send is never clobbered. The
+  // message count is in the deps too: if a refetch lands with the same
+  // conversation but fuller messages, the thread still gets restored.
   const currentConv = current.data?.conversation ?? null;
   useEffect(() => {
     if (!currentConv) return;
@@ -72,7 +79,7 @@ export function AssistantLauncher({
     setConversationId(currentConv.id);
     setMessages(current.data?.messages ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentConv?.id]);
+  }, [currentConv?.id, current.data?.messages?.length]);
 
   // A branch/date switch belongs to a different day thread — drop the stale
   // session so the rehydration effect above can load the correct one.
@@ -133,9 +140,20 @@ export function AssistantLauncher({
   }, [explainRequest?.nonce]);
 
   // Open the drawer when another surface hands the thread over (e.g. the brief
-  // drawer's Q&A needs the full conversation for a pending confirmation).
+  // drawer's Q&A). The carried messages seed the transcript directly so the
+  // handoff shows exactly what the source surface showed; without a payload it
+  // is a plain open, letting the rehydration effect above restore the thread.
   useEffect(() => {
-    if (openRequest) setOpen(true);
+    if (!openRequest) return;
+    setOpen(true);
+    if (
+      openRequest.messages &&
+      openRequest.messages.length > 0 &&
+      messages.length === 0
+    ) {
+      setConversationId(openRequest.conversationId ?? null);
+      setMessages(openRequest.messages);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openRequest?.nonce]);
 
