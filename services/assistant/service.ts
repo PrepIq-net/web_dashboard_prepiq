@@ -11,6 +11,10 @@ import type {
   CurrentConversationResponse,
   EmptyConversationReply,
   ExplainPayload,
+  MorningBriefVoice,
+  MorningBriefVoicePayload,
+  RecipeReviewPayload,
+  RecipeReviewResponse,
   SendMessagePayload,
   StartConversationPayload,
   SuggestedQuestionsResponse,
@@ -104,4 +108,41 @@ export async function runAssistantCommand(
     method: "POST",
     body: payload,
   });
+}
+
+/**
+ * Diagnose one menu item's recipe/image and get back proposed fixes — never
+ * applies anything. Each returned proposal confirms through the same
+ * `confirmAssistantAction` endpoint above.
+ */
+export async function runRecipeReview(
+  payload: RecipeReviewPayload,
+): Promise<RecipeReviewResponse> {
+  return apiClient<RecipeReviewResponse>(`${BASE}/recipe-review/`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+/**
+ * Generate (or fetch the cached) spoken brief for a branch-day, and record it
+ * in the day's chat thread. Usually a database read on the backend — the 6 AM
+ * delivery run has already produced the audio — but a cold call synthesizes
+ * inline and can take several seconds.
+ */
+export async function generateMorningBriefVoice(
+  payload: MorningBriefVoicePayload,
+): Promise<MorningBriefVoice> {
+  return apiClient<MorningBriefVoice>(`${BASE}/morning-brief/voice/`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+/**
+ * Replay a specific brief by id — the path a chat message uses. Re-synthesizes
+ * transparently if the audio file has been purged since it was first played.
+ */
+export async function getMorningBriefVoice(id: string): Promise<MorningBriefVoice> {
+  return apiClient<MorningBriefVoice>(`${BASE}/morning-brief/voice/${id}/`);
 }

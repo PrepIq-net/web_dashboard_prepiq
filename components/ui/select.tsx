@@ -145,7 +145,7 @@ export function Select({
                 width: menuPosition.width,
               }}
             >
-              <div className="max-h-[240px] overflow-y-auto space-y-0.5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33] hover:[&::-webkit-scrollbar-thumb]:bg-[#3A3A40]">
+              <div className="max-h-[240px] overflow-y-auto space-y-0.5 scrollbar-thin">
                 {options.map((option) => (
                   <button
                     key={option.value}

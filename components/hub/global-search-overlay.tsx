@@ -79,7 +79,7 @@ export function GlobalSearchOverlay({
           </button>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto design-scrollbar pb-2">
+        <div className="max-h-[60vh] overflow-y-auto pb-2 scrollbar-thin">
           {query.trim().length < 2 ? (
             <p className="px-4 py-6 text-center text-sm text-text-muted">
               Search across conversations, document contents, operational data

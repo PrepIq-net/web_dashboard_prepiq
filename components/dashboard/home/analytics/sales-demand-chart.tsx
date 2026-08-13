@@ -390,7 +390,7 @@ function SeriesTable({
 
   return (
     <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full min-w-[640px] text-left border-collapse">
           <thead className="bg-surface-3 border-b border-surface-4">
             <tr>

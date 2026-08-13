@@ -8,6 +8,7 @@ import { Shop, Calendar } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import { UUID_PATTERN } from "@/lib/constants";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { isDiscreteUnit, todayIso } from "@/lib/format";
 import { BranchCurrencyProvider } from "@/lib/branch-currency";
@@ -29,13 +30,13 @@ import {
   useEvaluatePrepPlan,
   useInitializeBranchDay,
   useLockBranchDayPlan,
-  useSalesManualQuickEntry,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
   productionIntelligenceQueryKeys,
 } from "@/services/production-intelligence/hooks";
 import { useGenerateTasks } from "@/services";
 import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
+import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
 import { useBranchStore } from "@/services/context/branch-store";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useSubscriptionTier } from "@/services/payment/hooks";
@@ -43,6 +44,9 @@ import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/s
 import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
+import { TodaysBriefModal } from "@/components/dashboard/today/todays-brief-modal";
+import { TodaysBriefTrigger } from "@/components/dashboard/today/todays-brief-trigger";
+import { useMorningBriefVoice } from "@/services/assistant/hooks";
 import { InitializationWalkthrough } from "@/components/dashboard/today/initialization-walkthrough";
 import {
   MorningBriefDrawer,
@@ -59,10 +63,10 @@ import {
 } from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
 import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
-import { SystemHealthBanner } from "@/components/dashboard/today/system-health-banner";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
+import { InventoryRiskBanner } from "@/components/dashboard/today/inventory-risk-banner";
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
 import { LiveMonitorSection } from "@/components/dashboard/today/live-monitor-section";
 import { ClosedDayReview } from "@/components/dashboard/today/closed-day-review";
@@ -81,6 +85,10 @@ import type { PendingAction } from "@/services/assistant/types";
 import type { UpdatePrepPlanItemPayload } from "@/services/production-intelligence/types";
 import { intelligenceJourneySummarySchema } from "@/services/production-intelligence/types";
 
+// Shared-element id tying the brief trigger to the modal it morphs into.
+// framer-motion matches the two by this string, so both must reference it.
+const BRIEF_LAYOUT_ID = "todays-brief-surface";
+
 function TodayWorkspacePageContent() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -88,7 +96,7 @@ function TodayWorkspacePageContent() {
   const searchParams = useSearchParams();
 
   // ── Context: user, branches, date ─────────────────────────────────────────
-  const { user, branchOptions, defaultBranch, isLoading } = useBranchOptions();
+  const { user, branchOptions, defaultBranch, isLoading, isError } = useBranchOptions();
   const canAccess = Boolean(user?.has_organization);
 
   // Mirror of the backend gate on branch-day mutations (status, lock, plan
@@ -131,12 +139,7 @@ function TodayWorkspacePageContent() {
     setBranchId(defaultBranch.id);
   }, [branchId, branchOptions, defaultBranch?.id, setBranchId]);
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canAccess]);
+  useAccessGate({ canAccess, isPending: isLoading, isError });
 
   const safeBranchId = UUID_PATTERN.test(branchId) ? branchId : "";
   const {
@@ -162,9 +165,6 @@ function TodayWorkspacePageContent() {
   const lockPlanMutation = useLockBranchDayPlan();
   const updateBranchDayStatusMutation = useUpdateBranchDayStatus();
   const createProductionLogMutation = useCreateProductionLog({
-    skipInvalidate: true,
-  });
-  const salesQuickEntryMutation = useSalesManualQuickEntry({
     skipInvalidate: true,
   });
   const updatePrepPlanMutation = useUpdatePrepPlanItem();
@@ -198,6 +198,15 @@ function TodayWorkspacePageContent() {
   }, [router, safeBranchId, t]);
 
   useTaskBoardRealtime(safeBranchId || undefined, targetDate, showAiTasksToast);
+  // A recipe image/ingredients edited on the Inventory page, via the AI
+  // assistant, or via the recipe-review panel reaches this open Today tab
+  // immediately — the item's photo/name on today's cards can otherwise go
+  // stale for the rest of the shift.
+  useMenuItemRealtime(safeBranchId || undefined, () => {
+    queryClient.invalidateQueries({
+      queryKey: [...productionIntelligenceQueryKeys.root, "branch-day-today", safeBranchId],
+    });
+  });
 
   const branchDay = todayQuery.data;
   const pipelineStats = initializeMutation.data?.meta?.pipeline_stats ?? null;
@@ -231,6 +240,8 @@ function TodayWorkspacePageContent() {
     unit: string;
   }>(null);
   const [briefDrawerOpen, setBriefDrawerOpen] = useState(false);
+  const [briefAudioOpen, setBriefAudioOpen] = useState(false);
+  const briefVoice = useMorningBriefVoice();
   const [explainRequest, setExplainRequest] = useState<{
     topic: string;
     nonce: number;
@@ -312,6 +323,15 @@ function TodayWorkspacePageContent() {
     }
     return map;
   }, [paceSummary]);
+
+  // Open the player first, then fetch: the modal owns the preparing state, and
+  // a cold brief takes several seconds to synthesize. Opening on success would
+  // leave the button looking inert for the whole wait.
+  const openBriefAudio = () => {
+    if (!safeBranchId) return;
+    setBriefAudioOpen(true);
+    briefVoice.mutate({ branch_id: safeBranchId, date: targetDate });
+  };
 
   // Assistant actions are executed server-side on confirm — just refresh the
   // data the action may have changed.
@@ -737,75 +757,18 @@ function TodayWorkspacePageContent() {
     );
   };
 
-  const quickTapSale = (
-    prepPlanItemId: string,
-    item: { product_id: string; unit: string },
-    quantitySold: number,
-  ) => {
-    if (!branchId) return;
-    const normalizedQty = isDiscreteUnit(item.unit)
-      ? Math.round(quantitySold)
-      : quantitySold;
-    const snapshot = applyOptimisticLiveMonitor(prepPlanItemId, (live) => ({
-      sold: live.sold + normalizedQty,
-    }));
-    salesQuickEntryMutation.mutate(
-      {
-        branch_id: branchId,
-        target_date: targetDate,
-        items: [
-          {
-            item_id: item.product_id,
-            quantity_sold: normalizedQty,
-            unit: item.unit,
-            notes: "Live quick tap sale",
-          },
-        ],
-      },
-      {
-        onSuccess: (data) => {
-          const liveMap = data?.live_monitor_by_item ?? {};
-          if (!snapshot || !Object.keys(liveMap).length) return;
-          queryClient.setQueryData(
-            snapshot.queryKey,
-            (existing: typeof branchDay | undefined) => {
-              if (!existing) return existing;
-              return {
-                ...existing,
-                prep_plan_items: existing.prep_plan_items.map((row) =>
-                  liveMap[row.id] ? { ...row, live_monitor: liveMap[row.id] } : row,
-                ),
-              };
-            },
-          );
-        },
-        onError: () => {
-          if (snapshot) {
-            queryClient.setQueryData(snapshot.queryKey, snapshot.previous);
-          }
-        },
-      },
-    );
-  };
-
   // Slow safety refetch behind the version cursor: catches anything the
   // version signal misses (e.g. Redis down) without hammering the API.
   useEffect(() => {
     if (!isLive || !branchDay?.id) return;
-    if (createProductionLogMutation.isPending || salesQuickEntryMutation.isPending) {
+    if (createProductionLogMutation.isPending) {
       return;
     }
     const interval = window.setInterval(() => {
       todayQuery.refetch();
     }, 120_000);
     return () => window.clearInterval(interval);
-  }, [
-    isLive,
-    branchDay?.id,
-    todayQuery,
-    createProductionLogMutation.isPending,
-    salesQuickEntryMutation.isPending,
-  ]);
+  }, [isLive, branchDay?.id, todayQuery, createProductionLogMutation.isPending]);
 
   // ── Status line ───────────────────────────────────────────────────────────
   const loading = isLoading || todayQuery.isLoading || initializeMutation.isPending;
@@ -935,6 +898,15 @@ function TodayWorkspacePageContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-1">
+            {safeBranchId && canUseAssistant ? (
+              <TodaysBriefTrigger
+                layoutId={BRIEF_LAYOUT_ID}
+                label={t("today.briefAudio.trigger")}
+                hint={t("today.briefAudio.triggerHint")}
+                loading={briefVoice.isPending}
+                onClick={openBriefAudio}
+              />
+            ) : null}
             {!canOperateToday && !loading ? (
               <span
                 className="inline-flex h-7 items-center rounded-full border border-surface-4 bg-surface-3/60 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
@@ -1038,15 +1010,6 @@ function TodayWorkspacePageContent() {
               <MyTasksCard date={branchDay.date} />
             ) : null}
 
-            {/* ── How much PrepIQ actually knows about this kitchen yet ──
-                Sits above the signals because it frames everything below it: a
-                number is read differently once you know it is borrowed. */}
-            {!walkthroughActive && branchDay?.intelligence_journey ? (
-              <IntelligenceJourneyBanner
-                summary={branchDay.intelligence_journey}
-              />
-            ) : null}
-
             {/* ── Persistent Demand Signals banner — all three phases ── */}
             {!walkthroughActive && branchDay ? (
               <DemandSignalsBanner branchDay={branchDay} />
@@ -1075,6 +1038,10 @@ function TodayWorkspacePageContent() {
                           })
                       : undefined
                   }
+                />
+
+                <InventoryRiskBanner
+                  requirement={branchDay?.ingredient_requirement}
                 />
 
                 <MorningRiskAlerts
@@ -1117,7 +1084,7 @@ function TodayWorkspacePageContent() {
 
                 {/* Single ingredient view: store-room requirement + BOM prep
                     sheet merged, styled per the Ingredient requirements layout. */}
-                <section className="mt-8 mb-4">
+                <section id="ingredient-requirements" className="mt-8 mb-4 scroll-mt-6">
                   <IngredientRequirements
                     branchId={safeBranchId}
                     targetDate={targetDate}
@@ -1144,7 +1111,9 @@ function TodayWorkspacePageContent() {
                 targetDate={targetDate}
                 enabled={canFetchData}
               />
-              <SystemHealthBanner systemHealth={branchDay.system_health} />
+              {/* LiveMonitorSection renders this same system_health note
+                  itself, right above the grid it's actually about — a
+                  second copy up here just duplicated it. */}
               <LiveMonitorSection
                 branchDay={branchDay}
                 criticalRows={criticalRows}
@@ -1158,7 +1127,6 @@ function TodayWorkspacePageContent() {
                 closePending={updateBranchDayStatusMutation.isPending}
                 onCloseDay={() => setConfirmAction("CLOSE_DAY")}
                 onRecordProduction={setRecordItem}
-                onQuickSale={quickTapSale}
                 onLogWaste={setWasteItem}
                 branchId={safeBranchId}
                 targetDate={targetDate}
@@ -1203,6 +1171,17 @@ function TodayWorkspacePageContent() {
                   {t("today.noActivePrepItems")}
                 </p>
               </div>
+            ) : null}
+
+            {/* ── How much PrepIQ actually knows about this kitchen yet ──
+                Last on the page by design: everything above is what that
+                knowledge produced today (plan, signals, live status), so
+                the "how sure should you be" framing reads better as a
+                closing note than as the first thing a chef sees. */}
+            {!walkthroughActive && branchDay?.intelligence_journey ? (
+              <IntelligenceJourneyBanner
+                summary={branchDay.intelligence_journey}
+              />
             ) : null}
 
             <ConfirmActionModal
@@ -1274,6 +1253,19 @@ function TodayWorkspacePageContent() {
             />
           </>
         )}
+
+        <TodaysBriefModal
+          open={briefAudioOpen}
+          onClose={() => setBriefAudioOpen(false)}
+          loading={briefVoice.isPending}
+          brief={briefVoice.data ?? null}
+          error={briefVoice.isError ? t("today.briefAudio.error") : null}
+          layoutId={BRIEF_LAYOUT_ID}
+          // Re-requesting is the same call: the backend re-synthesizes a brief
+          // whose audio failed or has been purged, from the script it kept.
+          onGenerate={openBriefAudio}
+          generating={briefVoice.isPending}
+        />
 
         <MorningBriefDrawer
           open={briefDrawerOpen}

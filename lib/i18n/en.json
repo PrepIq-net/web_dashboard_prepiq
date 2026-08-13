@@ -126,6 +126,7 @@
     "otpVerificationFailed": "OTP verification failed.",
     "networkError": "Network error. Please try again.",
     "securityProtocol": "Security Protocol",
+    "verificationSequence": "Verification Sequence",
     "resetPasswordTitle": "Reset Password.",
     "resetPasswordSubtitle": "Enter your work email to receive recovery instructions.",
     "registeredEmail": "Registered Email",
@@ -157,7 +158,24 @@
     "passwordResetSuccess": "Password reset successfully. Redirecting to login...",
     "resetPasswordsMismatch": "Passwords do not match.",
     "resetPasswordTooShort": "Password must be at least 8 characters.",
-    "resetFailed": "Reset failed. Please try again."
+    "resetFailed": "Reset failed. Please try again.",
+    "showcase": {
+      "today": {
+        "route": "AI Signal · Today",
+        "headline": "Start the day already knowing what to cook",
+        "pitch": "Morning, live, and closed — one screen tracks the kitchen against the plan all day, and stays honest when it drifts."
+      },
+      "analysis": {
+        "route": "AI Signal · Analysis",
+        "headline": "It tells you what the numbers mean",
+        "pitch": "A daily summary, root-cause explanations, and concrete opportunities — not just another dashboard."
+      },
+      "planning": {
+        "route": "AI Signal · Planning",
+        "headline": "Tell it what's coming, it starts predicting",
+        "pitch": "Promotions, events, weather, holidays — every signal on the calendar sharpens tomorrow's forecast."
+      }
+    }
   },
   "dashboard": {
     "sidebar": {
@@ -842,7 +860,12 @@
       "recordCooked": "Record what you cooked",
       "soldLabel": "Sold so far",
       "ofPlanned": "of {quantity} planned",
-      "runoutIn": "May run out in ~{runoutMin} min",
+      "runoutIn": "May run out {phrase}",
+      "runoutPhraseAnyMinute": "any minute now",
+      "runoutPhraseWithin30": "within 30 min",
+      "runoutPhraseUnderHour": "in under an hour",
+      "runoutPhraseAboutHour": "in about an hour",
+      "runoutPhraseAboutHours": "in about {hours} hours",
       "details": "Details",
       "moreActions": "More actions",
       "advisoryPrefix": "Needs attention",
@@ -854,6 +877,9 @@
       "chartSoldSeries": "Sold",
       "chartExpectedSeries": "Typical pace",
       "chartPlannedSeries": "Planned"
+    },
+    "liveAlerts": {
+      "snooze": "Snooze"
     },
     "closed": {
       "dayComplete": "Day closed",
@@ -961,6 +987,20 @@
           "SUPPLIER_ISSUE": "Supplier issue",
           "EQUIPMENT_FAILURE": "Equipment failure",
           "POWER_OUTAGE": "Power outage",
+          "OTHER": "Other"
+        }
+      },
+      "ingredientVariance": {
+        "title": "Ingredients that missed prediction",
+        "subtitle": "These ran higher or lower than the plan expected. Telling us why keeps the model from learning the wrong lesson.",
+        "predictedVsActual": "Predicted {predicted} · Used {actual}",
+        "cause": {
+          "OVER_PORTIONING": "Over-portioning",
+          "RECIPE_CHANGE": "Recipe change",
+          "EXTRA_WASTE": "Extra waste",
+          "SHRINKAGE_OR_THEFT": "Shrinkage or theft",
+          "COUNT_ERROR": "Count error",
+          "HIGHER_SALES": "Higher sales than planned",
           "OTHER": "Other"
         }
       },
@@ -1396,7 +1436,10 @@
       "footerFromLock": "Calculated when the plan was locked",
       "footerFromManual": "Recalculated by hand",
       "goToPurchasing": "Order what's short →",
-      "uncountedSummary": "{count} not counted"
+      "uncountedSummary": "{count} not counted",
+      "risksNeedAttention": "{count} inventory risk(s) need attention",
+      "coveragePct": "{pct}% of what's needed is covered",
+      "viewDetails": "View details"
     },
     "tasksStrip": {
       "suggested": "{count} suggested task(s) waiting for your review",
@@ -1417,7 +1460,7 @@
     "advisory": {
       "surgeWindow": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready within the next {window} minutes to reduce stockout risk.",
       "surge": "Demand is exceeding today's plan. You may want to have another small batch (~{quantity}) ready soon to reduce stockout risk.",
-      "runoutSoon": "At the current pace this runs out in about {runoutMin} min, and a batch takes {prepTimeMin} min — worth deciding soon.",
+      "runoutSoon": "At the current pace this may run out {phrase}, and a batch takes {prepTimeMin} min — worth deciding soon.",
       "watchPace": "Demand is moving away from the plan — worth keeping an eye on the pace.",
       "confidence": "Confidence: {confidence}%"
     },
@@ -1618,6 +1661,23 @@
       "expectedToSell": "Expected to sell",
       "haveOnHand": "Have on hand",
       "markOutOfStock": "Mark out of stock"
+    },
+    "briefAudio": {
+      "eyebrow": "Spoken brief",
+      "title": "Today's Brief",
+      "trigger": "Today's Brief",
+      "triggerHint": "Listen to today's brief",
+      "play": "Play",
+      "pause": "Pause",
+      "replay": "Replay from the start",
+      "close": "Close brief",
+      "speed": "Playback speed",
+      "transcript": "Transcript",
+      "preparing": "Preparing your brief. This takes a few seconds the first time each day.",
+      "unavailable": "Audio isn't available right now. The written brief is below.",
+      "error": "Couldn't load today's brief. Try again in a moment.",
+      "generate": "Generate audio",
+      "generating": "Generating"
     }
   },
   "profile": {
@@ -1692,8 +1752,8 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "today": "Today",
-    "planning": "Planning",
-    "schedule": "Schedule",
+    "planning": "Calendar",
+    "schedule": "Staff Schedule",
     "production": "Production",
     "inventory": "Inventory",
     "history": "History",
@@ -1712,9 +1772,33 @@
     "profile": "My Profile",
     "support": "Support",
     "section": {
+      "overview": "Overview",
+      "execution": "Daily Execution",
+      "planningResources": "Planning & Resources",
       "analytics": "Analytics",
       "management": "Management",
       "workspace": "Workspace"
+    },
+    "description": {
+      "dashboard": "Org-wide control tower — health, alerts, and quick actions across every branch.",
+      "today": "Today's prep plan: quantities, live service tracking, and the end-of-day review.",
+      "planning": "Log promotions, reservations, closures, and events that shape demand forecasts.",
+      "schedule": "Staff availability, shifts, and coverage for the team.",
+      "tasks": "The kitchen's task board — who's doing what, right now.",
+      "production": "Record production batches as they're made.",
+      "inventory": "Stock levels, recipes, and menu items.",
+      "history": "Past days' production and operations, for lookback.",
+      "analysis": "The AI Analyst — insights, opportunities, and root causes in plain language.",
+      "intelligenceJourney": "What PrepIQ has learned about this branch, and how confident it is.",
+      "salesWaste": "Sales and waste reporting.",
+      "financial": "Revenue, cost, and margin for the branch.",
+      "staffPerformance": "How the team is performing, tracked over time.",
+      "branches": "Manage every branch in the organization.",
+      "purchasing": "Purchase orders and procurement.",
+      "risk": "Compliance and operational risk alerts.",
+      "billing": "Subscription, plan, and payment details.",
+      "chat": "Operations Hub — team messages and @PrepIQ, tied to the day's work.",
+      "settings": "Workspace preferences, security, and integrations."
     },
     "tasks": "Tasks"
   },
@@ -2917,10 +3001,14 @@
       },
       "analysis": {
         "openWeek": "Open the week",
+        "openWeekHint": "Five ranked actions for this week, each with the money at stake.",
         "newThread": "New conversation",
         "threads": "Conversations",
         "untitled": "Untitled",
         "noThreads": "No conversations yet.",
+        "loadError": "Couldn't load your conversations.",
+        "loadThreadError": "Couldn't load this conversation.",
+        "retry": "Try again",
         "rename": "Rename",
         "delete": "Delete",
         "watching": "Watching for you",
@@ -3770,7 +3858,9 @@
         "foodCost": "Food Cost",
         "wasteCost": "Waste Cost",
         "grossMargin": "Gross Margin",
-        "marginPct": "Margin Pct"
+        "marginPct": "Margin Pct",
+        "ingredientWasteCost": "Ingredient Waste (USD)",
+        "ingredientCoverage": "Ingredient Coverage"
       },
       "timeframe": {
         "7d": "7d",
@@ -4344,6 +4434,15 @@
           "qtyPlaceholder": "Qty",
           "setOverride": "Set override",
           "planLocked": "Plan is locked — no further changes."
+        },
+        "live": {
+          "title": "Live status",
+          "sold": "Sold so far",
+          "remaining": "Remaining",
+          "plusOneSold": "+1 Sold",
+          "logging": "Logging…",
+          "error": "Couldn't log that sale — try again.",
+          "hint": "Sales normally sync from your POS, connector, or CSV import — use this only if one just sold and the feed hasn't caught up yet."
         },
         "risk": {
           "riskToday": "Risk today",

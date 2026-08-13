@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Plus, EditPencil, ArrowRight, MediaImage, SparksSolid, Check } from "iconoir-react";
 import {
   createColumnHelper,
@@ -11,6 +11,7 @@ import {
   NativeTable,
 } from "@/components/ui/native-table";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { formatMoney } from "@/lib/format";
 import { Select } from "@/components/ui/select";
 import {
   useBranches,
@@ -18,6 +19,7 @@ import {
   useProductionIntelligenceAccessScope,
 } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useSelectedBranch } from "@/services/context/branch-store";
 import {
@@ -36,6 +38,7 @@ import {
   useDeactivateAvailabilityOverride,
   useConfirmMenuItemReview,
 } from "@/services/inventory/hooks";
+import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
 import { useItemHistory } from "@/services/production-intelligence/hooks";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
@@ -68,12 +71,11 @@ export default function InventoryPage() {
 }
 
 function InventoryPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const urlBranchId = searchParams.get("branch") ?? "";
   const urlTab = searchParams.get("tab") as TabId | null;
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
@@ -107,12 +109,14 @@ function InventoryPageContent() {
     urlTab && TAB_IDS.some((id) => id === urlTab) ? urlTab : "ingredients"
   );
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const { isLoading: subLoading, shouldBlockAccess, gateVariant } = useSubscriptionTier(branchId || undefined);
   const canLoadData = Boolean(branchId && user?.organization_id);
+
+  // A recipe/image edited elsewhere (another tab, the AI assistant, the
+  // command palette) refreshes this page's lists without a reload.
+  useMenuItemRealtime(branchId || undefined);
 
   const ingredientsQuery = useIngredients(user?.organization_id ?? "", canLoadData);
   const menuItemsQuery = useMenuItems(branchId, canLoadData);
@@ -394,7 +398,7 @@ function IngredientsTab({
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[640px]"
@@ -754,6 +758,15 @@ function RecipesTab({
                       <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
                       <p className="text-[11px] text-text-muted truncate">
                         {item.category || t("workspace.inventory.recipes.uncategorized")}
+                      </p>
+                    </div>
+
+                    {/* Current price — read-only here; editing lives in the detail panel */}
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold tabular-nums text-text-primary">
+                        {item.selling_price != null
+                          ? formatMoney(Number(item.selling_price), item.currency ?? undefined)
+                          : "—"}
                       </p>
                     </div>
 
@@ -1701,7 +1714,7 @@ function SignalsTab({ prepBatches, isLoading }: { prepBatches: PrepBatch[]; isLo
           <p className="text-sm text-text-muted">{t("workspace.inventory.signals.noActivity")}</p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[560px]"

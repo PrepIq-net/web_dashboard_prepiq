@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
-import { Cutlery, GlassHalf, Package, Sparks } from "iconoir-react";
+import { Sparks } from "iconoir-react";
 import { useTranslation } from "@/lib/i18n";
 import {
   formatQuantity,
@@ -14,6 +14,7 @@ import { useMoney } from "@/lib/branch-currency";
 import type { PrepPlanItem, BranchDayToday } from "@/services/production-intelligence/types";
 import { QuickMessageButton } from "@/components/hub/quick-message-button";
 import { ItemImage } from "./item-image";
+import { classifyItemIcon } from "./item-visual";
 import {
   buildFinancialSnapshot,
   categoryChipLabel,
@@ -105,16 +106,20 @@ function rowAccent(item: PrepPlanItem, riskScore: number) {
   return { isAccepted, isOverride, isHighRisk: riskScore >= 0.45 };
 }
 
-/** Icon for a preparation type, or a plate when the item isn't classified. */
+/** Icon for the item's type — reads `product_category` first (drink, dessert,
+ * bakery, ...) and falls back to the backend's PREPARED/ASSEMBLED/STOCKED
+ * classification. Same read `ItemImage`'s fallback tile uses, so the chip and
+ * the thumbnail never disagree about what kind of thing this row is. */
 function PreparationIcon({
   code,
+  category,
   className = "",
 }: {
   code: PreparationCode | undefined;
+  category?: string | null;
   className?: string;
 }) {
-  const Icon =
-    code === "STOCKED" ? Package : code === "ASSEMBLED" ? GlassHalf : Cutlery;
+  const Icon = classifyItemIcon(category, code);
   return <Icon className={className} strokeWidth={1.5} aria-hidden />;
 }
 
@@ -136,7 +141,7 @@ function CategoryChip({ item }: { item: PrepPlanItem }) {
       title={item.preparation_type?.basis || undefined}
       className="inline-flex max-w-full items-center gap-1 rounded-full border border-surface-4 bg-surface-3/60 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary"
     >
-      <PreparationIcon code={code} className="h-3 w-3 shrink-0" />
+      <PreparationIcon code={code} category={item.product_category} className="h-3 w-3 shrink-0" />
       <span className="truncate">{label}</span>
     </span>
   );
@@ -152,17 +157,17 @@ function ItemIdentity({
   size?: "md" | "lg";
 }) {
   const { t } = useTranslation();
+  // Bigger than the old 40/36px tiles — planning is a review surface, not a
+  // dense console, so the image is allowed to actually carry recognition
+  // weight instead of reading as a decorative corner dot.
   const imgCls =
     size === "lg"
-      ? "h-10 w-10 shrink-0 rounded-lg border border-surface-4"
-      : "h-9 w-9 shrink-0 rounded-lg border border-surface-4";
+      ? "h-16 w-16 shrink-0 rounded-xl border border-surface-4"
+      : "h-12 w-12 shrink-0 rounded-xl border border-surface-4";
+  const iconCls = size === "lg" ? "h-7 w-7" : "h-5 w-5";
   return (
     <div className="flex items-center gap-3">
-      <ItemImage
-        src={item.product_image_url}
-        title={item.product_title}
-        className={imgCls}
-      />
+      <ItemImage item={item} className={imgCls} iconClassName={iconCls} />
       <div className="min-w-0">
         <p className="text-sm font-semibold leading-tight text-text-primary">
           {item.product_title}
@@ -1204,7 +1209,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
       </div>
 
       {/* ── Desktop table ── */}
-      <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block scrollbar-thin">
         <table className="w-full min-w-[860px]">
           <thead className="border-b border-surface-4/80 bg-surface-3/40">
             <tr>

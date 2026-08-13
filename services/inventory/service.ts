@@ -19,6 +19,15 @@ import {
   purchaseForecastSchema,
   itemBatchRuleSchema,
   itemAvailabilityOverrideSchema,
+  purchaseRecommendationSchema,
+  ingredientVarianceCauseResponseSchema,
+  receiveDeliveryResponseSchema,
+  purchaseRecommendationLineSchema,
+  supplierSummarySchema,
+  costTrendSchema,
+  costVarianceSchema,
+  purchasingEfficiencySchema,
+  menuItemPriceSchema,
 } from "./types";
 
 export type IngredientPayload = {
@@ -286,6 +295,102 @@ export async function getPurchaseForecast(branchId: string, from: string, to: st
 }
 
 // ============================================================================
+// SERVICE FUNCTIONS — PHASE 3/4: UNIFIED PURCHASE RECOMMENDATION
+// ============================================================================
+
+export async function getPurchaseRecommendation(branchId: string, date: string) {
+  const url = `${inventoryEndpoints.purchaseRecommendation.get(branchId)}?date=${date}`;
+  return apiClientWithSchema(url, purchaseRecommendationSchema, { method: "GET" });
+}
+
+export async function recomputePurchaseRecommendation(branchId: string, date: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.purchaseRecommendation.recompute(branchId),
+    purchaseRecommendationSchema,
+    { method: "POST", body: { date } }
+  );
+}
+
+export async function approvePurchaseRecommendation(branchId: string, recommendationId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.purchaseRecommendation.approve(branchId, recommendationId),
+    purchaseRecommendationSchema,
+    { method: "POST" }
+  );
+}
+
+export async function updatePurchaseRecommendationLine(
+  branchId: string,
+  lineId: string,
+  managerOverrideQty: number | null
+) {
+  return apiClientWithSchema(
+    inventoryEndpoints.purchaseRecommendation.updateLine(branchId, lineId),
+    purchaseRecommendationLineSchema,
+    { method: "PATCH", body: { manager_override_qty: managerOverrideQty } }
+  );
+}
+
+export type IngredientVarianceCausePayload = {
+  cause: string;
+  cause_note?: string;
+};
+
+export async function updateIngredientVarianceCause(
+  branchId: string,
+  usageId: string,
+  data: IngredientVarianceCausePayload,
+) {
+  return apiClientWithSchema(
+    inventoryEndpoints.ingredientUsage.variance(branchId, usageId),
+    ingredientVarianceCauseResponseSchema,
+    { method: "PATCH", body: data }
+  );
+}
+
+export type ReceiveDeliveryPayload = {
+  recommendation_line_id?: string;
+  ingredient_id?: string;
+  quantity: number;
+  unit?: string;
+  unit_cost?: number | null;
+  supplier_name?: string;
+  notes?: string;
+};
+
+export async function receiveDelivery(branchId: string, data: ReceiveDeliveryPayload) {
+  return apiClientWithSchema(
+    inventoryEndpoints.receiveDelivery.create(branchId),
+    receiveDeliveryResponseSchema,
+    { method: "POST", body: data }
+  );
+}
+
+// ============================================================================
+// SERVICE FUNCTIONS — PHASE 4: PURCHASING PAGE ANALYTICS
+// ============================================================================
+
+export async function getSupplierSummary(branchId: string, windowDays = 90) {
+  const url = `${inventoryEndpoints.purchasingAnalytics.suppliers(branchId)}?window_days=${windowDays}`;
+  return apiClientWithSchema(url, supplierSummarySchema, { method: "GET" });
+}
+
+export async function getIngredientCostTrend(branchId: string, windowDays = 90) {
+  const url = `${inventoryEndpoints.purchasingAnalytics.costTrend(branchId)}?window_days=${windowDays}`;
+  return apiClientWithSchema(url, costTrendSchema, { method: "GET" });
+}
+
+export async function getCostVariance(branchId: string, windowDays = 90) {
+  const url = `${inventoryEndpoints.purchasingAnalytics.costVariance(branchId)}?window_days=${windowDays}`;
+  return apiClientWithSchema(url, costVarianceSchema, { method: "GET" });
+}
+
+export async function getPurchasingEfficiency(branchId: string, windowDays = 90) {
+  const url = `${inventoryEndpoints.purchasingAnalytics.efficiency(branchId)}?window_days=${windowDays}`;
+  return apiClientWithSchema(url, purchasingEfficiencySchema, { method: "GET" });
+}
+
+// ============================================================================
 // SERVICE FUNCTIONS — PHASE 5: BATCH RULES
 // ============================================================================
 
@@ -375,4 +480,33 @@ export async function deactivateAvailabilityOverride(branchId: string, overrideI
     { method: "PATCH", body: { is_active: false } }
   );
   return parsed.data.override;
+}
+
+// ============================================================================
+// PRICE INTELLIGENCE — PHASE A
+// ============================================================================
+
+export async function getMenuItemPrice(branchId: string, menuItemId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.price(branchId, menuItemId),
+    menuItemPriceSchema,
+    { method: "GET" }
+  );
+}
+
+export type UpdateMenuItemPricePayload = {
+  new_price: number;
+  reason?: string;
+};
+
+export async function updateMenuItemPrice(
+  branchId: string,
+  menuItemId: string,
+  data: UpdateMenuItemPricePayload,
+) {
+  return apiClientWithSchema(
+    inventoryEndpoints.menuItems.price(branchId, menuItemId),
+    menuItemPriceSchema,
+    { method: "PATCH", body: data }
+  );
 }

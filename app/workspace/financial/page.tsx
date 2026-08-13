@@ -1,9 +1,9 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -42,6 +42,8 @@ type FinancialBranchRow = {
   wasteCostDeltaPct?: number | null;
   grossMarginDeltaPct?: number | null;
   marginPctDelta?: number | null;
+  ingredientWasteCostUsd: number | null;
+  ingredientCoveragePct: number | null;
 };
 
 type FinancialTab = "OVERVIEW" | "BRANCHES" | "ACCURACY" | "TRENDS";
@@ -86,8 +88,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 
 export default function FinancialPage() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
 
@@ -114,11 +115,7 @@ export default function FinancialPage() {
     canAccess && Boolean(user?.organization_id),
   );
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [isLoading, canAccess]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const financialData = financialQuery.data;
 
@@ -185,23 +182,36 @@ export default function FinancialPage() {
     };
   }, [costTrends]);
 
-  const branchRows = useMemo<FinancialBranchRow[]>(() => {
-    return (financialData?.branches ?? []).map((branch) => ({
-      id: branch.branch_id,
-      branch: branch.branch_name,
-      currency: (branch.currency ?? "USD").toUpperCase(),
-      revenue: branch.revenue,
-      foodCost: branch.food_cost,
-      wasteCost: branch.waste_cost,
-      grossMargin: branch.gross_margin,
-      marginPct: branch.margin_pct,
-      revenueDeltaPct: branch.revenue_delta_pct,
-      foodCostDeltaPct: branch.food_cost_delta_pct,
-      wasteCostDeltaPct: branch.waste_cost_delta_pct,
-      grossMarginDeltaPct: branch.gross_margin_delta_pct,
-      marginPctDelta: branch.margin_pct_delta,
-    }));
+  const inventoryBenchmarkByBranch = useMemo(() => {
+    const map = new Map<string, { ingredient_waste_cost_usd: number; ingredient_coverage_pct: number | null }>();
+    for (const row of financialData?.inventory_benchmark?.branches ?? []) {
+      map.set(row.branch_id, row);
+    }
+    return map;
   }, [financialData]);
+
+  const branchRows = useMemo<FinancialBranchRow[]>(() => {
+    return (financialData?.branches ?? []).map((branch) => {
+      const benchmark = inventoryBenchmarkByBranch.get(branch.branch_id);
+      return {
+        id: branch.branch_id,
+        branch: branch.branch_name,
+        currency: (branch.currency ?? "USD").toUpperCase(),
+        revenue: branch.revenue,
+        foodCost: branch.food_cost,
+        wasteCost: branch.waste_cost,
+        grossMargin: branch.gross_margin,
+        marginPct: branch.margin_pct,
+        revenueDeltaPct: branch.revenue_delta_pct,
+        foodCostDeltaPct: branch.food_cost_delta_pct,
+        wasteCostDeltaPct: branch.waste_cost_delta_pct,
+        grossMarginDeltaPct: branch.gross_margin_delta_pct,
+        marginPctDelta: branch.margin_pct_delta,
+        ingredientWasteCostUsd: benchmark?.ingredient_waste_cost_usd ?? null,
+        ingredientCoveragePct: benchmark?.ingredient_coverage_pct ?? null,
+      };
+    });
+  }, [financialData, inventoryBenchmarkByBranch]);
 
   const topBranches = useMemo(() => {
     return [...branchRows].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
@@ -281,6 +291,28 @@ export default function FinancialPage() {
             {toPercent(info.getValue())}
           </span>
         ),
+      }),
+      branchColumnHelper.accessor("ingredientWasteCostUsd", {
+        header: t("workspace.financial.branchTable.ingredientWasteCost"),
+        cell: (info) => {
+          const value = info.getValue();
+          return (
+            <span className="text-sm text-text-secondary">
+              {value === null ? "—" : formatMoney(value, "USD")}
+            </span>
+          );
+        },
+      }),
+      branchColumnHelper.accessor("ingredientCoveragePct", {
+        header: t("workspace.financial.branchTable.ingredientCoverage"),
+        cell: (info) => {
+          const value = info.getValue();
+          if (value === null) {
+            return <span className="text-sm text-text-muted">—</span>;
+          }
+          const tone = value >= 100 ? "text-status-success" : value >= 80 ? "text-status-warning" : "text-status-critical";
+          return <span className={`text-sm font-semibold ${tone}`}>{toPercent(value)}</span>;
+        },
       }),
     ],
     [t],
@@ -665,10 +697,10 @@ export default function FinancialPage() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={branchTable}
-                tableClassName="w-full min-w-[860px]"
+                tableClassName="w-full min-w-[1100px]"
                 headerClassName="border-b border-surface-4/80 bg-surface-3/40"
                 bodyClassName="divide-y divide-surface-4/50"
                 headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted"

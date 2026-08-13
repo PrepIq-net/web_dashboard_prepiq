@@ -184,7 +184,7 @@ export function ChatMessageArea({
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto design-scrollbar p-6 flex flex-col [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+        className="flex-1 overflow-y-auto p-6 flex flex-col scrollbar-thin"
         onScroll={handleScroll}
       >
         {messagesQuery.isLoading ? (

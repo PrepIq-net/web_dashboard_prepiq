@@ -1,5 +1,6 @@
 export type AssistantPhase = "MORNING" | "LIVE" | "CLOSED";
 
+// Mirrors ai_assistant/actions.py ALL_ACTIONS.
 export type AssistantActionType =
   | "set_planned_quantity"
   | "mark_unavailable"
@@ -9,7 +10,23 @@ export type AssistantActionType =
   | "lock_plan"
   | "start_service"
   | "close_day"
-  | "update_day_notes";
+  | "update_day_notes"
+  | "attribute_remaining"
+  | "assign_kitchen_task"
+  | "publish_task_list"
+  | "publish_schedule"
+  | "generate_schedule"
+  | "adjust_recipe_line"
+  | "generate_recipe"
+  | "resolve_recipe_image"
+  | "copy_recipe_to_branches"
+  | "update_prep_steps"
+  | "update_menu_item"
+  | "create_menu_item"
+  | "set_menu_item_image_url"
+  | "log_ingredient_waste"
+  | "record_stock_count"
+  | "set_dish_yield";
 
 export type PendingAction = {
   type: AssistantActionType;
@@ -24,6 +41,25 @@ export type PendingAction = {
   notes?: string;
 };
 
+/**
+ * A write the assistant already applied on its own during a turn. Routine
+ * changes (prep quantities, waste, sales, notes, tasks, recipes generation)
+ * execute server-side the moment the assistant decides on them; only the
+ * irreversible ones listed in actions.CONFIRM_REQUIRED_ACTIONS still arrive as
+ * a `pending_action`.
+ *
+ * This is a record of what happened, not a question — never render it with
+ * confirm/dismiss affordances. Its job is to tell the host page that data it is
+ * showing just changed underneath it.
+ */
+export type AppliedAction = {
+  type: AssistantActionType;
+  item_title: string | null;
+  quantity: number | null;
+  summary: string;
+  action_log_id: string;
+};
+
 export type AssistantRole = "user" | "assistant" | "tool" | "system";
 
 export type AssistantMessage = {
@@ -31,8 +67,24 @@ export type AssistantMessage = {
   role: AssistantRole;
   content: string;
   pending_action: PendingAction | null;
+  applied_actions: AppliedAction[] | null;
+  /**
+   * Open-ended annotations on a turn, discriminated by `kind`. Currently only
+   * `morning_brief_audio`, which marks a turn as a spoken brief the player can
+   * reopen and replay. Unknown kinds must render as a plain message.
+   */
+  metadata: AssistantMessageMetadata | null;
   created_at: string;
 };
+
+export type AssistantMessageMetadata =
+  | {
+      kind: "morning_brief_audio";
+      audio_id: string;
+      target_date: string;
+      duration_ms: number | null;
+    }
+  | { kind: string; [key: string]: unknown };
 
 export type AssistantConversation = {
   id: string;
@@ -177,4 +229,84 @@ export type CommandResponse = {
   proposal?: CommandProposal;
   answer?: string;
   error?: { code: CommandErrorCode; detail: string };
+};
+
+/* ── Recipe review ("Ask AI to review this recipe") ───────────────────────── */
+
+/** "image" skips the recipe-quantity checks — the standalone "regenerate
+ * photo" shortcut on the recipe editor. */
+export type RecipeReviewScope = "full" | "image";
+
+export type RecipeReviewPayload = {
+  branch_id: string;
+  menu_item_id: string;
+  scope?: RecipeReviewScope;
+};
+
+export type RecipeReviewResponse = {
+  conversation_id: string;
+  /** One card per finding — each independently confirmable, same
+   * PendingAction/confirm-endpoint shape a chat or command proposal uses. */
+  proposals: CommandProposal[];
+  /** Present (with no proposals) when the recipe looked sound. */
+  message?: string;
+  message_id?: string;
+};
+
+/* ── Spoken morning brief ("Today's Brief") ───────────────────────────────── */
+
+export type BriefSectionKey =
+  | "greeting"
+  | "context"
+  | "prep"
+  | "supply"
+  | "signoff";
+
+export type BriefScriptSection = {
+  /** Backend may add sections; treat unknown keys as renderable prose. */
+  key: BriefSectionKey | (string & {});
+  text: string;
+  start_ms: number;
+  end_ms: number;
+};
+
+export type BriefAudioTrack = {
+  url: string;
+  mime_type: string;
+  duration_ms: number | null;
+  voice: string;
+  provider: string;
+  expires_at: string | null;
+};
+
+export type MorningBriefVoiceStatus = "PENDING" | "READY" | "FAILED" | "PURGED";
+
+export type MorningBriefVoice = {
+  id: string;
+  branch_id: string;
+  target_date: string;
+  status: MorningBriefVoiceStatus;
+  locale: string;
+  generated_by: string;
+  script: {
+    text: string;
+    sections: BriefScriptSection[];
+    /**
+     * True when section offsets were apportioned by character count rather
+     * than reported by the speech engine. The player rescales them against the
+     * real audio duration before using them to highlight.
+     */
+    timings_estimated: boolean;
+  };
+  /** Null whenever synthesis was unavailable — the transcript still renders. */
+  audio: BriefAudioTrack | null;
+  unavailable_reason: string;
+  conversation_id: string | null;
+  message_id: string | null;
+  created_at: string;
+};
+
+export type MorningBriefVoicePayload = {
+  branch_id: string;
+  date?: string;
 };

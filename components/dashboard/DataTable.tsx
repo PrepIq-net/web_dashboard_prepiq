@@ -25,7 +25,7 @@ export function DataTable({ columns, data, title }: DataTableProps) {
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border-default bg-surface-3">

@@ -266,6 +266,9 @@ export const ingredientRequirementLineSchema = z.object({
   needed: z.number(),
   on_hand: z.number(),
   net_need: z.number(),
+  /** Share of `needed` that `on_hand` covers, capped at 100. Null when
+   *  `stock_known` is false — there is nothing to compute a percentage of. */
+  coverage_pct: z.number().nullable().optional(),
   purchase_qty: z.number().nullable().optional(),
   estimated_cost: z.number().nullable().optional(),
   supplier_name: z.string().optional(),
@@ -1181,6 +1184,26 @@ export const branchDayTodaySchema = z.object({
             .optional(),
         })
         .optional(),
+      // Ingredient-grain sibling of variance_review — one row per
+      // ingredient whose actual usage missed prediction by enough to ask
+      // about, not one row for the whole day's volume.
+      ingredient_variance_review: z
+        .array(
+          z.object({
+            usage_id: z.string().uuid(),
+            ingredient_id: z.string().uuid(),
+            ingredient_name: z.string(),
+            unit: z.string(),
+            predicted_usage: z.number(),
+            actual_usage: z.number(),
+            variance_ratio: z.number(),
+            exceeds_threshold: z.boolean(),
+            cause: z.string(),
+            cause_note: z.string(),
+            cause_recorded_at: z.string().nullable(),
+          }),
+        )
+        .optional(),
       outcome_attribution: z
         .object({
           rows: z.array(outcomeAttributionRowSchema),
@@ -1223,18 +1246,28 @@ export const branchDayTodaySchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        type: z.enum(["STOCKOUT_RISK", "WASTE_RISK", "SALES_SPIKE"]),
+        type: z.enum([
+          "STOCKOUT_RISK",
+          "WASTE_RISK",
+          "SALES_SPIKE",
+          // Ingredient-level risk (inventory.live_risk) — raw stock vs.
+          // today's plan, shown in the same feed as the dish-level alerts
+          // above but keyed by ingredient_id, not prep_plan_item_id.
+          "INGREDIENT_STOCKOUT_RISK",
+        ]),
         severity: z.enum(["MEDIUM", "HIGH", "CRITICAL"]),
         title: z.string(),
-        product_title: z.string(),
-        prep_plan_item_id: z.string().uuid(),
+        product_title: z.string().optional(),
+        prep_plan_item_id: z.string().uuid().optional(),
+        ingredient_id: z.string().uuid().optional(),
+        ingredient_name: z.string().optional(),
         message: z.string(),
         details: z.record(
           z.string(),
           z.union([z.string(), z.number(), z.boolean(), z.null()]),
         ),
         suggested_action: z.string(),
-        suggested_prepare_qty: z.number(),
+        suggested_prepare_qty: z.number().optional(),
         advisory_kind: z
           .enum(["PREPARE_SOON", "SLOW_DOWN", "INFO"])
           .optional(),
@@ -1280,8 +1313,15 @@ export type BranchDayPlanLockPayload = z.infer<
 >;
 
 export const branchDayLiveAlertIgnorePayloadSchema = z.object({
-  prep_plan_item_id: z.string().uuid(),
-  alert_type: z.enum(["STOCKOUT_RISK", "WASTE_RISK", "SALES_SPIKE"]),
+  // Exactly one of these two — a dish-level alert or an ingredient-level one.
+  prep_plan_item_id: z.string().uuid().optional(),
+  ingredient_id: z.string().uuid().optional(),
+  alert_type: z.enum([
+    "STOCKOUT_RISK",
+    "WASTE_RISK",
+    "SALES_SPIKE",
+    "INGREDIENT_STOCKOUT_RISK",
+  ]),
   cooldown_minutes: z.number().min(5).max(180).optional(),
 });
 export type BranchDayLiveAlertIgnorePayload = z.infer<

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, StatsUpSquare, StatsDownSquare, Shop } from "iconoir-react";
+import {
+  ArrowRight,
+  StatsUpSquare,
+  StatsDownSquare,
+  Shop,
+} from "iconoir-react";
 import { useCurrentUserProfile } from "@/services";
 import {
   useExecutiveControlTower,
@@ -13,6 +18,7 @@ import { useTranslation } from "@/lib/i18n";
 import { alertCTA, type BranchEntry } from "./alert-cta";
 import { KpiPulseCard } from "./kpi-pulse-card";
 import { KpiDetailModals, type KpiModalKey } from "./kpi-detail-modals";
+import { CommandSection } from "./command-section";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Branch diagnosis
@@ -28,6 +34,8 @@ type Diagnosis = {
   ctaHref: string;
   severity: "critical" | "warning" | "ok";
 };
+
+export type DashTabs = "ANALYTICS" | "RISKS" | "OPERATIONS" | "PRIORITY";
 
 function diagnoseBranch(branch: BranchEntry): Diagnosis {
   // Each destination has its own URL param convention.
@@ -125,22 +133,41 @@ function diagnoseBranch(branch: BranchEntry): Diagnosis {
 
 const QUICK_ACTIONS = [
   { labelKey: "dashboard.home.orgHome.quickToday", href: "/workspace/today" },
-  { labelKey: "dashboard.home.orgHome.quickPlanning", href: "/workspace/planning" },
-  { labelKey: "dashboard.home.orgHome.quickInventory", href: "/workspace/inventory" },
-  { labelKey: "dashboard.home.orgHome.quickSalesWaste", href: "/workspace/sales-waste" },
+  {
+    labelKey: "dashboard.home.orgHome.quickPlanning",
+    href: "/workspace/planning",
+  },
+  {
+    labelKey: "dashboard.home.orgHome.quickInventory",
+    href: "/workspace/inventory",
+  },
+  {
+    labelKey: "dashboard.home.orgHome.quickSalesWaste",
+    href: "/workspace/sales-waste",
+  },
 ];
 
 export function DashboardView({
   canSeeFinancials,
+  isOrgOverviewMode,
   analyticsSlot,
 }: {
   canSeeFinancials: boolean;
+  isOrgOverviewMode: boolean;
   /** Charts, rendered directly below the pulse KPIs — kept as a slot so page.tsx owns the wiring. */
   analyticsSlot?: ReactNode;
 }) {
   const { t, language } = useTranslation();
   const { data: user } = useCurrentUserProfile();
   const [kpiModal, setKpiModal] = useState<KpiModalKey | null>(null);
+  const [activeTab, setActiveTab] = useState<DashTabs>("ANALYTICS");
+
+  const tabs: { id: DashTabs; label: string }[] = [
+    { id: "ANALYTICS", label: t("dashboard.home.analytics.kicker") },
+    // { id: "RISKS", label: t("dashboard.home.analytics.riskTitle") },
+    { id: "OPERATIONS", label: t("dashboard.home.orgHome.operationsKicker") },
+    { id: "PRIORITY", label: t("dashboard.home.queue.kicker") },
+  ];
 
   const yesterdayDate = useMemo(() => {
     const d = new Date();
@@ -149,7 +176,10 @@ export function DashboardView({
   }, []);
 
   // undefined = today. Same key as CommandSection → shared React Query cache.
-  const ctToday = useExecutiveControlTower(undefined, Boolean(user?.organization_id));
+  const ctToday = useExecutiveControlTower(
+    undefined,
+    Boolean(user?.organization_id),
+  );
   const ctYesterday = useExecutiveControlTower(
     { target_date: yesterdayDate },
     Boolean(user?.organization_id),
@@ -184,7 +214,9 @@ export function DashboardView({
   const marginCurrency = marginReport.data?.summary?.currency ?? "USD";
 
   const revenueToday = Number(tower?.summary?.total_revenue ?? 0);
-  const revenueYesterday = Number(ctYesterday.data?.summary?.total_revenue ?? 0);
+  const revenueYesterday = Number(
+    ctYesterday.data?.summary?.total_revenue ?? 0,
+  );
   const revenueDeltaPct =
     revenueYesterday > 0
       ? ((revenueToday - revenueYesterday) / revenueYesterday) * 100
@@ -192,13 +224,15 @@ export function DashboardView({
 
   const wasteCost = Number(marginReport.data?.summary?.total_waste_cost ?? "0");
   const wasteRiskPct = Number(tower?.summary?.waste_risk_pct ?? 0);
-  const wasteAsRevenuePct = revenueToday > 0 ? (wasteCost / revenueToday) * 100 : 0;
+  const wasteAsRevenuePct =
+    revenueToday > 0 ? (wasteCost / revenueToday) * 100 : 0;
   const wasteIsBad = canSeeFinancials ? wasteCost > 500 : wasteRiskPct > 8;
 
   const forecastAccuracyPct =
     Number(tower?.summary?.forecast_accuracy_rolling_7d ?? 0) * 100;
   const forecastIsBad = forecastAccuracyPct > 0 && forecastAccuracyPct < 70;
-  const forecastIsWarning = forecastAccuracyPct >= 70 && forecastAccuracyPct < 85;
+  const forecastIsWarning =
+    forecastAccuracyPct >= 70 && forecastAccuracyPct < 85;
 
   const hour = new Date().getHours();
   const greetingKey =
@@ -272,7 +306,6 @@ export function DashboardView({
           ))}
         </div>
       </div>
-
       {/* ── Pulse KPIs ─────────────────────────────────────────────────── */}
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         <KpiPulseCard
@@ -297,26 +330,26 @@ export function DashboardView({
                 </span>
               )}
               <div className="flex items-center gap-2">
-              {revenueDeltaPct !== null ? (
-                <>
-                  {revenueDeltaPct >= 0 ? (
-                    <StatsUpSquare className="h-4 w-4 text-status-success shrink-0" />
-                  ) : (
-                    <StatsDownSquare className="h-4 w-4 text-status-critical shrink-0" />
-                  )}
-                  <span
-                    className={`text-sm font-medium ${revenueDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}
-                  >
-                    {t("dashboard.home.orgHome.vsYesterday", {
-                      value: `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}`,
-                    })}
+                {revenueDeltaPct !== null ? (
+                  <>
+                    {revenueDeltaPct >= 0 ? (
+                      <StatsUpSquare className="h-4 w-4 text-status-success shrink-0" />
+                    ) : (
+                      <StatsDownSquare className="h-4 w-4 text-status-critical shrink-0" />
+                    )}
+                    <span
+                      className={`text-sm font-medium ${revenueDeltaPct >= 0 ? "text-status-success" : "text-status-critical"}`}
+                    >
+                      {t("dashboard.home.orgHome.vsYesterday", {
+                        value: `${revenueDeltaPct >= 0 ? "+" : ""}${revenueDeltaPct.toFixed(1)}`,
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs text-text-muted">
+                    {t("dashboard.home.orgHome.noPriorBaseline")}
                   </span>
-                </>
-              ) : (
-                <span className="text-xs text-text-muted">
-                  {t("dashboard.home.orgHome.noPriorBaseline")}
-                </span>
-              )}
+                )}
               </div>
             </div>
           }
@@ -389,175 +422,221 @@ export function DashboardView({
         />
       </section>
 
-      {/* ── Analytics — right below the pulse KPIs ───────────────────────── */}
-      {analyticsSlot}
+      <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex h-10 shrink-0 items-center px-4 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-gold text-brand-gold"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* ── HIGH alerts — specific issue + specific action ─────────────── */}
-      {highAlerts.length > 0 && (
-        <section className="mb-12">
-          {highAlerts.slice(0, 3).map((alert) => {
-            const cta = alertCTA(alert);
-            return (
-              <div
-                key={alert.id}
-                className="mb-2.5 flex items-start justify-between gap-6 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical bg-surface-2 px-6 py-5"
-              >
-                <div className="flex items-start gap-4 min-w-0">
-                  <span className="mt-1.5 h-2 w-2 rounded-full bg-status-critical shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {alert.title || alert.type}
-                    </p>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      {alert.branch_name}
-                    </p>
-                    {alert.context && (
-                      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                        {alert.context}
-                      </p>
-                    )}
-                    {alert.suggested_action && (
-                      <p className="mt-1 text-xs text-text-muted">
-                        → {alert.suggested_action}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {/* Specific action label — not generic "View" */}
-                <Link
-                  href={cta.href}
-                  className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-medium text-text-secondary whitespace-nowrap hover:border-status-critical/40 hover:text-status-critical transition-colors"
-                >
-                  {t(cta.labelKey)}
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            );
-          })}
-        </section>
-      )}
+      {activeTab == "ANALYTICS" ? (
+        <div>
+          {/* ── Analytics — right below the pulse KPIs ───────────────────────── */}
+          {analyticsSlot}
 
-      {/* ── Branch health grid ─────────────────────────────────────────── */}
-      {sortedBranches.length > 0 && (
-        <section className="mb-12">
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
-                {t("dashboard.home.orgHome.operationsKicker")}
-              </p>
-              <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
-                {sortedBranches.length === 1
-                  ? t("dashboard.home.orgHome.locationsOne")
-                  : t("dashboard.home.orgHome.locationsMany", {
-                      count: sortedBranches.length,
-                    })}
-              </h2>
-              <p className="mt-1 text-sm text-text-muted">
-                {t("dashboard.home.orgHome.systemStatusLine")}
-              </p>
-            </div>
-            {sortedBranches.some((b) => b.compliance_badge === "RED") && (
-              <span className="text-xs font-medium text-status-critical shrink-0 mt-1">
-                {t("dashboard.home.orgHome.needAttention", {
-                  count: sortedBranches.filter(
-                    (b) => b.compliance_badge === "RED",
-                  ).length,
-                })}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sortedBranches.map((branch) => {
-              const isRed = branch.compliance_badge === "RED";
-              const diagnosis = diagnoseBranch(branch);
-              const hasProblem = diagnosis.issueKey !== null;
-
-              return (
-                <article
-                  key={branch.branch_id}
-                  className={`bg-surface-2 rounded-xl border border-surface-4 p-6 flex flex-col gap-5 ${
-                    isRed ? "border-l-[3px] border-l-status-critical" : ""
-                  }`}
-                >
-                  {/* Header: name + revenue — always visible */}
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span
-                        className={`h-2 w-2 rounded-full shrink-0 ${
-                          isRed
-                            ? "bg-status-critical"
-                            : branch.compliance_badge === "AMBER"
-                              ? "bg-status-warning"
-                              : "bg-status-success"
-                        }`}
-                      />
-                      <h3 className="font-medium text-text-primary truncate">
-                        {branch.branch_name}
-                      </h3>
+          {/* ── HIGH alerts — specific issue + specific action ─────────────── */}
+          {highAlerts.length > 0 && (
+            <section className="mb-12">
+              {highAlerts.slice(0, 3).map((alert) => {
+                const cta = alertCTA(alert);
+                return (
+                  <div
+                    key={alert.id}
+                    className="mb-2.5 flex items-start justify-between gap-6 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical bg-surface-2 px-6 py-5"
+                  >
+                    <div className="flex items-start gap-4 min-w-0">
+                      <span className="mt-1.5 h-2 w-2 rounded-full bg-status-critical shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {alert.title || alert.type}
+                        </p>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          {alert.branch_name}
+                        </p>
+                        {alert.context && (
+                          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                            {alert.context}
+                          </p>
+                        )}
+                        {alert.suggested_action && (
+                          <p className="mt-1 text-xs text-text-muted">
+                            → {alert.suggested_action}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-text-primary shrink-0">
-                      {formatMoney(Number(branch.revenue ?? 0), branch.currency ?? towerCurrency)}
-                    </p>
+                    {/* Specific action label — not generic "View" */}
+                    <Link
+                      href={cta.href}
+                      className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-medium text-text-secondary whitespace-nowrap hover:border-status-critical/40 hover:text-status-critical transition-colors"
+                    >
+                      {t(cta.labelKey)}
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </div>
+                );
+              })}
+            </section>
+          )}
+        </div>
+      ) : null}
 
-                  {/* Body: problem branch shows diagnosis. Healthy branch shows status. */}
-                  {hasProblem ? (
-                    <div className="space-y-1.5">
-                      <p
-                        className={`text-sm font-semibold ${
-                          diagnosis.severity === "critical"
-                            ? "text-status-critical"
-                            : "text-status-warning"
-                        }`}
-                      >
-                        {t(diagnosis.issueKey!, diagnosis.issueVars)}
-                      </p>
-                      {diagnosis.detailKey && (
-                        <p className="text-xs text-text-muted leading-relaxed">
-                          {t(diagnosis.detailKey)}
+      {activeTab == "OPERATIONS" ? (
+        <div>
+          {/* ── Branch health grid ─────────────────────────────────────────── */}
+          {sortedBranches.length > 0 && (
+            <section className="mb-12">
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    {t("dashboard.home.orgHome.operationsKicker")}
+                  </p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold text-text-primary">
+                    {sortedBranches.length === 1
+                      ? t("dashboard.home.orgHome.locationsOne")
+                      : t("dashboard.home.orgHome.locationsMany", {
+                          count: sortedBranches.length,
+                        })}
+                  </h2>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {t("dashboard.home.orgHome.systemStatusLine")}
+                  </p>
+                </div>
+                {sortedBranches.some((b) => b.compliance_badge === "RED") && (
+                  <span className="text-xs font-medium text-status-critical shrink-0 mt-1">
+                    {t("dashboard.home.orgHome.needAttention", {
+                      count: sortedBranches.filter(
+                        (b) => b.compliance_badge === "RED",
+                      ).length,
+                    })}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {sortedBranches.map((branch) => {
+                  const isRed = branch.compliance_badge === "RED";
+                  const diagnosis = diagnoseBranch(branch);
+                  const hasProblem = diagnosis.issueKey !== null;
+
+                  return (
+                    <article
+                      key={branch.branch_id}
+                      className={`bg-surface-2 rounded-xl border border-surface-4 p-6 flex flex-col gap-5 ${
+                        isRed ? "border-l-[3px] border-l-status-critical" : ""
+                      }`}
+                    >
+                      {/* Header: name + revenue — always visible */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`h-2 w-2 rounded-full shrink-0 ${
+                              isRed
+                                ? "bg-status-critical"
+                                : branch.compliance_badge === "AMBER"
+                                  ? "bg-status-warning"
+                                  : "bg-status-success"
+                            }`}
+                          />
+                          <h3 className="font-medium text-text-primary truncate">
+                            {branch.branch_name}
+                          </h3>
+                        </div>
+                        <p className="text-sm font-semibold text-text-primary shrink-0">
+                          {formatMoney(
+                            Number(branch.revenue ?? 0),
+                            branch.currency ?? towerCurrency,
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Body: problem branch shows diagnosis. Healthy branch shows status. */}
+                      {hasProblem ? (
+                        <div className="space-y-1.5">
+                          <p
+                            className={`text-sm font-semibold ${
+                              diagnosis.severity === "critical"
+                                ? "text-status-critical"
+                                : "text-status-warning"
+                            }`}
+                          >
+                            {t(diagnosis.issueKey!, diagnosis.issueVars)}
+                          </p>
+                          {diagnosis.detailKey && (
+                            <p className="text-xs text-text-muted leading-relaxed">
+                              {t(diagnosis.detailKey)}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-text-muted">
+                          {branchStatusLine(branch)}
                         </p>
                       )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-text-muted">
-                      {branchStatusLine(branch)}
-                    </p>
-                  )}
 
-                  {/* CTA — specific label that says what the user will do */}
-                  <Link
-                    href={diagnosis.ctaHref}
-                    className={`group inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors duration-150 ${
-                      isRed && hasProblem
-                        ? "border-status-critical/30 bg-status-critical/8 text-status-critical hover:bg-status-critical/15"
-                        : "border-surface-4 bg-surface-3 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
-                    }`}
-                  >
-                    {t(diagnosis.ctaKey)}
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-                  </Link>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Empty state */}
-      {branchGrid.length === 0 && !ctToday.isLoading && (
-        <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
-          <p className="text-text-muted">
-            {t("dashboard.home.orgHome.noBranchesYet")}
-          </p>
-          <Link href="/workspace/branches/new">
-            <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
-              <Shop className="h-4 w-4" />
-              {t("dashboard.home.orgHome.addFirstBranch")}
-            </button>
-          </Link>
+                      {/* CTA — specific label that says what the user will do */}
+                      <Link
+                        href={diagnosis.ctaHref}
+                        className={`group inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors duration-150 ${
+                          isRed && hasProblem
+                            ? "border-status-critical/30 bg-status-critical/8 text-status-critical hover:bg-status-critical/15"
+                            : "border-surface-4 bg-surface-3 text-text-secondary hover:border-brand-gold/40 hover:text-brand-gold"
+                        }`}
+                      >
+                        {t(diagnosis.ctaKey)}
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+          {/* Empty state */}
+          {branchGrid.length === 0 && !ctToday.isLoading && (
+            <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
+              <p className="text-text-muted">
+                {t("dashboard.home.orgHome.noBranchesYet")}
+              </p>
+              <Link href="/workspace/branches/new">
+                <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
+                  <Shop className="h-4 w-4" />
+                  {t("dashboard.home.orgHome.addFirstBranch")}
+                </button>
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          {/* Empty state */}
+          {branchGrid.length === 0 && !ctToday.isLoading && (
+            <div className="mb-12 rounded-xl border border-surface-4 bg-surface-2 p-12 text-center">
+              <p className="text-text-muted">
+                {t("dashboard.home.orgHome.noBranchesYet")}
+              </p>
+              <Link href="/workspace/branches/new">
+                <button className="mt-6 h-10 inline-flex items-center gap-2 rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-background px-5 text-sm font-semibold transition-colors">
+                  <Shop className="h-4 w-4" />
+                  {t("dashboard.home.orgHome.addFirstBranch")}
+                </button>
+              </Link>
+            </div>
+          )}
         </div>
       )}
+
+      {isOrgOverviewMode && activeTab == "PRIORITY" ? <CommandSection /> : null}
 
       {/* ── KPI detail modals ──────────────────────────────────────────── */}
       <KpiDetailModals

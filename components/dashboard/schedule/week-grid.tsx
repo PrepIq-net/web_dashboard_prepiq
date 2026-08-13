@@ -75,7 +75,7 @@ export function WeekGrid({
   return (
     // The grid is wide by nature; it scrolls inside its own container so the
     // page body never scrolls sideways.
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <div className="min-w-[840px]">
         <div className="grid grid-cols-[180px_repeat(7,1fr)_120px] gap-px rounded-xl border border-surface-4/60 bg-surface-4/60">
           <div className="bg-surface-2 px-3 py-2">

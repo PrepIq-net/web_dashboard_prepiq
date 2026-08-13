@@ -308,6 +308,26 @@ export const financialOverviewBranchSchema = z.object({
   margin_pct_delta: z.number().nullable().optional(),
 });
 
+export const inventoryBenchmarkBranchSchema = z.object({
+  branch_id: z.string(),
+  branch_name: z.string(),
+  ingredient_waste_cost: z.number(),
+  ingredient_waste_cost_usd: z.number(),
+  // Simple mean over the days this branch has a value for — null (not 0 or
+  // 100) when it has none, so an unset branch never reads as perfect or
+  // as a crisis.
+  ingredient_coverage_pct: z.number().nullable(),
+  days_with_data: z.number(),
+});
+
+export const inventoryBenchmarkSchema = z.object({
+  branches: z.array(inventoryBenchmarkBranchSchema),
+  summary: z.object({
+    ingredient_waste_cost_usd: z.number(),
+    ingredient_coverage_pct: z.number().nullable(),
+  }),
+});
+
 export const organizationFinancialOverviewSchema = z.object({
   organization_id: z.string(),
   start_date: z.string(),
@@ -378,6 +398,7 @@ export const organizationFinancialOverviewSchema = z.object({
       margin: z.number(),
     }),
   ),
+  inventory_benchmark: inventoryBenchmarkSchema.optional(),
 });
 export type OrganizationFinancialOverview = z.infer<
   typeof organizationFinancialOverviewSchema

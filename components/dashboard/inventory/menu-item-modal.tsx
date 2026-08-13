@@ -2,11 +2,17 @@
 
 import { useEffect, useId, useState, useCallback } from "react";
 import Cropper, { type Point, type Area } from "react-easy-crop";
-import { MediaImage } from "iconoir-react";
+import { MediaImage, NavArrowDown, NavArrowUp } from "iconoir-react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { getCroppedImg } from "@/lib/utils/image";
-import { useCreateMenuItem, useUpdateMenuItem } from "@/services/inventory/hooks";
+import {
+  useCreateMenuItem,
+  useUpdateMenuItem,
+  useMenuItemPrice,
+  useUpdateMenuItemPrice,
+} from "@/services/inventory/hooks";
 import type { MenuItem } from "@/services/inventory/types";
+import { formatMoney } from "@/lib/format";
 
 const CATEGORY_OPTIONS = [
   "Pastries", "Beverages", "Mains", "Sides",
@@ -47,6 +53,165 @@ function toForm(item: MenuItem): FormState {
     instructions: item.instructions || "",
     is_active: item.is_active,
   };
+}
+
+function formatChangedAt(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+// Selling price, cost, margin, currency, last change, and full history for
+// one menu item at this branch. A deliberately separate save action from
+// the rest of the form, mirroring the backend: PATCHing name/category/image
+// and PATCHing price are two different endpoints, because a price change is
+// an event to record, not a field alongside the others to overwrite.
+function MenuItemPricingSection({ branchId, menuItemId }: { branchId: string; menuItemId: string }) {
+  const { data, isLoading } = useMenuItemPrice(branchId, menuItemId);
+  const updatePrice = useUpdateMenuItemPrice(branchId, menuItemId);
+
+  const [priceInput, setPriceInput] = useState("");
+  const [reason, setReason] = useState("");
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (data?.selling_price != null) setPriceInput(String(data.selling_price));
+  }, [data?.selling_price]);
+
+  async function handleSavePrice() {
+    setPriceError(null);
+    const value = Number(priceInput);
+    if (!priceInput.trim() || Number.isNaN(value) || value < 0) {
+      setPriceError("Enter a valid price.");
+      return;
+    }
+    try {
+      await updatePrice.mutateAsync({ new_price: value, reason: reason.trim() || undefined });
+      setReason("");
+    } catch {
+      setPriceError("Couldn't save the price. Please try again.");
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-surface-4 bg-surface-3 px-4 py-3 text-sm text-text-muted">
+        Loading pricing…
+      </div>
+    );
+  }
+
+  const currency = data?.currency || "";
+
+  return (
+    <div className="space-y-3 rounded-lg border border-surface-4 bg-surface-3 p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">
+          Pricing
+        </span>
+        {data?.last_changed_at && (
+          <span className="text-[11px] text-text-muted">
+            Last changed {formatChangedAt(data.last_changed_at)}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <label className="block text-[11px] font-medium text-text-muted mb-1">
+            Selling price {currency ? `(${currency})` : ""}
+          </label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            placeholder="0.00"
+            className="w-full h-10 rounded-lg border border-surface-4 bg-surface-2 px-3 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleSavePrice}
+          disabled={updatePrice.isPending}
+          className="inline-flex h-10 shrink-0 items-center rounded-lg border border-brand-gold/50 bg-brand-gold/10 px-4 text-sm font-semibold text-brand-gold transition-colors hover:bg-brand-gold/20 disabled:opacity-50"
+        >
+          {updatePrice.isPending ? "Saving…" : "Update Price"}
+        </button>
+      </div>
+
+      <input
+        type="text"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Why this change? (optional)"
+        className="w-full h-9 rounded-lg border border-surface-4 bg-surface-2 px-3 text-xs text-text-primary placeholder:text-text-muted focus:border-brand-gold/60 focus:outline-none focus:ring-1 focus:ring-brand-gold/30 transition-colors"
+      />
+
+      {priceError && <p className="text-xs text-status-critical">{priceError}</p>}
+
+      {data?.has_catalog_link && (data.standard_cost != null || data.margin_pct != null) && (
+        <div className="grid grid-cols-3 gap-3 border-t border-surface-4/60 pt-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">Cost</p>
+            <p className="text-sm font-semibold text-text-primary">
+              {data.standard_cost != null ? formatMoney(data.standard_cost, currency) : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">Gross margin</p>
+            <p className="text-sm font-semibold text-status-success">
+              {data.gross_margin != null ? formatMoney(data.gross_margin, currency) : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">Margin %</p>
+            <p className="text-sm font-semibold text-brand-gold">
+              {data.margin_pct != null ? `${data.margin_pct.toFixed(1)}%` : "—"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {data && data.history.length > 0 && (
+        <div className="border-t border-surface-4/60 pt-2">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((v) => !v)}
+            className="flex w-full items-center justify-between text-xs font-medium text-text-secondary hover:text-brand-gold"
+          >
+            <span>Price history ({data.history.length})</span>
+            {historyOpen ? <NavArrowUp className="h-3.5 w-3.5" /> : <NavArrowDown className="h-3.5 w-3.5" />}
+          </button>
+          {historyOpen && (
+            <ul className="mt-2 space-y-1.5">
+              {data.history.map((entry) => (
+                <li key={entry.id} className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-secondary">
+                    {entry.old_price != null ? formatMoney(entry.old_price, entry.currency) : "—"}
+                    {" → "}
+                    <span className="font-semibold text-text-primary">
+                      {formatMoney(entry.new_price, entry.currency)}
+                    </span>
+                    {entry.change_pct != null && (
+                      <span className={entry.change_pct >= 0 ? "text-status-success" : "text-status-critical"}>
+                        {" "}({entry.change_pct >= 0 ? "+" : ""}{entry.change_pct.toFixed(1)}%)
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-text-muted">
+                    {formatChangedAt(entry.occurred_at)} · {entry.changed_by || (entry.source_type === "POS_SYNC" ? "POS sync" : "System")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
@@ -290,6 +455,11 @@ export function MenuItemModal({ open, onClose, branchId, menuItem }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Pricing — its own save action; only meaningful once the item exists */}
+        {isEdit && menuItem && (
+          <MenuItemPricingSection branchId={branchId} menuItemId={menuItem.id} />
+        )}
 
         {/* Image Upload */}
         <div>

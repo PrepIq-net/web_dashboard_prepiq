@@ -1,10 +1,11 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -85,9 +86,8 @@ function getProfitabilityTone(label: string) {
 
 function SalesWasteContent() {
   const { t } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const permissions = resolvePermissions(user);
@@ -149,11 +149,7 @@ function SalesWasteContent() {
     }
   }, [branchOptions, defaultBranch?.id, selectedBranchId]);
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const reportQuery = useSalesWasteReport({
     branch_id: selectedBranchId,
@@ -416,7 +412,7 @@ function SalesWasteContent() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <NativeTable
                 table={table}
                 tableClassName="w-full min-w-[860px]"

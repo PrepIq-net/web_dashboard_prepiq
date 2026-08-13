@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
@@ -12,6 +12,7 @@ import {
   useOperationsHistorySnapshot,
 } from "@/services";
 import { useTranslation } from "@/lib/i18n";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 
 const EMPTY_LIST: never[] = [];
 
@@ -59,9 +60,8 @@ function fmtQty(v: number, unit: string) {
 
 function HistoryContent() {
   const { t } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const canAccess = Boolean(user?.has_organization);
@@ -102,9 +102,7 @@ function HistoryContent() {
       setSelectedBranchId(defaultBranch.id);
   }, [branchOptions, defaultBranch?.id, selectedBranchId]);
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   // Chart query — never includes target_date so clicking bars never shifts the window
   const timelineQuery = useOperationsHistorySnapshot({
@@ -225,7 +223,7 @@ function HistoryContent() {
           </div>
         </div>
         {chronoTimeline.length ? (
-          <div className="flex items-end gap-0.5 overflow-x-auto pb-1">
+          <div className="flex items-end gap-0.5 overflow-x-auto pb-1 scrollbar-thin">
             {chronoTimeline.map((day) => {
               const isActive = day.date === selectedDate;
               const barHeight = Math.max(4, Math.round((day.forecast_accuracy / 100) * 64));

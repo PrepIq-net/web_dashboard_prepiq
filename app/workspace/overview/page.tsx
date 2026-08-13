@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Shop, Calendar } from "iconoir-react";
 import { BranchRequiredState } from "@/components/dashboard/empty-states/branch-required-state";
@@ -13,6 +12,7 @@ import {
   useProductionIntelligenceAccessScope,
 } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import {
   useExecutiveControlTower,
@@ -48,8 +48,11 @@ function formatNumberishCurrency(value: string | number | null | undefined) {
 
 export default function WorkspaceOverviewPage() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { data: user, isLoading: userLoading } = useCurrentUserProfile();
+  const {
+    data: user,
+    isPending: userPending,
+    isError: userError,
+  } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const { tier, planType, isLoading: tierLoading } = useSubscriptionTier();
   const branchesQuery = useBranches(user?.organization_id ?? "");
@@ -113,17 +116,13 @@ export default function WorkspaceOverviewPage() {
 
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) || permissions.has(PERMISSIONS.MANAGE_BRANCHES);
-  useEffect(() => {
-    if (!userLoading && !canAccess) {
-      router.replace("/");
-    }
-  }, [canAccess, router, userLoading]);
+  useAccessGate({ canAccess, isPending: userPending, isError: userError });
 
   const shouldHold =
-    userLoading || (Boolean(user?.has_organization) && branchesQuery.isLoading);
+    userPending || (Boolean(user?.has_organization) && branchesQuery.isLoading);
   const hasBranches = (branchOptions.length ?? 0) > 0;
   const shouldShowBranchRequiredState =
-    !userLoading &&
+    !userPending &&
     Boolean(user?.has_organization) &&
     !hasBranches &&
     !branchesQuery.isLoading;
@@ -501,7 +500,7 @@ export default function WorkspaceOverviewPage() {
             </article>
           ))}
         </div>
-        <div className="mt-4 overflow-x-auto border-y border-surface-4/60">
+        <div className="mt-4 overflow-x-auto border-y border-surface-4/60 scrollbar-thin">
           <table className="hidden w-full min-w-[860px] lg:table">
             <thead className="border-b border-surface-4/70">
               <tr>

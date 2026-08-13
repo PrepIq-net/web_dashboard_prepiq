@@ -126,6 +126,7 @@
     "otpVerificationFailed": "Échec de la vérification du code.",
     "networkError": "Erreur réseau. Veuillez réessayer.",
     "securityProtocol": "Protocole de sécurité",
+    "verificationSequence": "Séquence de vérification",
     "resetPasswordTitle": "Réinitialiser le mot de passe.",
     "resetPasswordSubtitle": "Entrez votre e-mail professionnel pour recevoir les instructions de récupération.",
     "registeredEmail": "E-mail enregistré",
@@ -157,7 +158,24 @@
     "passwordResetSuccess": "Mot de passe réinitialisé. Redirection vers la connexion...",
     "resetPasswordsMismatch": "Les mots de passe ne correspondent pas.",
     "resetPasswordTooShort": "Le mot de passe doit comporter au moins 8 caractères.",
-    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer."
+    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer.",
+    "showcase": {
+      "today": {
+        "route": "Signal IA · Aujourd'hui",
+        "headline": "Commencez la journée en sachant déjà quoi préparer",
+        "pitch": "Matin, service en direct et clôture — un seul écran suit la cuisine par rapport au plan toute la journée, et reste honnête en cas d'écart."
+      },
+      "analysis": {
+        "route": "Signal IA · Analyse",
+        "headline": "Il vous dit ce que signifient les chiffres",
+        "pitch": "Un résumé quotidien, des explications de cause profonde et des opportunités concrètes — pas un simple tableau de bord de plus."
+      },
+      "planning": {
+        "route": "Signal IA · Planification",
+        "headline": "Indiquez-lui ce qui s'annonce, il se met à prévoir",
+        "pitch": "Promotions, événements, météo, jours fériés — chaque signal du calendrier affine la prévision de demain."
+      }
+    }
   },
   "dashboard": {
     "sidebar": {
@@ -842,7 +860,12 @@
       "recordCooked": "Enregistrer ce qui a été cuisiné",
       "soldLabel": "Vendus à ce stade",
       "ofPlanned": "sur {quantity} planifiés",
-      "runoutIn": "Rupture possible dans ~{runoutMin} min",
+      "runoutIn": "Rupture possible {phrase}",
+      "runoutPhraseAnyMinute": "d'une minute à l'autre",
+      "runoutPhraseWithin30": "dans les 30 prochaines minutes",
+      "runoutPhraseUnderHour": "d'ici moins d'une heure",
+      "runoutPhraseAboutHour": "d'ici environ une heure",
+      "runoutPhraseAboutHours": "d'ici environ {hours} heures",
       "details": "Détails",
       "moreActions": "Plus d'actions",
       "advisoryPrefix": "Attention requise",
@@ -854,6 +877,9 @@
       "chartSoldSeries": "Vendus",
       "chartExpectedSeries": "Rythme habituel",
       "chartPlannedSeries": "Planifié"
+    },
+    "liveAlerts": {
+      "snooze": "Reporter"
     },
     "closed": {
       "dayComplete": "Journée clôturée",
@@ -961,6 +987,20 @@
           "SUPPLIER_ISSUE": "Problème fournisseur",
           "EQUIPMENT_FAILURE": "Panne d'équipement",
           "POWER_OUTAGE": "Coupure de courant",
+          "OTHER": "Autre"
+        }
+      },
+      "ingredientVariance": {
+        "title": "Ingrédients qui n'ont pas suivi la prévision",
+        "subtitle": "Ces ingrédients ont été utilisés plus ou moins que prévu. Nous en indiquer la raison évite au modèle d'en tirer une mauvaise leçon.",
+        "predictedVsActual": "Prévu {predicted} · Utilisé {actual}",
+        "cause": {
+          "OVER_PORTIONING": "Portions trop généreuses",
+          "RECIPE_CHANGE": "Changement de recette",
+          "EXTRA_WASTE": "Gaspillage supplémentaire",
+          "SHRINKAGE_OR_THEFT": "Perte ou vol",
+          "COUNT_ERROR": "Erreur de comptage",
+          "HIGHER_SALES": "Ventes supérieures aux prévisions",
           "OTHER": "Autre"
         }
       },
@@ -1396,7 +1436,10 @@
       "footerFromLock": "Calculé lors du verrouillage du plan",
       "footerFromManual": "Recalculé manuellement",
       "goToPurchasing": "Commander ce qui manque →",
-      "uncountedSummary": "{count} non inventorié(s)"
+      "uncountedSummary": "{count} non inventorié(s)",
+      "risksNeedAttention": "{count} risque(s) d'inventaire nécessitent une attention",
+      "coveragePct": "{pct} % des besoins sont couverts",
+      "viewDetails": "Voir les détails"
     },
     "tasksStrip": {
       "suggested": "{count} tâche(s) suggérée(s) en attente de votre validation",
@@ -1417,7 +1460,7 @@
     "advisory": {
       "surgeWindow": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer un petit lot supplémentaire (~{quantity}) dans les {window} prochaines minutes pour réduire le risque de rupture.",
       "surge": "La demande dépasse le plan du jour. Il pourrait être judicieux de préparer bientôt un petit lot supplémentaire (~{quantity}) pour réduire le risque de rupture.",
-      "runoutSoon": "Au rythme actuel, rupture dans environ {runoutMin} min, et un lot prend {prepTimeMin} min — mieux vaut décider bientôt.",
+      "runoutSoon": "Au rythme actuel, rupture possible {phrase}, et un lot prend {prepTimeMin} min — mieux vaut décider bientôt.",
       "watchPace": "La demande s'écarte du plan — à surveiller.",
       "confidence": "Confiance : {confidence} %"
     },
@@ -1618,6 +1661,23 @@
       "expectedToSell": "Ventes prévues",
       "haveOnHand": "Stock disponible",
       "markOutOfStock": "Signaler une rupture"
+    },
+    "briefAudio": {
+      "eyebrow": "Briefing audio",
+      "title": "Le brief du jour",
+      "trigger": "Le brief du jour",
+      "triggerHint": "Écouter le brief du jour",
+      "play": "Lire",
+      "pause": "Pause",
+      "replay": "Réécouter depuis le début",
+      "close": "Fermer le brief",
+      "speed": "Vitesse de lecture",
+      "transcript": "Transcription",
+      "preparing": "Préparation de votre brief. Cela prend quelques secondes la première fois chaque jour.",
+      "unavailable": "L'audio n'est pas disponible pour le moment. Le brief écrit est ci-dessous.",
+      "error": "Impossible de charger le brief du jour. Réessayez dans un instant.",
+      "generate": "Générer l'audio",
+      "generating": "Génération"
     }
   },
   "profile": {
@@ -1692,8 +1752,8 @@
   "sidebar": {
     "dashboard": "Tableau de bord",
     "today": "Aujourd'hui",
-    "planning": "Planification",
-    "schedule": "Planning",
+    "planning": "Calendrier",
+    "schedule": "Planning équipe",
     "production": "Production",
     "inventory": "Inventaire",
     "history": "Historique",
@@ -1712,9 +1772,33 @@
     "profile": "Mon profil",
     "support": "Assistance",
     "section": {
+      "overview": "Aperçu",
+      "execution": "Exécution quotidienne",
+      "planningResources": "Planification & Ressources",
       "analytics": "Analytique",
       "management": "Gestion",
       "workspace": "Espace de travail"
+    },
+    "description": {
+      "dashboard": "Tour de contrôle globale — santé, alertes et actions rapides sur toutes les succursales.",
+      "today": "Plan de préparation du jour : quantités, suivi du service en direct et bilan de fin de journée.",
+      "planning": "Enregistrez promotions, réservations, fermetures et événements qui influencent les prévisions.",
+      "schedule": "Disponibilités, horaires et couverture de l'équipe.",
+      "tasks": "Le tableau des tâches de la cuisine — qui fait quoi, en ce moment.",
+      "production": "Enregistrez les lots de production au fur et à mesure.",
+      "inventory": "Niveaux de stock, recettes et articles du menu.",
+      "history": "Production et opérations des jours passés, pour consultation.",
+      "analysis": "L'Analyste IA — insights, opportunités et causes profondes en langage clair.",
+      "intelligenceJourney": "Ce que PrepIQ a appris sur cette succursale, et son niveau de confiance.",
+      "salesWaste": "Rapports de ventes et de gaspillage.",
+      "financial": "Revenus, coûts et marge de la succursale.",
+      "staffPerformance": "Performance de l'équipe, suivie dans le temps.",
+      "branches": "Gérez toutes les succursales de l'organisation.",
+      "purchasing": "Bons de commande et achats.",
+      "risk": "Alertes de conformité et de risque opérationnel.",
+      "billing": "Abonnement, forfait et informations de paiement.",
+      "chat": "Hub Opérations — messages d'équipe et @PrepIQ, liés au travail du jour.",
+      "settings": "Préférences de l'espace de travail, sécurité et intégrations."
     },
     "tasks": "Tâches"
   },
@@ -2917,10 +3001,14 @@
       },
       "analysis": {
         "openWeek": "Ouvrir la semaine",
+        "openWeekHint": "Cinq actions classées pour cette semaine, chacune avec l'enjeu financier.",
         "newThread": "Nouvelle conversation",
         "threads": "Conversations",
         "untitled": "Sans titre",
         "noThreads": "Aucune conversation pour le moment.",
+        "loadError": "Impossible de charger vos conversations.",
+        "loadThreadError": "Impossible de charger cette conversation.",
+        "retry": "Réessayer",
         "rename": "Renommer",
         "delete": "Supprimer",
         "watching": "Sous surveillance",
@@ -3770,7 +3858,9 @@
         "foodCost": "Coût alimentaire",
         "wasteCost": "Coût du gaspillage",
         "grossMargin": "Marge brute",
-        "marginPct": "% Marge"
+        "marginPct": "% Marge",
+        "ingredientWasteCost": "Gaspillage d'ingrédients (USD)",
+        "ingredientCoverage": "Couverture d'ingrédients"
       },
       "timeframe": {
         "7d": "7j",
@@ -4344,6 +4434,15 @@
           "qtyPlaceholder": "Qté",
           "setOverride": "Définir une dérogation",
           "planLocked": "Le plan est verrouillé — aucune modification possible."
+        },
+        "live": {
+          "title": "Statut en direct",
+          "sold": "Vendus à ce stade",
+          "remaining": "Restant",
+          "plusOneSold": "+1 Vendu",
+          "logging": "Enregistrement…",
+          "error": "Impossible d'enregistrer cette vente — réessayez.",
+          "hint": "Les ventes se synchronisent normalement depuis votre caisse, connecteur ou import CSV — n'utilisez ceci que si une vente vient d'avoir lieu et que le flux n'est pas encore à jour."
         },
         "risk": {
           "riskToday": "Risque aujourd'hui",

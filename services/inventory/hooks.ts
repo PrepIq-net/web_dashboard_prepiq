@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api/errors";
 import {
   getCatalogItems,
   getIngredients,
@@ -26,12 +27,27 @@ import {
   getAvailabilityOverrides,
   createAvailabilityOverride,
   deactivateAvailabilityOverride,
+  getPurchaseRecommendation,
+  recomputePurchaseRecommendation,
+  approvePurchaseRecommendation,
+  updatePurchaseRecommendationLine,
+  receiveDelivery,
+  getSupplierSummary,
+  getIngredientCostTrend,
+  getCostVariance,
+  getPurchasingEfficiency,
+  updateIngredientVarianceCause,
+  getMenuItemPrice,
+  updateMenuItemPrice,
   type IngredientPayload,
   type MenuItemPayload,
   type OnHandPayload,
   type IngredientSupplierPayload,
   type BatchRulePayload,
   type AvailabilityOverridePayload,
+  type ReceiveDeliveryPayload,
+  type IngredientVarianceCausePayload,
+  type UpdateMenuItemPricePayload,
 } from "./service";
 // ============================================================================
 // QUERY KEYS
@@ -65,6 +81,18 @@ export const inventoryQueryKeys = {
     [...inventoryQueryKeys.all, "batchRule", itemId] as const,
   availabilityOverrides: (branchId: string) =>
     [...inventoryQueryKeys.all, "availabilityOverrides", branchId] as const,
+  purchaseRecommendation: (branchId: string, date: string) =>
+    [...inventoryQueryKeys.all, "purchaseRecommendation", branchId, date] as const,
+  supplierSummary: (branchId: string) =>
+    [...inventoryQueryKeys.all, "supplierSummary", branchId] as const,
+  costTrend: (branchId: string) =>
+    [...inventoryQueryKeys.all, "costTrend", branchId] as const,
+  costVariance: (branchId: string) =>
+    [...inventoryQueryKeys.all, "costVariance", branchId] as const,
+  purchasingEfficiency: (branchId: string) =>
+    [...inventoryQueryKeys.all, "purchasingEfficiency", branchId] as const,
+  menuItemPrice: (branchId: string, menuItemId: string) =>
+    [...inventoryQueryKeys.all, "menuItemPrice", branchId, menuItemId] as const,
 };
 
 // ============================================================================
@@ -320,6 +348,137 @@ export function usePurchaseForecast(branchId: string, from: string, to: string, 
 }
 
 // ============================================================================
+// HOOKS — PHASE 3/4: UNIFIED PURCHASE RECOMMENDATION
+// ============================================================================
+
+/** 404 (nothing computed for this date yet) is a real, distinct state —
+ * not a transient failure worth retrying. */
+function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+export function usePurchaseRecommendation(branchId: string, date: string, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.purchaseRecommendation(branchId, date),
+    queryFn: () => getPurchaseRecommendation(branchId, date),
+    enabled: enabled && Boolean(branchId) && Boolean(date),
+    retry: (failureCount, error) => (isNotFound(error) ? false : failureCount < 2),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useRecomputePurchaseRecommendation(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) => recomputePurchaseRecommendation(branchId, date),
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        inventoryQueryKeys.purchaseRecommendation(branchId, data.generated_for_date),
+        data
+      );
+    },
+  });
+}
+
+export function useApprovePurchaseRecommendation(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recommendationId: string) => approvePurchaseRecommendation(branchId, recommendationId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        inventoryQueryKeys.purchaseRecommendation(branchId, data.generated_for_date),
+        data
+      );
+    },
+  });
+}
+
+export function useUpdatePurchaseRecommendationLine(branchId: string, date: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ lineId, managerOverrideQty }: { lineId: string; managerOverrideQty: number | null }) =>
+      updatePurchaseRecommendationLine(branchId, lineId, managerOverrideQty),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.purchaseRecommendation(branchId, date) });
+    },
+  });
+}
+
+export function useReceiveDelivery(branchId: string, date?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ReceiveDeliveryPayload) => receiveDelivery(branchId, data),
+    onSuccess: () => {
+      if (date) {
+        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.purchaseRecommendation(branchId, date) });
+      }
+      // A receipt changes what every one of these tabs reads: spend
+      // (suppliers), the latest priced delivery (cost trend + variance),
+      // and received-vs-planned counts (efficiency).
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.supplierSummary(branchId) });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.costTrend(branchId) });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.costVariance(branchId) });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.purchasingEfficiency(branchId) });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.onHand(branchId) });
+    },
+  });
+}
+
+// Records why one ingredient's actual usage missed prediction. Mirrors
+// production-intelligence's useUpdateBranchDayNotes: no query invalidation —
+// the EOD wizard keeps its own optimistic per-row state, same as
+// DayVarianceCausePrompt does for the day-level cause.
+export function useUpdateIngredientVarianceCause(branchId: string) {
+  return useMutation({
+    mutationFn: ({
+      usageId,
+      ...payload
+    }: { usageId: string } & IngredientVarianceCausePayload) =>
+      updateIngredientVarianceCause(branchId, usageId, payload),
+  });
+}
+
+// ============================================================================
+// HOOKS — PHASE 4: PURCHASING PAGE ANALYTICS
+// ============================================================================
+
+export function useSupplierSummary(branchId: string, windowDays = 90, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.supplierSummary(branchId),
+    queryFn: () => getSupplierSummary(branchId, windowDays),
+    enabled: enabled && Boolean(branchId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useIngredientCostTrend(branchId: string, windowDays = 90, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.costTrend(branchId),
+    queryFn: () => getIngredientCostTrend(branchId, windowDays),
+    enabled: enabled && Boolean(branchId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCostVariance(branchId: string, windowDays = 90, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.costVariance(branchId),
+    queryFn: () => getCostVariance(branchId, windowDays),
+    enabled: enabled && Boolean(branchId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePurchasingEfficiency(branchId: string, windowDays = 90, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.purchasingEfficiency(branchId),
+    queryFn: () => getPurchasingEfficiency(branchId, windowDays),
+    enabled: enabled && Boolean(branchId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================================================
 // HOOKS — PHASE 5: BATCH RULES
 // ============================================================================
 
@@ -372,6 +531,29 @@ export function useDeactivateAvailabilityOverride(branchId: string) {
     mutationFn: (overrideId: string) => deactivateAvailabilityOverride(branchId, overrideId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.availabilityOverrides(branchId) });
+    },
+  });
+}
+
+// ============================================================================
+// HOOKS — PRICE INTELLIGENCE PHASE A
+// ============================================================================
+
+export function useMenuItemPrice(branchId: string, menuItemId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: inventoryQueryKeys.menuItemPrice(branchId, menuItemId ?? ""),
+    queryFn: () => getMenuItemPrice(branchId, menuItemId as string),
+    enabled: enabled && Boolean(branchId) && Boolean(menuItemId),
+  });
+}
+
+export function useUpdateMenuItemPrice(branchId: string, menuItemId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateMenuItemPricePayload) =>
+      updateMenuItemPrice(branchId, menuItemId as string, payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(inventoryQueryKeys.menuItemPrice(branchId, menuItemId ?? ""), data);
     },
   });
 }

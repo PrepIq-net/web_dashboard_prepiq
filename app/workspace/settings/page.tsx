@@ -1050,7 +1050,7 @@ function IntegrationsSettings({
         </div>
 
         <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin">
             <NativeTable
               table={table}
               headerClassName="bg-surface-2 border-b border-surface-4"

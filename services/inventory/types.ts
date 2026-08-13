@@ -63,6 +63,10 @@ export const menuItemSchema = z.object({
   // this item awaits human confirmation.
   needs_review: z.boolean().optional(),
   ai_review: menuItemAiReviewSchema.nullable().optional(),
+  // Current selling price, batch-resolved for the whole list — null when
+  // the item has no catalog link yet or has never been priced.
+  selling_price: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -277,6 +281,141 @@ export type PurchaseForecast = z.infer<typeof purchaseForecastSchema>;
 export type PurchaseForecastLine = z.infer<typeof purchaseForecastLineSchema>;
 
 // ============================================================================
+// PHASE 3/4 — UNIFIED PURCHASE RECOMMENDATION (approvable, persisted)
+// ============================================================================
+
+export const purchaseRecommendationTriggerSchema = z.enum([
+  "FORECAST_DEMAND",
+  "RUN_RATE_LOW_STOCK",
+  "BOTH",
+]);
+export type PurchaseRecommendationTrigger = z.infer<typeof purchaseRecommendationTriggerSchema>;
+
+export const purchaseRecommendationStatusSchema = z.enum([
+  "DRAFT",
+  "APPROVED",
+  "ORDERED",
+  "PARTIALLY_RECEIVED",
+  "RECEIVED",
+  "CANCELLED",
+]);
+export type PurchaseRecommendationStatus = z.infer<typeof purchaseRecommendationStatusSchema>;
+
+export const purchaseRecommendationLineSchema = z.object({
+  id: z.string(),
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  trigger: purchaseRecommendationTriggerSchema,
+  unit: z.string(),
+  needed_qty: z.coerce.number(),
+  on_hand_qty: z.coerce.number(),
+  net_need: z.coerce.number(),
+  pack_size: z.coerce.number().nullable(),
+  cost_per_pack: z.coerce.number().nullable(),
+  recommended_purchase_qty: z.coerce.number(),
+  manager_override_qty: z.coerce.number().nullable(),
+  quantity_to_order: z.coerce.number(),
+  estimated_cost: z.coerce.number().nullable(),
+  supplier_name: z.string(),
+  lead_time_days: z.number().nullable(),
+  ordered_quantity: z.coerce.number().nullable(),
+  received_quantity: z.coerce.number(),
+  received_at: z.string().nullable(),
+});
+export type PurchaseRecommendationLine = z.infer<typeof purchaseRecommendationLineSchema>;
+
+export const purchaseRecommendationSchema = z.object({
+  id: z.string(),
+  branch_id: z.string(),
+  generated_for_date: z.string(),
+  status: purchaseRecommendationStatusSchema,
+  total_estimated_cost: z.coerce.number().nullable(),
+  approved_by: z.string().nullable(),
+  approved_at: z.string().nullable(),
+  computed_at: z.string(),
+  lines: z.array(purchaseRecommendationLineSchema),
+});
+export type PurchaseRecommendation = z.infer<typeof purchaseRecommendationSchema>;
+
+export const ingredientVarianceCauseResponseSchema = z.object({
+  usage_id: z.string(),
+  ingredient_id: z.string(),
+  cause: z.string(),
+  cause_note: z.string(),
+  cause_recorded_at: z.string().nullable(),
+});
+export type IngredientVarianceCauseResponse = z.infer<
+  typeof ingredientVarianceCauseResponseSchema
+>;
+
+export const receiveDeliveryResponseSchema = z.object({
+  movement_id: z.string(),
+  ingredient_id: z.string(),
+  quantity_received: z.coerce.number(),
+  balance_after: z.coerce.number(),
+  recommendation_line: purchaseRecommendationLineSchema.nullable(),
+});
+export type ReceiveDeliveryResponse = z.infer<typeof receiveDeliveryResponseSchema>;
+
+// ============================================================================
+// PHASE 4 — PURCHASING PAGE ANALYTICS (Suppliers / Trends / Variance / Efficiency)
+// ============================================================================
+
+export const supplierSummaryRowSchema = z.object({
+  supplier: z.string(),
+  total_spend: z.coerce.number(),
+  delivery_count: z.number(),
+  fulfillment_pct: z.coerce.number().nullable(),
+});
+export const supplierSummarySchema = z.object({
+  window_days: z.number(),
+  rows: z.array(supplierSummaryRowSchema),
+});
+export type SupplierSummaryRow = z.infer<typeof supplierSummaryRowSchema>;
+export type SupplierSummary = z.infer<typeof supplierSummarySchema>;
+
+export const costTrendRowSchema = z.object({
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  unit: z.string(),
+  current_unit_cost: z.coerce.number(),
+  cost_delta_pct: z.coerce.number().nullable(),
+  volatility: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  observation_count: z.number(),
+});
+export const costTrendSchema = z.object({
+  window_days: z.number(),
+  rows: z.array(costTrendRowSchema),
+});
+export type CostTrendRow = z.infer<typeof costTrendRowSchema>;
+export type CostTrend = z.infer<typeof costTrendSchema>;
+
+export const costVarianceRowSchema = z.object({
+  ingredient_id: z.string(),
+  ingredient_name: z.string(),
+  unit: z.string(),
+  expected_unit_cost: z.coerce.number(),
+  actual_unit_cost: z.coerce.number(),
+  overpayment_flag: z.boolean(),
+  last_received_at: z.string(),
+});
+export const costVarianceSchema = z.object({
+  window_days: z.number(),
+  rows: z.array(costVarianceRowSchema),
+});
+export type CostVarianceRow = z.infer<typeof costVarianceRowSchema>;
+export type CostVariance = z.infer<typeof costVarianceSchema>;
+
+export const purchasingEfficiencySchema = z.object({
+  window_days: z.number(),
+  over_ordering_pct: z.coerce.number(),
+  emergency_purchase_count: z.number(),
+  stockout_caused_purchase_count: z.number(),
+  total_received_events: z.number(),
+});
+export type PurchasingEfficiency = z.infer<typeof purchasingEfficiencySchema>;
+
+// ============================================================================
 // PHASE 5 — BATCH RULES
 // ============================================================================
 
@@ -305,3 +444,32 @@ export const itemAvailabilityOverrideSchema = z.object({
   is_active: z.boolean(),
 });
 export type ItemAvailabilityOverride = z.infer<typeof itemAvailabilityOverrideSchema>;
+
+// ============================================================================
+// PRICE INTELLIGENCE — PHASE A: price history + margin (Inventory page)
+// ============================================================================
+
+export const priceHistoryEntrySchema = z.object({
+  id: z.string(),
+  old_price: z.coerce.number().nullable(),
+  new_price: z.coerce.number(),
+  currency: z.string(),
+  change_pct: z.coerce.number().nullable(),
+  source_type: z.enum(["MANUAL", "POS_SYNC"]),
+  reason: z.string(),
+  changed_by: z.string().nullable(),
+  occurred_at: z.string(),
+});
+export type PriceHistoryEntry = z.infer<typeof priceHistoryEntrySchema>;
+
+export const menuItemPriceSchema = z.object({
+  has_catalog_link: z.boolean(),
+  selling_price: z.coerce.number().nullable(),
+  standard_cost: z.coerce.number().nullable(),
+  gross_margin: z.coerce.number().nullable(),
+  margin_pct: z.coerce.number().nullable(),
+  currency: z.string(),
+  last_changed_at: z.string().nullable(),
+  history: z.array(priceHistoryEntrySchema),
+});
+export type MenuItemPrice = z.infer<typeof menuItemPriceSchema>;

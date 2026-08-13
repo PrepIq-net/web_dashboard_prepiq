@@ -177,7 +177,7 @@ function DetailChart({ item }: { item: IntradayTimelineItem }) {
     : undefined;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <svg
         width="100%"
         viewBox={`0 0 ${width} ${height}`}

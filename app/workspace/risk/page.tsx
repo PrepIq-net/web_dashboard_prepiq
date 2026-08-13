@@ -1,9 +1,10 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Select } from "@/components/ui/select";
 import {
@@ -91,9 +92,8 @@ function buildSparklinePoints(values: number[], width: number, height: number) {
 
 function RiskPageContent() {
   const { t } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
 
   const permissions = resolvePermissions(user);
@@ -146,9 +146,7 @@ function RiskPageContent() {
     if (!allowed && defaultBranch?.id) setSelectedBranchId(defaultBranch.id);
   }, [branchOptions, defaultBranch?.id, selectedBranchId]);
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-  }, [isLoading, canAccess, router]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const riskQuery = useRiskSnapshot({
     branch_id: selectedBranchId,

@@ -173,7 +173,7 @@ export function CurrencySelect({
                   className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
                 />
               </div>
-              <div className="mt-1 max-h-[248px] overflow-y-auto space-y-0.5 [scrollbar-width:thin] [scrollbar-color:#2E2E33_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2E2E33]">
+              <div className="mt-1 max-h-[248px] overflow-y-auto space-y-0.5 scrollbar-thin">
                 {common.length > 0 && (
                   <>
                     <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">

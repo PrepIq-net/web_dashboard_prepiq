@@ -183,7 +183,7 @@ export function RoleEditorDrawer({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto design-scrollbar px-6 py-6">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
           <div className="space-y-6">
             {isReadOnly ? (
               <div className="rounded-lg border border-surface-4 bg-surface-2 px-4 py-3 text-sm text-text-secondary">

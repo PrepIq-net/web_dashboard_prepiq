@@ -297,7 +297,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="max-h-[55vh] overflow-y-auto design-scrollbar pb-2">
+        <div className="max-h-[55vh] overflow-y-auto pb-2 scrollbar-thin">
           {inlineError ? (
             <p className="px-4 pt-3 text-xs text-status-critical">
               {inlineError}

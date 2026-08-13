@@ -25,6 +25,9 @@
   --color-chart-baseline: #6c6c73;
   --color-chart-grid: #2a2a2e;
 
+  --color-scrollbar-thumb: var(--color-surface-4);
+  --color-scrollbar-thumb-hover: #3a3a40;
+
   --radius-button: 8px;
   --radius-card: 12px;
   --radius-modal: 16px;
@@ -75,6 +78,9 @@
   --color-border-default: var(--color-border-default);
   --color-chart-baseline: var(--color-chart-baseline);
   --color-chart-grid: var(--color-chart-grid);
+
+  --color-scrollbar-thumb: var(--color-scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--color-scrollbar-thumb-hover);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-satoshi);
@@ -162,6 +168,33 @@
       var(--motion-ease-standard) both;
   }
 
+  /* Canonical thin scrollbar — DESIGN.md §7 "Scrollbars". Reference
+     implementation is the dashboard sidebar's nav list. Apply to any
+     overflow-y-auto / overflow-x-auto container instead of re-inlining the
+     [&::-webkit-scrollbar] arbitrary-value soup this replaced everywhere. */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+  }
+
   @keyframes assistant-drawer-in {
     from {
       opacity: 0;
@@ -191,27 +224,39 @@
     }
   }
 
-  /* Custom themed scrollbar */
-  .design-scrollbar::-webkit-scrollbar {
-    width: 8px;
+  /* /login showcase panel (components/auth/showcase-carousel.tsx) — ambient
+     marketing motion, not UI-state feedback; see the component's doc comment
+     for why this sits outside the standard 150–220ms motion budget. Still
+     collapsed by the prefers-reduced-motion rule below. */
+  @keyframes auth-kenburns {
+    0% {
+      transform: scale(1.06) translate(0, 0);
+    }
+    100% {
+      transform: scale(1.16) translate(-1%, -1%);
+    }
   }
 
-  .design-scrollbar::-webkit-scrollbar-track {
-    background: var(--color-surface-2);
+  @keyframes auth-rise-in {
+    0% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  .design-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--color-surface-4);
-    border-radius: 9999px;
-  }
-
-  .design-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--color-border-default);
-  }
-
-  .design-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-surface-4) var(--color-surface-2);
+  @keyframes auth-signal-bar {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scaleY(0.6);
+    }
+    50% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
   }
 }
 

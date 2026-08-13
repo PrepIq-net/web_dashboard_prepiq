@@ -23,7 +23,11 @@ import { EMPTY_LIST } from "@/lib/constants";
  * - The default branch is: scope default > primary > first option.
  */
 export function useBranchOptions() {
-  const { data: user, isLoading: userLoading } = useCurrentUserProfile();
+  const {
+    data: user,
+    isPending: userPending,
+    isError: userError,
+  } = useCurrentUserProfile();
   const { data: accessScope } = useProductionIntelligenceAccessScope();
   const branchesQuery = useBranches(user?.organization_id ?? "");
 
@@ -79,6 +83,14 @@ export function useBranchOptions() {
     accessScope,
     branchOptions,
     defaultBranch,
-    isLoading: userLoading || branchesQuery.isLoading,
+    // `isPending`, not `isLoading`: the latter goes false during a retry's
+    // backoff delay even though the query hasn't settled — see the long
+    // comment in lib/hooks/use-access-gate.ts. That gap is exactly what let
+    // /workspace/today's access-required redirect fire on a plain refresh.
+    isLoading: userPending || branchesQuery.isPending,
+    // Surfaced so callers gating access on `user` (e.g. the access-required
+    // redirect on /workspace/today) can tell "still loading" apart from "the
+    // profile fetch failed" — see lib/hooks/use-access-gate.ts.
+    isError: userError || branchesQuery.isError,
   };
 }

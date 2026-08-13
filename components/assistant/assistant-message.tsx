@@ -30,7 +30,7 @@ function renderTable(key: string, rows: string[]): React.ReactNode {
   const header = splitTableRow(rows[0]);
   const bodyRows = rows.slice(2).map(splitTableRow);
   return (
-    <div key={key} className="my-1 overflow-x-auto rounded-lg border border-surface-4">
+    <div key={key} className="my-1 overflow-x-auto rounded-lg border border-surface-4 scrollbar-thin">
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="border-b border-surface-4 bg-surface-3">
@@ -115,6 +115,38 @@ function renderContent(text: string) {
   return parts;
 }
 
+/**
+ * Receipt for writes the assistant applied on its own during a turn.
+ *
+ * Deliberately not a card and deliberately not interactive: the change is
+ * already saved, so anything resembling the confirm affordance below it would
+ * invite a second look at a decision that is closed. It reads as a log line
+ * under the reply — enough for the manager to see exactly what moved, and to
+ * find it in the audit trail if it was wrong.
+ */
+function AppliedActions({ message }: { message: AssistantMessageType }) {
+  const applied = message.applied_actions ?? [];
+  if (applied.length === 0) return null;
+  return (
+    <ul className="mt-1.5 space-y-1">
+      {applied.map((action) => (
+        <li
+          key={action.action_log_id}
+          className="flex items-start gap-1.5 text-xs leading-snug text-text-secondary"
+        >
+          <span aria-hidden className="mt-px shrink-0 text-status-success">
+            ✓
+          </span>
+          <span className="min-w-0 break-words">
+            <span className="sr-only">Applied: </span>
+            {action.summary}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function AssistantMessageBubble({
   message,
   animateIn,
@@ -186,6 +218,7 @@ export function AssistantMessageBubble({
             {renderContent(displayed)}
           </div>
         </div>
+        <AppliedActions message={message} />
       </div>
     </div>
   );

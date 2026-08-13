@@ -1,5 +1,6 @@
 "use client";
 import { resolvePermissions } from "@/lib/permissions";
+import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -89,7 +90,7 @@ function daysUntil(iso?: string | null): number | null {
 export default function BranchesPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { data: user, isLoading } = useCurrentUserProfile();
+  const { data: user, isPending, isError } = useCurrentUserProfile();
   const permissions = resolvePermissions(user);
   const canManage = permissions.has(PERMISSIONS.MANAGE_BRANCHES);
   const canAccess = canManage || permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES);
@@ -109,10 +110,7 @@ export default function BranchesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
-  useEffect(() => {
-    if (!isLoading && !canAccess) router.replace("/");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canAccess]);
+  useAccessGate({ canAccess, isPending, isError });
 
   const branches = branchesQuery.data ?? EMPTY_LIST;
   const branchGrid = controlTowerQuery.data?.branch_grid ?? EMPTY_LIST;
@@ -369,7 +367,7 @@ export default function BranchesPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[720px]">
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>

@@ -42,10 +42,16 @@ export function MorningBriefStrip({
           <p className="min-w-0 truncate text-sm text-text-secondary">
             {t("today.brief.greeting", { name: userName })}
           </p>
+          {/*
+            Neutral, not gold. The page's gold is now spent on the Today's Brief
+            player, which is the more direct action and the only one present in
+            every phase. Two gold elements in one row would make neither read as
+            the primary one (DESIGN.md §2).
+          */}
           <button
             type="button"
             onClick={onOpenBrief}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-brand-gold/40 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-surface-4 px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-surface-3 hover:text-text-primary"
           >
             <SparksSolid className="h-3.5 w-3.5" />
             {t("today.brief.openBriefing")}
@@ -132,7 +138,7 @@ export function MorningBriefDrawer({
           </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto design-scrollbar px-5 py-5 [scrollbar-width:thin]">
+        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 scrollbar-thin">
           {/* Full narrative */}
           <p className="text-sm leading-relaxed text-text-secondary">
             {brief.narrative}

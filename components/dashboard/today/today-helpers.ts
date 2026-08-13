@@ -605,6 +605,27 @@ export function deriveLiveRows(
   });
 }
 
+/**
+ * Human-scale phrasing for a runout estimate.
+ *
+ * `runout_minutes` is remaining stock divided by the last hour's sales rate —
+ * a single quick sale can swing that rate enough to report "9 min" on one
+ * refresh and "41 min" on the next. An exact minute count reads as more
+ * precise than the math actually is, so this buckets into ranges a chef can
+ * act on ("within the hour") instead of chasing a number that jitters every
+ * poll.
+ */
+export function runoutPhrase(t: Translator, runoutMin: number): string {
+  const mins = Math.max(0, runoutMin);
+  if (mins <= 10) return t("today.live.runoutPhraseAnyMinute");
+  if (mins <= 30) return t("today.live.runoutPhraseWithin30");
+  if (mins <= 60) return t("today.live.runoutPhraseUnderHour");
+  const hours = Math.round(mins / 60);
+  return hours <= 1
+    ? t("today.live.runoutPhraseAboutHour")
+    : t("today.live.runoutPhraseAboutHours", { hours });
+}
+
 /** Tiers for the live monitor: needs-action → watch → on-track. */
 export function tierLiveRows(rows: LiveRow[]) {
   const criticalRows: LiveRow[] = [];

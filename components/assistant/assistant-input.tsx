@@ -5,9 +5,11 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 export function AssistantInput({
   onSend,
   disabled,
+  placeholder = "Ask about today…",
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,8 +51,8 @@ export function AssistantInput({
         disabled={disabled}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask about today…"
-        className="max-h-40 min-h-[44px] flex-1 resize-none overflow-y-auto design-scrollbar rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none"
+        placeholder={placeholder}
+        className="max-h-40 min-h-[44px] flex-1 resize-none overflow-y-auto rounded-lg border border-surface-4 bg-surface-3 px-3 py-2 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:border-brand-gold focus:outline-none scrollbar-thin"
       />
       <button
         type="button"

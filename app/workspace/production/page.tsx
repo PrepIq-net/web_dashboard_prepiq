@@ -698,7 +698,7 @@ export default function ProductionPage() {
               </div>
             </div>
 
-            <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 lg:block scrollbar-thin">
               <table className="w-full min-w-[860px]">
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>
@@ -1136,7 +1136,7 @@ export default function ProductionPage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
+          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
             <table className="w-full min-w-[640px]">
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
@@ -1224,7 +1224,7 @@ export default function ProductionPage() {
             <p className="mt-1 text-sm text-text-secondary">
               {t("workspace.production.velocity.count", { count: velocityRows.length })}
             </p>
-            <div className="mt-4 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2">
+            <div className="mt-4 overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
               <table className="w-full min-w-[640px]">
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>

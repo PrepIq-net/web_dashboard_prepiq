@@ -571,7 +571,7 @@ export function KpiDetailModals({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-surface-4 overflow-y-auto design-scrollbar max-h-[calc(100vh-18rem)]">
+          <div className="divide-y divide-surface-4 overflow-y-auto max-h-[calc(100vh-18rem)] scrollbar-thin">
             {[...alerts]
               .sort((a, b) => {
                 const order: Record<string, number> = {

@@ -441,7 +441,7 @@ function BranchOverviewSnapshotContent() {
               })}
             </div>
 
-            <div className="mt-4 hidden overflow-x-auto border-y border-surface-4/60 lg:block">
+            <div className="mt-4 hidden overflow-x-auto border-y border-surface-4/60 lg:block scrollbar-thin">
               <table className="w-full min-w-[1020px]">
                 <thead className="border-b border-surface-4/70">
                   <tr>

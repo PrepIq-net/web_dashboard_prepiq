@@ -112,6 +112,8 @@ export function AssistantLauncher({
       role: "user",
       content: `Explain: ${explainRequest.topic}`,
       pending_action: null,
+      applied_actions: null,
+      metadata: null,
       created_at: new Date().toISOString(),
     };
     setMessages([userMsg]);
@@ -122,6 +124,7 @@ export function AssistantLauncher({
           setConversationId(reply.conversation.id);
           setMessages((prev) => [...prev, reply.message]);
           setAnimatingMsgId(reply.message.id);
+          notifyApplied(reply.message);
         },
         onError: () => toast.error("Couldn't load that explanation."),
       },
@@ -137,10 +140,27 @@ export function AssistantLauncher({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [askRequest?.nonce]);
 
+  // Routine writes are applied server-side during the turn rather than on a
+  // confirm tap, so the reply itself is the signal that page data went stale.
+  const notifyApplied = (message: AssistantMessage) => {
+    for (const applied of message.applied_actions ?? []) {
+      onActionApplied?.({
+        type: applied.type,
+        branch_id: branchId ?? "",
+        date,
+        item_id: null,
+        item_title: applied.item_title,
+        quantity: applied.quantity,
+        summary: applied.summary,
+      });
+    }
+  };
+
   const appendReply = (reply: AssistantReply) => {
     setConversationId(reply.conversation.id);
     setMessages((prev) => [...prev, reply.message]);
     setAnimatingMsgId(reply.message.id);
+    notifyApplied(reply.message);
   };
 
   const handleSend = (text: string) => {
@@ -155,6 +175,8 @@ export function AssistantLauncher({
         role: "user",
         content: text,
         pending_action: null,
+        applied_actions: null,
+        metadata: null,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -257,7 +279,7 @@ export function AssistantLauncher({
       >
         <div
           ref={scrollRef}
-          className="flex-1 space-y-4 overflow-y-auto design-scrollbar px-4 py-4 [scrollbar-width:thin] [scrollbar-color:#2A2A2E_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#2A2A2E]"
+          className="flex-1 space-y-4 overflow-y-auto px-4 py-4 scrollbar-thin"
         >
           {messages.length === 0 ? (
             <div className="flex items-start gap-2.5">

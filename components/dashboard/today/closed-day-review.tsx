@@ -11,7 +11,9 @@ import { useUpdateBranchDayNotes } from "@/services/production-intelligence/hook
 import { useAvailabilityWeek, useCoverage } from "@/services/schedule/hooks";
 import { weekStart, toIso } from "@/components/dashboard/schedule/schedule-helpers";
 import { DayVarianceCausePrompt } from "./day-variance-cause-prompt";
+import { IngredientVarianceCausePrompt } from "./ingredient-variance-cause-prompt";
 import { RemainingAttributionPrompt } from "./remaining-attribution-prompt";
+import { ItemImage } from "./item-image";
 import type {
   BranchDayToday,
   PipelineStats,
@@ -114,6 +116,18 @@ export function ClosedDayReview({
   const [ackPending, setAckPending] = useState(false);
 
   const rp = branchDay.review_phase;
+
+  // The review payload's item rows carry only an id and a title — no image
+  // or category. The morning prep-plan items (still on branchDay after
+  // close) do, keyed by the same catalog product id, so borrow from there
+  // instead of asking the backend to duplicate that data onto every row.
+  const itemVisualByProductId = useMemo(() => {
+    const map = new Map<string, (typeof branchDay.prep_plan_items)[number]>();
+    for (const item of branchDay.prep_plan_items) {
+      map.set(item.product_id, item);
+    }
+    return map;
+  }, [branchDay.prep_plan_items]);
 
   // Tomorrow's staffing picture (step 3): coverage + availability for the week
   // containing tomorrow, fetched lazily once the manager reaches the step.
@@ -439,6 +453,8 @@ export function ClosedDayReview({
 
           <DayVarianceCausePrompt branchDay={branchDay} />
 
+          <IngredientVarianceCausePrompt branchDay={branchDay} branchId={branchId} />
+
           <section className="space-y-6">
             <div>
               <p className="text-sm font-semibold text-text-primary">
@@ -638,7 +654,15 @@ export function ClosedDayReview({
                             }
                           : { icon: "✓", cls: "text-status-success", sub: null };
                   return (
-                    <div key={row.item_id} className="flex items-center gap-4 px-5 py-3.5">
+                    <div key={row.item_id} className="flex items-center gap-3 px-5 py-3.5">
+                      <ItemImage
+                        item={
+                          itemVisualByProductId.get(row.item_id) ?? {
+                            product_title: row.item_title,
+                          }
+                        }
+                        className="h-9 w-9 shrink-0 rounded-lg border border-surface-4"
+                      />
                       <span className={`shrink-0 w-5 text-center text-base ${outcome.cls}`}>
                         {outcome.icon}
                       </span>
@@ -706,9 +730,20 @@ export function ClosedDayReview({
                       key={row.item_id}
                       className="flex flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3.5"
                     >
-                      <p className="min-w-[140px] text-sm font-medium text-text-primary">
-                        {row.item_title}
-                      </p>
+                      <div className="flex min-w-[140px] items-center gap-2.5">
+                        <ItemImage
+                          item={
+                            itemVisualByProductId.get(row.item_id) ?? {
+                              product_title: row.item_title,
+                            }
+                          }
+                          className="h-7 w-7 shrink-0 rounded-lg border border-surface-4"
+                          iconClassName="h-3.5 w-3.5"
+                        />
+                        <p className="text-sm font-medium text-text-primary">
+                          {row.item_title}
+                        </p>
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-text-muted">
                         <span>
                           {t("today.closed.ai")}:{" "}

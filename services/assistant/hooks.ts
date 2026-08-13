@@ -4,11 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   confirmAssistantAction,
   explainAlert,
+  generateMorningBriefVoice,
   getAssistantConversation,
   getCurrentConversation,
+  getMorningBriefVoice,
   getSuggestedQuestions,
   listAssistantConversations,
   runAssistantCommand,
+  runRecipeReview,
   sendAssistantMessage,
   startAssistantConversation,
 } from "./service";
@@ -16,6 +19,8 @@ import type {
   CommandRequestPayload,
   ConfirmActionPayload,
   ExplainPayload,
+  MorningBriefVoicePayload,
+  RecipeReviewPayload,
   SendMessagePayload,
   StartConversationPayload,
 } from "./types";
@@ -124,5 +129,44 @@ export function useExplainAlert() {
 export function useRunAssistantCommand() {
   return useMutation({
     mutationFn: (payload: CommandRequestPayload) => runAssistantCommand(payload),
+  });
+}
+
+// Diagnoses one recipe/image and returns proposals — nothing is applied
+// here, same "only the confirm step changes anything" contract as the
+// command palette above.
+export function useRunRecipeReview() {
+  return useMutation({
+    mutationFn: (payload: RecipeReviewPayload) => runRecipeReview(payload),
+  });
+}
+
+/**
+ * Fetch the spoken brief for a branch-day.
+ *
+ * A mutation rather than a query because it is an action with side effects:
+ * it can trigger synthesis, and it records the brief in the day's chat thread.
+ * Firing it on render would put a brief in the transcript nobody asked for.
+ */
+export function useMorningBriefVoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: MorningBriefVoicePayload) => generateMorningBriefVoice(payload),
+    onSuccess: (data) => {
+      // The thread now holds a message it did not a moment ago.
+      if (data.conversation_id) {
+        queryClient.invalidateQueries({ queryKey: conversationsPrefix });
+        queryClient.invalidateQueries({
+          queryKey: assistantQueryKeys.conversationDetail(data.conversation_id),
+        });
+      }
+    },
+  });
+}
+
+/** Replay a specific brief by id, as linked from a chat message. */
+export function useReplayMorningBriefVoice() {
+  return useMutation({
+    mutationFn: (id: string) => getMorningBriefVoice(id),
   });
 }
