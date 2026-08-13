@@ -16,24 +16,36 @@ function resolveHtmlLang(acceptLanguage: string | null): string {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.prepiq.com"), // Standard for Next.js 14+ relative assets
   title: {
-    template: "%s | PrepIQ",
-    default: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
+    template: "%s | PrepIQ Dashboard",
+    default: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
   },
-  description: "Operational intelligence infrastructure for modern kitchens. Protect margins, reduce waste by up to 40%, and scale production with precision using AI-powered demand forecasting.",
-  keywords: ["kitchen intelligence", "margin protection", "demand forecasting", "waste reduction", "operational excellence", "PrepIQ", "SaaS"],
+  description:
+    "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
+  keywords: [
+    "Kitchen Intelligence",
+    "Restaurant Forecasting",
+    "Food Waste Reduction",
+    "Kitchen AI Analyst",
+    "Prep IQ",
+  ],
+  robots: "index, follow",
   authors: [{ name: "PrepIQ Engineering" }],
   creator: "PrepIQ",
   publisher: "PrepIQ",
+  alternates: {
+    canonical: "/",
+  },
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://app.prepiq.com"), // Standard for Next.js 14+ relative assets
   openGraph: {
-    title: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
-    description: "AI-powered daily prep intelligence for commercial kitchens. Predict demand, reduce waste, and protect margins.",
+    title: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
+    description:
+      "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
     url: "https://app.prepiq.com",
     siteName: "PrepIQ Dashboard",
     images: [
@@ -41,7 +53,7 @@ export const metadata: Metadata = {
         url: "/og-dashboard.png",
         width: 1200,
         height: 630,
-        alt: "PrepIQ Operational Intelligence Dashboard",
+        alt: "PrepIQ Kitchen Intelligence & Operational AI Platform",
       },
     ],
     locale: "en_US",
@@ -49,12 +61,16 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PrepIQ — Strategic Kitchen Intelligence & Margin Protection",
-    description: "AI-powered daily prep intelligence for commercial kitchens. Predict demand, reduce waste, and protect margins.",
+    title: "PrepIQ | Kitchen Intelligence & Operational AI Platform",
+    description:
+      "Real-time kitchen intelligence, automated demand forecasting, prep scheduling, and operational AI analysis for restaurants.",
     images: ["/og-dashboard.png"],
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
+      { url: "/icon-32x32.png", type: "image/png", sizes: "32x32" },
+    ],
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",
   },
