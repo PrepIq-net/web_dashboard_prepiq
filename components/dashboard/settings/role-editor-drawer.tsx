@@ -161,7 +161,7 @@ export function RoleEditorDrawer({
       />
 
       <div
-        className="flex h-full w-[640px] max-w-[96vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
+        className="flex h-full w-[768px] max-w-[96vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
         role="dialog"
         aria-modal="true"
       >

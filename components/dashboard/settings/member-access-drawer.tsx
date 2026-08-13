@@ -187,7 +187,7 @@ export function MemberAccessDrawer({
         role="presentation"
       />
       <div
-        className="flex h-full w-[560px] max-w-[94vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
+        className="flex h-full w-[720px] max-w-[94vw] flex-col border-l border-surface-4 bg-surface-1 animate-in slide-in-from-right duration-200"
         role="dialog"
         aria-modal="true"
         aria-label={t("settings.memberDrawer.title", { name: displayName })}
