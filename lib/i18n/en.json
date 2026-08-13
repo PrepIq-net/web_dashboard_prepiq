@@ -1667,6 +1667,12 @@
       "title": "Today's Brief",
       "trigger": "Today's Brief",
       "triggerHint": "Listen to today's brief",
+      "listen": "Listen",
+      "listenHint": "Read the brief now, or have PrepIQ read it aloud.",
+      "mini": {
+        "open": "Open the brief",
+        "stop": "Stop and close player"
+      },
       "play": "Play",
       "pause": "Pause",
       "replay": "Replay from the start",

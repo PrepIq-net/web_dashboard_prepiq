@@ -44,14 +44,11 @@ import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/s
 import { MarkUnavailableModal } from "@/components/dashboard/today/mark-unavailable-modal";
 import { inventoryQueryKeys } from "@/services/inventory/hooks";
 import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
-import { TodaysBriefModal } from "@/components/dashboard/today/todays-brief-modal";
+import { TodaysBriefDrawer } from "@/components/dashboard/today/todays-brief-drawer";
 import { TodaysBriefTrigger } from "@/components/dashboard/today/todays-brief-trigger";
 import { useMorningBriefVoice } from "@/services/assistant/hooks";
 import { InitializationWalkthrough } from "@/components/dashboard/today/initialization-walkthrough";
-import {
-  MorningBriefDrawer,
-  MorningBriefStrip,
-} from "@/components/dashboard/today/morning-brief-drawer";
+import { MorningBriefStrip } from "@/components/dashboard/today/morning-brief-strip";
 import {
   PlanProvenanceDrawer,
   derivePipelineProvenance,
@@ -239,8 +236,7 @@ function TodayWorkspacePageContent() {
     title: string;
     unit: string;
   }>(null);
-  const [briefDrawerOpen, setBriefDrawerOpen] = useState(false);
-  const [briefAudioOpen, setBriefAudioOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const briefVoice = useMorningBriefVoice();
   const [explainRequest, setExplainRequest] = useState<{
     topic: string;
@@ -324,13 +320,20 @@ function TodayWorkspacePageContent() {
     return map;
   }, [paceSummary]);
 
-  // Open the player first, then fetch: the modal owns the preparing state, and
-  // a cold brief takes several seconds to synthesize. Opening on success would
-  // leave the button looking inert for the whole wait.
+  // Open the drawer first, then fetch: the surface owns the preparing state,
+  // and a cold brief takes several seconds to synthesize. Opening on success
+  // would leave the button looking inert for the whole wait. Reading never
+  // triggers synthesis — only the gold trigger and the drawer's Listen button
+  // ask for the spoken brief.
   const openBriefAudio = () => {
-    if (!safeBranchId) return;
-    setBriefAudioOpen(true);
+    if (!safeBranchId || briefVoice.isPending) return;
+    setBriefOpen(true);
     briefVoice.mutate({ branch_id: safeBranchId, date: targetDate });
+  };
+
+  const openBriefForReading = () => {
+    if (!safeBranchId) return;
+    setBriefOpen(true);
   };
 
   // Assistant actions are executed server-side on confirm — just refresh the
@@ -1022,7 +1025,7 @@ function TodayWorkspacePageContent() {
                   loading={morningBriefQuery.isLoading}
                   brief={morningBrief}
                   userName={user?.first_name || "Chef"}
-                  onOpenBrief={() => setBriefDrawerOpen(true)}
+                  onOpenBrief={() => setBriefOpen(true)}
                 />
 
                 <MorningOutlook
@@ -1254,23 +1257,16 @@ function TodayWorkspacePageContent() {
           </>
         )}
 
-        <TodaysBriefModal
-          open={briefAudioOpen}
-          onClose={() => setBriefAudioOpen(false)}
-          loading={briefVoice.isPending}
+        <TodaysBriefDrawer
+          open={briefOpen}
+          onClose={() => setBriefOpen(false)}
+          onOpen={() => setBriefOpen(true)}
+          voiceLoading={briefVoice.isPending}
           brief={briefVoice.data ?? null}
-          error={briefVoice.isError ? t("today.briefAudio.error") : null}
+          voiceError={briefVoice.isError ? t("today.briefAudio.error") : null}
           layoutId={BRIEF_LAYOUT_ID}
-          // Re-requesting is the same call: the backend re-synthesizes a brief
-          // whose audio failed or has been purged, from the script it kept.
-          onGenerate={openBriefAudio}
-          generating={briefVoice.isPending}
-        />
-
-        <MorningBriefDrawer
-          open={briefDrawerOpen}
-          onClose={() => setBriefDrawerOpen(false)}
-          brief={morningBrief}
+          onListen={openBriefAudio}
+          readBrief={morningBrief}
           canAsk={canUseAssistant}
           onAsk={(question) => setAskRequest({ question, nonce: Date.now() })}
           onOpenProvenance={() => setProvenanceOpen(true)}

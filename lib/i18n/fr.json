@@ -1667,6 +1667,12 @@
       "title": "Le brief du jour",
       "trigger": "Le brief du jour",
       "triggerHint": "Écouter le brief du jour",
+      "listen": "Écouter",
+      "listenHint": "Lisez le brief maintenant, ou laissez PrepIQ le lire à voix haute.",
+      "mini": {
+        "open": "Ouvrir le brief",
+        "stop": "Arrêter et fermer le lecteur"
+      },
       "play": "Lire",
       "pause": "Pause",
       "replay": "Réécouter depuis le début",
