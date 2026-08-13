@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { memo, useMemo, useRef, useState } from "react";
-import { NavArrowLeft } from "iconoir-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
+import { MenuBurgerIcon } from "@/components/dashboard/menu-burger-icon";
 import { canAccessDashboard, resolvePermissions } from "@/lib/permissions";
 import {
   NAV_PAGES,
@@ -33,6 +33,18 @@ interface NavSection {
   items: NavItem[];
 }
 
+/** Gap between the rail's right edge and the flyout. */
+const FLYOUT_GUTTER = 10;
+
+/**
+ * Pointer dwell before a flyout opens. Without it, dragging the cursor down
+ * the list strobes one panel per item; 120ms is under the ~200ms that reads as
+ * lag but long enough that a pass-through never fires.
+ */
+const FLYOUT_DELAY_MS = 120;
+
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
@@ -48,56 +60,115 @@ function SidebarLink({
   collapsed: boolean;
 }) {
   const anchorRef = useRef<HTMLAnchorElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [flyout, setFlyout] = useState<{ top: number; left: number } | null>(null);
+
+  // Collapsed items render no label at all, so the flyout is their only
+  // affordance — it has to open for every item, not just the ones that
+  // happen to carry a description.
+  const hasFlyout = collapsed || Boolean(item.description);
+  const open = flyout !== null;
 
   // Positioned with `fixed` + coordinates read off the anchor, rather than a
-  // plain CSS `absolute` tooltip: the nav list scrolls (`overflow-y-auto`),
+  // plain CSS `absolute` panel: the nav list scrolls (`overflow-y-auto`),
   // which forces `overflow-x` to `auto` too per the CSS overflow spec — an
-  // absolutely-positioned tooltip popping out past the rail would get
-  // silently clipped by its own scroll container.
-  function showTooltip() {
-    if (!item.description) return;
-    const rect = anchorRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setTooltipPos(
-      collapsed
-        ? { top: rect.top + rect.height / 2, left: rect.right + 10 }
-        : { top: rect.bottom + 6, left: rect.left },
+  // absolutely-positioned flyout popping out past the rail would get silently
+  // clipped by its own scroll container.
+  const place = useCallback(() => {
+    const anchor = anchorRef.current;
+    if (!hasFlyout || !anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    // Measured off the rail, not the link. Expanded links stop short of the
+    // rail's edge, so anchoring to the link would park the flyout at a
+    // different gutter in each state.
+    const railRight =
+      anchor.closest("aside")?.getBoundingClientRect().right ?? rect.right;
+    setFlyout({
+      top: rect.top + rect.height / 2,
+      left: railRight + FLYOUT_GUTTER,
+    });
+  }, [hasFlyout]);
+
+  const close = useCallback(() => {
+    if (dwellRef.current) {
+      clearTimeout(dwellRef.current);
+      dwellRef.current = null;
+    }
+    setFlyout(null);
+  }, []);
+
+  function handleEnter() {
+    if (!hasFlyout || dwellRef.current) return;
+    dwellRef.current = setTimeout(() => {
+      dwellRef.current = null;
+      place();
+    }, FLYOUT_DELAY_MS);
+  }
+
+  // Keyboard focus skips the dwell — arrowing through the rail is deliberate,
+  // never a pass-through.
+  function handleFocus() {
+    place();
+  }
+
+  useEffect(() => close, [close]);
+
+  // Keep the panel on screen: an item near the bottom of a scrolled rail would
+  // otherwise centre its flyout half below the fold. Measured after paint
+  // rather than in a layout effect (which warns during SSR); the correction
+  // lands inside the entrance animation, so it is not visible.
+  useEffect(() => {
+    const el = flyoutRef.current;
+    if (!el || !flyout) return;
+    const half = el.offsetHeight / 2;
+    const clamped = Math.min(
+      Math.max(flyout.top, 8 + half),
+      window.innerHeight - 8 - half,
     );
-  }
-  function hideTooltip() {
-    setTooltipPos(null);
-  }
+    if (clamped !== flyout.top) setFlyout({ ...flyout, top: clamped });
+  }, [flyout]);
+
+  // Any scroll or resize invalidates coordinates captured off the anchor.
+  // Capture phase, because the nav list scrolls, not the window.
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open, close]);
 
   return (
     <div
-      className="relative"
-      onMouseEnter={showTooltip}
-      onMouseLeave={hideTooltip}
-      onFocus={showTooltip}
-      onBlur={hideTooltip}
+      onMouseEnter={handleEnter}
+      onMouseLeave={close}
+      onFocus={handleFocus}
+      onBlur={close}
     >
       <Link
         ref={anchorRef}
         href={item.href}
         scroll={false}
-        className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150
+        className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] ${FOCUS_RING}
           ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
           ${
             active
-              ? "bg-[#1C1C1F] text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
-              : "text-text-secondary hover:bg-[#1C1C1F]/60 hover:text-text-primary"
+              ? "bg-surface-2 text-text-primary shadow-[var(--shadow-level-1)]"
+              : "text-text-secondary hover:bg-surface-2/60 hover:text-text-primary"
           }`}
       >
         {active && (
           <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-gold" />
         )}
         <span
-          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-150
+          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)]
             ${
               active
-                ? "bg-[#232327] text-brand-gold"
-                : "bg-[#1C1C1F] text-text-muted group-hover:text-text-secondary"
+                ? "bg-surface-3 text-brand-gold"
+                : "bg-surface-2 text-text-muted group-hover:text-text-secondary"
             }`}
         >
           {item.icon}
@@ -107,20 +178,30 @@ function SidebarLink({
         )}
       </Link>
 
-      {item.description && tooltipPos && (
+      {/* Flyout — always beside the rail, never below the item. Sitting under
+          the link meant the panel covered the next two entries, so aiming at
+          them required waiting the tooltip out. */}
+      {flyout && (
         <div
+          ref={flyoutRef}
           role="tooltip"
-          style={{
-            top: tooltipPos.top,
-            left: tooltipPos.left,
-            transform: collapsed ? "translateY(-50%)" : undefined,
-          }}
-          className="pointer-events-none fixed z-30 w-60 rounded-lg border border-[#2A2A2E] bg-[#1C1C1F] px-3 py-2 text-xs leading-relaxed text-text-secondary shadow-[0_8px_24px_rgba(0,0,0,0.45)] animate-fade-in"
+          style={{ top: flyout.top, left: flyout.left }}
+          className="pointer-events-none fixed z-30 -translate-y-1/2"
         >
-          {!collapsed ? null : (
-            <p className="mb-0.5 font-semibold text-text-primary">{item.label}</p>
-          )}
-          <p>{item.description}</p>
+          <div className="animate-step-forward w-60 rounded-xl border border-border-default bg-surface-2 px-3 py-2.5 shadow-[var(--shadow-level-2)]">
+            {collapsed && (
+              <p className="text-[13px] font-semibold leading-tight text-text-primary">
+                {item.label}
+              </p>
+            )}
+            {item.description && (
+              <p
+                className={`text-xs leading-relaxed text-text-secondary ${collapsed ? "mt-1" : ""}`}
+              >
+                {item.description}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -182,63 +263,84 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
   // Org logo — use organization_logo if set, else fall back to app logo
   const orgLogo = user?.organization_logo ?? null;
 
+  const logoMark = orgLogo ? (
+    <Image
+      src={orgLogo}
+      alt={user?.organization_name ?? "Organization"}
+      width={24}
+      height={24}
+      className="h-6 w-6 rounded-lg object-cover"
+    />
+  ) : (
+    <Image
+      src="/logo/golden-main-transparent.png"
+      alt="PrepIQ"
+      width={22}
+      height={22}
+      className="h-[22px] w-[22px] object-contain"
+      priority
+    />
+  );
+
+  const logoTile =
+    "inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-surface-3 to-surface-2 shadow-[var(--shadow-level-1)]";
+
   return (
     <aside
       // Hook for the impersonation bar: being `fixed` this element ignores the
       // body padding that insets everything else, so globals.css moves it down
       // by the bar's height. See components/impersonation-banner.tsx.
       data-app-chrome="sidebar"
-      className={`fixed left-0 top-0 z-20 flex h-screen flex-col border-r border-[#1C1C1F] bg-[#141416] transition-[width] duration-200 ${
+      className={`fixed left-0 top-0 z-20 flex h-screen flex-col border-r border-surface-2 bg-surface-1 transition-[width] duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] ${
         collapsed ? "w-20" : "w-60"
       }`}
     >
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-[#1C1C1F] px-4 py-5">
-        <div className="relative flex items-center">
-          <Link
-            href={homeHref}
-            className={`inline-flex min-w-0 items-center ${
-              collapsed ? "mx-auto justify-center" : "gap-3 pr-8"
-            }`}
-          >
-            <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#232327] to-[#1C1C1F] shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
-              {orgLogo ? (
-                <Image
-                  src={orgLogo}
-                  alt={user?.organization_name ?? "Organization"}
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 rounded-lg object-cover"
-                />
-              ) : (
-                <Image
-                  src="/logo/golden-main-transparent.png"
-                  alt="PrepIQ"
-                  width={22}
-                  height={22}
-                  className="h-[22px] w-[22px] object-contain"
-                  priority
-                />
-              )}
-            </span>
-            {!collapsed && (
+      <div className="border-b border-surface-2 px-4 py-5">
+        {collapsed ? (
+          // Collapsed, the logo tile *is* the toggle: it cross-fades into the
+          // burger on hover. The previous build floated a separate 28px button
+          // at `right-0` of an 80px rail, which landed it half on top of the
+          // centred logo. Home stays one click away on the nav entry below.
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Expand sidebar"
+              aria-expanded={false}
+              className={`group relative ${logoTile} transition-shadow duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] hover:shadow-[var(--shadow-level-3)] active:scale-95 ${FOCUS_RING}`}
+            >
+              <span className="absolute inset-0 flex items-center justify-center transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-75 group-hover:opacity-0 group-focus-visible:scale-75 group-focus-visible:opacity-0">
+                {logoMark}
+              </span>
+              <span className="absolute inset-0 flex scale-75 items-center justify-center text-text-secondary opacity-0 transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-100 group-hover:text-text-primary group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100">
+                <MenuBurgerIcon className="h-4 w-4" />
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Link
+              href={homeHref}
+              className={`inline-flex min-w-0 flex-1 items-center gap-3 rounded-xl ${FOCUS_RING}`}
+            >
+              <span className={logoTile}>{logoMark}</span>
               <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
                 {user?.organization_name ?? "PrepIQ"}
               </span>
-            )}
-          </Link>
+            </Link>
 
-          {/* Collapse toggle */}
-          <button
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={toggle}
-            className={`absolute right-0 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg border border-[#2A2A2E] bg-[#1C1C1F] text-text-muted transition-all duration-150 hover:border-[#3A3A40] hover:bg-[#232327] hover:text-text-primary active:scale-95`}
-          >
-            <NavArrowLeft
-              className={`h-3.5 w-3.5 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
-            />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Collapse sidebar"
+              aria-expanded
+              className={`group inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface-2 text-text-muted transition-colors duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] hover:bg-surface-3 hover:text-text-primary active:scale-95 ${FOCUS_RING}`}
+            >
+              <MenuBurgerIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Role pill */}
         {!collapsed && user?.organization_role && (
@@ -258,7 +360,7 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
         {visibleSections.map((section, index) => (
           <div
             key={section.title}
-            className={index === 0 ? "mb-4" : "mb-4 border-t border-[#1C1C1F] pt-4"}
+            className={index === 0 ? "mb-4" : "mb-4 border-t border-surface-2 pt-4"}
           >
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-text-muted/70">
@@ -281,30 +383,30 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 
       {/* ── User identity footer ────────────────────────────────────────── */}
       {user && (
-        <div className="border-t border-[#1C1C1F] p-3">
+        <div className="border-t border-surface-2 p-3">
           {collapsed ? (
             <Link
               href="/workspace/profile"
               title="My Profile"
-              className="flex justify-center hover:opacity-80 transition-opacity"
+              className={`flex justify-center rounded-full transition-opacity duration-[var(--motion-duration-fast)] hover:opacity-80 ${FOCUS_RING}`}
             >
-              <div className="h-8 w-8 rounded-full bg-[#232327] border border-[#2A2A2E] flex items-center justify-center text-[11px] font-semibold text-text-muted select-none">
+              <div className="flex h-8 w-8 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
                 {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
               </div>
             </Link>
           ) : (
             <Link
               href="/workspace/profile"
-              className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-[#1C1C1F]/60 transition-colors group"
+              className={`group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-[var(--motion-duration-fast)] hover:bg-surface-2/60 ${FOCUS_RING}`}
             >
-              <div className="h-7 w-7 flex-shrink-0 rounded-full bg-[#232327] border border-[#2A2A2E] flex items-center justify-center text-[11px] font-semibold text-text-muted select-none">
+              <div className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
                 {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium leading-tight text-text-primary group-hover:text-brand-gold transition-colors">
+                <p className="truncate text-[12px] font-medium leading-tight text-text-primary transition-colors group-hover:text-brand-gold">
                   {user.first_name} {user.last_name}
                 </p>
-                <p className="truncate text-[10px] leading-tight text-text-muted mt-0.5">
+                <p className="mt-0.5 truncate text-[10px] leading-tight text-text-muted">
                   {user.email}
                 </p>
               </div>
