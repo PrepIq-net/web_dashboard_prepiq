@@ -39,7 +39,21 @@ export function BranchSwitcher() {
     return () => window.removeEventListener("mousedown", handleOutsideClick);
   }, [handleOutsideClick]);
 
-  if (branchOptions.length < 2) return null;
+  // `branchOptions` comes from client-fetched queries with nothing prefetched
+  // on the server, so the server always renders this component at "no data
+  // yet". On a fast backend those queries can resolve *during* hydration
+  // rather than after it, so using live data on the very first client render
+  // can hydrate a different tree than the server sent (a real, deterministic
+  // mismatch — not the same race dev-only extensions can cause). Hold at the
+  // server's shape for one tick so hydration always has something to match,
+  // then let the real branch count in. Mirrors SidebarStateProvider's
+  // localStorage-read-after-mount pattern for the same reason.
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted || branchOptions.length < 2) return null;
 
   const activeId = branchId ?? defaultBranch?.id ?? "";
   const activeBranch =
