@@ -23,7 +23,7 @@ import { TasksStrip } from "@/components/dashboard/today/tasks-strip";
 import {
   useBranchDayToday,
   useBranchDayLiveVersion,
-  useMorningBrief,
+  useMorningBriefs,
   useBranchPaceSummary,
   useIntradayTimeline,
   useCreateProductionLog,
@@ -62,6 +62,8 @@ import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals
 import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
+import { DaypartOutlookStrip } from "@/components/dashboard/today/daypart-outlook-strip";
+import { HourlyOutlookChart } from "@/components/dashboard/today/hourly-outlook-chart";
 import { MorningRiskAlerts } from "@/components/dashboard/today/morning-risk-alerts";
 import { InventoryRiskBanner } from "@/components/dashboard/today/inventory-risk-banner";
 import { PrepPlanSection } from "@/components/dashboard/today/prep-plan-section";
@@ -273,13 +275,27 @@ function TodayWorkspacePageContent() {
       initializeMutation.isSuccess ||
       initializeMutation.isError);
 
-  // Morning brief + plan provenance ("How this plan was made").
+  // Morning + afternoon briefs, plan provenance ("How this plan was made").
+  // Fetched across MORNING and LIVE (not just MORNING): the afternoon
+  // check-in's ~15:00 trigger normally lands mid-service, once the branch
+  // day has already moved to LIVE.
   const [provenanceOpen, setProvenanceOpen] = useState(false);
-  const morningBriefQuery = useMorningBrief(
+  const morningBriefQuery = useMorningBriefs(
     { branch_id: safeBranchId, date: targetDate },
-    canFetchData && branchDay?.status === "MORNING",
+    canFetchData &&
+      (branchDay?.status === "MORNING" || branchDay?.status === "LIVE"),
   );
-  const morningBrief = morningBriefQuery.data ?? null;
+  const morningBriefsList = useMemo(
+    () => morningBriefQuery.data?.briefs ?? [],
+    [morningBriefQuery.data],
+  );
+  const morningBrief = useMemo(
+    () => morningBriefsList.find((brief) => brief.brief_type === "MORNING") ?? null,
+    [morningBriefsList],
+  );
+  // Who's reading, not which brief — see morningBriefListSchema.
+  const briefGreetingName = morningBriefQuery.data?.greeting_name ?? null;
+  const briefGreetingRole = morningBriefQuery.data?.greeting_role ?? null;
   const provenanceStats = useMemo(
     () => pipelineStats ?? derivePipelineProvenance(branchDay?.prep_plan_items),
     [pipelineStats, branchDay?.prep_plan_items],
@@ -1039,6 +1055,13 @@ function TodayWorkspacePageContent() {
                   }
                 />
 
+                <DaypartOutlookStrip
+                  outlook={branchDay.daypart_outlook}
+                  demand={branchDay.daypart_demand}
+                />
+
+                <HourlyOutlookChart outlook={branchDay.hourly_outlook} />
+
                 <InventoryRiskBanner
                   requirement={branchDay?.ingredient_requirement}
                 />
@@ -1261,7 +1284,9 @@ function TodayWorkspacePageContent() {
           brief={briefVoice.data ?? null}
           voiceError={briefVoice.isError ? t("today.briefAudio.error") : null}
           onListen={openBriefAudio}
-          readBrief={morningBrief}
+          briefs={morningBriefsList}
+          greetingName={briefGreetingName}
+          greetingRole={briefGreetingRole}
           canAsk={canUseAssistant}
           branchId={safeBranchId}
           date={targetDate}

@@ -300,6 +300,14 @@ export type MorningBriefVoice = {
   };
   /** Null whenever synthesis was unavailable — the transcript still renders. */
   audio: BriefAudioTrack | null;
+  /**
+   * A short "Hi {first_name}," clip to play before `audio`. Null unless the
+   * viewer holds PERM_PERSONALIZED_BRIEFINGS, has a first name on file, and
+   * its own synthesis succeeded — same nullable discipline as `audio`
+   * itself. No server-side stitching: the player queues this, then `audio`,
+   * back to back.
+   */
+  intro_audio: Pick<BriefAudioTrack, "url" | "mime_type" | "duration_ms"> | null;
   unavailable_reason: string;
   conversation_id: string | null;
   message_id: string | null;

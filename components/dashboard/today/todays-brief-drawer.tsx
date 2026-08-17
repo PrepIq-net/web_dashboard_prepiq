@@ -7,6 +7,7 @@ import { Headset, Pause, Play, Restart, Xmark } from "iconoir-react";
 import { toast } from "react-hot-toast";
 
 import { useTranslation } from "@/lib/i18n";
+import { useMoney } from "@/lib/branch-currency";
 import { useModalBehaviour } from "@/components/ui/use-modal-behaviour";
 import {
   useCurrentConversation,
@@ -29,8 +30,19 @@ type TodaysBriefDrawerProps = {
   voiceError: string | null;
   /** Fetch/synthesize the spoken brief. Idempotent; callers guard on loading. */
   onListen: () => void;
-  /** Written brief — the read side of the surface. */
-  readBrief: MorningBrief | null;
+  /**
+   * Written briefs for today — MORNING always first when present, AFTERNOON
+   * (the ~15:00 lunch check-in) appended once its window has passed. The
+   * drawer picks one via its own tab state, defaulting to the most recent.
+   * Spoken audio (the `brief`/`voice*` props above) stays MORNING-only by
+   * design — see morning_brief_service.py / brief_script.py.
+   */
+  briefs: MorningBrief[];
+  /** Who's reading, not which brief — see morningBriefListSchema. Renders a
+   * small "Hi {name} — {role}" (or role-only) line when there's a role to
+   * personalize with at all; renders nothing when both are null. */
+  greetingName: string | null;
+  greetingRole: string | null;
   canAsk: boolean;
   branchId: string | null;
   date: string;
@@ -65,7 +77,9 @@ export function TodaysBriefDrawer({
   brief,
   voiceError,
   onListen,
-  readBrief,
+  briefs,
+  greetingName,
+  greetingRole,
   canAsk,
   branchId,
   date,
@@ -94,6 +108,22 @@ export function TodaysBriefDrawer({
   const [engaged, setEngaged] = useState(false);
   const [question, setQuestion] = useState("");
 
+  // Which written brief is showing. Defaults to the most recent — AFTERNOON
+  // once it exists (it's always generated later in the day than MORNING),
+  // otherwise MORNING. Resets whenever the available set changes (a new day,
+  // or the afternoon check-in just landed while the drawer was open).
+  const availableTypes = useMemo(() => briefs.map((brief) => brief.brief_type), [briefs]);
+  const [selectedType, setSelectedType] = useState<MorningBrief["brief_type"] | null>(
+    availableTypes[availableTypes.length - 1] ?? null,
+  );
+  useEffect(() => {
+    setSelectedType(availableTypes[availableTypes.length - 1] ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, date, availableTypes.join(",")]);
+  const readBrief =
+    briefs.find((brief) => brief.brief_type === selectedType) ?? briefs[0] ?? null;
+  const isMorningSelected = (readBrief?.brief_type ?? "MORNING") === "MORNING";
+
   // Inline Q&A: the thread lives in this drawer so asking never interrupts the
   // brief or the playback. The assistant conversation is shared — opening the
   // full assistant drawer later rehydrates the same thread.
@@ -112,6 +142,16 @@ export function TodaysBriefDrawer({
   }, [qaThread.length, qaSending]);
 
   const track = brief?.audio ?? null;
+  // Personalized "Hi {name}," clip, played once before `track` — never
+  // stitched server-side (see MorningBriefVoice.intro_audio's docstring).
+  const introTrack = brief?.intro_audio ?? null;
+  const introAudioRef = useRef<HTMLAudioElement | null>(null);
+  const introPlayedRef = useRef(false);
+  const [introActive, setIntroActive] = useState(false);
+  // Drives the play/pause button's icon/label during the brief window the
+  // intro clip is speaking, before the main track's own `playing` state
+  // turns true.
+  const isAudioActive = playing || introActive;
   const sections = useMemo(() => brief?.script.sections ?? [], [brief]);
 
   /**
@@ -157,6 +197,8 @@ export function TodaysBriefDrawer({
     setPlaying(false);
     setCurrentMs(0);
     setActualDurationMs(null);
+    introPlayedRef.current = false;
+    setIntroActive(false);
   }, [brief?.id]);
 
   useEffect(() => {
@@ -213,18 +255,37 @@ export function TodaysBriefDrawer({
     };
   }, []);
 
+  // Starts (or resumes) the shared brief itself — the existing, unchanged
+  // playback path. Split out so the intro clip's onEnded can hand off to it.
+  const startMainPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    ensureGraph(audio);
+    audio.playbackRate = speed;
+    void audio.play();
+    setEngaged(true);
+  }, [speed, ensureGraph]);
+
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (audio.paused) {
-      ensureGraph(audio);
-      audio.playbackRate = speed;
-      void audio.play();
-      setEngaged(true);
-    } else {
+    if (!audio.paused) {
       audio.pause();
+      return;
     }
-  }, [speed, ensureGraph]);
+    // First play of the session, with an intro clip available: play it, then
+    // hand off to the main track on its own onEnded (below). Every
+    // subsequent play/pause on this brief skips straight to the main track —
+    // replaying "Hi {name}," on every resume would get old fast.
+    if (introTrack && !introPlayedRef.current && introAudioRef.current) {
+      introPlayedRef.current = true;
+      setIntroActive(true);
+      setEngaged(true);
+      void introAudioRef.current.play();
+      return;
+    }
+    startMainPlayback();
+  }, [introTrack, startMainPlayback]);
 
   const replay = useCallback(() => {
     const audio = audioRef.current;
@@ -366,6 +427,22 @@ export function TodaysBriefDrawer({
         />
       ) : null}
 
+      {/* Personalized intro, played once before `track` above — see
+          togglePlay. Not wired into the seek bar/visualizer/duration math at
+          all: it is a brief, non-seekable preamble, not part of the timeline
+          a listener would want to scrub. */}
+      {introTrack ? (
+        <audio
+          ref={introAudioRef}
+          src={introTrack.url}
+          preload="auto"
+          onEnded={() => {
+            setIntroActive(false);
+            startMainPlayback();
+          }}
+        />
+      ) : null}
+
       {mounted ? (
         <MotionConfig reducedMotion="user">
           <AnimatePresence>
@@ -395,11 +472,23 @@ export function TodaysBriefDrawer({
                   <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
-                        {t("today.briefAudio.eyebrow")}
+                        {isMorningSelected
+                          ? t("today.briefAudio.eyebrow")
+                          : t("today.briefDrawer.tabAfternoon")}
                       </p>
                       <h2 className="mt-0.5 truncate font-display text-lg text-text-primary">
                         {readBrief?.headline ?? t("today.briefAudio.title")}
                       </h2>
+                      {greetingRole ? (
+                        <p className="mt-1 truncate text-xs text-text-secondary">
+                          {greetingName
+                            ? t("today.briefDrawer.greetingNamed", {
+                                name: greetingName,
+                                role: greetingRole,
+                              })
+                            : t("today.briefDrawer.greetingRoleOnly", { role: greetingRole })}
+                        </p>
+                      ) : null}
                     </div>
                     <button
                       type="button"
@@ -411,9 +500,32 @@ export function TodaysBriefDrawer({
                     </button>
                   </header>
 
+                  {briefs.length > 1 ? (
+                    <div className="flex items-center gap-1 border-b border-surface-4 px-6 py-2.5">
+                      {briefs.map((brief) => (
+                        <button
+                          key={brief.brief_type}
+                          type="button"
+                          onClick={() => setSelectedType(brief.brief_type)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-brand-gold ${
+                            brief.brief_type === selectedType
+                              ? "bg-surface-3 text-text-primary"
+                              : "text-text-muted hover:bg-surface-3/60 hover:text-text-secondary"
+                          }`}
+                        >
+                          {brief.brief_type === "AFTERNOON"
+                            ? t("today.briefDrawer.tabAfternoon")
+                            : t("today.briefDrawer.tabMorning")}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
-                    {/* ── Player block ─────────────────────────────────── */}
-                    {voiceLoading && !brief ? (
+                    {/* ── Player block (MORNING only — spoken audio is not
+                         generated for the afternoon check-in, see
+                         morning_brief_service.py) ──────────────────────── */}
+                    {!isMorningSelected ? null : voiceLoading && !brief ? (
                       <BriefPreparing message={t("today.briefAudio.preparing")} />
                     ) : !brief && voiceError ? (
                       <div className="space-y-3">
@@ -463,13 +575,13 @@ export function TodaysBriefDrawer({
                                 type="button"
                                 onClick={togglePlay}
                                 aria-label={
-                                  playing
+                                  isAudioActive
                                     ? t("today.briefAudio.pause")
                                     : t("today.briefAudio.play")
                                 }
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-button bg-brand-gold text-surface-1 transition-colors hover:bg-brand-gold-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold"
                               >
-                                {playing ? (
+                                {isAudioActive ? (
                                   <Pause width="1.2em" height="1.2em" strokeWidth={1.5} />
                                 ) : (
                                   <Play width="1.2em" height="1.2em" strokeWidth={1.5} />
@@ -518,8 +630,8 @@ export function TodaysBriefDrawer({
                       </>
                     ) : null}
 
-                    {/* ── Read-along transcript (spoken brief) ─────────── */}
-                    {brief && sections.length > 0 ? (
+                    {/* ── Read-along transcript (spoken brief, MORNING only) ── */}
+                    {!isMorningSelected ? null : brief && sections.length > 0 ? (
                       <BriefTranscript
                         sections={timedSections}
                         activeIndex={activeIndex}
@@ -530,6 +642,21 @@ export function TodaysBriefDrawer({
                       <p className="mt-6 text-sm leading-relaxed text-text-secondary">
                         {readBrief.narrative}
                       </p>
+                    ) : null}
+
+                    {/* ── Afternoon check-in: no spoken audio, just the
+                         narrative (above, when isMorningSelected is false the
+                         transcript branch is skipped so this is the only
+                         narrative render) + a structured lunch-vs-plan block. ── */}
+                    {!isMorningSelected ? (
+                      <>
+                        {readBrief?.narrative ? (
+                          <p className="mt-6 text-sm leading-relaxed text-text-secondary">
+                            {readBrief.narrative}
+                          </p>
+                        ) : null}
+                        <AfternoonLunchSummary drivers={readBrief?.drivers ?? null} />
+                      </>
                     ) : null}
 
                     {/* ── Read extras (written brief) ──────────────────── */}
@@ -797,17 +924,17 @@ export function TodaysBriefDrawer({
                     type="button"
                     onClick={togglePlay}
                     aria-label={
-                      playing
+                      isAudioActive
                         ? t("today.briefAudio.pause")
                         : t("today.briefAudio.play")
                     }
                     className={`inline-flex h-9 w-9 items-center justify-center rounded-button transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold ${
-                      playing
+                      isAudioActive
                         ? "bg-brand-gold text-surface-1 hover:bg-brand-gold-hover"
                         : "border border-surface-4 text-text-secondary hover:bg-surface-3 hover:text-text-primary"
                     }`}
                   >
-                    {playing ? (
+                    {isAudioActive ? (
                       <Pause width="1.1em" height="1.1em" strokeWidth={1.5} />
                     ) : (
                       <Play width="1.1em" height="1.1em" strokeWidth={1.5} />
@@ -1014,6 +1141,60 @@ function BriefTranscript({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The afternoon check-in's structured extras — lunch actual vs. plan, top
+ * sellers, and the still-ahead dinner expectation. The narrative paragraph
+ * above already says this in words; this is the numbers behind it, same
+ * spirit as the watchouts/signals/learned-patterns blocks for the morning
+ * brief. Money-denominated fields use the branch's own currency (useMoney),
+ * matching daypart-outlook-strip.tsx's convention.
+ */
+function AfternoonLunchSummary({
+  drivers,
+}: {
+  drivers: MorningBrief["drivers"] | null;
+}) {
+  const { t } = useTranslation();
+  const { money } = useMoney();
+
+  if (!drivers?.has_lunch_pos_data) return null;
+
+  const topItems = drivers.top_lunch_items ?? [];
+  const dinnerExpected = drivers.dinner_expected_value ?? 0;
+
+  if (topItems.length === 0 && dinnerExpected <= 0) return null;
+
+  return (
+    <div className="mt-6 border-t border-surface-4/60 pt-4">
+      {topItems.length > 0 ? (
+        <>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            {t("today.briefDrawer.topLunchItems")}
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {topItems.slice(0, 5).map((item) => (
+              <li
+                key={item.item_id}
+                className="flex items-center justify-between gap-3 text-xs text-text-secondary"
+              >
+                <span className="min-w-0 truncate">{item.item_title}</span>
+                <span className="shrink-0 font-semibold text-text-primary">
+                  {money(item.lunch_actual_value)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {dinnerExpected > 0 ? (
+        <p className={topItems.length > 0 ? "mt-4 text-xs text-text-secondary" : "text-xs text-text-secondary"}>
+          {t("today.briefDrawer.dinnerExpected", { value: money(dinnerExpected) })}
+        </p>
+      ) : null}
     </div>
   );
 }

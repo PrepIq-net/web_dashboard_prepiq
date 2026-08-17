@@ -723,6 +723,19 @@
       "eyebrow": "Perspective du jour",
       "noItems": "Aucun article suivi pour le moment."
     },
+    "daypartOutlook": {
+      "eyebrow": "Perspectives par période",
+      "busiestSentence": "{daypart} semble être le moment le plus chargé aujourd'hui.",
+      "money": "Valeur attendue",
+      "demand": "Part de l'activité du jour",
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "lateNight": "Fin de soirée"
+    },
+    "hourlyOutlook": {
+      "eyebrow": "Perspectives horaires"
+    },
     "prepPlan": {
       "title": "Plan de préparation",
       "subtitle": "Ce qu'il faut cuisiner aujourd'hui",
@@ -1548,7 +1561,13 @@
       "qaHeader": "Q&R",
       "qaOpenFull": "Ouvrir la conversation complète",
       "pendingHint": "Nécessite votre confirmation",
-      "openAssistant": "Ouvrir l'assistant"
+      "openAssistant": "Ouvrir l'assistant",
+      "tabMorning": "Briefing du matin",
+      "tabAfternoon": "Point de l'après-midi",
+      "topLunchItems": "Meilleures ventes du déjeuner",
+      "dinnerExpected": "Le dîner s'annonce autour de {value}.",
+      "greetingNamed": "Bonjour {name} — {role}",
+      "greetingRoleOnly": "{role}"
     },
     "expectedDemandHint": "L'affluence attendue aujourd'hui par rapport à un {typicalDay} typique, d'après votre historique de ventes, la météo, les événements, les jours fériés et d'autres signaux. +8% signifie environ 8% de commandes de plus que la normale.",
     "reliability": {

@@ -16,7 +16,7 @@ import {
   getBranchDayOutcomes,
   attributeBranchDayOutcomes,
   getIntradayTimeline,
-  getMorningBrief,
+  getMorningBriefs,
   getBranchCommandView,
   initializeBranchDay,
   ignoreBranchDayLiveAlert,
@@ -144,10 +144,10 @@ export const productionIntelligenceQueryKeys = {
       params?.branch_id ?? "",
       params?.date ?? "",
     ] as const,
-  morningBrief: (params?: { branch_id?: string; date?: string }) =>
+  morningBriefs: (params?: { branch_id?: string; date?: string }) =>
     [
       ...productionIntelligenceQueryKeys.root,
-      "morning-brief",
+      "morning-briefs",
       params?.branch_id ?? "",
       params?.date ?? "",
     ] as const,
@@ -421,13 +421,15 @@ export function useBranchDayToday(
   });
 }
 
-export function useMorningBrief(
+/** Every brief generated for the day (MORNING, and AFTERNOON once its
+ * ~15:00 window has passed) — `.data.briefs` is the list, oldest first. */
+export function useMorningBriefs(
   params?: { branch_id?: string; date?: string },
   enabled = true,
 ) {
   return useQuery({
-    queryKey: productionIntelligenceQueryKeys.morningBrief(params),
-    queryFn: () => getMorningBrief(params ?? {}),
+    queryKey: productionIntelligenceQueryKeys.morningBriefs(params),
+    queryFn: () => getMorningBriefs(params ?? {}),
     enabled: enabled && Boolean(params?.branch_id),
     staleTime: 5 * 60_000,
     retry: false,
