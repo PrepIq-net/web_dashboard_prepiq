@@ -99,6 +99,66 @@ export const preparationTypeSchema = z.object({
 });
 export type PreparationType = z.infer<typeof preparationTypeSchema>;
 
+// Pre-service daypart split (breakfast/lunch/dinner/late-night) of a day's
+// forecast — distinct from live_monitor below, which is continuous
+// mid-service pace tracking and is not derived from these buckets.
+export const daypartSchema = z.enum([
+  "BREAKFAST",
+  "LUNCH",
+  "DINNER",
+  "LATE_NIGHT",
+]);
+export type Daypart = z.infer<typeof daypartSchema>;
+
+export const daypartForecastEntrySchema = z.object({
+  daypart: daypartSchema,
+  share: z.number(),
+  forecast_qty: z.number(),
+  // How the share was derived — this item's own POS history, the branch's
+  // pooled shape, or the last-resort hardcoded default. See backend
+  // daypart_profile.py; surfaced so the UI never presents a guess as a
+  // measurement.
+  share_source: z.enum([
+    "ITEM_POS_CDF",
+    "BRANCH_POS_SHAPE",
+    "FALLBACK_DEFAULT",
+  ]),
+});
+export type DaypartForecastEntry = z.infer<typeof daypartForecastEntrySchema>;
+
+// Money-denominated (not "covers" — see daypart_profile.py's docstring for
+// why) breakdown of a branch-day's forecast by daypart, aggregated across
+// items. busiest_daypart is null when no daypart is meaningfully ahead of an
+// even split, or there's no data yet.
+export const daypartOutlookSchema = z.object({
+  daypart_totals: z.record(z.string(), z.number()),
+  busiest_daypart: daypartSchema.nullable(),
+  busiest_share: z.number(),
+});
+export type DaypartOutlook = z.infer<typeof daypartOutlookSchema>;
+
+// Cross-item-safe counterpart to daypartOutlookSchema — % of today's overall
+// activity per daypart, not money. Needs no cost data; null on flat/no-POS
+// branches, where there's no "which daypart is busier" signal at all.
+export const daypartDemandShareSchema = z.object({
+  daypart_shares: z.record(z.string(), z.number()),
+  busiest_daypart: daypartSchema.nullable(),
+  busiest_share: z.number(),
+  shape_source: z.string(),
+});
+export type DaypartDemandShare = z.infer<typeof daypartDemandShareSchema>;
+
+// Money-denominated forecast by hour (not daypart) — the finer-grained
+// sibling of daypartOutlookSchema, built from the same real hour-of-day CDF
+// already powering the live pace chart. Keys are hour-of-day as strings
+// ("0"-"23", JSON object keys are always strings) — only hours with a real,
+// non-zero contribution are present, so a closed overnight hour is simply
+// absent rather than a zero-valued bar.
+export const hourlyOutlookSchema = z.object({
+  hourly_totals: z.record(z.string(), z.number()),
+});
+export type HourlyOutlook = z.infer<typeof hourlyOutlookSchema>;
+
 export const prepPlanItemSchema = z.object({
   id: z.string().uuid(),
   product_id: z.string().uuid(),
@@ -226,6 +286,7 @@ export const prepPlanItemSchema = z.object({
     })
     .nullable()
     .optional(),
+  daypart_forecast: z.array(daypartForecastEntrySchema).optional().default([]),
   // Present only when this branch had no history of its own for the item, so
   // the quantity was borrowed. Null means PrepIQ measured it.
   cold_start: coldStartOriginSchema.nullable().optional(),
@@ -606,6 +667,9 @@ export const branchDayTodaySchema = z.object({
   forecast_confidence: z.number(),
   event_modifier_percentage: z.number(),
   weather_modifier_percentage: z.number().nullable(),
+  daypart_outlook: daypartOutlookSchema.nullable().optional(),
+  daypart_demand: daypartDemandShareSchema.nullable().optional(),
+  hourly_outlook: hourlyOutlookSchema.nullable().optional(),
   demand_signal: z.object({
     expected_demand_index: z.number(),
     forecast_confidence: z.number(),
@@ -2503,6 +2567,11 @@ export type IntradayTimeline = z.infer<typeof intradayTimelineSchema>;
 export const morningBriefSchema = z.object({
   branch_id: z.string(),
   target_date: z.string(),
+  // Which brief this is. One branch-day can hold both: MORNING (6AM,
+  // forecast-facing) and AFTERNOON (~15:00, lunch actuals-vs-plan + dinner
+  // expectation — see morning_brief_service.build_afternoon_drivers).
+  // Defaults to MORNING so any response predating this field still parses.
+  brief_type: z.enum(["MORNING", "AFTERNOON"]).catch("MORNING"),
   headline: z.string(),
   narrative: z.string(),
   watchouts: z.array(z.string()).catch([]),
@@ -2543,6 +2612,45 @@ export const morningBriefSchema = z.object({
       // Signals that actually fired today + the branch's learned profile.
       active_signals: z.array(activeSignalSchema).optional(),
       learned_patterns: z.array(learnedPatternSchema).optional(),
+      // Money-denominated breakdown of today's forecast by daypart. null
+      // when there's no PrepDaypartForecast data yet or no daypart is
+      // meaningfully ahead of an even split — see
+      // summarize_branch_daypart_outlook on the backend.
+      daypart_outlook: daypartOutlookSchema.nullable().optional(),
+      // AFTERNOON-type drivers only (build_afternoon_drivers on the
+      // backend) — a distinct shape sharing the same JSONField/API field,
+      // since which one appears depends on brief_type above.
+      lunch_actual_value: z.number().optional(),
+      lunch_expected_value: z.number().optional(),
+      lunch_variance_pct: z.number().nullable().optional(),
+      top_lunch_items: z
+        .array(
+          z.object({
+            item_id: z.string(),
+            item_title: z.string(),
+            lunch_actual_quantity: z.number(),
+            lunch_actual_value: z.number(),
+          }),
+        )
+        .optional(),
+      dinner_expected_value: z.number().optional(),
+      has_lunch_pos_data: z.boolean().optional(),
+      // Pace-based revision to dinner+late-night's combined expected value
+      // (see revise_remaining_dayparts_from_pace on the backend) — null
+      // unless a real revision was computed; is_meaningful gates whether it
+      // was actually persisted (and whether the narrative mentions it). The
+      // narrative sentence already carries this in words; this is the
+      // number behind it, not currently rendered as its own UI element.
+      dinner_revision: z
+        .object({
+          original_value: z.number(),
+          revised_value: z.number(),
+          revision_pct: z.number(),
+          revision_ratio: z.number(),
+          is_meaningful: z.boolean(),
+        })
+        .nullable()
+        .optional(),
     })
     .nullable(),
   prep_sheet: z
@@ -2563,6 +2671,23 @@ export const morningBriefSchema = z.object({
   updated_at: z.string(),
 });
 export type MorningBrief = z.infer<typeof morningBriefSchema>;
+
+// /branch-day/morning-brief/ returns every brief generated for the day
+// (MORNING first, AFTERNOON once its window has passed) rather than a
+// single object — see production_intelligence.views.branch_views.MorningBriefView.
+export const morningBriefListSchema = z.object({
+  // Who's reading, not which brief they see — computed once per request from
+  // the viewer's own PERM_PERSONALIZED_BRIEFINGS grant (see
+  // resolve_brief_personalization on the backend), so it applies the same
+  // across every brief in `briefs` below. greeting_name is only ever present
+  // together with greeting_role; greeting_role alone (permission absent, or
+  // role-only fallback) is the common case, and both null means the viewer
+  // has no role to personalize with at all.
+  greeting_name: z.string().nullable().catch(null),
+  greeting_role: z.string().nullable().catch(null),
+  briefs: z.array(morningBriefSchema),
+});
+export type MorningBriefList = z.infer<typeof morningBriefListSchema>;
 
 export const advancedForecastPayloadSchema = z.object({
   branch_id: z.string().uuid(),

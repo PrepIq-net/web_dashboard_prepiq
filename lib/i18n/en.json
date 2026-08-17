@@ -723,6 +723,19 @@
       "eyebrow": "Today's outlook",
       "noItems": "No tracked items yet."
     },
+    "daypartOutlook": {
+      "eyebrow": "Daypart outlook",
+      "busiestSentence": "{daypart} looks like the busiest window today.",
+      "money": "Expected value",
+      "demand": "Share of today's activity",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "lateNight": "Late night"
+    },
+    "hourlyOutlook": {
+      "eyebrow": "Hourly outlook"
+    },
     "prepPlan": {
       "title": "Prep Plan",
       "subtitle": "What to cook today",
@@ -1548,7 +1561,13 @@
       "qaHeader": "Q&A",
       "qaOpenFull": "Open full chat",
       "pendingHint": "Needs your confirmation",
-      "openAssistant": "Open in assistant"
+      "openAssistant": "Open in assistant",
+      "tabMorning": "Morning Brief",
+      "tabAfternoon": "Afternoon Check-in",
+      "topLunchItems": "Top sellers at lunch",
+      "dinnerExpected": "Dinner is shaping up to bring in about {value}.",
+      "greetingNamed": "Hi {name} — {role}",
+      "greetingRoleOnly": "{role}"
     },
     "expectedDemandHint": "How busy we expect today to be compared with a typical {typicalDay}, based on your sales history plus weather, events, holidays and other live signals. +8% means roughly 8% more orders than normal.",
     "reliability": {

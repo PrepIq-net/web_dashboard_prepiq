@@ -61,7 +61,7 @@ import {
   velocityUpdateResponseSchema,
   branchPaceSummarySchema,
   branchDayVersionSchema,
-  morningBriefSchema,
+  morningBriefListSchema,
   advancedForecastPayloadSchema,
   velocityUpdatePayloadSchema,
   branchDayOutcomesResponseSchema,
@@ -417,7 +417,9 @@ export async function getBranchDayVersion(params: { branch_id: string }) {
   );
 }
 
-export async function getMorningBrief(params: {
+/** Every brief generated for this branch-day (MORNING first, AFTERNOON once
+ * its ~15:00 window has passed) — see MorningBriefView on the backend. */
+export async function getMorningBriefs(params: {
   branch_id?: string;
   date?: string;
 }) {
@@ -427,7 +429,7 @@ export async function getMorningBrief(params: {
       branch_id: safeBranchId,
       date: params.date,
     }),
-    morningBriefSchema,
+    morningBriefListSchema,
     { method: "GET" },
   );
 }
