@@ -13,15 +13,12 @@ import {
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { formatMoney } from "@/lib/format";
 import { Select } from "@/components/ui/select";
-import {
-  useBranches,
-  useCurrentUserProfile,
-  useProductionIntelligenceAccessScope,
-} from "@/services";
+import { useCurrentUserProfile } from "@/services";
 import { resolvePermissions } from "@/lib/permissions";
 import { useAccessGate } from "@/lib/hooks/use-access-gate";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useSelectedBranch } from "@/services/context/branch-store";
+import { useBranchOptions } from "@/services/context/use-branch-options";
 import {
   useIngredients,
   useMenuItems,
@@ -76,27 +73,16 @@ function InventoryPageContent() {
   const urlBranchId = searchParams.get("branch") ?? "";
   const urlTab = searchParams.get("tab") as TabId | null;
   const { data: user, isPending, isError } = useCurrentUserProfile();
-  const { data: accessScope } = useProductionIntelligenceAccessScope();
-  const branchesQuery = useBranches(user?.organization_id ?? "");
 
   const permissions = resolvePermissions(user);
   const canAccess = permissions.has(PERMISSIONS.VIEW_INVENTORY);
-  const canSeeAllBranches =
-    permissions.has(PERMISSIONS.VIEW_ALL_BRANCHES) ||
-    permissions.has(PERMISSIONS.MANAGE_BRANCHES);
 
-  const branches = branchesQuery.data ?? EMPTY_LIST;
-  const accessibleBranches = accessScope?.accessible_branches ?? EMPTY_LIST;
-  const scopedBranchIds = new Set(accessibleBranches.map((b) => b.id));
-  const scopedBranches = canSeeAllBranches
-    ? branches
-    : branches.filter((b) => (scopedBranchIds.size ? scopedBranchIds.has(b.id) : true));
-
-  const defaultBranch =
-    scopedBranches.find((b) => b.id === accessScope?.default_branch_id) ??
-    scopedBranches.find((b) => b.is_primary) ??
-    scopedBranches[0] ??
-    null;
+  // Shared with every other workspace page — org branches merged with the
+  // access-scope's accessible branches. Previously this page computed its own
+  // scoped list (with a VIEW_ALL_BRANCHES/MANAGE_BRANCHES bypass that isn't
+  // honoured by the backend's actual branch-staffing check), which could
+  // offer a branch here that the data endpoints then rejected.
+  const { branchOptions: scopedBranches, defaultBranch } = useBranchOptions();
 
   // Branch selection is shared across workspace pages (persists over navigation
   // and full reloads) via the branch store.

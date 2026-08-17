@@ -29,7 +29,13 @@ import { toIso } from "./planning-helpers";
  * fully readable, but it is not in the forecast and the copy says so plainly.
  * Confirming admits it; it does not change what PrepIQ has learned.
  */
-function AiEventFooter({ event }: { event: CalendarEventList }) {
+function AiEventFooter({
+  event,
+  canManageCalendar,
+}: {
+  event: CalendarEventList;
+  canManageCalendar: boolean;
+}) {
   const { t } = useTranslation();
   const confirmMutation = useConfirmPlanningEvent();
   const isPending = event.confirmation_status === "PENDING";
@@ -89,7 +95,7 @@ function AiEventFooter({ event }: { event: CalendarEventList }) {
             : t("planning.ai_confirmed_hint")}
       </p>
 
-      {isPending ? (
+      {isPending && canManageCalendar ? (
         <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
@@ -128,6 +134,7 @@ export function DayPanel({
   dayOverrides,
   onCreateClick,
   onEditClick,
+  canManageCalendar,
 }: {
   date: string;
   events: CalendarEventList[];
@@ -135,6 +142,7 @@ export function DayPanel({
   dayOverrides: ItemAvailabilityOverride[];
   onCreateClick: () => void;
   onEditClick: (eventId: string) => void;
+  canManageCalendar: boolean;
 }) {
   const { t } = useTranslation();
   const deleteMutation = useDeletePlanningEvent();
@@ -169,14 +177,16 @@ export function DayPanel({
             })}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onCreateClick}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold transition-colors"
-        >
-          <Plus className="h-3 w-3" />
-          {t("planning.add")}
-        </button>
+        {canManageCalendar && (
+          <button
+            type="button"
+            onClick={onCreateClick}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary hover:border-brand-gold/50 hover:text-brand-gold transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+            {t("planning.add")}
+          </button>
+        )}
       </div>
 
       {/* Forecast context summary */}
@@ -386,48 +396,56 @@ export function DayPanel({
                       title={event.title}
                       className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
                     />
-                    <button
-                      type="button"
-                      onClick={() => onEditClick(event.id)}
-                      className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
-                      title={t("planning.edit_event")}
-                    >
-                      <EditPencil className="h-3 w-3" />
-                    </button>
-                    {confirmDeleteId === event.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            deleteMutation.mutate(event.id);
-                            setConfirmDeleteId(null);
-                          }}
-                          disabled={deleteMutation.isPending}
-                          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
-                        >
-                          {t("planning.delete")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteId(null)}
-                          className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
-                        >
-                          {t("planning.no")}
-                        </button>
-                      </div>
-                    ) : (
+                    {canManageCalendar && (
                       <button
                         type="button"
-                        onClick={() => setConfirmDeleteId(event.id)}
-                        className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
-                        title={t("planning.delete_event")}
+                        onClick={() => onEditClick(event.id)}
+                        className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-brand-gold hover:bg-brand-gold/10 transition-all"
+                        title={t("planning.edit_event")}
                       >
-                        <Xmark className="h-3 w-3" />
+                        <EditPencil className="h-3 w-3" />
                       </button>
                     )}
+                    {canManageCalendar &&
+                      (confirmDeleteId === event.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteMutation.mutate(event.id);
+                              setConfirmDeleteId(null);
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-status-critical hover:bg-status-critical/10 transition-colors disabled:opacity-30"
+                          >
+                            {t("planning.delete")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="rounded px-1 py-0.5 text-[10px] text-text-muted hover:text-text-primary transition-colors"
+                          >
+                            {t("planning.no")}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(event.id)}
+                          className="h-6 w-6 flex items-center justify-center rounded-md text-text-muted hover:text-status-critical hover:bg-status-critical/10 transition-all"
+                          title={t("planning.delete_event")}
+                        >
+                          <Xmark className="h-3 w-3" />
+                        </button>
+                      ))}
                   </div>
                 </div>
-                {isAiEvent ? <AiEventFooter event={event} /> : null}
+                {isAiEvent ? (
+                  <AiEventFooter
+                    event={event}
+                    canManageCalendar={canManageCalendar}
+                  />
+                ) : null}
               </div>
             );
           })

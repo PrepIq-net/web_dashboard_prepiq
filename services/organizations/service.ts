@@ -10,6 +10,7 @@ import {
   type RevokeMemberPermissionPayload,
   organizationSchema,
   organizationMemberSchema,
+  type OrganizationMember,
   organizationRegisterPayloadSchema,
   organizationFinancialOverviewSchema,
   staffPerformanceResponseSchema,
@@ -346,6 +347,28 @@ export async function transferOrganizationOwnership(
       method: "POST",
       body: { user_id: userId, ...(reason ?? {}) },
     },
+  );
+}
+
+export async function promoteCoOwner(
+  id: string,
+  userId: string,
+): Promise<OrganizationMember> {
+  return apiClientWithSchema(
+    organizationsEndpoints.coOwner(id, userId),
+    organizationMemberSchema,
+    { method: "POST" },
+  );
+}
+
+export async function demoteCoOwner(
+  id: string,
+  userId: string,
+): Promise<OrganizationMember> {
+  return apiClientWithSchema(
+    organizationsEndpoints.coOwner(id, userId),
+    organizationMemberSchema,
+    { method: "DELETE" },
   );
 }
 

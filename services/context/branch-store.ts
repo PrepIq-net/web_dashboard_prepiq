@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useProductionIntelligenceAccessScope } from "@/services/production-intelligence/hooks";
@@ -32,9 +32,47 @@ export const useBranchStore = create<BranchState>()(
     {
       name: "prepiq.selected-branch",
       storage: createJSONStorage(() => localStorage),
+      // Without this, persist reads localStorage synchronously while the
+      // store module initializes on the client, so the client's very first
+      // render can already have a real branchId while the server (no
+      // localStorage) rendered "" — a hydration mismatch on every
+      // /workspace/* page. skipHydration defers that read to an explicit
+      // `rehydrate()` call inside an effect (see `useHasHydrated` below),
+      // which only runs after mount, guaranteeing the first client render
+      // matches the server's.
+      skipHydration: true,
     },
   ),
 );
+
+/**
+ * True once the persisted branch selection has been read from localStorage.
+ * Triggers that read (it's a no-op after the first call) and stays false for
+ * the SSR pass and the first client render, so components that gate on it
+ * hydrate cleanly before switching to the real persisted value.
+ */
+let hydrationStarted = false;
+function useHasHydrated(): boolean {
+  // Always start false — this must match the server, which never runs this
+  // effect at all, so the persist store's `.persist` API (client-only, since
+  // it touches localStorage) is never read during the render that gets
+  // diffed against the server output.
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!hydrationStarted) {
+      hydrationStarted = true;
+      void useBranchStore.persist.rehydrate();
+    }
+    if (useBranchStore.persist.hasHydrated()) {
+      setHasHydrated(true);
+      return;
+    }
+    return useBranchStore.persist.onFinishHydration(() => setHasHydrated(true));
+  }, []);
+
+  return hasHydrated;
+}
 
 /** Clear persisted branch selection (call on logout). */
 export function clearSelectedBranch() {
@@ -48,8 +86,10 @@ export function clearSelectedBranch() {
  * workspace layout uses. Returns "" while nothing is resolvable yet.
  */
 export function useActiveBranchId(): string {
+  const hasHydrated = useHasHydrated();
   const branchId = useBranchStore((s) => s.branchId);
   const accessScopeQuery = useProductionIntelligenceAccessScope();
+  if (!hasHydrated) return accessScopeQuery.data?.default_branch_id || "";
   return branchId || accessScopeQuery.data?.default_branch_id || "";
 }
 
@@ -68,10 +108,17 @@ export function useSelectedBranch(params: {
   urlBranchId?: string | null;
 }): readonly [string, (id: string) => void] {
   const { branches, defaultBranchId, urlBranchId } = params;
+  const hasHydrated = useHasHydrated();
   const branchId = useBranchStore((s) => s.branchId);
   const setBranchId = useBranchStore((s) => s.setBranchId);
 
   useEffect(() => {
+    // Don't act on the store's pre-hydration "" placeholder — it isn't a
+    // real "no selection" yet, just the not-yet-read-from-localStorage
+    // state, and resolving against it here would stomp a real persisted
+    // selection with `defaultBranchId` for one tick.
+    if (!hasHydrated) return;
+
     const isValid = (id: string) => branches.some((b) => b.id === id);
 
     if (urlBranchId && isValid(urlBranchId)) {
@@ -83,14 +130,17 @@ export function useSelectedBranch(params: {
     if ((!branchId || !isValid(branchId)) && defaultBranchId) {
       setBranchId(defaultBranchId);
     }
-  }, [urlBranchId, branches, defaultBranchId, branchId, setBranchId]);
+  }, [hasHydrated, urlBranchId, branches, defaultBranchId, branchId, setBranchId]);
 
-  // While resolving, prefer a valid stored value, else the default, so callers
-  // never see an empty string when a branch is actually available.
+  // Before hydration (SSR pass + first client render), always resolve to the
+  // page's default so the client's first paint matches what the server sent
+  // — the persisted value only takes over once we know it's been read.
   const effective =
-    branchId && branches.some((b) => b.id === branchId)
-      ? branchId
-      : defaultBranchId ?? branchId;
+    !hasHydrated
+      ? defaultBranchId ?? ""
+      : branchId && branches.some((b) => b.id === branchId)
+        ? branchId
+        : defaultBranchId ?? branchId;
 
   return [effective, setBranchId] as const;
 }

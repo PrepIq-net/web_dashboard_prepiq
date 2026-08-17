@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { WarningTriangle, Trash, LogOut } from "iconoir-react";
+import { WarningTriangle, Trash, LogOut, ShieldMinus, ShieldPlusIn } from "iconoir-react";
 import { toast } from "react-hot-toast";
 
 import { DrawerShell } from "@/components/ui/drawer-shell";
@@ -16,12 +16,12 @@ import {
   useOrganizationMembers,
   useLeaveOrganization,
   useTransferOrganizationOwnership,
+  usePromoteCoOwner,
+  useDemoteCoOwner,
   useDeleteOrganization,
 } from "@/services/organizations/hooks";
 import { useBranches } from "@/services/branches/hooks";
 import { useDeleteAccount, useSessionLogoutUser } from "@/services/users/hooks";
-import { resolvePermissions } from "@/lib/permissions";
-import { PERMISSIONS } from "@/services/organizations/types";
 import { ApiError } from "@/lib/api/errors";
 import { clearPersistedCache } from "@/lib/api/persist";
 import { clearSelectedBranch } from "@/services/context/branch-store";
@@ -48,19 +48,23 @@ export function DangerZone({ orgId }: { orgId?: string }) {
   const { data: branches } = useBranches(effectiveOrgId);
   const queryClient = useQueryClient();
 
-  const permissions = resolvePermissions(user);
-  const isOwner =
-    permissions.has(PERMISSIONS.MANAGE_ORG_SETTINGS) &&
-    permissions.has(PERMISSIONS.MANAGE_BILLING);
+  // Ownership (Primary Owner or Co-Owner) — independent of role/permissions.
+  // Previously this inferred ownership from holding MANAGE_ORG_SETTINGS +
+  // MANAGE_BILLING, the same heuristic organizations.services._can_own() used
+  // before ownership became its own field; any Admin who also held both
+  // permissions would see (and then be 403'd by) owner-only actions.
+  const isOwner = Boolean(user?.is_owner);
+  const isPrimaryOwner = Boolean(user?.is_primary_owner);
 
-  // Sole member = owner with no other active teammates. Deleting the account then
-  // cascades the org (branches + subscription) server-side, so we must warn.
+  // Sole member = the Primary Owner with no other active teammates. Deleting
+  // the account then cascades the org (branches + subscription) server-side,
+  // so we must warn.
   const otherActiveMembers = useMemo(
     () => (members ?? []).filter((m) => m.is_active && m.user !== user?.id),
     [members, user?.id],
   );
   const isSoleMember =
-    isOwner &&
+    isPrimaryOwner &&
     Boolean(effectiveOrgId) &&
     Array.isArray(members) &&
     otherActiveMembers.length === 0;
@@ -69,6 +73,8 @@ export function DangerZone({ orgId }: { orgId?: string }) {
   const deleteAccount = useDeleteAccount();
   const leaveOrg = useLeaveOrganization(effectiveOrgId);
   const transferOwnership = useTransferOrganizationOwnership(effectiveOrgId);
+  const promoteCoOwner = usePromoteCoOwner(effectiveOrgId);
+  const demoteCoOwner = useDemoteCoOwner(effectiveOrgId);
   const deleteOrg = useDeleteOrganization(effectiveOrgId);
   const logout = useSessionLogoutUser();
 
@@ -77,6 +83,7 @@ export function DangerZone({ orgId }: { orgId?: string }) {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [orgDeleteOpen, setOrgDeleteOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [coOwnersOpen, setCoOwnersOpen] = useState(false);
 
   // Account-delete form
   const [reasonChoice, setReasonChoice] = useState("NOT_USEFUL");
@@ -250,8 +257,22 @@ export function DangerZone({ orgId }: { orgId?: string }) {
         />
       )}
 
-      {/* Transfer ownership (owner only) */}
+      {/* Manage co-owners (any owner — primary or co-owner) */}
       {isOwner && effectiveOrgId && (
+        <DangerCard
+          icon={<ShieldPlusIn className="h-5 w-5" />}
+          title={t("settings.danger.coOwners.title")}
+          description={t("settings.danger.coOwners.description")}
+          action={
+            <Button variant="secondary" onClick={() => setCoOwnersOpen(true)}>
+              {t("settings.danger.coOwners.button")}
+            </Button>
+          }
+        />
+      )}
+
+      {/* Transfer primary ownership (Primary Owner only) */}
+      {isPrimaryOwner && effectiveOrgId && (
         <DangerCard
           icon={<WarningTriangle className="h-5 w-5" />}
           title={t("settings.danger.transfer.title")}
@@ -268,8 +289,8 @@ export function DangerZone({ orgId }: { orgId?: string }) {
         />
       )}
 
-      {/* Delete organization (owner only) */}
-      {isOwner && effectiveOrgId && (
+      {/* Delete organization (Primary Owner only) */}
+      {isPrimaryOwner && effectiveOrgId && (
         <DangerCard
           icon={<Trash className="h-5 w-5" />}
           title={t("settings.danger.org.title")}
@@ -445,6 +466,79 @@ export function DangerZone({ orgId }: { orgId?: string }) {
             ]}
           />
         </div>
+      </DrawerShell>
+
+      {/* ── Manage co-owners ── */}
+      <DrawerShell
+        open={coOwnersOpen}
+        title={t("settings.danger.coOwners.modalTitle")}
+        description={t("settings.danger.coOwners.modalDescription")}
+        onClose={() => setCoOwnersOpen(false)}
+        footer={
+          <Button variant="ghost" onClick={() => setCoOwnersOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+        }
+      >
+        <ul className="space-y-2">
+          {(members ?? [])
+            .filter((m) => m.is_active)
+            .map((m) => {
+              const label =
+                `${m.first_name} ${m.last_name}`.trim() || m.email || m.user;
+              return (
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-surface-4 bg-surface-2 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-text-primary">
+                      {label}
+                    </p>
+                    {m.is_primary_owner ? (
+                      <span className="text-xs text-brand-gold">
+                        {t("settings.danger.coOwners.primaryOwnerBadge")}
+                      </span>
+                    ) : m.is_owner ? (
+                      <span className="text-xs text-text-muted">
+                        {t("settings.danger.coOwners.coOwnerBadge")}
+                      </span>
+                    ) : null}
+                  </div>
+                  {m.is_primary_owner ? (
+                    <span className="shrink-0 text-xs text-text-muted">
+                      {t("settings.danger.coOwners.primaryOwnerHint")}
+                    </span>
+                  ) : m.is_owner ? (
+                    <button
+                      type="button"
+                      disabled={demoteCoOwner.isPending}
+                      onClick={() => demoteCoOwner.mutate(m.user)}
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-status-critical/40 hover:text-status-critical disabled:opacity-50"
+                    >
+                      <ShieldMinus className="h-3.5 w-3.5" />
+                      {t("settings.danger.coOwners.remove")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={promoteCoOwner.isPending}
+                      onClick={() => promoteCoOwner.mutate(m.user)}
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-surface-4 px-3 text-xs text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-50"
+                    >
+                      <ShieldPlusIn className="h-3.5 w-3.5" />
+                      {t("settings.danger.coOwners.make")}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          {(members ?? []).filter((m) => m.is_active).length === 0 && (
+            <p className="rounded-lg border border-dashed border-surface-4 px-4 py-4 text-sm text-text-muted">
+              {t("settings.danger.coOwners.empty")}
+            </p>
+          )}
+        </ul>
       </DrawerShell>
 
       {/* ── Delete org (typed confirm) ── */}
