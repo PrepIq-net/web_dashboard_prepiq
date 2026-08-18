@@ -13,6 +13,8 @@ import type { ItemAvailabilityOverride } from "@/services/inventory/types";
 import { usePlanningCalendar } from "@/services/planning/hooks";
 import type { CalendarEventList, EventType } from "@/services/planning/types";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_DOT } from "@/services/planning/types";
+import { resolvePermissions } from "@/lib/permissions";
+import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
 import { EMPTY_LIST, UUID_PATTERN } from "@/lib/constants";
 import { formatImpact, impactTone } from "@/lib/format";
@@ -39,6 +41,8 @@ function PlanningPageContent() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   const { user, branchOptions, defaultBranch } = useBranchOptions();
+  const permissions = useMemo(() => resolvePermissions(user), [user]);
+  const canManageCalendar = permissions.has(PERMISSIONS.MANAGE_CALENDAR);
 
   // Shared branch selection — persists across navigation and reloads.
   const [branchId, setBranchId] = useSelectedBranch({
@@ -131,14 +135,16 @@ function PlanningPageContent() {
           />
         </div>
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => setCreateModalOpen(true)}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-brand-gold-hover active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
-          {t("planning.new_event_button")}
-        </button>
+        {canManageCalendar && (
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-brand-gold-hover active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            {t("planning.new_event_button")}
+          </button>
+        )}
       </div>
 
       {safeBranchId && !subLoading && shouldBlockAccess ? (
@@ -346,6 +352,7 @@ function PlanningPageContent() {
                   dayOverrides={dayOverrides}
                   onCreateClick={() => setCreateModalOpen(true)}
                   onEditClick={(id) => setEditingEventId(id)}
+                  canManageCalendar={canManageCalendar}
                 />
               )}
             </div>

@@ -324,6 +324,13 @@ function invalidateAssignments(queryClient: ReturnType<typeof useQueryClient>, o
   });
   queryClient.invalidateQueries({ queryKey: branchKeys.staff(orgId) });
   queryClient.invalidateQueries({ queryKey: branchKeys.inviteContext(orgId) });
+  // Bug fix: a branch-assignment save used to leave the members table's
+  // "Locations" column stale until a manual reload, even though it had
+  // persisted — that query key is owned by services/organizations/hooks.ts
+  // (organizationKeys.members), reproduced literally here rather than
+  // imported to avoid a cross-module import cycle (organizations/hooks.ts
+  // already imports branchKeys from this file).
+  queryClient.invalidateQueries({ queryKey: ["organizations", "members", orgId] });
 }
 
 export function useUpsertBranchAssignment(orgId: string) {

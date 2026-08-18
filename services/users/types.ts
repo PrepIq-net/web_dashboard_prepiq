@@ -174,6 +174,11 @@ export const userProfileSchema = z.object({
   permissions: z.array(z.string()).default([]),
   has_password: z.boolean().optional().default(true),
   google_linked: z.boolean().optional().default(false),
+  // Ownership (Primary Owner or Co-Owner) — independent of role. Use these
+  // instead of inferring ownership from permission codes: an Admin can hold
+  // MANAGE_ORG_SETTINGS + MANAGE_BILLING without being an owner at all.
+  is_owner: z.boolean().optional().default(false),
+  is_primary_owner: z.boolean().optional().default(false),
 });
 
 export const updateProfilePayloadSchema = z.object({

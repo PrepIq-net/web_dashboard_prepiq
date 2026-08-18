@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  useBranches,
-  useCurrentUserProfile,
-  useStaffAssignments,
-} from "@/services";
+import { useCurrentUserProfile, useStaffAssignments } from "@/services";
 import {
   useBranchCommandView,
-  useProductionIntelligenceAccessScope,
   useSalesDataValidation,
   useStaffShiftChecklist,
 } from "@/services/production-intelligence/hooks";
@@ -21,6 +16,8 @@ import { AnalyticsSection } from "@/components/dashboard/home/analytics/analytic
 import { resolvePermissions, canAccessDashboard } from "@/lib/permissions";
 import { PERMISSIONS } from "@/services/organizations/types";
 import { useTranslation } from "@/lib/i18n";
+import { useBranchOptions } from "@/services/context/use-branch-options";
+import { useSelectedBranch } from "@/services/context/branch-store";
 
 // The dashboard "home" now lives INSIDE the workspace layout subtree so that
 // navigating between it and any other /workspace/* route is a client-side
@@ -53,7 +50,7 @@ function DashboardContent() {
   const { data: user, isLoading } = useCurrentUserProfile();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedBranchFromUrl = searchParams.get("branch");
+  const urlBranchId = searchParams.get("branch");
 
   const permissions = resolvePermissions(user);
   const canSeeFinancials = permissions.has(PERMISSIONS.VIEW_FINANCIAL_DATA);
@@ -71,19 +68,19 @@ function DashboardContent() {
   const isBranchExecutionMode = !hasDashboardAccess && canSeeForecasts;
   const isOrgOverviewMode = isOwnerMode || isOpsManagerMode;
 
-  const branchesQuery = useBranches(user?.organization_id ?? "");
-  const accessScopeQuery = useProductionIntelligenceAccessScope();
-
-  const branches = branchesQuery.data ?? [];
-  const accessibleBranches = accessScopeQuery.data?.accessible_branches ?? [];
-  const branchOptions = useMemo(() => {
-    if (!isBranchExecutionMode) return branches;
-    if (!accessibleBranches.length) return branches;
-    const accessibleBranchIds = new Set(
-      accessibleBranches.map((branch) => branch.id),
-    );
-    return branches.filter((branch) => accessibleBranchIds.has(branch.id));
-  }, [branches, isBranchExecutionMode, accessibleBranches]);
+  // Shared with every other workspace page — previously this page read only
+  // the `?branch=` URL param and never subscribed to the branch switcher's
+  // store, so picking a branch in the header switcher did nothing here.
+  const { branchOptions, defaultBranch } = useBranchOptions();
+  const [activeBranchId] = useSelectedBranch({
+    branches: branchOptions,
+    defaultBranchId: defaultBranch?.id,
+    urlBranchId,
+  });
+  const activeBranch = useMemo(
+    () => branchOptions.find((b) => b.id === activeBranchId) ?? null,
+    [branchOptions, activeBranchId],
+  );
 
   const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const yesterdayDate = useMemo(() => {
@@ -91,18 +88,6 @@ function DashboardContent() {
     d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   }, []);
-
-  const activeBranch = useMemo(() => {
-    if (!branchOptions.length) return null;
-    if (selectedBranchFromUrl) {
-      const fromUrl = branchOptions.find((b) => b.id === selectedBranchFromUrl);
-      if (fromUrl) return fromUrl;
-    }
-    const primary = branchOptions.find((b) => b.is_primary);
-    return primary ?? branchOptions[0];
-  }, [branchOptions, selectedBranchFromUrl]);
-
-  const activeBranchId = activeBranch?.id ?? "";
 
   // Only fetch branch-specific data when in branch execution mode
   const branchCommandTodayQuery = useBranchCommandView(

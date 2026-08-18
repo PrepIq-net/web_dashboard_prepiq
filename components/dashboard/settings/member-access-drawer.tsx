@@ -260,6 +260,13 @@ export function MemberAccessDrawer({
             <p className="text-xs leading-relaxed text-text-secondary">
               {t("settings.memberDrawer.branches.help")}
             </p>
+            <p className="flex items-start gap-2 rounded-lg border border-surface-4 bg-surface-2 px-3 py-2.5 text-xs leading-relaxed text-text-secondary">
+              <InfoCircle
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted"
+                aria-hidden="true"
+              />
+              {t("settings.memberDrawer.branches.precedence")}
+            </p>
 
             {assignmentsLoading ? (
               <p className="text-sm text-text-muted">
@@ -293,29 +300,29 @@ export function MemberAccessDrawer({
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <select
-                        value={assignment.role_slug ?? ""}
-                        onChange={(event) =>
-                          upsertAssignment.mutate({
-                            user_id: String(member.user),
-                            branch_id: assignment.branch,
-                            custom_role_slug: event.target.value || undefined,
-                          })
-                        }
-                        aria-label={t("settings.memberDrawer.branches.roleAt", {
-                          branch: assignment.branch_name,
-                        })}
-                        className="rounded-md border border-surface-4 bg-surface-1 px-2 py-1 text-xs text-text-primary focus:border-brand-gold focus:outline-none"
-                      >
-                        <option value="">
-                          {t("settings.memberDrawer.branches.inherits")}
-                        </option>
-                        {roleOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="w-44">
+                        <Select
+                          value={assignment.role_slug ?? ""}
+                          onChange={(value) =>
+                            upsertAssignment.mutate({
+                              user_id: String(member.user),
+                              branch_id: assignment.branch,
+                              custom_role_slug: value || undefined,
+                            })
+                          }
+                          options={[
+                            {
+                              label: t("settings.memberDrawer.branches.inherits"),
+                              value: "",
+                            },
+                            ...roleOptions,
+                          ]}
+                          disabled={upsertAssignment.isPending}
+                          ariaLabel={t("settings.memberDrawer.branches.roleAt", {
+                            branch: assignment.branch_name,
+                          })}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() =>

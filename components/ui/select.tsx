@@ -19,6 +19,10 @@ type SelectProps = {
   disabled?: boolean;
   error?: string;
   className?: string;
+  /** Accessible name for call sites that render this without a visible
+   *  `label` (e.g. inline in a table row) — otherwise the trigger button
+   *  has no accessible name at all. */
+  ariaLabel?: string;
 };
 
 export function Select({
@@ -31,6 +35,7 @@ export function Select({
   disabled = false,
   error,
   className = "",
+  ariaLabel,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
@@ -106,6 +111,7 @@ export function Select({
           ref={buttonRef}
           type="button"
           disabled={disabled}
+          aria-label={ariaLabel ?? label}
           onClick={() => {
             if (!isOpen) updateMenuPosition();
             setIsOpen(!isOpen);

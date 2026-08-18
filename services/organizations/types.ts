@@ -175,6 +175,9 @@ export const organizationMemberSchema = z.object({
   branch_assignments: z.array(memberBranchAssignmentSchema).default([]),
   /** Permission codes granted to this person directly, on top of their role. */
   extra_permission_codes: z.array(z.string()).default([]),
+  /** Ownership (Primary Owner or Co-Owner) — independent of role/custom_role_slug. */
+  is_owner: z.boolean().optional().default(false),
+  is_primary_owner: z.boolean().optional().default(false),
 });
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 

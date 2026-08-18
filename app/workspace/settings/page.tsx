@@ -1724,6 +1724,7 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
   };
 
   const handleAddMember = () => {
+    const addedEmail = newMember.user_email;
     addMember.mutate(newMember, {
       onSuccess: () => {
         setIsAddModalOpen(false);
@@ -1731,6 +1732,15 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           user_email: "",
           custom_role_slug: SYSTEM_ROLE_SLUG.MEMBER,
         });
+        // The add-member modal can only set the org role — branches and extra
+        // permissions live in Manage Access, so point there explicitly rather
+        // than leaving it to the one-line hint inside the modal they just closed.
+        toast(
+          t("settings.users.addMemberModal.manageAccessNudge", {
+            email: addedEmail,
+          }),
+          { icon: "💡", duration: 6000 },
+        );
       },
     });
   };

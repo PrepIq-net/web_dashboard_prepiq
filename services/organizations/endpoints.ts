@@ -11,6 +11,9 @@ export const organizationsEndpoints = {
   leave: (id: string) => `/api/organizations/${id}/leave/`,
   transferOwnership: (id: string) =>
     `/api/organizations/${id}/transfer-ownership/`,
+  /** POST to grant co-owner status, DELETE to revoke it. Primary Owner only. */
+  coOwner: (id: string, userId: string) =>
+    `/api/organizations/${id}/members/${userId}/co-owner/`,
   publicDetail: (id: string) => `/api/organizations/business/${id}/`,
   financialOverview: (id: string) =>
     `/api/organizations/${id}/financial/overview/`,

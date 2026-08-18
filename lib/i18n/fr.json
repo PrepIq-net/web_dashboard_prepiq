@@ -2152,7 +2152,8 @@
         "cancel": "Annuler",
         "add": "Ajouter un membre",
         "adding": "Ajout en cours...",
-        "hint": "Vous pourrez l'affecter à des établissements et accorder des permissions supplémentaires après l'ajout."
+        "hint": "Vous pourrez l'affecter à des établissements et accorder des permissions supplémentaires après l'ajout.",
+        "manageAccessNudge": "{email} a été ajouté(e). Ouvrez « Gérer l'accès » pour définir ses établissements ou accorder des permissions supplémentaires."
       },
       "removeModal": {
         "title": "Supprimer {label} ?",
@@ -2191,10 +2192,10 @@
         "teamIssue": "Problème avec l'équipe"
       },
       "transfer": {
-        "title": "Transférer la propriété",
-        "description": "Confiez le rôle de propriétaire à un autre membre. Vous serez rétrogradé en administrateur.",
+        "title": "Transférer la propriété principale",
+        "description": "Confiez le poste de Propriétaire Principal à un autre membre. Vous conservez votre rôle et vos accès en tant que copropriétaire, sans les perdre.",
         "button": "Transférer la propriété",
-        "modalDescription": "Choisissez le membre qui deviendra le nouveau propriétaire.",
+        "modalDescription": "Choisissez le membre qui deviendra le nouveau Propriétaire Principal. Vous resterez copropriétaire ensuite.",
         "selectLabel": "Nouveau propriétaire",
         "selectPlaceholder": "Sélectionner un membre…",
         "reasonLabel": "Motif (facultatif)"
@@ -2203,6 +2204,19 @@
         "delegating": "Déléguer la gestion quotidienne",
         "sellingBusiness": "Vente / cession de l'entreprise",
         "leaving": "Je pars / changement de rôle"
+      },
+      "coOwners": {
+        "title": "Copropriétaires",
+        "description": "Les copropriétaires ont un accès complet de niveau propriétaire, indépendamment de leur rôle. Seul le Propriétaire Principal peut transférer la propriété principale ou supprimer l'organisation.",
+        "button": "Gérer les copropriétaires",
+        "modalTitle": "Gérer les copropriétaires",
+        "modalDescription": "Accordez ou révoquez le statut de copropriétaire pour les membres actifs.",
+        "primaryOwnerBadge": "Propriétaire Principal",
+        "coOwnerBadge": "Copropriétaire",
+        "make": "Faire copropriétaire",
+        "remove": "Retirer le statut",
+        "primaryOwnerHint": "Transférez la propriété principale pour changer ce poste.",
+        "empty": "Aucun autre membre actif pour le moment."
       },
       "org": {
         "title": "Supprimer l'organisation",
@@ -2273,6 +2287,7 @@
       "branches": {
         "title": "Lieux de travail",
         "help": "Une personne peut travailler dans plusieurs établissements et y tenir un rôle différent. Les permissions ne s'appliquent qu'aux établissements auxquels elle est affectée.",
+        "precedence": "Définir un rôle ici remplace le rôle d'organisation à cet établissement uniquement — cela ne change rien ailleurs. Laissez « Hérite du rôle de l'organisation » pour utiliser son rôle d'organisation à cet endroit.",
         "empty": "Affectée à aucun établissement pour l'instant.",
         "inherits": "Hérite du rôle de l'organisation",
         "inheritsNamed": "Hérite du rôle de l'organisation ({role})",
@@ -2286,7 +2301,7 @@
       },
       "extra": {
         "title": "Permissions supplémentaires",
-        "help": "Donnez à cette personne quelque chose que son rôle n'inclut pas — sans modifier le rôle ni la promouvoir. Les autres personnes ayant le même rôle ne sont pas affectées.",
+        "help": "Donnez à cette personne quelque chose que son rôle n'inclut pas déjà — en plus du rôle qui s'applique actuellement (son rôle d'organisation, ou un rôle spécifique à un établissement s'il y en a un). Cela ne retire jamais rien, et les autres personnes ayant le même rôle ne sont pas affectées.",
         "empty": "Rien accordé au-delà de son rôle.",
         "add": "Accorder une permission",
         "done": "Terminé",

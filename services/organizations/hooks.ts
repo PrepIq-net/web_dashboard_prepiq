@@ -346,6 +346,40 @@ export function useTransferOrganizationOwnership(id: string) {
   });
 }
 
+export function usePromoteCoOwner(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => organizationService.promoteCoOwner(id, userId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+      toast.success("Granted co-owner status.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to grant co-owner status.");
+    },
+  });
+}
+
+export function useDemoteCoOwner(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => organizationService.demoteCoOwner(id, userId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationKeys.members(id) }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKeys.me() }),
+      ]);
+      toast.success("Co-owner status removed.");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove co-owner status.");
+    },
+  });
+}
+
 export function useDeleteOrganization(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -2152,7 +2152,8 @@
         "cancel": "Cancel",
         "add": "Add Member",
         "adding": "Adding...",
-        "hint": "You can staff them at locations and grant extra permissions after they are added."
+        "hint": "You can staff them at locations and grant extra permissions after they are added.",
+        "manageAccessNudge": "{email} was added. Open Manage access to set their locations or grant extra permissions."
       },
       "removeModal": {
         "title": "Remove {label}?",
@@ -2191,10 +2192,10 @@
         "teamIssue": "Problem with the team"
       },
       "transfer": {
-        "title": "Transfer ownership",
-        "description": "Hand the owner role to another member. You'll be downgraded to admin.",
+        "title": "Transfer primary ownership",
+        "description": "Hand the Primary Owner seat to another member. You keep your role and access as a co-owner rather than losing them.",
         "button": "Transfer ownership",
-        "modalDescription": "Choose the member who will become the new owner.",
+        "modalDescription": "Choose the member who will become the new Primary Owner. You'll remain a co-owner afterward.",
         "selectLabel": "New owner",
         "selectPlaceholder": "Select a member…",
         "reasonLabel": "Reason (optional)"
@@ -2203,6 +2204,19 @@
         "delegating": "Delegating day-to-day management",
         "sellingBusiness": "Selling / handing over the business",
         "leaving": "I'm leaving / role change"
+      },
+      "coOwners": {
+        "title": "Co-owners",
+        "description": "Co-owners have full owner-level access, independent of whatever role they hold. Only the Primary Owner can transfer primary ownership or delete the organization.",
+        "button": "Manage co-owners",
+        "modalTitle": "Manage co-owners",
+        "modalDescription": "Grant or revoke co-owner status for active members.",
+        "primaryOwnerBadge": "Primary Owner",
+        "coOwnerBadge": "Co-owner",
+        "make": "Make co-owner",
+        "remove": "Remove co-owner",
+        "primaryOwnerHint": "Transfer primary ownership to change this seat.",
+        "empty": "No other active members yet."
       },
       "org": {
         "title": "Delete organization",
@@ -2273,6 +2287,7 @@
       "branches": {
         "title": "Where they work",
         "help": "Someone can work at more than one location, and hold a different role at each. Permissions only apply at locations they are assigned to.",
+        "precedence": "Setting a role here replaces their organization role at that one location only — it doesn't change their role anywhere else. Leave it as \"Inherits organization role\" to use their organization role at that location instead.",
         "empty": "Not assigned to any location yet.",
         "inherits": "Inherits organization role",
         "inheritsNamed": "Inherits organization role ({role})",
@@ -2286,7 +2301,7 @@
       },
       "extra": {
         "title": "Extra permissions",
-        "help": "Give this person something their role does not include — without changing the role or promoting them. Anyone else on the same role is unaffected.",
+        "help": "Give this person something their role doesn't already include — on top of whichever role currently applies to them (their organization role, or a location override where one is set). This never removes anything, and anyone else on the same role is unaffected.",
         "empty": "Nothing granted beyond their role.",
         "add": "Grant a permission",
         "done": "Done",
