@@ -132,7 +132,7 @@ function ItemPicker({
 // Modal chrome shared by create + edit
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EventModalFrame({
+export function EventModalFrame({
   eyebrow,
   title,
   onClose,
@@ -184,11 +184,11 @@ function EventModalFrame({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin px-4 py-5 sm:px-6 sm:py-6">
           {children}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-surface-4 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-surface-4 px-4 py-4 sm:px-6">
           {footer}
         </div>
       </div>
@@ -422,7 +422,7 @@ export function CreateEventModal({
             </p>
           </div>
         ) : null}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label={t("planning.date")}>
             <TextInput
               type="date"
@@ -454,7 +454,7 @@ export function CreateEventModal({
               {t("planning.promotion_details")}
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("planning.promotion_name")}>
                 <TextInput
                   value={form.promotion_name}
@@ -475,7 +475,7 @@ export function CreateEventModal({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("planning.discount_type")}>
                 <NativeSelect
                   value={form.discount_type}
@@ -515,7 +515,7 @@ export function CreateEventModal({
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-gold">
               {t("planning.reservation_details")}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("planning.guest_count")}>
                 <TextInput
                   type="number"
@@ -755,7 +755,7 @@ export function EditEventModal({
               ) : null}
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label={t("planning.date")}>
                 <TextInput
                   type="date"

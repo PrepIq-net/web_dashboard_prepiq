@@ -346,7 +346,7 @@ function SalesWasteContent() {
       ) : null}
 
       {/* Tab bar */}
-      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
         {(
           [
             { id: "ITEMS", label: t("workspace.salesWaste.tabItems") },
@@ -359,7 +359,7 @@ function SalesWasteContent() {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+            className={`inline-flex h-10 shrink-0 items-center whitespace-nowrap px-4 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? "border-b-2 border-brand-gold text-brand-gold"
                 : "text-text-muted hover:text-text-secondary"
@@ -466,11 +466,11 @@ function SalesWasteContent() {
                           className={chart.color}
                         />
                       </svg>
-                      <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-text-muted sm:grid-cols-6">
                         {trendSeries.labels.slice(-6).map((label, index) => (
                           <div key={`${chart.label}-${label}-${index}`}>
-                            <p>{label}</p>
-                            <p className="font-semibold text-text-secondary">
+                            <p className="break-words">{label}</p>
+                            <p className="break-words font-semibold text-text-secondary">
                               {chart.suffix
                                 ? `${(chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0).toFixed(1)}${chart.suffix}`
                                 : toCurrency(chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0)}

@@ -217,7 +217,8 @@
       "alertsDescription": "Operational risks and AI insights will appear here in real-time.",
       "viewAllNotifications": "View all notifications",
       "switchLocation": "Switch location",
-      "selectLocation": "Select location"
+      "selectLocation": "Select location",
+      "openMenu": "Open menu"
     },
     "overview": {
       "eyebrow": "Dashboard",
@@ -1785,6 +1786,7 @@
     "planning": "Calendar",
     "schedule": "Staff Schedule",
     "production": "Production",
+    "closeMenu": "Close menu",
     "inventory": "Inventory",
     "history": "History",
     "analysis": "Analysis",
@@ -2019,6 +2021,7 @@
       }
     },
     "notifications": {
+      "eyebrow": "Notifications",
       "title": "Notification Settings",
       "description": "Control how and when you receive operational alerts.",
       "tableHeader": {
@@ -2906,7 +2909,44 @@
     "manage_link": "Manage →",
     "no_unavailable_items": "No items marked unavailable for this day.",
     "off_menu": "Off Menu",
-    "supply": "Supply"
+    "supply": "Supply",
+    "detail_close": "Close",
+    "detail_load_error": "Couldn't load this event.",
+    "detail_when": "When",
+    "detail_where": "Where",
+    "detail_impact": "Demand impact",
+    "detail_counted_forecast": "Counted in forecast",
+    "detail_not_counted_forecast": "Not counted in forecast",
+    "detail_recurring": "Recurring",
+    "detail_yes": "Yes",
+    "detail_no": "No",
+    "detail_reservation_type": "Reservation type",
+    "detail_service_period": "Service period",
+    "detail_estimated_spend": "Estimated spend",
+    "detail_notes": "Notes",
+    "detail_location": "Location",
+    "detail_expected_attendance": "Expected attendance",
+    "detail_distance": "Distance from branch",
+    "detail_source_confidence": "Source confidence",
+    "detail_source": "Source",
+    "detail_delivery_date": "Delivery date",
+    "detail_expected_cost": "Expected cost",
+    "detail_delivery_status": "Delivery status",
+    "detail_delivery_items": "Items",
+    "detail_delivery_items_count": "{count} items",
+    "detail_note_type": "Note type",
+    "detail_confirmed_at": "Confirmed at",
+    "detail_predicted_delta": "Predicted demand delta",
+    "detail_reasoning": "Reasoning",
+    "detail_model_version": "Model version",
+    "detail_generated_at": "Signal generated",
+    "detail_created_by": "Created by",
+    "detail_created_at": "Created",
+    "detail_updated_at": "Updated",
+    "detail_meta": "Details",
+    "detail_ai_provenance": "Why PrepIQ found it",
+    "detail_ai_signal": "Forecast signal",
+    "detail_closure_coverage": "Coverage"
   },
   "workspace": {
     "insights": {

@@ -394,14 +394,16 @@ export default function StaffPerformancePage() {
             </div>
           ) : null}
           {rows.length > 0 ? (
-            <NativeTable
-              table={table}
-              tableClassName="w-full min-w-[1320px]"
-              headerClassName="border-b border-surface-4 bg-[#232327]/65"
-              headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted"
-              bodyRowClassName="border-b border-[#232327] transition-colors hover:bg-[#232327]/40"
-              cellClassName="px-4 py-3"
-            />
+            <div className="overflow-x-auto scrollbar-thin">
+              <NativeTable
+                table={table}
+                tableClassName="w-full min-w-[1320px]"
+                headerClassName="border-b border-surface-4 bg-[#232327]/65"
+                headerCellClassName="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted"
+                bodyRowClassName="border-b border-[#232327] transition-colors hover:bg-[#232327]/40"
+                cellClassName="px-4 py-3"
+              />
+            </div>
           ) : null}
         </div>
       </section>

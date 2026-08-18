@@ -18,7 +18,7 @@ export default function OperationsHubPage() {
         insight={t("workspace.chat.insight")}
       >
         <div className="flex h-[calc(100vh-200px)] rounded-xl border border-surface-4 bg-surface-2">
-          <div className="w-80 border-r border-surface-4 p-4">
+          <div className="hidden w-80 border-r border-surface-4 p-4 md:block">
             <div className="animate-pulse space-y-3">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-16 rounded-lg bg-surface-3" />

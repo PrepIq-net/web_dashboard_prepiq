@@ -107,7 +107,7 @@ export function DrawerShell({
         role="dialog"
         aria-modal="true"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
+        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0">
             <h2 className="font-display text-xl font-semibold text-text-primary">
               {title}
@@ -129,7 +129,7 @@ export function DrawerShell({
           <div className="relative flex-1 min-h-0">
             <div
               ref={scrollRef}
-              className="h-full overflow-y-auto overscroll-contain px-6 py-6 scrollbar-thin"
+              className="h-full overflow-y-auto overscroll-contain px-4 py-5 scrollbar-thin sm:px-6 sm:py-6"
               onScroll={updateScrollIndicators}
             >
               {children}
@@ -188,7 +188,7 @@ export function DrawerShell({
           </div>
         ) : null}
         {footer ? (
-          <footer className="flex items-center justify-end gap-2 border-t border-surface-4 px-6 py-5">
+          <footer className="flex items-center justify-end gap-2 border-t border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
             {footer}
           </footer>
         ) : null}

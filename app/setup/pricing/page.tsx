@@ -144,7 +144,7 @@ export default function PricingStepPage() {
         )}
 
         {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-6 mb-16">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-16">
           <button
             onClick={() => setBillingCycle("MONTHLY")}
             className={`text-[15px] font-medium transition-all ${billingCycle === "MONTHLY" ? "text-text-primary" : "text-text-muted opacity-40 hover:opacity-60"}`}

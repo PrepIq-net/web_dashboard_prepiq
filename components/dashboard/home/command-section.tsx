@@ -753,7 +753,7 @@ export function CommandSection() {
 
   return (
     <section>
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
             {t("dashboard.home.queue.kicker")}

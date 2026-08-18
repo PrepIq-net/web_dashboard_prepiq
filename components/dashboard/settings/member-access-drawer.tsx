@@ -188,7 +188,7 @@ export function MemberAccessDrawer({
         aria-modal="true"
         aria-label={t("settings.memberDrawer.title", { name: displayName })}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
+        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-surface-4 bg-surface-2 text-sm font-semibold text-brand-gold">
               {(
@@ -216,7 +216,7 @@ export function MemberAccessDrawer({
           </button>
         </header>
 
-        <div className="flex-1 space-y-8 overflow-y-auto px-6 py-6 scrollbar-thin">
+        <div className="flex-1 space-y-8 overflow-y-auto px-4 py-5 scrollbar-thin sm:px-6 sm:py-6">
           {/* ── Role ─────────────────────────────────────────────────── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export function MemberAccessDrawer({
                 {assignedBranches.map((assignment) => (
                   <li
                     key={assignment.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-surface-4 bg-surface-2 px-4 py-3"
+                    className="flex flex-col gap-3 rounded-lg border border-surface-4 bg-surface-2 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-text-primary">
@@ -299,8 +299,8 @@ export function MemberAccessDrawer({
                             })}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <div className="w-44">
+                    <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+                      <div className="w-full min-w-0 sm:w-44">
                         <Select
                           value={assignment.role_slug ?? ""}
                           onChange={(value) =>

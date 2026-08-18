@@ -317,7 +317,7 @@ function HistoryContent() {
                 {grade?.label ? gradeLabelMap[grade.label] ?? grade.label : ""}
               </h3>
             </div>
-            <div className="flex gap-6 text-sm text-text-muted">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-text-muted">
               <span>
                 <span className="font-semibold text-text-primary">{summary.forecast_accuracy.toFixed(0)}%</span> {t("workspace.history.accuracy")}
               </span>

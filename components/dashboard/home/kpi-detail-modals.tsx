@@ -79,16 +79,16 @@ function HorizontalBars({
     <div className="space-y-2.5">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-3">
-          <span className="text-xs text-text-muted w-28 truncate shrink-0 text-right">
+          <span className="w-24 shrink-0 truncate text-right text-xs text-text-muted sm:w-28">
             {item.label}
           </span>
-          <div className="flex-1 h-4 bg-surface-4 rounded-sm overflow-hidden">
+          <div className="h-4 flex-1 overflow-hidden rounded-sm bg-surface-4">
             <div
               className={`h-full rounded-sm ${item.colorClass}`}
               style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }}
             />
           </div>
-          <span className="text-xs font-semibold text-text-primary w-16 text-right shrink-0 tabular-nums">
+          <span className="w-24 shrink-0 truncate text-right text-xs font-semibold text-text-primary tabular-nums sm:w-16">
             {formatVal(item)}
           </span>
         </div>
@@ -152,7 +152,7 @@ export function KpiDetailModals({
         widthClassName="w-[720px]"
       >
         <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ModalStat
               label={t("dashboard.home.kpiModal.statToday")}
               value={formatMoney(revenueToday, towerCurrency)}
@@ -216,7 +216,7 @@ export function KpiDetailModals({
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">
               {t("dashboard.home.kpiModal.preparedVsSold")}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ModalStat
                 label={t("dashboard.home.kpiModal.statTotalPrepared")}
                 value={(tower?.summary?.total_prepared ?? 0).toLocaleString(
@@ -264,7 +264,7 @@ export function KpiDetailModals({
         widthClassName="w-[720px]"
       >
         <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ModalStat
               label={
                 canSeeFinancials
@@ -425,7 +425,7 @@ export function KpiDetailModals({
         widthClassName="w-[720px]"
       >
         <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ModalStat
               label={t("dashboard.home.kpiModal.stat7day")}
               value={`${forecastAccuracyPct.toFixed(1)}%`}
@@ -590,7 +590,7 @@ export function KpiDetailModals({
                 return (
                   <div
                     key={alert.id}
-                    className="flex items-start justify-between gap-4 py-4 first:pt-0"
+                    className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <span
@@ -626,7 +626,7 @@ export function KpiDetailModals({
                     </div>
                     <Link
                       href={cta.href}
-                      className="shrink-0 inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary whitespace-nowrap transition-colors hover:border-brand-gold/30 hover:text-text-primary"
+                      className="inline-flex h-8 shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-lg border border-surface-4 bg-surface-3 px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-gold/30 hover:text-text-primary sm:self-auto"
                     >
                       {t(cta.labelKey)}
                       <ArrowRight className="h-3 w-3" />

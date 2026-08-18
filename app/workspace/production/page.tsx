@@ -611,13 +611,13 @@ export default function ProductionPage() {
         </div>
       ) : null}
 
-      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
         {sectionTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+            className={`inline-flex h-10 shrink-0 items-center whitespace-nowrap px-4 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? "border-b-2 border-brand-gold text-brand-gold"
                 : "text-text-muted hover:text-text-secondary"

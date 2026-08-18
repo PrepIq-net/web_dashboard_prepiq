@@ -217,7 +217,8 @@
       "alertsDescription": "Les risques opérationnels et les informations IA apparaîtront ici en temps réel.",
       "viewAllNotifications": "Voir toutes les notifications",
       "switchLocation": "Changer d'emplacement",
-      "selectLocation": "Sélectionner un emplacement"
+      "selectLocation": "Sélectionner un emplacement",
+      "openMenu": "Ouvrir le menu"
     },
     "overview": {
       "eyebrow": "Tableau de bord",
@@ -1785,6 +1786,7 @@
     "planning": "Calendrier",
     "schedule": "Planning équipe",
     "production": "Production",
+    "closeMenu": "Fermer le menu",
     "inventory": "Inventaire",
     "history": "Historique",
     "analysis": "Analyse",
@@ -2019,6 +2021,7 @@
       }
     },
     "notifications": {
+      "eyebrow": "Notifications",
       "title": "Paramètres de notification",
       "description": "Contrôlez comment et quand vous recevez les alertes opérationnelles.",
       "tableHeader": {
@@ -2906,7 +2909,44 @@
     "manage_link": "Gérer →",
     "no_unavailable_items": "Aucun article marqué indisponible pour ce jour.",
     "off_menu": "Hors menu",
-    "supply": "Stock"
+    "supply": "Stock",
+    "detail_close": "Fermer",
+    "detail_load_error": "Impossible de charger cet événement.",
+    "detail_when": "Quand",
+    "detail_where": "Où",
+    "detail_impact": "Impact sur la demande",
+    "detail_counted_forecast": "Compté dans les prévisions",
+    "detail_not_counted_forecast": "Non compté dans les prévisions",
+    "detail_recurring": "Récurrent",
+    "detail_yes": "Oui",
+    "detail_no": "Non",
+    "detail_reservation_type": "Type de réservation",
+    "detail_service_period": "Période de service",
+    "detail_estimated_spend": "Dépense estimée",
+    "detail_notes": "Notes",
+    "detail_location": "Lieu",
+    "detail_expected_attendance": "Affluence attendue",
+    "detail_distance": "Distance de la succursale",
+    "detail_source_confidence": "Confiance de la source",
+    "detail_source": "Source",
+    "detail_delivery_date": "Date de livraison",
+    "detail_expected_cost": "Coût estimé",
+    "detail_delivery_status": "Statut de livraison",
+    "detail_delivery_items": "Articles",
+    "detail_delivery_items_count": "{count} articles",
+    "detail_note_type": "Type de note",
+    "detail_confirmed_at": "Confirmé le",
+    "detail_predicted_delta": "Écart de demande prédit",
+    "detail_reasoning": "Raisonnement",
+    "detail_model_version": "Version du modèle",
+    "detail_generated_at": "Signal généré",
+    "detail_created_by": "Créé par",
+    "detail_created_at": "Créé le",
+    "detail_updated_at": "Mis à jour",
+    "detail_meta": "Détails",
+    "detail_ai_provenance": "Pourquoi PrepIQ l'a trouvé",
+    "detail_ai_signal": "Signal de prévision",
+    "detail_closure_coverage": "Couverture"
   },
   "workspace": {
     "insights": {

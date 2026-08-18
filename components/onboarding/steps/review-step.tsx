@@ -120,7 +120,7 @@ export function ReviewStep() {
         </div>
       )}
 
-      <div className="flex items-center gap-6 pt-12">
+      <div className="flex flex-wrap items-center gap-6 pt-12">
         <Button
           variant="secondary"
           onClick={prevStep}
@@ -132,7 +132,7 @@ export function ReviewStep() {
         <Button
           onClick={handleComplete}
           disabled={registerMutation.isPending}
-          className="px-16 py-8 text-lg font-semibold shadow-level-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+          className="w-full sm:w-auto px-16 py-8 text-lg font-semibold shadow-level-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
         >
           {registerMutation.isPending ? "Creating workspace…" : "Create Workspace"}
         </Button>

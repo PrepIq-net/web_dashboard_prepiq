@@ -180,6 +180,28 @@ export function AssistantLauncher({
     notifyApplied(reply.message);
   };
 
+  // A send can fail client-side (timeout, dropped connection) while the
+  // backend actually finishes the turn moments later — the reply isn't
+  // lost, just not on this response. Re-check the server before showing an
+  // error, so the transcript heals itself instead of leaving the user stuck
+  // on "Thinking…" with no way to see the real outcome short of navigating
+  // away and back (which only helps because it remounts and re-fetches).
+  const recoverFromFailedSend = async () => {
+    try {
+      const result = await current.refetch();
+      const freshMessages = result.data?.messages;
+      if (freshMessages && freshMessages.length > messages.length) {
+        setConversationId(result.data?.conversation?.id ?? conversationId);
+        setMessages(freshMessages);
+        setAnimatingMsgId(freshMessages[freshMessages.length - 1]?.id ?? null);
+        return;
+      }
+    } catch {
+      // fall through to the error toast below
+    }
+    toast.error("The assistant couldn't respond. Try again.");
+  };
+
   const handleSend = (text: string) => {
     if (!branchId) {
       toast.error("Select a branch first.");
@@ -205,8 +227,9 @@ export function AssistantLauncher({
           onSuccess: (reply) => {
             if ("message" in reply) appendReply(reply);
           },
-          onError: () =>
-            toast.error("The assistant couldn't respond. Try again."),
+          onError: () => {
+            void recoverFromFailedSend();
+          },
         },
       );
       return;
@@ -216,8 +239,9 @@ export function AssistantLauncher({
       { conversationId, payload: { message: text, date } },
       {
         onSuccess: appendReply,
-        onError: () =>
-          toast.error("The assistant couldn't respond. Try again."),
+        onError: () => {
+          void recoverFromFailedSend();
+        },
       },
     );
   };

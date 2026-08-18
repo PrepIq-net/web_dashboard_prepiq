@@ -232,7 +232,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-surface-1 text-text-primary">
       {/* Top Header */}
       <div className="border-b border-border-default bg-surface-1/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="mx-auto max-w-[1240px] px-6 h-16 flex items-center justify-between">
+        <div className="mx-auto max-w-[1240px] px-6 h-16 flex items-center justify-between gap-3">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors group"
@@ -305,7 +305,7 @@ export default function CheckoutPage() {
 
               {selectedPlan && (
                 <div className="bg-surface-2 rounded-card border border-border-default p-8">
-                  <div className="flex items-start justify-between mb-8">
+                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 mb-8">
                     <div>
                       <h2 className="text-[20px] font-semibold font-display">
                         {selectedPlan.name}

@@ -5,6 +5,15 @@ import { clearPersistedCache } from "@/lib/api/persist";
 
 const runtimeConfig: ApiClientConfig = {};
 
+// A hung connection (dropped mid-response by an intermediary, a backend
+// worker that stalls without ever closing the socket, ...) otherwise leaves
+// the caller's fetch pending forever — no resolve, no reject — which for a
+// React Query mutation means "Thinking…" never clears and there is no error
+// to recover from. Bound every request so it always eventually settles.
+// Comfortably under the backend's gunicorn worker timeout (120s) so a
+// request that's merely slow (not stuck) still has room to finish normally.
+const DEFAULT_REQUEST_TIMEOUT_MS = 100_000;
+
 export function configureApiClient(config: ApiClientConfig): void {
   Object.assign(runtimeConfig, config);
 }
@@ -89,8 +98,14 @@ export async function apiClient<T>(
     headers,
     authToken,
     credentials = "include",
+    signal,
     ...rest
   } = options;
+
+  // Compose the caller's own abort signal (if any) with the default
+  // timeout, so an explicit signal a caller passes still works as expected.
+  const timeoutSignal = AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS);
+  const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
   const token = await resolveAuthToken(authToken);
 
@@ -117,16 +132,29 @@ export async function apiClient<T>(
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(endpoint), {
-    method,
-    credentials,
-    headers: requestHeaders,
-    body:
-      body === undefined || body instanceof FormData
-        ? (body as BodyInit | undefined)
-        : JSON.stringify(body),
-    ...rest,
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(endpoint), {
+      method,
+      credentials,
+      headers: requestHeaders,
+      body:
+        body === undefined || body instanceof FormData
+          ? (body as BodyInit | undefined)
+          : JSON.stringify(body),
+      signal: requestSignal,
+      ...rest,
+    });
+  } catch (error) {
+    if (requestSignal.aborted && !signal?.aborted) {
+      throw new ApiError(
+        "The request took too long to respond. Please try again.",
+        0,
+        { code: "timeout" },
+      );
+    }
+    throw error;
+  }
 
   if (response.status === 401) {
     const authCleared = response.headers.get("x-prepiq-auth-cleared") === "1";

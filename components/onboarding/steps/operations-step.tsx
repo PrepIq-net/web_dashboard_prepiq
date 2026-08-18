@@ -67,7 +67,7 @@ export function OperationsStep() {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 pt-8">
+      <div className="flex flex-wrap items-center gap-6 pt-8">
         <Button
           variant="secondary"
           onClick={prevStep}

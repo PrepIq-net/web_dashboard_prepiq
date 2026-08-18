@@ -195,7 +195,7 @@ export default function WorkspaceLayout({
         <DashboardSidebarWrapper user={memoizedUser} />
         <main
           className={`min-w-0 flex-1 py-8 transition-[margin-left] duration-200 ${
-            collapsed ? "ml-20" : "ml-64"
+            collapsed ? "lg:ml-20" : "lg:ml-64"
           }`}
         >
           <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-8">

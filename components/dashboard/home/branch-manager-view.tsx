@@ -72,19 +72,19 @@ export function BranchManagerView({
   return (
     <>
       {/* Header */}
-      <div className="mb-12 flex items-start justify-between gap-6">
+      <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
             {t("dashboard.home.branchOperations")}
           </p>
-          <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
+          <h1 className="mt-3 font-display text-3xl font-semibold text-text-primary tracking-tight sm:text-4xl lg:text-5xl">
             {t("dashboard.home.health", { branch: branchName })}
           </h1>
           <p className="mt-4 text-base text-text-secondary max-w-2xl">
             {t("dashboard.home.operationalMetricsDescription")}
           </p>
         </div>
-        <div className="text-right shrink-0 mt-1">
+        <div className="shrink-0 text-left sm:mt-1 sm:text-right">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
             {t("dashboard.home.currentTime")}
           </p>
@@ -134,7 +134,7 @@ export function BranchManagerView({
       {/* Inventory + Staff */}
       <section className="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Inventory */}
-        <article className="bg-surface-2 rounded-card p-8 border border-surface-4/50">
+        <article className="bg-surface-2 rounded-card p-5 border border-surface-4/50 sm:p-8">
           <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
               {t("dashboard.home.inventoryStatus")}
@@ -144,12 +144,12 @@ export function BranchManagerView({
             </h2>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-5 bg-surface-3 rounded-xl">
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-surface-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-text-secondary">{t("dashboard.home.belowReorderPoint")}</p>
                 <p className="text-xs text-text-muted mt-0.5">{t("dashboard.home.restockingRequired")}</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${belowReorderBadge.cls}`}>
                   {belowReorderBadge.text}
                 </span>
@@ -159,22 +159,22 @@ export function BranchManagerView({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-5 bg-surface-3 rounded-xl">
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-surface-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-text-secondary">{t("dashboard.home.preparedToday")}</p>
                 <p className="text-xs text-text-muted mt-0.5">{t("dashboard.home.totalUnitsProduced")}</p>
               </div>
-              <p className="font-display text-2xl font-semibold text-text-primary">
+              <p className="shrink-0 font-display text-2xl font-semibold text-text-primary">
                 {preparedToday.toLocaleString()}
               </p>
             </div>
 
-            <div className="flex items-center justify-between p-5 bg-surface-3 rounded-xl">
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-surface-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-text-secondary">{t("dashboard.home.soldToday")}</p>
                 <p className="text-xs text-text-muted mt-0.5">{t("dashboard.home.unitsMoved")}</p>
               </div>
-              <p className="font-display text-2xl font-semibold text-text-primary">
+              <p className="shrink-0 font-display text-2xl font-semibold text-text-primary">
                 {soldToday.toLocaleString()}
               </p>
             </div>
@@ -182,7 +182,7 @@ export function BranchManagerView({
         </article>
 
         {/* Staff */}
-        <article className="bg-surface-2 rounded-card p-8 border border-surface-4/50">
+        <article className="bg-surface-2 rounded-card p-5 border border-surface-4/50 sm:p-8">
           <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
               {t("dashboard.home.staffOperations")}

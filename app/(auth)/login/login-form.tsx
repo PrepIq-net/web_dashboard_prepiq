@@ -194,7 +194,7 @@ export function LoginForm() {
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <label className="inline-flex items-center gap-2 text-sm text-text-secondary cursor-pointer group">
             <input
               type="checkbox"

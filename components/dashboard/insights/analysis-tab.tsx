@@ -12,6 +12,7 @@ import {
 import { useTranslation } from "@/lib/i18n";
 import { Spinner } from "@/components/ui/spinner";
 import { AssistantInput } from "@/components/assistant/assistant-input";
+import { AssistantMarkdown } from "@/components/assistant/assistant-markdown";
 import {
   useAnalystThread,
   useAnalystThreads,
@@ -493,10 +494,10 @@ function Transcript({
 
 // Visual language matches the Today assistant drawer (components/assistant) —
 // same gold "IQ" avatar, same bubble shapes and colors — so the analyst reads
-// as one product wearing two hats, not two different chat widgets. Content
-// rendering deliberately does not: this stays whitespace-pre-wrap rather than
-// picking up assistant-message.tsx's bold/bullet/table parser, since model
-// output here is untrusted and plain text is the smaller surface.
+// as one product wearing two hats, not two different chat widgets. Replies
+// render through the same AssistantMarkdown pipeline, so the model's markdown
+// (bold, nested lists, tables, code) comes out styled instead of raw. Only the
+// user's own bubble stays plain pre-wrap, like the Today assistant.
 function Bubble({ message }: { message: AnalystMessage }) {
   const isUser = message.role === "user";
   if (isUser) {
@@ -512,9 +513,7 @@ function Bubble({ message }: { message: AnalystMessage }) {
     <div className="flex items-start gap-2.5">
       <IQAvatar />
       <div className="min-w-0 max-w-[82%] rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
-        <p className="min-w-0 whitespace-pre-wrap break-words">
-          {message.content}
-        </p>
+        <AssistantMarkdown content={message.content} />
       </div>
     </div>
   );

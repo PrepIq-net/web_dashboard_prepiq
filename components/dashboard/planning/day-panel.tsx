@@ -134,6 +134,7 @@ export function DayPanel({
   dayOverrides,
   onCreateClick,
   onEditClick,
+  onOpenDetail,
   canManageCalendar,
 }: {
   date: string;
@@ -142,6 +143,7 @@ export function DayPanel({
   dayOverrides: ItemAvailabilityOverride[];
   onCreateClick: () => void;
   onEditClick: (eventId: string) => void;
+  onOpenDetail: (eventId: string) => void;
   canManageCalendar: boolean;
 }) {
   const { t } = useTranslation();
@@ -330,7 +332,11 @@ export function DayPanel({
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => onOpenDetail(event.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span
                         className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${EVENT_TYPE_COLORS[event.event_type]}`}
@@ -387,7 +393,7 @@ export function DayPanel({
                         ? ` · ${event.branch_name}`
                         : ` · ${t("planning.all_branches")}`}
                     </p>
-                  </div>
+                  </button>
                   {/* Actions */}
                   <div className="flex shrink-0 items-center gap-1">
                     <QuickMessageButton

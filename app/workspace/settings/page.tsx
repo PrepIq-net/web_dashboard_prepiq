@@ -19,7 +19,6 @@ import {
   Trash,
   HelpCircle,
   EvPlug,
-  Clock,
 } from "iconoir-react";
 import Link from "next/link";
 import {
@@ -233,14 +232,14 @@ function SettingsPageContent() {
       insight={t("settings.shell.insight")}
     >
       <div className="flex flex-col md:flex-row gap-8 mt-4">
-        {/* Settings Sidebar */}
-        <aside className="w-full md:w-64 shrink-0">
-          <nav className="flex flex-col space-y-1">
+        {/* Settings Sidebar — horizontal pill row on phones, rail on desktop */}
+        <aside className="w-full shrink-0 md:w-64">
+          <nav className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin md:flex-col md:gap-0 md:space-y-1 md:overflow-visible md:pb-0">
             {filteredTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex shrink-0 items-center gap-3 whitespace-nowrap px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 md:w-full ${
                   activeTab === tab.id
                     ? "bg-[#1C1C1F] text-brand-gold shadow-[0_2px_8px_rgba(0,0,0,0.3)] border border-[#2A2A2E]"
                     : "text-text-secondary hover:bg-[#1C1C1F]/50 hover:text-text-primary"
@@ -385,7 +384,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">
             {t("settings.organization.title")}
@@ -397,7 +396,7 @@ function OrganizationSettings({ orgId }: { orgId?: string }) {
         <Button
           onClick={handleSave}
           disabled={updateOrg.isPending}
-          className="font-semibold px-6"
+          className="font-semibold px-6 w-full sm:w-auto"
         >
           {updateOrg.isPending
             ? t("settings.organization.saving")
@@ -891,7 +890,7 @@ function IntegrationsSettings({
         </div>
       ) : branchStatus ? (
         <div
-          className={`flex items-center justify-between rounded-2xl border px-5 py-4 ${
+          className={`flex flex-col items-start gap-3 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
             isConnected
               ? "border-status-ok/25 bg-status-ok/6"
               : "border-status-critical/25 bg-status-critical/6"
@@ -977,11 +976,11 @@ function IntegrationsSettings({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {POS_SYSTEMS.map((pos) => (
             <div
               key={pos.id}
-              className="p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-center justify-between group hover:border-[#2A2A2E] transition-all"
+              className="flex flex-col gap-3 p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] group hover:border-[#2A2A2E] transition-all sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-[#1C1C1F] flex items-center justify-center text-text-muted group-hover:text-brand-gold transition-colors">
@@ -1006,7 +1005,7 @@ function IntegrationsSettings({
                   variant="secondary"
                   onClick={() => handleConnect(pos.id)}
                   disabled={!selectedBranchId}
-                  className="h-9 px-4 text-xs font-semibold"
+                  className="h-9 w-full px-4 text-xs font-semibold sm:w-auto"
                 >
                   {t("settings.integrations.connect")}
                 </Button>
@@ -1024,7 +1023,7 @@ function IntegrationsSettings({
           </h3>
         </div>
 
-        <div className="p-10 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20">
+        <div className="p-6 rounded-2xl border border-dashed border-[#1C1C1F] text-center bg-[#1C1C1F]/20 sm:p-10">
           <CloudSync className="h-10 w-10 text-text-muted mx-auto mb-4 opacity-20" />
           <p className="text-sm text-text-muted max-w-xs mx-auto">
             QuickBooks, Xero, and OpenTable integrations are currently in
@@ -1034,7 +1033,7 @@ function IntegrationsSettings({
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-surface-4 pb-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-surface-4 pb-2">
           <EvPlug className="h-4 w-4 text-brand-gold" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
             Prep Connector
@@ -1052,6 +1051,7 @@ function IntegrationsSettings({
           <div className="overflow-x-auto scrollbar-thin">
             <NativeTable
               table={table}
+              tableClassName="w-full min-w-[560px]"
               headerClassName="bg-surface-2 border-b border-surface-4"
               cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
             />
@@ -1243,40 +1243,19 @@ function NotificationsSettings() {
   ];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h2 className="text-xl font-semibold text-text-primary">
-          {t("settings.notifications.title")}
-        </h2>
-        <p className="text-sm text-text-muted mt-1">
-          {t("settings.notifications.description")}
-        </p>
-      </div>
+    <div className="space-y-14">
+      {/* ── Preferences ──────────────────────────────────────────────── */}
+      <section className="space-y-5">
+        <SectionHeader
+          eyebrow={t("settings.notifications.eyebrow")}
+          title={t("settings.notifications.title")}
+          supporting={t("settings.notifications.description")}
+        />
 
-      <WebPushPrimingCard />
+        <WebPushPrimingCard />
 
-      <div className="rounded-2xl border border-[#1C1C1F] overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-[#1C1C1F]/50">
-            <tr>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                {t("settings.notifications.tableHeader.type")}
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                {t("settings.notifications.tableHeader.inApp")}
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                {t("settings.notifications.tableHeader.email")}
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                {t("settings.notifications.tableHeader.push")}
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-muted text-center">
-                {t("settings.notifications.tableHeader.digest")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1C1C1F]/50">
+        <div className="overflow-hidden rounded-2xl border border-[#1C1C1F] bg-[#1C1C1F]/30">
+          <ul className="divide-y divide-surface-4/60">
             {notificationTypes.map((type) => {
               const pref = localPrefs.find(
                 (p) => p.notification_category === type.notification_category,
@@ -1288,55 +1267,68 @@ function NotificationsSettings() {
                 type.notification_category,
               );
 
+              const channels = [
+                {
+                  key: "in_app",
+                  label: t("settings.notifications.tableHeader.inApp"),
+                },
+                {
+                  key: "email",
+                  label: t("settings.notifications.tableHeader.email"),
+                },
+                {
+                  key: "push",
+                  label: t("settings.notifications.tableHeader.push"),
+                },
+              ] as const;
+
               return (
-                <tr
+                <li
                   key={type.notification_category}
-                  className="hover:bg-[#1C1C1F]/20 transition-colors"
+                  className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between"
                 >
-                  <td className="px-6 py-5">
-                    <p className="text-sm font-medium text-text-primary">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
                       {type.label}
                     </p>
-                    <p className="text-xs text-text-muted mt-0.5">
+                    <p className="mt-0.5 text-xs text-text-muted">
                       {type.description}
                     </p>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <Switch
-                      checked={pref.in_app_enabled}
-                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.inApp")}`}
-                      onCheckedChange={(val) =>
-                        handleToggle(type.notification_category, "in_app", val)
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2">
+                    {channels.map(({ key, label }) => (
+                      <div key={key} className="flex items-center gap-2.5">
+                        <span className="text-xs font-medium text-text-secondary">
+                          {label}
+                        </span>
+                        <Switch
+                          checked={pref[`${key}_enabled`]}
+                          aria-label={`${type.label} — ${label}`}
+                          onCheckedChange={(val) =>
+                            handleToggle(type.notification_category, key, val)
+                          }
+                        />
+                      </div>
+                    ))}
+                    <div
+                      className="flex items-center gap-2.5"
+                      title={
+                        digestEligible && !pref.email_enabled
+                          ? t("settings.notifications.digestRequiresEmail")
+                          : undefined
                       }
-                    />
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <Switch
-                      checked={pref.email_enabled}
-                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.email")}`}
-                      onCheckedChange={(val) =>
-                        handleToggle(type.notification_category, "email", val)
-                      }
-                    />
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <Switch
-                      checked={pref.push_enabled}
-                      aria-label={`${type.label} — ${t("settings.notifications.tableHeader.push")}`}
-                      onCheckedChange={(val) =>
-                        handleToggle(type.notification_category, "push", val)
-                      }
-                    />
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    {digestEligible ? (
+                    >
                       <span
-                        title={
-                          !pref.email_enabled
-                            ? t("settings.notifications.digestRequiresEmail")
-                            : undefined
-                        }
+                        className={`text-xs font-medium ${
+                          digestEligible
+                            ? "text-text-secondary"
+                            : "text-text-muted"
+                        }`}
                       >
+                        {t("settings.notifications.tableHeader.digest")}
+                      </span>
+                      {digestEligible ? (
                         <Switch
                           checked={!!pref.digest_mode}
                           aria-label={`${type.label} — ${t("settings.notifications.tableHeader.digest")}`}
@@ -1345,17 +1337,17 @@ function NotificationsSettings() {
                             handleDigestToggle(type.notification_category, val)
                           }
                         />
-                      </span>
-                    ) : (
-                      <span className="text-xs text-text-muted">—</span>
-                    )}
-                  </td>
-                </tr>
+                      ) : (
+                        <span className="text-xs text-text-muted">—</span>
+                      )}
+                    </div>
+                  </div>
+                </li>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        </div>
+      </section>
 
       <div className="p-6 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F] flex items-start gap-4">
         <div className="h-10 w-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold shrink-0">
@@ -1371,23 +1363,19 @@ function NotificationsSettings() {
         </div>
       </div>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#1C1C1F]">
-          <Clock className="h-4 w-4 text-brand-gold" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-primary">
-            {t("settings.notifications.quietHours.title")}
-          </h3>
-        </div>
-        <p className="text-xs text-text-muted">
-          {t("settings.notifications.quietHours.description")}
-        </p>
+      {/* ── Quiet hours ──────────────────────────────────────────────── */}
+      <section className="space-y-5">
+        <SectionHeader
+          title={t("settings.notifications.quietHours.title")}
+          supporting={t("settings.notifications.quietHours.description")}
+        />
 
         {quietHoursLoading || !localQuietHours ? (
           <div className="flex items-center justify-center h-24">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-gold" />
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row md:items-end gap-4 p-5 rounded-2xl bg-[#1C1C1F]/50 border border-[#1C1C1F]">
+          <div className="flex flex-col gap-4 rounded-2xl border border-[#1C1C1F] bg-[#1C1C1F]/50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Switch
                 checked={localQuietHours.enabled}
@@ -1395,30 +1383,32 @@ function NotificationsSettings() {
                   handleQuietHoursChange({ enabled: val })
                 }
               />
-              <span className="text-sm text-text-primary">
+              <span className="text-sm font-medium text-text-primary">
                 {t("settings.notifications.quietHours.enable")}
               </span>
             </div>
-            <Input
-              label={t("settings.notifications.quietHours.start")}
-              type="time"
-              value={localQuietHours.start_time}
-              disabled={!localQuietHours.enabled}
-              onChange={(e) =>
-                handleQuietHoursChange({ start_time: e.target.value })
-              }
-              className="max-w-[140px]"
-            />
-            <Input
-              label={t("settings.notifications.quietHours.end")}
-              type="time"
-              value={localQuietHours.end_time}
-              disabled={!localQuietHours.enabled}
-              onChange={(e) =>
-                handleQuietHoursChange({ end_time: e.target.value })
-              }
-              className="max-w-[140px]"
-            />
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:items-end sm:gap-4">
+              <Input
+                label={t("settings.notifications.quietHours.start")}
+                type="time"
+                value={localQuietHours.start_time}
+                disabled={!localQuietHours.enabled}
+                onChange={(e) =>
+                  handleQuietHoursChange({ start_time: e.target.value })
+                }
+                className="w-full sm:max-w-[140px]"
+              />
+              <Input
+                label={t("settings.notifications.quietHours.end")}
+                type="time"
+                value={localQuietHours.end_time}
+                disabled={!localQuietHours.enabled}
+                onChange={(e) =>
+                  handleQuietHoursChange({ end_time: e.target.value })
+                }
+                className="w-full sm:max-w-[140px]"
+              />
+            </div>
           </div>
         )}
       </section>
@@ -2059,9 +2049,10 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
             {t("settings.users.empty")}
           </p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-surface-4">
+          <div className="overflow-x-auto rounded-xl border border-surface-4 scrollbar-thin">
             <NativeTable
               table={table}
+              tableClassName="w-full min-w-[680px]"
               headerClassName="bg-surface-2 border-b border-surface-4"
               cellClassName="border-b border-surface-4 last:border-0 px-5 py-4"
             />

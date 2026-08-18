@@ -22,6 +22,7 @@ import {
   CreateEventModal,
   EditEventModal,
 } from "@/components/dashboard/planning/event-modals";
+import { EventDetailDrawer } from "@/components/dashboard/planning/event-detail";
 import { DayPanel } from "@/components/dashboard/planning/day-panel";
 import {
   addMonths,
@@ -39,6 +40,7 @@ function PlanningPageContent() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [detailEventId, setDetailEventId] = useState<string | null>(null);
 
   const { user, branchOptions, defaultBranch } = useBranchOptions();
   const permissions = useMemo(() => resolvePermissions(user), [user]);
@@ -139,7 +141,7 @@ function PlanningPageContent() {
           <button
             type="button"
             onClick={() => setCreateModalOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-brand-gold-hover active:scale-[0.98]"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-all hover:bg-brand-gold-hover active:scale-[0.98] sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             {t("planning.new_event_button")}
@@ -152,11 +154,11 @@ function PlanningPageContent() {
       ) : (
         <>
           {/* ── Main layout: calendar + day panel ── */}
-          <div className="flex gap-6 min-h-[600px]">
+          <div className="flex flex-col gap-6 lg:flex-row lg:min-h-[600px]">
             {/* Calendar */}
             <div className="flex-1 min-w-0">
               {/* Month nav */}
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -187,10 +189,10 @@ function PlanningPageContent() {
                     </button>
                   ) : null}
                 </div>
-                <h2 className="font-display text-lg font-semibold text-text-primary">
+                <h2 className="min-w-0 flex-1 truncate text-center font-display text-lg font-semibold text-text-primary">
                   {getMonths(t)[month.getMonth()]} {month.getFullYear()}
                 </h2>
-                <div className="w-[104px]" aria-hidden />
+                <div className="hidden w-[104px] shrink-0 sm:block" aria-hidden />
               </div>
 
               {/* Month at a glance */}
@@ -241,7 +243,7 @@ function PlanningPageContent() {
                       key={iso}
                       type="button"
                       onClick={() => setSelectedDate(iso)}
-                      className={`relative flex min-h-[80px] flex-col items-start p-2 text-left transition-colors
+                      className={`relative flex min-h-[68px] flex-col items-start p-1.5 text-left transition-colors sm:min-h-[80px] sm:p-2
                         ${inMonth ? "bg-surface-1" : "bg-[#141416]"}
                         ${isSelected ? "ring-1 ring-inset ring-brand-gold/60 bg-brand-gold/5" : "hover:bg-surface-2/80"}
                       `}
@@ -257,7 +259,7 @@ function PlanningPageContent() {
 
                       {/* Event dots (compact screens) */}
                       {dayEvents.length > 0 ? (
-                        <div className="mt-1 flex flex-wrap gap-0.5 xl:hidden">
+                        <div className="mt-1 flex flex-wrap gap-0.5 lg:hidden">
                           {dotEvents.map((ev) => (
                             <span
                               key={ev.id}
@@ -275,11 +277,15 @@ function PlanningPageContent() {
 
                       {/* Event titles (wide screens) */}
                       {dayEvents.length > 0 ? (
-                        <div className="mt-1 hidden w-full space-y-0.5 xl:block">
+                        <div className="mt-1 hidden w-full space-y-0.5 lg:block">
                           {titleEvents.map((ev) => (
                             <span
                               key={ev.id}
-                              className="flex min-w-0 items-center gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailEventId(ev.id);
+                              }}
+                              className="flex min-w-0 cursor-pointer items-center gap-1 hover:underline"
                               title={ev.title}
                             >
                               <span
@@ -339,7 +345,7 @@ function PlanningPageContent() {
             </div>
 
             {/* Day panel */}
-            <div className="w-72 shrink-0 rounded-xl border border-surface-4 bg-surface-1 p-4">
+            <div className="w-full shrink-0 rounded-xl border border-surface-4 bg-surface-1 p-4 lg:w-72">
               {calendarQuery.isLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="h-5 w-5 rounded-full border-2 border-brand-gold border-t-transparent animate-spin" />
@@ -352,6 +358,7 @@ function PlanningPageContent() {
                   dayOverrides={dayOverrides}
                   onCreateClick={() => setCreateModalOpen(true)}
                   onEditClick={(id) => setEditingEventId(id)}
+                  onOpenDetail={(id) => setDetailEventId(id)}
                   canManageCalendar={canManageCalendar}
                 />
               )}
@@ -371,6 +378,18 @@ function PlanningPageContent() {
             <EditEventModal
               eventId={editingEventId}
               onClose={() => setEditingEventId(null)}
+            />
+          ) : null}
+
+          {detailEventId ? (
+            <EventDetailDrawer
+              eventId={detailEventId}
+              onClose={() => setDetailEventId(null)}
+              onEdit={() => {
+                setEditingEventId(detailEventId);
+                setDetailEventId(null);
+              }}
+              canManageCalendar={canManageCalendar}
             />
           ) : null}
         </>

@@ -183,12 +183,12 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-[#2A2A2E]">
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-[#2A2A2E] scrollbar-thin">
         {TAB_KEYS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`relative px-4 pb-3 text-[13px] font-medium transition-colors ${
+            className={`relative shrink-0 whitespace-nowrap px-4 pb-3 text-[13px] font-medium transition-colors ${
               activeTab === tab.id
                 ? "text-[#A8821F]"
                 : "text-[#8E8E93] hover:text-[#C7C7CC]"

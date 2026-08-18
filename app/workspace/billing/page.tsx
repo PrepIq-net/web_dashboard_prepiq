@@ -196,12 +196,12 @@ function InvoiceModal({
               {lineItems.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between px-4 py-3 text-sm"
+                  className="flex items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm"
                 >
-                  <span className="text-text-primary">
+                  <span className="min-w-0 flex-1 text-text-primary">
                     {String(item.description ?? "")}
                   </span>
-                  <span className="font-medium text-text-primary">
+                  <span className="shrink-0 font-medium text-text-primary">
                     ${Number(item.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -576,7 +576,7 @@ export default function BillingPage() {
       )}
 
       {paymentSuccessBanner && (
-        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-status-success/30 bg-status-success/8 px-4 py-3">
+        <div className="mb-6 flex flex-col items-start gap-3 rounded-xl border border-status-success/30 bg-status-success/8 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-4 w-4 shrink-0 text-status-success" />
             <div>
@@ -590,7 +590,7 @@ export default function BillingPage() {
           </div>
           <button
             onClick={() => setPaymentSuccessBanner(false)}
-            className="shrink-0 text-[11px] font-medium text-text-muted hover:text-text-primary"
+            className="shrink-0 self-end text-[11px] font-medium text-text-muted hover:text-text-primary sm:self-auto"
           >
             {t("workspace.billing.paymentSuccess.dismiss")}
           </button>

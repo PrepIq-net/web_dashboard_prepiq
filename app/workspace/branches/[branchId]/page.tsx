@@ -390,8 +390,8 @@ export default function BranchDetailPage() {
         title={t("workspace.branches.detail.section.hours")}
       >
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
+            <table className="w-full min-w-[420px]">
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
                   {[
@@ -735,7 +735,7 @@ export default function BranchDetailPage() {
               {t("workspace.branches.detail.noTeam")}
             </p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
+            <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
               <table className="w-full min-w-[480px]">
                 <thead className="border-b border-surface-4/80 bg-surface-3/40">
                   <tr>

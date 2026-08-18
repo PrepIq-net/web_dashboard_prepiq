@@ -149,7 +149,7 @@ export function QuickMessageButton({
         ? createPortal(
             <div
               ref={popoverRef}
-              className="fixed z-[100] w-80 rounded-xl border border-border-default bg-surface-2 p-3 shadow-[var(--shadow-level-2)]"
+              className="fixed z-[100] w-80 max-w-[calc(100vw-1rem)] rounded-xl border border-border-default bg-surface-2 p-3 shadow-[var(--shadow-level-2)]"
               style={{ top: pos.top, bottom: pos.bottom, left: pos.left }}
             >
               {status === "sent" ? (
