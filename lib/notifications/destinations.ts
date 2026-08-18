@@ -55,15 +55,28 @@ const PAGE_BY_CODE: Record<string, NavPageId> = {
   "risk.stockout": "inventory",
 
   // Money and variance.
-  MARGIN_RISK_ALERT: "financial",
-  PURCHASE_ANOMALY_DETECTED: "purchasing",
-  PRODUCTION_VARIANCE_ALERT: "production",
-  EXECUTIVE_SUMMARY_DIGEST: "analysis",
+  //
+  // MARGIN_RISK_ALERT, PURCHASE_ANOMALY_DETECTED, PRODUCTION_VARIANCE_ALERT
+  // and EXECUTIVE_SUMMARY_DIGEST used to live here too — routes for the
+  // backend's "Decision Queue" alert flows, which had zero callers and were
+  // removed (see notifications/smart_notifications.py). No code path can
+  // produce those codes anymore; re-add if that alerting is rebuilt.
+  TAX_PACKAGE_OPPORTUNITY: "financial",
 
   // Everything else with an obvious home.
   HUB_TEAM_PING: "chat",
   SUBSCRIPTION_ACTIVATION_REQUESTED: "billing",
   WELCOME: "today",
+  PREP_TARGETS_READY: "today",
+  KITCHEN_READINESS_SCORE: "today",
+  SALES_DATA_MISSING: "settings",
+  POS_MAPPING_NEEDED: "settings",
+  OWNERSHIP_TRANSFERRED: "settings",
+  INVITE_ACCEPTED: "settings",
+
+  // ACCOUNT_SUSPENDED and ORG_CLOSED have no better home than the feed
+  // itself — nothing in the app answers "your account is suspended" or
+  // "this org no longer exists" — so they're deliberately left unmapped.
 };
 
 /** Codes whose page carries a `?tab=` the alert is specifically about. */
@@ -72,6 +85,10 @@ const TAB_BY_CODE: Record<string, string> = {
   CONNECTOR_SYNC_FAILURE: "integrations",
   CONNECTOR_SCHEMA_CHANGED: "integrations",
   POS_IMPORTED: "integrations",
+  SALES_DATA_MISSING: "integrations",
+  POS_MAPPING_NEEDED: "integrations",
+  OWNERSHIP_TRANSFERRED: "organization",
+  INVITE_ACCEPTED: "users-roles",
   STOCKOUT_ALERT: "stock",
   STOCKOUT_WARNING: "stock",
   "risk.stockout": "stock",

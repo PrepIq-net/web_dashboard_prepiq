@@ -81,7 +81,7 @@ import { SupportTabContent } from "@/components/dashboard/settings/support-tab";
 import { MemberAccessDrawer } from "@/components/dashboard/settings/member-access-drawer";
 import { RoleEditorDrawer, type RoleFormValues } from "@/components/dashboard/settings/role-editor-drawer";
 import { SectionHeader } from "@/components/ui/section-header";
-import { WebPushPrimingCard } from "@/components/dashboard/settings/web-push-priming-card";
+import { PushPrimingModal } from "@/components/notifications/push-priming-modal";
 import { DangerZone } from "@/components/dashboard/settings/danger-zone";
 import { ActiveSessions } from "@/components/dashboard/settings/active-sessions";
 import { useTranslation } from "@/lib/i18n";
@@ -1252,7 +1252,7 @@ function NotificationsSettings() {
           supporting={t("settings.notifications.description")}
         />
 
-        <WebPushPrimingCard />
+        <PushPrimingModal surface="link" />
 
         <div className="overflow-hidden rounded-2xl border border-[#1C1C1F] bg-[#1C1C1F]/30">
           <ul className="divide-y divide-surface-4/60">

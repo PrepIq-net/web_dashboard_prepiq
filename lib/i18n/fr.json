@@ -1711,6 +1711,20 @@
       "generating": "Génération"
     }
   },
+  "push": {
+    "modal": {
+      "askTitle": "Anticipez avant que ça ne vous coûte cher",
+      "askDescription": "Nous envoyons une notification uniquement pour ce qui a besoin de vous maintenant — un article sur le point de manquer en plein service, ou une matinée sous-préparée avant l'ouverture. Le reste reste dans l'application.",
+      "enable": "Activer les notifications",
+      "remindLater": "Me le rappeler plus tard",
+      "deniedTitle": "Les notifications sont bloquées",
+      "deniedDescriptionWeb": "Votre navigateur a bloqué les notifications pour ce site. Cliquez sur l'icône de cadenas ou d'information à côté de la barre d'adresse, trouvez Notifications, et réglez-le sur Autoriser — puis actualisez cette page.",
+      "gotIt": "Compris"
+    },
+    "nudge": {
+      "label": "Activer les notifications push"
+    }
+  },
   "profile": {
     "title": "Mon Profil",
     "eyebrow": "Compte",
@@ -2054,13 +2068,9 @@
         "end": "Fin"
       },
       "webPush": {
-        "title": "Recevez les alertes dans votre navigateur",
-        "description": "Activez les notifications du navigateur pour recevoir les alertes urgentes même lorsque cet onglet n'est pas ouvert. Nous n'envoyons que ce qui nécessite une décision immédiate, et vous contrôlez les catégories ci-dessus.",
-        "enable": "Activer les notifications du navigateur",
         "enabling": "Activation…",
         "enabled": "Notifications du navigateur activées.",
         "denied": "Les notifications ont été bloquées. Vous pouvez les autoriser dans les paramètres de votre navigateur.",
-        "blocked": "Les notifications sont bloquées pour ce site — autorisez-les dans les paramètres de votre navigateur pour les activer.",
         "unconfigured": "Le push navigateur n'est pas encore configuré sur le serveur.",
         "error": "Impossible d'activer les notifications du navigateur. Veuillez réessayer."
       }

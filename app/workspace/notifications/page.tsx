@@ -13,6 +13,7 @@ import {
 import { useExplainAlert } from "@/services/assistant/hooks";
 import { resolvePermissions } from "@/lib/permissions";
 import { notificationDestination } from "@/lib/notifications/destinations";
+import { PushPrimingModal } from "@/components/notifications/push-priming-modal";
 import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_COLORS,
@@ -173,13 +174,16 @@ export default function NotificationsPage() {
             {t("workspace.notifications.title")}
           </h1>
         </div>
-        <button
-          onClick={() => markAsReadMutation.mutate({})}
-          className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#2E2E33] bg-transparent px-4 text-[13px] font-medium text-[#F5F5F7] transition-colors hover:bg-[#232327]"
-        >
-          <Check className="h-4 w-4" />
-          {t("workspace.notifications.markAllRead")}
-        </button>
+        <div className="flex items-center gap-4">
+          <PushPrimingModal surface="link" />
+          <button
+            onClick={() => markAsReadMutation.mutate({})}
+            className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#2E2E33] bg-transparent px-4 text-[13px] font-medium text-[#F5F5F7] transition-colors hover:bg-[#232327]"
+          >
+            <Check className="h-4 w-4" />
+            {t("workspace.notifications.markAllRead")}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

@@ -179,6 +179,25 @@ Delimit in this order, escalating only when the previous step fails:
 Never nest a card inside a card. `components/ui/section-header.tsx` exists precisely
 so a region can be titled without card chrome — use it.
 
+### Modals vs. drawers
+
+Two shells, chosen by what the surface is *for*, not by habit:
+
+- **`ModalShell`** (`components/ui/modal-shell.tsx`) — centered, for a short
+  decision that should interrupt the user until they answer it: "start
+  service?", "close the day?", "enable notifications?". The content is the
+  question; there's nothing to work within.
+- **`DrawerShell`** (`components/ui/drawer-shell.tsx`) — right-side, for
+  content-rich flows the user works *within*: a form, a list, a record.
+
+A 2026-08-13 pass replaced every modal with a drawer app-wide for consistency
+(`modal-shell.tsx` was renamed to `drawer-shell.tsx` — see git history there).
+`ModalShell` came back on 2026-08-18, deliberately scoped to phase-transition
+confirms (`ConfirmActionModal`) and similar quick asks (`PushPrimingModal`).
+Don't reach for it by default — a data-entry or browsing surface (waste log,
+CSV import, roster assignment, ...) is still a drawer. If you're unsure which
+one a new surface wants, ask: is this a question, or is it a workspace?
+
 ### Theme mode
 
 **Dark only.** There is no light palette and no theme provider. Do not add

@@ -23,6 +23,7 @@ import {
   useSessionLogoutUser,
 } from "@/services";
 import { notificationDestination } from "@/lib/notifications/destinations";
+import { PushPrimingModal } from "@/components/notifications/push-priming-modal";
 import { resolvePermissions } from "@/lib/permissions";
 import type { Notification } from "@/services/notifications/types";
 import { useTranslation } from "@/lib/i18n";
@@ -263,6 +264,13 @@ const TopNavComponent = memo(function DashboardTopNav() {
                   >
                     {t("dashboard.topNav.viewAllNotifications")}
                   </Link>
+                </div>
+
+                {/* Renders nothing once push is granted, unsupported, or the
+                    user's already seen and deferred the ask — see
+                    PushPrimingModal. */}
+                <div className="mt-2 flex justify-center">
+                  <PushPrimingModal surface="link" />
                 </div>
               </div>
             ) : null}

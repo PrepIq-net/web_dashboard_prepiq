@@ -1711,6 +1711,20 @@
       "generating": "Generating"
     }
   },
+  "push": {
+    "modal": {
+      "askTitle": "Catch it before it costs you",
+      "askDescription": "We only push for what needs you right now — an item about to run out mid-service, or a morning that's under-prepped before doors open. Everything else stays in-app.",
+      "enable": "Enable notifications",
+      "remindLater": "Remind me later",
+      "deniedTitle": "Notifications are blocked",
+      "deniedDescriptionWeb": "Your browser has blocked notifications for this site. Click the lock or info icon next to the address bar, find Notifications, and set it to Allow — then refresh this page.",
+      "gotIt": "Got it"
+    },
+    "nudge": {
+      "label": "Enable push notifications"
+    }
+  },
   "profile": {
     "title": "My Profile",
     "eyebrow": "Account",
@@ -2054,13 +2068,9 @@
         "end": "Ends at"
       },
       "webPush": {
-        "title": "Get alerts in your browser",
-        "description": "Turn on browser notifications to catch time-sensitive alerts even when this tab isn't open. We only push what needs a decision now, and you control which categories above.",
-        "enable": "Enable browser notifications",
         "enabling": "Enabling…",
         "enabled": "Browser notifications enabled.",
         "denied": "Notifications were blocked. You can allow them in your browser settings.",
-        "blocked": "Notifications are blocked for this site — allow them in your browser settings to enable.",
         "unconfigured": "Browser push isn't configured on the server yet.",
         "error": "Couldn't enable browser notifications. Please try again."
       }

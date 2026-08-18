@@ -59,6 +59,7 @@ import {
   TodaySkeleton,
 } from "@/components/dashboard/today/today-skeleton";
 import { DemandSignalsBanner } from "@/components/dashboard/today/demand-signals-banner";
+import { PushPrimingModal } from "@/components/notifications/push-priming-modal";
 import { MyTasksCard } from "@/components/dashboard/today/my-tasks-card";
 import { IntelligenceJourneyBanner } from "@/components/dashboard/today/intelligence-journey-banner";
 import { MorningOutlook } from "@/components/dashboard/today/morning-outlook";
@@ -1014,6 +1015,16 @@ function TodayWorkspacePageContent() {
                   {t("today.error.noBranchContext")}
                 </p>
               </div>
+            ) : null}
+
+            {/* Soft-ask for browser push — opens itself once, unprompted, the
+                first time there's nothing decided yet. Today is the page
+                everyone actually lands on, so this is its one auto-triggering
+                surface; everywhere else (notifications dropdown, /workspace/
+                notifications, Settings) it's just a link that opens the same
+                modal on click. */}
+            {!walkthroughActive && !noBranchContext ? (
+              <PushPrimingModal surface="auto" />
             ) : null}
 
             <RefreshingBar active={isBackgroundRefreshing} />
