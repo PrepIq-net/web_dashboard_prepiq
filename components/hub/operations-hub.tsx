@@ -358,7 +358,11 @@ export function OperationsHub({ user }: { user: CurrentUser }) {
 
   return (
     <div className="relative flex h-[calc(100vh-200px)] overflow-hidden rounded-xl border border-surface-4 bg-surface-2 shadow-lg">
-      <div className="relative flex w-80 flex-shrink-0 flex-col border-r border-surface-4">
+      <div
+        className={`relative flex-col border-r border-surface-4 ${
+          activeConversation ? "hidden md:flex" : "flex"
+        } md:w-80 md:flex-shrink-0`}
+      >
         <ConversationRail
           conversations={conversations}
           alerts={alerts}
@@ -416,6 +420,7 @@ export function OperationsHub({ user }: { user: CurrentUser }) {
                 patch: { ops_events_enabled: enabled },
               })
             }
+            onBack={() => setActiveConversationId(null)}
             mediaOrigin={socket.mediaOrigin}
             currentUserId={user.id}
             onlineUserIds={onlineUserIds}

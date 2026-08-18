@@ -278,7 +278,7 @@ export function DashboardView({
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">
           {todayDisplay}
         </p>
-        <h1 className="mt-3 font-display text-5xl font-semibold text-text-primary tracking-tight">
+        <h1 className="mt-3 font-display text-3xl font-semibold text-text-primary tracking-tight sm:text-4xl lg:text-5xl">
           {greeting}
         </h1>
         <p className="mt-4 text-base text-text-secondary">
@@ -452,7 +452,7 @@ export function DashboardView({
                 return (
                   <div
                     key={alert.id}
-                    className="mb-2.5 flex items-start justify-between gap-6 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical bg-surface-2 px-6 py-5"
+                    className="mb-2.5 flex flex-col gap-3 rounded-xl border border-surface-4 border-l-[3px] border-l-status-critical bg-surface-2 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:px-6 sm:py-5"
                   >
                     <div className="flex items-start gap-4 min-w-0">
                       <span className="mt-1.5 h-2 w-2 rounded-full bg-status-critical shrink-0" />
@@ -478,7 +478,7 @@ export function DashboardView({
                     {/* Specific action label — not generic "View" */}
                     <Link
                       href={cta.href}
-                      className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-medium text-text-secondary whitespace-nowrap hover:border-status-critical/40 hover:text-status-critical transition-colors"
+                      className="inline-flex h-9 shrink-0 items-center gap-1.5 self-start whitespace-nowrap rounded-lg border border-surface-4 bg-surface-3 px-4 text-xs font-medium text-text-secondary transition-colors hover:border-status-critical/40 hover:text-status-critical sm:self-auto"
                     >
                       {t(cta.labelKey)}
                       <ArrowRight className="h-3 w-3" />

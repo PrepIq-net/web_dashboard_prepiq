@@ -500,7 +500,7 @@ function AcceptKeepButtons({
         type="button"
         onClick={() => onAccept(item.id, netSuggestedQty(item), item.unit)}
         disabled={disabled}
-        className={`inline-flex ${h} items-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-all duration-150 hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30`}
+        className={`inline-flex ${h} items-center justify-center rounded-full border border-status-success/40 bg-status-success/15 px-3 text-xs font-semibold text-status-success transition-all duration-150 hover:bg-status-success/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/30`}
       >
         {t("today.table.accept")}
       </button>
@@ -509,7 +509,7 @@ function AcceptKeepButtons({
         onClick={() => onKeep(item.id, planned, item.unit)}
         disabled={disabled || !hasEnteredQuantity}
         title={hasEnteredQuantity ? undefined : t("today.table.keepMineHint")}
-        className={`inline-flex ${h} items-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-all duration-150 hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20`}
+        className={`inline-flex ${h} items-center justify-center rounded-full border border-surface-4 px-3 text-xs font-medium text-text-secondary transition-all duration-150 hover:bg-surface-3 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/20`}
       >
         {t("today.table.keepMine")}
       </button>
@@ -540,7 +540,7 @@ function RowLinks({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       <button
         type="button"
         onClick={() => onToggleExpand(item.id)}
@@ -1116,7 +1116,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
               </div>
 
               <div className="mt-3 grid grid-cols-2 divide-x divide-surface-4/60 border-y border-surface-4/60">
-                <div className="px-4 py-2.5">
+                <div className="min-w-0 px-4 py-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     {t("today.table.aiSuggests")}
                   </p>
@@ -1133,7 +1133,7 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                     })}
                   </p>
                 </div>
-                <div className="px-4 py-2.5">
+                <div className="min-w-0 px-4 py-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     {t("today.table.yourPlan")}
                   </p>
@@ -1156,8 +1156,8 @@ export function PrepPlanSection(props: PrepPlanSectionProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 px-4 py-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 px-4 py-3">
+                <div className="grid grid-cols-2 gap-2">
                   <AcceptKeepButtons
                     item={item}
                     planned={planned}

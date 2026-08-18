@@ -158,7 +158,7 @@ function ItemSparkline({
       )}
 
       {/* Legend */}
-      <div className="mt-2 flex items-center gap-4 text-[10px] text-text-muted">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-text-muted">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-white/20" />
           {t("workspace.items.detail.planned")}

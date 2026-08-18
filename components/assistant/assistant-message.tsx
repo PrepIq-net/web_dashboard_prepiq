@@ -2,118 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AssistantMessage as AssistantMessageType } from "@/services/assistant/types";
-
-// Splits **bold** spans out of a line of text.
-function renderInline(text: string): React.ReactNode[] {
-  const nodes: React.ReactNode[] = [];
-  const segments = text.split(/\*\*(.+?)\*\*/g);
-  segments.forEach((seg, si) => {
-    if (si % 2 === 1) {
-      nodes.push(<strong key={si} className="font-semibold">{seg}</strong>);
-    } else if (seg) {
-      nodes.push(seg);
-    }
-  });
-  return nodes;
-}
-
-const TABLE_ROW_RE = /^\s*\|(.+)\|\s*$/;
-const TABLE_SEPARATOR_RE = /^\s*\|?[\s:|-]+\|?\s*$/;
-
-function splitTableRow(line: string): string[] {
-  const match = line.match(TABLE_ROW_RE);
-  const inner = match ? match[1] : line;
-  return inner.split("|").map((cell) => cell.trim());
-}
-
-function renderTable(key: string, rows: string[]): React.ReactNode {
-  const header = splitTableRow(rows[0]);
-  const bodyRows = rows.slice(2).map(splitTableRow);
-  return (
-    <div key={key} className="my-1 overflow-x-auto rounded-lg border border-surface-4 scrollbar-thin">
-      <table className="w-full border-collapse text-xs">
-        <thead>
-          <tr className="border-b border-surface-4 bg-surface-3">
-            {header.map((cell, ci) => (
-              <th
-                key={ci}
-                className="px-2.5 py-1.5 text-left font-semibold text-text-primary"
-              >
-                {renderInline(cell)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {bodyRows.map((row, ri) => (
-            <tr key={ri} className="border-b border-surface-4/60 last:border-0">
-              {row.map((cell, ci) => (
-                <td key={ci} className="px-2.5 py-1.5 text-text-secondary">
-                  {renderInline(cell)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// Renders **bold**, bullet-point lines, and pipe-delimited tables from model
-// output without a markdown library.
-function renderContent(text: string) {
-  const parts: React.ReactNode[] = [];
-  const lines = text.split("\n");
-  let li = 0;
-  while (li < lines.length) {
-    const line = lines[li];
-
-    // Markdown table: header row, separator row, then >=0 data rows.
-    if (
-      TABLE_ROW_RE.test(line) &&
-      li + 1 < lines.length &&
-      TABLE_SEPARATOR_RE.test(lines[li + 1]) &&
-      lines[li + 1].includes("-")
-    ) {
-      const tableLines = [line, lines[li + 1]];
-      let cursor = li + 2;
-      while (cursor < lines.length && TABLE_ROW_RE.test(lines[cursor])) {
-        tableLines.push(lines[cursor]);
-        cursor++;
-      }
-      parts.push(renderTable(`table-${li}`, tableLines));
-      li = cursor;
-      continue;
-    }
-
-    const isBullet = /^(\s*[-•*]\s)/.test(line);
-    const stripped = isBullet ? line.replace(/^(\s*[-•*]\s)/, "") : line;
-    const bold = renderInline(stripped);
-
-    if (isBullet) {
-      parts.push(
-        <div key={li} className="flex gap-1.5">
-          <span className="mt-0.5 shrink-0 text-brand-gold">•</span>
-          <span>{bold}</span>
-        </div>,
-      );
-    } else if (line.startsWith("### ") || line.startsWith("## ")) {
-      const heading = line.replace(/^#{2,3}\s/, "");
-      parts.push(
-        <p key={li} className="font-semibold text-text-primary">{heading}</p>,
-      );
-    } else if (bold.length > 0) {
-      parts.push(<span key={li}>{bold}</span>);
-      parts.push(<br key={`${li}-br`} />);
-    } else {
-      parts.push(<span key={li}>{line}</span>);
-      parts.push(<br key={`${li}-br`} />);
-    }
-    li++;
-  }
-  return parts;
-}
+import { AssistantMarkdown } from "./assistant-markdown";
 
 /**
  * Receipt for writes the assistant applied on its own during a turn.
@@ -214,9 +103,13 @@ export function AssistantMessageBubble({
       </div>
       <div className="max-w-[82%] min-w-0">
         <div className="rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
-          <div className="space-y-0.5 break-words whitespace-pre-wrap">
-            {renderContent(displayed)}
-          </div>
+          {displayed.length >= fullText.length ? (
+            // Full text is in — render real markdown (links, nested lists,
+            // code, etc.) instead of the raw, still-typing string.
+            <AssistantMarkdown content={fullText} />
+          ) : (
+            <div className="whitespace-pre-wrap break-words">{displayed}</div>
+          )}
         </div>
         <AppliedActions message={message} />
       </div>

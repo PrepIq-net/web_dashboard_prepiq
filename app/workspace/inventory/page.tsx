@@ -177,13 +177,13 @@ function InventoryPageContent() {
       </div>
 
       {/* Tab bar — production style */}
-      <div className="mb-6 flex gap-1 border-b border-surface-4/60">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
         {TAB_IDS.map((id) => (
           <button
             key={id}
             type="button"
             onClick={() => setActiveTab(id)}
-            className={`inline-flex h-10 items-center px-4 text-sm font-medium transition-colors ${
+            className={`inline-flex h-10 shrink-0 items-center whitespace-nowrap px-4 text-sm font-medium transition-colors ${
               activeTab === id
                 ? "border-b-2 border-brand-gold text-brand-gold"
                 : "text-text-muted hover:text-text-secondary"
@@ -343,7 +343,7 @@ function IngredientsTab({
   return (
     <>
       <div>
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
               {t("workspace.inventory.ingredients.sectionLabel")}
@@ -358,7 +358,7 @@ function IngredientsTab({
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-brand-gold px-5 text-sm font-semibold text-[#141416] transition-opacity hover:opacity-90 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             {t("workspace.inventory.ingredients.addButton")}
@@ -409,7 +409,7 @@ function IngredientsTab({
       {/* Active availability overrides strip */}
       {branchId && (
         <div className="mt-8">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
                 Availability Overrides
@@ -421,7 +421,7 @@ function IngredientsTab({
             <button
               type="button"
               onClick={() => setOverrideModalOpen(true)}
-              className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold sm:w-auto"
             >
               <Plus className="h-3.5 w-3.5" /> Add Override
             </button>
@@ -434,8 +434,8 @@ function IngredientsTab({
           ) : (
             <div className="rounded-xl border border-surface-4 bg-surface-2 divide-y divide-surface-4/50">
               {activeOverrides.map((ov) => (
-                <div key={ov.id} className="flex items-center gap-4 px-4 py-3">
-                  <div className="flex-1 min-w-0">
+                <div key={ov.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div className="min-w-0 flex-1 basis-40">
                     <p className="text-sm font-semibold text-text-primary truncate">
                       {ov.item_title ?? ov.item_id}
                     </p>
@@ -501,10 +501,10 @@ function StockTab({
   const supplierRows = suppliersQuery.data ?? EMPTY_LIST;
 
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Left — On-Hand Log */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">On-Hand Stock</p>
             <h3 className="mt-0.5 font-display text-lg font-semibold text-text-primary">Current Stock Levels</h3>
@@ -512,7 +512,7 @@ function StockTab({
           <button
             type="button"
             onClick={() => setOnHandModalOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold sm:w-auto"
           >
             <Plus className="h-3.5 w-3.5" /> Log Stock
           </button>
@@ -535,8 +535,8 @@ function StockTab({
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
+            <table className="w-full min-w-[480px]">
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
                   {["Ingredient", "Qty", "Unit", "As-of Date", "Notes"].map((h) => (
@@ -562,7 +562,7 @@ function StockTab({
 
       {/* Right — Ingredient Suppliers */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">Suppliers</p>
             <h3 className="mt-0.5 font-display text-lg font-semibold text-text-primary">Ingredient Suppliers</h3>
@@ -570,7 +570,7 @@ function StockTab({
           <button
             type="button"
             onClick={() => setSupplierModalOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border border-surface-4 px-4 text-sm text-text-secondary transition-colors hover:border-brand-gold/40 hover:text-brand-gold sm:w-auto"
           >
             <Plus className="h-3.5 w-3.5" /> Add Supplier
           </button>
@@ -593,8 +593,8 @@ function StockTab({
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-surface-4 bg-surface-2">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin">
+            <table className="w-full min-w-[560px]">
               <thead className="border-b border-surface-4/80 bg-surface-3/40">
                 <tr>
                   {["Ingredient", "Supplier", "Pack Size", "Cost/Pack", "Lead Time", ""].map((h) => (
@@ -721,7 +721,7 @@ function RecipesTab({
                   <div
                     key={item.id}
                     onClick={() => setSelectedMenuItemId(isSelected ? null : item.id)}
-                    className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-3/30 ${
+                    className={`flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-3/30 ${
                       isSelected ? "bg-brand-gold/5 border-l-[3px] border-l-brand-gold" : "border-l-[3px] border-l-transparent"
                     }`}
                   >
@@ -852,7 +852,7 @@ function ItemDetailPanel({
           confirms (or edits/deletes) before it's considered settled. */}
       {menuItem.needs_review && (
         <div className="rounded-xl border border-status-warning/30 bg-status-warning/5 p-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-status-warning">
                 <SparksSolid className="h-4 w-4 shrink-0" />
@@ -1014,7 +1014,7 @@ function ItemDetailPanel({
         ) : (
           <>
             {/* KPI row */}
-            <div className="grid grid-cols-4 divide-x divide-surface-4/50">
+            <div className="grid grid-cols-2 gap-px bg-surface-4/50 sm:grid-cols-4">
               <TrackKPI
                 label={t("workspace.inventory.detail.revenue")}
                 value={`$${summary.total_revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
@@ -1072,7 +1072,7 @@ function ItemDetailPanel({
 
       {/* ── Recipe ── */}
       <div className="rounded-xl border border-surface-4 bg-surface-2 overflow-hidden">
-        <div className="border-b border-surface-4/60 px-4 py-3 flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-4/60 px-4 py-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
               {t("workspace.inventory.detail.recipeLabel")}
@@ -1345,7 +1345,7 @@ function TrackKPI({
           ? "text-status-critical"
           : "text-text-primary";
   return (
-    <div className="px-4 py-4">
+    <div className="bg-surface-2 px-4 py-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted">{label}</p>
       <p className={`mt-1.5 font-display text-xl font-semibold ${valueClass}`}>{value}</p>
       <p className="mt-0.5 text-[11px] text-text-muted">{sub}</p>
@@ -1445,7 +1445,7 @@ function MiniSparkline({
         </div>
       )}
 
-      <div className="mt-1.5 flex items-center gap-3 text-[10px] text-text-muted">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-text-muted">
         <span className="flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-sm bg-white/20" />{t("workspace.inventory.sparkline.planned")}
         </span>

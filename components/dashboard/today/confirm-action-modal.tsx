@@ -1,6 +1,6 @@
 "use client";
 
-import { DrawerShell } from "@/components/ui/drawer-shell";
+import { ModalShell } from "@/components/ui/modal-shell";
 
 type ConfirmActionModalProps = {
   open: boolean;
@@ -24,7 +24,7 @@ export function ConfirmActionModal({
   onConfirm,
 }: ConfirmActionModalProps) {
   return (
-    <DrawerShell
+    <ModalShell
       open={open}
       title={title}
       description={description}

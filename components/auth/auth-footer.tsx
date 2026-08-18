@@ -6,7 +6,7 @@ import { useTranslation } from "@/lib/i18n";
 export function AuthFooter() {
   const { t } = useTranslation();
   return (
-    <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex justify-between items-center">
+    <footer className="relative z-10 mt-20 pt-8 border-t border-border-default/50 flex flex-wrap justify-between items-center gap-x-6 gap-y-2">
       <p className="text-xs text-text-muted">
         {t("auth.infrastructure")} &copy; 2026.
       </p>

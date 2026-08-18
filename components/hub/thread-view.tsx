@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, EditPencil, Group, MapPin, Sparks } from "iconoir-react";
+import { ArrowLeft, Check, EditPencil, Group, MapPin, Sparks } from "iconoir-react";
 import type {
   HubConversation,
   HubMessage,
@@ -27,6 +27,7 @@ export function ThreadView({
   executingAction,
   onRename,
   onToggleOpsEvents,
+  onBack,
   mediaOrigin,
   currentUserId,
   onlineUserIds,
@@ -49,6 +50,7 @@ export function ThreadView({
   executingAction: string | null;
   onRename: (title: string) => void;
   onToggleOpsEvents: (enabled: boolean) => void;
+  onBack?: () => void;
   mediaOrigin: string;
   currentUserId: string;
   onlineUserIds: Set<string>;
@@ -106,7 +108,17 @@ export function ThreadView({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-surface-4 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-surface-4 px-4 py-3">
+        {onBack ? (
+          <button
+            type="button"
+            title="Back to conversations"
+            onClick={onBack}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text-primary md:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        ) : null}
         <div className="min-w-0 flex-1">
           {editingTitle ? (
             <form

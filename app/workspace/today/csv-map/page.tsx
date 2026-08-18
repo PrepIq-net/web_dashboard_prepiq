@@ -225,9 +225,9 @@ export default function LiveCSVMappingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#141416] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#141416] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-2xl">
-        <div className="flex items-center gap-4 mb-10">
+        <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 sm:mb-10">
           <button
             onClick={() => router.back()}
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5A5A60] hover:text-[#8E8E93] transition-colors"
@@ -240,21 +240,21 @@ export default function LiveCSVMappingPage() {
           >
             {t("workspace.today.csvMap.backToLive")}
           </button>
-          <span className="h-px flex-1 bg-[#2E2E33]" />
+          <span className="hidden h-px flex-1 bg-[#2E2E33] sm:block" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
             {t("workspace.today.csvMap.title")}
           </span>
         </div>
 
-        <h1 className="font-display text-[32px] leading-[40px] font-semibold text-[#F5F5F7] mb-2">
+        <h1 className="font-display text-2xl sm:text-[32px] sm:leading-[40px] font-semibold text-[#F5F5F7] mb-2">
           {t("workspace.today.csvMap.heading")}
         </h1>
-        <p className="text-[14px] text-[#8E8E93] mb-8">
+        <p className="text-[14px] text-[#8E8E93] mb-6 sm:mb-8">
           {t("workspace.today.csvMap.description", { count: headers.length })}
         </p>
 
-        <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-5 mb-8">
-          <div className="grid grid-cols-2 gap-8 mb-4 px-2">
+        <div className="bg-[#1C1C1F] border border-[#2E2E33] rounded-[12px] p-4 sm:p-5 mb-8">
+          <div className="hidden sm:grid grid-cols-2 gap-8 mb-4 px-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
               {t("workspace.today.csvMap.requiredData")}
             </span>
@@ -263,14 +263,14 @@ export default function LiveCSVMappingPage() {
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).map((field) => {
               const isRequired = REQUIRED_FIELDS.some((required) => required.id === field.id);
               const isMapped = Boolean(mapping[field.id]);
               return (
                 <div
                   key={field.id}
-                  className="grid grid-cols-2 gap-8 items-center bg-[#232327] p-3 rounded-[8px] border border-[#2E2E33]"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-8 sm:items-center bg-[#232327] p-3 rounded-[8px] border border-[#2E2E33]"
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 shrink-0">

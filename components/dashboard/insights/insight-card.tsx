@@ -104,7 +104,7 @@ export function InsightCard({
       {/* The deterministic instruction. Never model-authored — it is a fitted
           slope applied forward, which is why it can be stated as a quantity. */}
       {action && action.delta_qty !== null ? (
-        <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-surface-4 bg-surface-3 px-3 py-2">
+        <div className="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border border-surface-4 bg-surface-3 px-3 py-2">
           <span className="text-[13px] text-text-secondary">{action.item_name}</span>
           <span className="font-display text-[15px] font-semibold text-brand-gold">
             {action.delta_qty > 0 ? "+" : ""}

@@ -467,15 +467,15 @@ function SecurityTab({
       >
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-text-muted" />
-              <div>
-                <p className="text-sm font-medium text-text-primary">{user.email}</p>
+            <div className="flex min-w-0 items-center gap-3">
+              <Mail className="h-4 w-4 shrink-0 text-text-muted" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-text-primary">{user.email}</p>
                 <p className="text-xs text-text-muted">{t("profile.security.emailAddress")}</p>
               </div>
             </div>
             <span
-              className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                 user.is_verified
                   ? "bg-[#3F8F68]/15 text-[#3F8F68]"
                   : "bg-[#C44949]/15 text-[#C44949]"
@@ -487,15 +487,15 @@ function SecurityTab({
 
           {user.phone && (
             <div className="flex items-center justify-between rounded-xl border border-[#2A2A2E] bg-[#1C1C1F] px-4 py-3">
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-text-muted" />
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{user.phone}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Phone className="h-4 w-4 shrink-0 text-text-muted" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-text-primary">{user.phone}</p>
                   <p className="text-xs text-text-muted">{t("profile.security.phoneNumber")}</p>
                 </div>
               </div>
               <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                   user.phone_verified
                     ? "bg-[#3F8F68]/15 text-[#3F8F68]"
                     : "bg-[#C44949]/15 text-[#C44949]"

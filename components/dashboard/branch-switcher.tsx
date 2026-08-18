@@ -79,7 +79,7 @@ export function BranchSwitcher() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)] lg:absolute lg:inset-auto lg:bottom-auto lg:right-0 lg:mt-2 lg:w-64">
           <p className="border-b border-[#2A2A2E] px-4 py-3 text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
             {t("dashboard.topNav.switchLocation")}
           </p>

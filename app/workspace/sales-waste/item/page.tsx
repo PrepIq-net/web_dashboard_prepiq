@@ -462,14 +462,14 @@ function SalesWasteItemContent() {
                         className={chart.color}
                       />
                     </svg>
-                    <div className="mt-2 grid grid-cols-6 gap-2 text-[10px] text-text-muted">
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-text-muted sm:grid-cols-6">
                       {itemTrendSeries.labels.slice(-6).map((label, index) => {
                         const value =
                           chart.series[Math.max(0, chart.series.length - 6 + index)] ?? 0;
                         return (
                           <div key={`${chart.label}-${label}-${index}`}>
-                            <p>{label}</p>
-                            <p className="font-semibold text-text-secondary">
+                            <p className="break-words">{label}</p>
+                            <p className="break-words font-semibold text-text-secondary">
                               {chart.format === "currency"
                                 ? toCurrency(value)
                                 : chart.format === "percent"

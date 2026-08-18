@@ -117,8 +117,11 @@ function CellTooltip({ day, kind }: { day: CapacityRiskDay; kind: "inventory" | 
                   count: day.inventory.shortfall_count,
                 })}
               </p>
-              {day.inventory.top_shortfalls.map((line) => (
-                <p key={`${line.ingredient_name}`} className="text-text-muted">
+              {day.inventory.top_shortfalls.map((line, index) => (
+                <p
+                  key={`${day.date}-${line.ingredient_name}-${index}`}
+                  className="text-text-muted"
+                >
                   {line.ingredient_name}: {line.net_need ?? "—"} {line.unit ?? ""}
                 </p>
               ))}

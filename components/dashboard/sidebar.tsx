@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Xmark } from "iconoir-react";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import { MenuBurgerIcon } from "@/components/dashboard/menu-burger-icon";
 import { canAccessDashboard, resolvePermissions } from "@/lib/permissions";
@@ -54,10 +55,12 @@ function SidebarLink({
   item,
   active,
   collapsed,
+  onNavigate,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
+  onNavigate?: () => void;
 }) {
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
@@ -152,6 +155,7 @@ function SidebarLink({
         ref={anchorRef}
         href={item.href}
         scroll={false}
+        onClick={onNavigate}
         className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] ${FOCUS_RING}
           ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}
           ${
@@ -214,6 +218,27 @@ const MemoizedSidebarLink = memo(SidebarLink);
 // Main sidebar
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** True once the viewport is wide enough for the fixed rail. Below that the
+ *  same markup becomes the mobile overlay drawer — expanded, labelled, and
+ *  translated out of view until the hamburger asks for it.
+ *
+ *  `useSyncExternalStore` rather than state + effect: the server snapshot
+ *  renders the desktop rail in SSR HTML, and the client reads the real
+ *  viewport on the very first render — no collapsed-rail flash on phones. */
+function subscribeToDesktopBreakpoint(callback: () => void) {
+  const mql = window.matchMedia("(min-width: 1024px)");
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
+
+function useDesktopMediaQuery() {
+  return useSyncExternalStore(
+    subscribeToDesktopBreakpoint,
+    () => window.matchMedia("(min-width: 1024px)").matches,
+    () => true,
+  );
+}
+
 export const DashboardSidebar = memo(function DashboardSidebarInner({
   user,
 }: {
@@ -221,7 +246,29 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const { collapsed, toggle } = useSidebarState();
+  const { collapsed, toggle, mobileOpen, setMobileOpen } = useSidebarState();
+  const isDesktop = useDesktopMediaQuery();
+  // The mobile drawer is always expanded: the collapse rail is a desktop
+  // affordance, and a drawer of bare icons on a phone would be unusable.
+  const effectiveCollapsed = isDesktop ? collapsed : false;
+
+  const closeMobile = useCallback(() => setMobileOpen(false), [setMobileOpen]);
+
+  // Escape closes the drawer; body scroll locks while it is open so the
+  // page underneath stops moving behind the overlay.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen, setMobileOpen]);
 
   const permissions = resolvePermissions(user);
 
@@ -286,134 +333,166 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
     "inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-surface-3 to-surface-2 shadow-[var(--shadow-level-1)]";
 
   return (
-    <aside
-      // Hook for the impersonation bar: being `fixed` this element ignores the
-      // body padding that insets everything else, so globals.css moves it down
-      // by the bar's height. See components/impersonation-banner.tsx.
-      data-app-chrome="sidebar"
-      className={`fixed left-0 top-0 z-20 flex h-screen flex-col border-r border-surface-2 bg-surface-1 transition-[width] duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] ${
-        collapsed ? "w-20" : "w-60"
-      }`}
-    >
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-surface-2 px-4 py-5">
-        {collapsed ? (
-          // Collapsed, the logo tile *is* the toggle: it cross-fades into the
-          // burger on hover. The previous build floated a separate 28px button
-          // at `right-0` of an 80px rail, which landed it half on top of the
-          // centred logo. Home stays one click away on the nav entry below.
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label="Expand sidebar"
-              aria-expanded={false}
-              className={`group relative ${logoTile} transition-shadow duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] hover:shadow-[var(--shadow-level-3)] active:scale-95 ${FOCUS_RING}`}
-            >
-              <span className="absolute inset-0 flex items-center justify-center transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-75 group-hover:opacity-0 group-focus-visible:scale-75 group-focus-visible:opacity-0">
-                {logoMark}
-              </span>
-              <span className="absolute inset-0 flex scale-75 items-center justify-center text-text-secondary opacity-0 transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-100 group-hover:text-text-primary group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100">
-                <MenuBurgerIcon className="h-4 w-4" />
-              </span>
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Link
-              href={homeHref}
-              className={`inline-flex min-w-0 flex-1 items-center gap-3 rounded-xl ${FOCUS_RING}`}
-            >
-              <span className={logoTile}>{logoMark}</span>
-              <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
-                {user?.organization_name ?? "PrepIQ"}
-              </span>
-            </Link>
+    <>
+      {/* Mobile backdrop. Clicking it closes the drawer; it only exists
+          below `lg` where the rail is replaced by the overlay. */}
+      {mobileOpen ? (
+        <div
+          aria-hidden="true"
+          onClick={closeMobile}
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-[2px] lg:hidden"
+        />
+      ) : null}
 
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label="Collapse sidebar"
-              aria-expanded
-              className={`group inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface-2 text-text-muted transition-colors duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] hover:bg-surface-3 hover:text-text-primary active:scale-95 ${FOCUS_RING}`}
-            >
-              <MenuBurgerIcon className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Role pill */}
-        {!collapsed && user?.organization_role && (
-          <div className="mt-3 px-1">
-            <span className="inline-block rounded-md bg-brand-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
-              {user.organization_role}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* ── Navigation ─────────────────────────────────────────────────── */}
-      <div
-        className={`flex-1 overflow-y-auto py-4 scrollbar-thin
-          ${collapsed ? "px-2" : "px-3"}`}
+      <aside
+        // Hook for the impersonation bar: being `fixed` this element ignores the
+        // body padding that insets everything else, so globals.css moves it down
+        // by the bar's height. See components/impersonation-banner.tsx.
+        data-app-chrome="sidebar"
+        // `lg:translate-none` matters: Tailwind v4's translate utilities drive
+        // the CSS `translate` property (not `transform`), so `transform-none`
+        // would not cancel the drawer offset. `translate: none` both restores
+        // the rail and avoids a lingering stacking context at desktop sizes,
+        // which would trap the nav flyouts inside the rail's z-order and make
+        // them paint under the page content.
+        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-surface-2 bg-surface-1 transition-[width,translate] duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-none"
+        } w-72 max-w-[85vw] ${effectiveCollapsed ? "lg:w-20" : "lg:w-60"}`}
+        inert={!isDesktop && !mobileOpen ? true : undefined}
       >
-        {visibleSections.map((section, index) => (
-          <div
-            key={section.title}
-            className={index === 0 ? "mb-4" : "mb-4 border-t border-surface-2 pt-4"}
-          >
-            {!collapsed && (
-              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-text-muted/70">
-                {section.title}
-              </p>
-            )}
-            <nav className="space-y-0.5">
-              {section.items.map((item) => (
-                <MemoizedSidebarLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(item.href)}
-                  collapsed={collapsed}
-                />
-              ))}
-            </nav>
-          </div>
-        ))}
-      </div>
-
-      {/* ── User identity footer ────────────────────────────────────────── */}
-      {user && (
-        <div className="border-t border-surface-2 p-3">
-          {collapsed ? (
-            <Link
-              href="/workspace/profile"
-              title="My Profile"
-              className={`flex justify-center rounded-full transition-opacity duration-[var(--motion-duration-fast)] hover:opacity-80 ${FOCUS_RING}`}
-            >
-              <div className="flex h-8 w-8 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
-                {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
-              </div>
-            </Link>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="border-b border-surface-2 px-4 py-5">
+          {effectiveCollapsed ? (
+            // Collapsed, the logo tile *is* the toggle: it cross-fades into the
+            // burger on hover. The previous build floated a separate 28px button
+            // at `right-0` of an 80px rail, which landed it half on top of the
+            // centred logo. Home stays one click away on the nav entry below.
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label="Expand sidebar"
+                aria-expanded={false}
+                className={`group relative ${logoTile} transition-shadow duration-[var(--motion-duration-standard)] ease-[var(--motion-ease-standard)] hover:shadow-[var(--shadow-level-3)] active:scale-95 ${FOCUS_RING}`}
+              >
+                <span className="absolute inset-0 flex items-center justify-center transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-75 group-hover:opacity-0 group-focus-visible:scale-75 group-focus-visible:opacity-0">
+                  {logoMark}
+                </span>
+                <span className="absolute inset-0 flex scale-75 items-center justify-center text-text-secondary opacity-0 transition-all duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] group-hover:scale-100 group-hover:text-text-primary group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100">
+                  <MenuBurgerIcon className="h-4 w-4" />
+                </span>
+              </button>
+            </div>
           ) : (
-            <Link
-              href="/workspace/profile"
-              className={`group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-[var(--motion-duration-fast)] hover:bg-surface-2/60 ${FOCUS_RING}`}
-            >
-              <div className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
-                {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium leading-tight text-text-primary transition-colors group-hover:text-brand-gold">
-                  {user.first_name} {user.last_name}
-                </p>
-                <p className="mt-0.5 truncate text-[10px] leading-tight text-text-muted">
-                  {user.email}
-                </p>
-              </div>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href={homeHref}
+                onClick={closeMobile}
+                className={`inline-flex min-w-0 flex-1 items-center gap-3 rounded-xl ${FOCUS_RING}`}
+              >
+                <span className={logoTile}>{logoMark}</span>
+                <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+                  {user?.organization_name ?? "PrepIQ"}
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label="Collapse sidebar"
+                aria-expanded
+                className={`group hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface-2 text-text-muted transition-colors duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] hover:bg-surface-3 hover:text-text-primary active:scale-95 lg:inline-flex ${FOCUS_RING}`}
+              >
+                <MenuBurgerIcon className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={closeMobile}
+                aria-label={t("sidebar.closeMenu")}
+                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface-2 text-text-muted transition-colors duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)] hover:bg-surface-3 hover:text-text-primary active:scale-95 lg:hidden"
+              >
+                <Xmark className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Role pill */}
+          {!effectiveCollapsed && user?.organization_role && (
+            <div className="mt-3 px-1">
+              <span className="inline-block rounded-md bg-brand-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                {user.organization_role}
+              </span>
+            </div>
           )}
         </div>
-      )}
-    </aside>
+
+        {/* ── Navigation ─────────────────────────────────────────────────── */}
+        <div
+          className={`flex-1 overflow-y-auto py-4 scrollbar-thin
+            ${effectiveCollapsed ? "px-2" : "px-3"}`}
+        >
+          {visibleSections.map((section, index) => (
+            <div
+              key={section.title}
+              className={index === 0 ? "mb-4" : "mb-4 border-t border-surface-2 pt-4"}
+            >
+              {!effectiveCollapsed && (
+                <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-text-muted/70">
+                  {section.title}
+                </p>
+              )}
+              <nav className="space-y-0.5">
+                {section.items.map((item) => (
+                  <MemoizedSidebarLink
+                    key={item.href}
+                    item={item}
+                    active={isActive(item.href)}
+                    collapsed={effectiveCollapsed}
+                    onNavigate={closeMobile}
+                  />
+                ))}
+              </nav>
+            </div>
+          ))}
+        </div>
+
+        {/* ── User identity footer ────────────────────────────────────────── */}
+        {user && (
+          <div className="border-t border-surface-2 p-3">
+            {effectiveCollapsed ? (
+              <Link
+                href="/workspace/profile"
+                title="My Profile"
+                onClick={closeMobile}
+                className={`flex justify-center rounded-full transition-opacity duration-[var(--motion-duration-fast)] hover:opacity-80 ${FOCUS_RING}`}
+              >
+                <div className="flex h-8 w-8 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
+                  {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              </Link>
+            ) : (
+              <Link
+                href="/workspace/profile"
+                onClick={closeMobile}
+                className={`group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-[var(--motion-duration-fast)] hover:bg-surface-2/60 ${FOCUS_RING}`}
+              >
+                <div className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
+                  {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium leading-tight text-text-primary transition-colors group-hover:text-brand-gold">
+                    {user.first_name} {user.last_name}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] leading-tight text-text-muted">
+                    {user.email}
+                  </p>
+                </div>
+              </Link>
+            )}
+          </div>
+        )}
+      </aside>
+    </>
   );
 });

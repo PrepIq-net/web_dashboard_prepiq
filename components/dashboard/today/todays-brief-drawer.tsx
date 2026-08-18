@@ -16,6 +16,7 @@ import {
 } from "@/services/assistant/hooks";
 import type { AssistantMessage, AssistantReply, MorningBriefVoice } from "@/services/assistant/types";
 import type { MorningBrief } from "@/services/production-intelligence/types";
+import { AssistantMarkdown } from "@/components/assistant/assistant-markdown";
 import { BriefVisualizer } from "./brief-visualizer";
 
 const SPEEDS = [1, 1.25] as const;
@@ -129,7 +130,8 @@ export function TodaysBriefDrawer({
   // full assistant drawer later rehydrates the same thread.
   const startConversation = useStartAssistantConversation();
   const sendMessage = useSendAssistantMessage();
-  const { data: currentConversation } = useCurrentConversation(branchId ?? undefined, date);
+  const currentConversationQuery = useCurrentConversation(branchId ?? undefined, date);
+  const { data: currentConversation } = currentConversationQuery;
   const [qaThread, setQaThread] = useState<AssistantMessage[]>([]);
   const [qaConversationId, setQaConversationId] = useState<string | null>(null);
   const [qaSending, setQaSending] = useState(false);
@@ -348,6 +350,27 @@ export function TodaysBriefDrawer({
     }
   };
 
+  // Mirrors AssistantLauncher's recovery: a send can fail on the client
+  // (timeout, dropped connection) while the backend actually finishes the
+  // turn a moment later. Re-check the server before erroring out so the
+  // thread heals itself instead of requiring a trip to the full assistant
+  // drawer to see the reply that was there all along.
+  const recoverFromFailedQaSend = async () => {
+    setQaSending(false);
+    try {
+      const result = await currentConversationQuery.refetch();
+      const freshMessages = result.data?.messages;
+      if (freshMessages && freshMessages.length > qaThread.length) {
+        setQaConversationId(result.data?.conversation?.id ?? qaConversationId);
+        setQaThread(freshMessages);
+        return;
+      }
+    } catch {
+      // fall through to the error toast below
+    }
+    toast.error(t("today.briefDrawer.qaError"));
+  };
+
   const submitQuestion = () => {
     const trimmed = question.trim();
     if (!trimmed || qaSending) return;
@@ -377,8 +400,7 @@ export function TodaysBriefDrawer({
             if ("message" in reply) appendQaReply(reply);
           },
           onError: () => {
-            setQaSending(false);
-            toast.error(t("today.briefDrawer.qaError"));
+            void recoverFromFailedQaSend();
           },
         },
       );
@@ -389,8 +411,7 @@ export function TodaysBriefDrawer({
       {
         onSuccess: appendQaReply,
         onError: () => {
-          setQaSending(false);
-          toast.error(t("today.briefDrawer.qaError"));
+          void recoverFromFailedQaSend();
         },
       },
     );
@@ -639,9 +660,9 @@ export function TodaysBriefDrawer({
                         label={t("today.briefAudio.transcript")}
                       />
                     ) : readBrief?.narrative ? (
-                      <p className="mt-6 text-sm leading-relaxed text-text-secondary">
-                        {readBrief.narrative}
-                      </p>
+                      <div className="mt-6 text-sm leading-relaxed text-text-secondary">
+                        <AssistantMarkdown content={readBrief.narrative} />
+                      </div>
                     ) : null}
 
                     {/* ── Afternoon check-in: no spoken audio, just the
@@ -651,9 +672,9 @@ export function TodaysBriefDrawer({
                     {!isMorningSelected ? (
                       <>
                         {readBrief?.narrative ? (
-                          <p className="mt-6 text-sm leading-relaxed text-text-secondary">
-                            {readBrief.narrative}
-                          </p>
+                          <div className="mt-6 text-sm leading-relaxed text-text-secondary">
+                            <AssistantMarkdown content={readBrief.narrative} />
+                          </div>
                         ) : null}
                         <AfternoonLunchSummary drivers={readBrief?.drivers ?? null} />
                       </>
@@ -981,9 +1002,13 @@ function QaMessage({
             : "bg-surface-3 text-text-secondary"
         }`}
       >
-        <p className="whitespace-pre-wrap text-xs leading-relaxed">
-          {message.content}
-        </p>
+        <div className="text-xs leading-relaxed">
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <AssistantMarkdown content={message.content} />
+          )}
+        </div>
         {message.applied_actions && message.applied_actions.length > 0 ? (
           <ul className="mt-1.5 space-y-1">
             {message.applied_actions.map((applied) => (

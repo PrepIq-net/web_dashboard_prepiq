@@ -281,7 +281,7 @@ export default function ItemConfirmationPage() {
         )}
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-[#2E2E33] pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#2E2E33] pt-6">
           <button
             onClick={() => router.push("/setup/sales")}
             disabled={isSubmitting}

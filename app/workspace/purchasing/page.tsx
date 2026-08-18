@@ -535,7 +535,7 @@ function ForecastTab({
         ) : null}
       </div>
 
-      <div className='mb-4 flex items-center justify-between'>
+      <div className='mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2'>
         <div>
           <p className='text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold'>Purchase Plan</p>
           <h3 className='mt-1 font-display text-xl font-semibold text-text-primary'>What to order</h3>
@@ -565,7 +565,7 @@ function ForecastTab({
       </div>
 
       {recommendation?.total_estimated_cost != null && (
-        <div className='mb-6 inline-flex items-baseline gap-3 rounded-xl border border-surface-4 bg-surface-2 px-5 py-3'>
+        <div className='mb-6 inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-surface-4 bg-surface-2 px-5 py-3'>
           <p className='text-xs font-semibold uppercase tracking-[0.12em] text-text-muted'>Total Estimated Cost</p>
           <p className='font-display text-2xl font-semibold text-brand-gold'>{money(recommendation.total_estimated_cost)}</p>
         </div>

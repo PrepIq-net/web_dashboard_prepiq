@@ -246,8 +246,8 @@ function TrackRecord({
         </div>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-surface-4">
-        <table className="w-full text-xs">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-surface-4 scrollbar-thin">
+        <table className="w-full min-w-[600px] text-xs">
           <thead className="border-b border-surface-4/80 bg-surface-3/40">
             <tr>
               <th className="px-4 py-2.5 text-left font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -925,7 +925,7 @@ function DeepDiveContent() {
                       {ingredientData.ingredients.map((ing: any, idx: number) => (
                         <div
                           key={ing.ingredient_id ?? idx}
-                          className="flex items-center justify-between px-5 py-3 hover:bg-surface-3/30 transition-colors"
+                          className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-surface-3/30 transition-colors"
                         >
                           <div>
                             <p className="text-sm font-medium text-text-primary">
@@ -951,7 +951,7 @@ function DeepDiveContent() {
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between border-t border-surface-4 bg-surface-3/20 px-5 py-3">
+                    <div className="flex items-center justify-between gap-3 border-t border-surface-4 bg-surface-3/20 px-5 py-3">
                       <p className="text-[11px] text-text-muted">
                         {t("workspace.today.itemDetail.ingredients.basedOn", {
                           qty: ingredientData.planned_quantity != null

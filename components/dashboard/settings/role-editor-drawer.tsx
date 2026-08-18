@@ -160,7 +160,7 @@ export function RoleEditorDrawer({
         role="dialog"
         aria-modal="true"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-6 py-5">
+        <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold text-text-primary">
               {title}
@@ -178,7 +178,7 @@ export function RoleEditorDrawer({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 sm:px-6 sm:py-6">
           <div className="space-y-6">
             {isReadOnly ? (
               <div className="rounded-lg border border-surface-4 bg-surface-2 px-4 py-3 text-sm text-text-secondary">
@@ -242,7 +242,7 @@ export function RoleEditorDrawer({
           </div>
         </div>
 
-        <footer className="flex justify-end gap-3 border-t border-surface-4 px-6 py-5">
+        <footer className="flex justify-end gap-3 border-t border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
           {!isReadOnly && (
             <Button onClick={handleSave} disabled={isSaving}>
               {role

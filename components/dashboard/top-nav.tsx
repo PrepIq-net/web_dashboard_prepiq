@@ -13,6 +13,8 @@ import {
 } from "iconoir-react";
 import { useCommandPalette } from "@/components/command/command-palette-provider";
 import { BranchSwitcher } from "@/components/dashboard/branch-switcher";
+import { MenuBurgerIcon } from "@/components/dashboard/menu-burger-icon";
+import { useSidebarState } from "@/components/dashboard/sidebar-state";
 import {
   useCurrentUserProfile,
   useMarkNotificationsAsRead,
@@ -21,6 +23,7 @@ import {
   useSessionLogoutUser,
 } from "@/services";
 import { notificationDestination } from "@/lib/notifications/destinations";
+import { PushPrimingModal } from "@/components/notifications/push-priming-modal";
 import { resolvePermissions } from "@/lib/permissions";
 import type { Notification } from "@/services/notifications/types";
 import { useTranslation } from "@/lib/i18n";
@@ -29,6 +32,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
   const { t } = useTranslation();
   const { enabled: paletteEnabled, setOpen: setPaletteOpen } =
     useCommandPalette();
+  const { setMobileOpen } = useSidebarState();
   const [isMac, setIsMac] = useState(false);
   useEffect(() => {
     setIsMac(/mac/i.test(navigator.platform));
@@ -115,13 +119,25 @@ const TopNavComponent = memo(function DashboardTopNav() {
   return (
     <div className="mb-10 -mx-2 border-b border-[#2A2A2E] px-2 pb-5 sm:-mx-4 sm:px-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
-            {t("dashboard.overview.eyebrow")}
-          </p>
-          <h1 className="mt-1 font-display text-[30px] font-semibold leading-[38px] text-[#F5F5F7]">
-            {t("dashboard.overview.title")}
-          </h1>
+        <div className="flex items-center gap-3">
+          {/* Mobile drawer trigger: below `lg` the fixed rail becomes an
+              overlay, so navigation moves into the top bar. */}
+          <button
+            type="button"
+            aria-label={t("dashboard.topNav.openMenu")}
+            onClick={() => setMobileOpen(true)}
+            className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-[#232327] text-[#C7C7CC] transition-colors duration-150 hover:bg-[#2A2A2E] hover:text-[#F5F5F7] lg:hidden"
+          >
+            <MenuBurgerIcon className="h-4 w-4" />
+          </button>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A8821F]">
+              {t("dashboard.overview.eyebrow")}
+            </p>
+            <h1 className="mt-1 font-display text-[30px] font-semibold leading-[38px] text-[#F5F5F7]">
+              {t("dashboard.overview.title")}
+            </h1>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
@@ -174,7 +190,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
             </button>
 
             {notificationsOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-[360px] rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+              <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] overflow-y-auto rounded-[12px] border border-[#2E2E33] bg-[#1C1C1F] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.4)] scrollbar-thin lg:absolute lg:inset-auto lg:bottom-auto lg:right-0 lg:mt-2 lg:max-h-none lg:w-[360px] lg:overflow-visible">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-[11px] uppercase tracking-[0.12em] text-[#8E8E93]">
                     {t("dashboard.topNav.notifications")}
@@ -249,6 +265,13 @@ const TopNavComponent = memo(function DashboardTopNav() {
                     {t("dashboard.topNav.viewAllNotifications")}
                   </Link>
                 </div>
+
+                {/* Renders nothing once push is granted, unsupported, or the
+                    user's already seen and deferred the ask — see
+                    PushPrimingModal. */}
+                <div className="mt-2 flex justify-center">
+                  <PushPrimingModal surface="link" />
+                </div>
               </div>
             ) : null}
           </div>
@@ -278,7 +301,7 @@ const TopNavComponent = memo(function DashboardTopNav() {
             </button>
 
             {avatarMenuOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+              <div className="fixed inset-x-3 bottom-3 z-50 rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden lg:absolute lg:inset-auto lg:bottom-auto lg:right-0 lg:mt-2 lg:w-72">
                 {/* Identity header */}
                 <div className="flex items-center gap-3 px-4 py-4 border-b border-[#2A2A2E]">
                   <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-brand-gold/15 text-brand-gold font-semibold text-[13px] select-none">

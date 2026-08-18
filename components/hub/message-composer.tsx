@@ -245,7 +245,7 @@ export function MessageComposer({
             <Box className="h-4.5 w-4.5" />
           </button>
           {sharePickerOpen ? (
-            <div className="absolute bottom-11 left-0 z-20 w-80 rounded-xl border border-border-default bg-surface-2 p-2 shadow-[var(--shadow-level-2)]">
+            <div className="absolute bottom-11 left-0 z-20 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-border-default bg-surface-2 p-2 shadow-[var(--shadow-level-2)]">
               <input
                 autoFocus
                 value={shareQuery}
@@ -304,7 +304,7 @@ export function MessageComposer({
           </button>
         ) : null}
 
-        <div className="relative flex-1 overflow-hidden rounded-lg border border-border-default bg-surface-3">
+        <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-border-default bg-surface-3">
           {content ? (
             <div
               aria-hidden="true"
@@ -388,7 +388,7 @@ export function MessageComposer({
           />
 
           {mentionSuggestions.length > 0 && activeMention ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2 w-80 rounded-xl border border-border-default bg-surface-2 p-2 shadow-[var(--shadow-level-2)]">
+            <div className="absolute bottom-full left-0 z-20 mb-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-border-default bg-surface-2 p-2 shadow-[var(--shadow-level-2)]">
               <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-text-disabled">
                 Mention
               </p>
