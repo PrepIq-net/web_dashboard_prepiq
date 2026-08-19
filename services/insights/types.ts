@@ -365,6 +365,43 @@ export const analystThreadSchema = z.object({
 });
 export type AnalystThread = z.infer<typeof analystThreadSchema>;
 
+/**
+ * One data series in a chart artifact — `values` is nullable per point for the
+ * same reason `metric_history`'s own series is: a gap in the branch's data is
+ * a fact, not something to silently interpolate away.
+ */
+const analystChartSeriesSchema = z.object({
+  name: z.string(),
+  values: z.array(z.number().nullable()),
+});
+
+/**
+ * A chart or a file the Analyst produced mid-conversation.
+ *
+ * `type` is a plain string, not a closed enum — same reasoning as
+ * `InsightType` above: a new artifact kind this build has not heard of should
+ * render as nothing extra, not blank the whole message. The renderer switches
+ * on `type` and every kind-specific field below is optional so an unrecognised
+ * kind still parses.
+ */
+export const analystArtifactSchema = z.object({
+  type: z.string(),
+  // chart
+  chart_type: z.enum(["line", "bar"]).optional(),
+  title: z.string().optional(),
+  unit: z.string().nullable().optional(),
+  labels: z.array(z.string()).optional(),
+  series: z.array(analystChartSeriesSchema).optional(),
+  // file_export — status/download_url are resolved live by the backend at
+  // read time, not whatever the tool call stored, so a link never goes stale.
+  export_id: z.string().optional(),
+  format: z.string().optional(),
+  row_count: z.number().nullable().optional(),
+  status: z.string().optional(),
+  download_url: z.string().optional(),
+});
+export type AnalystArtifact = z.infer<typeof analystArtifactSchema>;
+
 export const analystMessageSchema = z.object({
   id: z.string(),
   // Only user/assistant reach the client — tool turns are stored for audit and
@@ -374,6 +411,7 @@ export const analystMessageSchema = z.object({
   role: z.string(),
   content: z.string(),
   created_at: z.string(),
+  artifacts: z.array(analystArtifactSchema).default([]),
 });
 export type AnalystMessage = z.infer<typeof analystMessageSchema>;
 

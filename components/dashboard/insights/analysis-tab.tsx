@@ -13,6 +13,8 @@ import { useTranslation } from "@/lib/i18n";
 import { Spinner } from "@/components/ui/spinner";
 import { AssistantInput } from "@/components/assistant/assistant-input";
 import { AssistantMarkdown } from "@/components/assistant/assistant-markdown";
+import { AnalystChart } from "@/components/dashboard/insights/analyst-chart";
+import { AnalystExportCard } from "@/components/dashboard/insights/analyst-export-card";
 import {
   useAnalystThread,
   useAnalystThreads,
@@ -471,6 +473,7 @@ function Transcript({
                     role: "user",
                     content: inFlight,
                     created_at: "",
+                    artifacts: [],
                   }}
                 />
               ) : null}
@@ -498,6 +501,10 @@ function Transcript({
 // render through the same AssistantMarkdown pipeline, so the model's markdown
 // (bold, nested lists, tables, code) comes out styled instead of raw. Only the
 // user's own bubble stays plain pre-wrap, like the Today assistant.
+//
+// A chart or export artifact renders as its own card, wider than the 82%-cap
+// text bubble (data needs the room; prose doesn't) and above it in a vertical
+// stack — same avatar, same turn, two shapes of content.
 function Bubble({ message }: { message: AnalystMessage }) {
   const isUser = message.role === "user";
   if (isUser) {
@@ -512,8 +519,17 @@ function Bubble({ message }: { message: AnalystMessage }) {
   return (
     <div className="flex items-start gap-2.5">
       <IQAvatar />
-      <div className="min-w-0 max-w-[82%] rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
-        <AssistantMarkdown content={message.content} />
+      <div className="min-w-0 flex-1 space-y-2.5">
+        {message.artifacts.map((artifact, i) =>
+          artifact.type === "chart" ? (
+            <AnalystChart key={i} artifact={artifact} />
+          ) : artifact.type === "file_export" ? (
+            <AnalystExportCard key={i} artifact={artifact} />
+          ) : null,
+        )}
+        <div className="max-w-[82%] rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
+          <AssistantMarkdown content={message.content} />
+        </div>
       </div>
     </div>
   );

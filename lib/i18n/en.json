@@ -3113,7 +3113,13 @@
         "thinking": "Looking through your data…",
         "summarized": "{count} earlier turns summarised",
         "startTitle": "Ask the Analyst",
-        "startBody": "Ask why a number moved, what a week cost you, or what to change next. Answers come from your own kitchen data, not guesses."
+        "startBody": "Ask why a number moved, what a week cost you, or what to change next. Answers come from your own kitchen data, not guesses.",
+        "export": {
+          "untitled": "Export",
+          "rows": "{count} rows",
+          "failed": "Couldn't generate this file",
+          "download": "Download"
+        }
       }
     },
     "chat": {
