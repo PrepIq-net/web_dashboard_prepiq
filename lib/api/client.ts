@@ -34,6 +34,41 @@ function resolveBaseUrl(): string {
   return baseUrl.replace(/\/$/, "");
 }
 
+/**
+ * The Django backend's own origin (scheme + host + port).
+ *
+ * Every JSON API call goes through `/api/proxy` on this app's own origin (see
+ * `resolveBaseUrl`), but a handful of API responses embed a *file* URL —
+ * `FileField.url` — that is relative in local dev (`/media/...`, plain
+ * filesystem storage) and absolute in production (Cloudinary's CDN). A
+ * relative one resolves against whichever origin fetches it, which in a
+ * browser is this app's origin, not the backend that actually serves the
+ * file — the same problem the Hub's attachments solve by having the backend
+ * declare its `media_origin` over the websocket handshake. REST responses
+ * have no equivalent handshake, so this derives it the way `next.config.ts`'s
+ * `backendImagePattern()` already does for `<Image>` remote patterns.
+ */
+export function backendOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/";
+  try {
+    const url = new URL(raw);
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+/** A possibly-relative file URL from the API, made absolute against the
+ * backend origin. Already-absolute URLs (Cloudinary in production) pass
+ * through unchanged — same rule as `components/hub/hub-utils.ts`'s
+ * `resolveMediaUrl`, kept here too since this call site has no socket-declared
+ * origin to reuse that one with. */
+export function resolveBackendFileUrl(fileUrl: string): string {
+  if (!fileUrl) return "";
+  if (/^https?:\/\//.test(fileUrl)) return fileUrl;
+  return `${backendOrigin()}${fileUrl}`;
+}
+
 function buildUrl(endpoint: string): string {
   if (/^https?:\/\//.test(endpoint)) {
     return endpoint;

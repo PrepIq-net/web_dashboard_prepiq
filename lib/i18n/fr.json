@@ -3113,7 +3113,13 @@
         "thinking": "Analyse de vos données…",
         "summarized": "{count} échanges précédents résumés",
         "startTitle": "Interroger l'analyste",
-        "startBody": "Demandez pourquoi un chiffre a bougé, ce qu'une semaine vous a coûté, ou quoi changer ensuite. Les réponses viennent de vos propres données."
+        "startBody": "Demandez pourquoi un chiffre a bougé, ce qu'une semaine vous a coûté, ou quoi changer ensuite. Les réponses viennent de vos propres données.",
+        "export": {
+          "untitled": "Export",
+          "rows": "{count} lignes",
+          "failed": "Impossible de générer ce fichier",
+          "download": "Télécharger"
+        }
       }
     },
     "chat": {
