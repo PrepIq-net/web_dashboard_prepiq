@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, MapPin, NavArrowDown } from "iconoir-react";
+import { Check, ChatBubble, MapPin, NavArrowDown } from "iconoir-react";
 import { useBranchOptions } from "@/services/context/use-branch-options";
 import { useBranchStore } from "@/services/context/branch-store";
+import { useCurrentUserProfile } from "@/services";
 import { useTranslation } from "@/lib/i18n";
+import { OrgAskDrawer } from "@/components/dashboard/org-ask-drawer";
 
 /**
  * Global location switcher.
@@ -21,8 +23,10 @@ export function BranchSwitcher() {
   const { branchOptions, defaultBranch } = useBranchOptions();
   const branchId = useBranchStore((state) => state.branchId);
   const setBranchId = useBranchStore((state) => state.setBranchId);
+  const { data: user } = useCurrentUserProfile();
 
   const [open, setOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleOutsideClick = useCallback((event: MouseEvent) => {
@@ -108,7 +112,28 @@ export function BranchSwitcher() {
               );
             })}
           </div>
+          <div className="border-t border-[#2A2A2E] p-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setAskOpen(true);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] text-brand-gold transition-colors hover:bg-[#232327]"
+            >
+              <ChatBubble className="h-4 w-4 shrink-0" />
+              <span>{t("dashboard.orgAsk.trigger")}</span>
+            </button>
+          </div>
         </div>
+      ) : null}
+
+      {user?.organization_id ? (
+        <OrgAskDrawer
+          open={askOpen}
+          onClose={() => setAskOpen(false)}
+          organizationId={user.organization_id}
+        />
       ) : null}
     </div>
   );

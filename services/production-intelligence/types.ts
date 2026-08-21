@@ -2980,6 +2980,29 @@ export const riskTrendPointSchema = z.object({
   score: z.number(),
 });
 
+// Unified cross-domain Exceptions list — merges operational alerts, live
+// dish/ingredient risk, nightly insight findings, tomorrow's labor coverage
+// and the manager's own standing watches into one ranked list. Severity is
+// deliberately the same 4-value union as InsightSeverity (services/insights/
+// types.ts) — the backend normalizes every source onto that vocabulary, this
+// schema just reflects it.
+export const exceptionItemSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  branch_id: z.string(),
+  category: z.string(),
+  title: z.string(),
+  detail: z.string(),
+  severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  cost_amount: z.union([z.number(), z.string()]).nullable().optional(),
+  cost_currency: z.string().nullable().optional(),
+  confidence: z.number().nullable().optional(),
+  suggested_action: z.string(),
+  deep_link: z.string().optional(),
+});
+
+export type ExceptionItem = z.infer<typeof exceptionItemSchema>;
+
 export const riskSnapshotSchema = z.object({
   branch_id: z.string(),
   branch_name: z.string(),
@@ -2991,6 +3014,7 @@ export const riskSnapshotSchema = z.object({
   demand_volatility: z.array(demandVolatilityItemSchema),
   network_risk: networkRiskSchema.nullable(),
   operational_alerts: z.array(operationalAlertSchema),
+  exceptions: z.array(exceptionItemSchema).optional().default([]),
   risk_trend: z.array(riskTrendPointSchema),
 });
 

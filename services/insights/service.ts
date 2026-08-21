@@ -1,11 +1,15 @@
 import { apiClient, apiClientWithSchema } from "@/lib/api/client";
 import { insightsEndpoints } from "./endpoints";
 import {
+  analystMemorySchema,
   analystThreadDetailSchema,
   analystThreadSchema,
   analystThreadsSchema,
   analystTurnSchema,
+  confirmBundleResponseSchema,
   feedSchema,
+  goalsResponseSchema,
+  orgQueryResponseSchema,
   insightSchema,
   opportunitiesSchema,
   reportsSchema,
@@ -140,6 +144,64 @@ export async function openAnalystWeek(branchId: string) {
     analystTurnSchema,
     { method: "POST", body: {} },
   );
+}
+
+export async function confirmAnalystBundle(
+  branchId: string,
+  threadId: string,
+  params: { messageId: string; applied: boolean; actionLogIds?: string[] },
+) {
+  return apiClientWithSchema(
+    insightsEndpoints.confirmBundle(branchId, threadId),
+    confirmBundleResponseSchema,
+    {
+      method: "POST",
+      body: {
+        message_id: params.messageId,
+        applied: params.applied,
+        ...(params.actionLogIds ? { action_log_ids: params.actionLogIds } : {}),
+      },
+    },
+  );
+}
+
+/**
+ * "How are my restaurants doing" — one stateless, read-only cross-branch
+ * answer. No thread, no history; see insights.services.org_analyst for why.
+ */
+export async function askOrgQuery(organizationId: string, question: string) {
+  return apiClientWithSchema(
+    insightsEndpoints.orgQuery(organizationId),
+    orgQueryResponseSchema,
+    { method: "POST", body: { question } },
+  );
+}
+
+/**
+ * Goals — AnalystMemory promoted to a form-driven surface. Same underlying
+ * rows the Analyst chat's `remember` tool writes; see insights.services
+ * .memory.create_memory_from_target for why this skips the LLM parse step.
+ */
+export async function getGoals(branchId: string) {
+  return apiClientWithSchema(insightsEndpoints.goals(branchId), goalsResponseSchema, {
+    method: "GET",
+  });
+}
+
+export async function createGoal(
+  branchId: string,
+  data: {
+    metric: string;
+    comparator: "gt" | "gte" | "lt" | "lte";
+    threshold: number;
+    weekday?: number | null;
+    item_title?: string | null;
+  },
+) {
+  return apiClientWithSchema(insightsEndpoints.goals(branchId), analystMemorySchema, {
+    method: "POST",
+    body: data,
+  });
 }
 
 export async function retireAnalystMemory(branchId: string, memoryId: string) {

@@ -132,6 +132,8 @@ export const analystKeys = {
     [...insightsKeys.branch(branchId), "analyst", "threads"] as const,
   thread: (branchId: string, threadId: string) =>
     [...insightsKeys.branch(branchId), "analyst", "thread", threadId] as const,
+  goals: (branchId: string) =>
+    [...insightsKeys.branch(branchId), "analyst", "goals"] as const,
 };
 
 /**
@@ -228,6 +230,67 @@ export function useOpenAnalystWeek(branchId: string) {
   return useMutation({
     mutationFn: () => insightsService.openAnalystWeek(branchId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * Resolve a "do the work" bundle a turn proposed — Review & approve.
+ * Invalidates the transcript the same way a turn does: the confirm response
+ * is itself a new assistant message (the "Done — …" / "Okay, I won't apply
+ * that" line), and any items it applied may have changed data other tabs
+ * show, so a full refetch on next visit is the safe default rather than
+ * trying to patch specific caches per action type.
+ */
+export function useConfirmAnalystBundle(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { threadId: string; messageId: string; applied: boolean; actionLogIds?: string[] }) =>
+      insightsService.confirmAnalystBundle(branchId, params.threadId, params),
+    onSuccess: (_data, { threadId }) => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.thread(branchId, threadId) });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * "How are my restaurants doing" — one-shot, no thread to invalidate.
+ */
+export function useAskOrgQuery(organizationId: string) {
+  return useMutation({
+    mutationFn: (question: string) => insightsService.askOrgQuery(organizationId, question),
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+/**
+ * Goals — same underlying rows as `useAnalystThreads`' `memories`, plus the
+ * pickable metric menu for the structured create form.
+ */
+export function useGoals(branchId?: string, enabled = true) {
+  return useQuery({
+    queryKey: analystKeys.goals(branchId ?? ""),
+    queryFn: () => insightsService.getGoals(branchId!),
+    enabled: enabled && !!branchId,
+  });
+}
+
+export function useCreateGoal(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      metric: string;
+      comparator: "gt" | "gte" | "lt" | "lte";
+      threshold: number;
+      weekday?: number | null;
+      item_title?: string | null;
+    }) => insightsService.createGoal(branchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: analystKeys.goals(branchId) });
+      // The Analysis tab's sidebar reads the same rows via the thread list.
       queryClient.invalidateQueries({ queryKey: analystKeys.threads(branchId) });
     },
     onError: (error: Error) => toast.error(error.message),

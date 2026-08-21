@@ -16,6 +16,7 @@ import {
 } from "@/services";
 import { useSubscriptionTier } from "@/services/payment/hooks";
 import { SubscriptionRequiredState } from "@/components/dashboard/empty-states/subscription-required-state";
+import { ExceptionsList } from "@/components/dashboard/risk/exceptions-list";
 import { useTranslation } from "@/lib/i18n";
 
 const EMPTY_LIST: never[] = [];
@@ -328,39 +329,14 @@ function RiskPageContent() {
             </div>
           </div>
 
-          {/* ── 3. Operational alerts ── */}
-          {(risk?.operational_alerts ?? []).length ? (
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
-                {t("workspace.risk.activeAlerts")}
-              </p>
-              <div className="space-y-2">
-                {risk!.operational_alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`flex flex-wrap items-start justify-between gap-3 rounded-r-lg border-l-4 px-4 py-3 ${alertRowClasses(alert.severity)}`}
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-text-primary">
-                        {alert.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-text-muted">{alert.detail}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${riskBadgeClasses(alert.severity)}`}
-                      >
-                        {alert.severity}
-                      </span>
-                      <p className="text-xs font-medium text-text-secondary">
-                        {alert.suggested_action}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          {/* ── 3. Exceptions — unified across operational alerts, live risk,
+                 nightly findings, tomorrow's staffing gap and standing watches ── */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+              {t("workspace.risk.exceptionsTitle")}
+            </p>
+            <ExceptionsList items={risk?.exceptions ?? EMPTY_LIST} />
+          </div>
 
           {/* ── 4. Item risks — stockout + waste merged ── */}
           <div>

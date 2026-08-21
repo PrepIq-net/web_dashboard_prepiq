@@ -30,6 +30,7 @@ import {
   getPurchaseRecommendation,
   recomputePurchaseRecommendation,
   approvePurchaseRecommendation,
+  sendPurchaseRecommendationToSuppliers,
   updatePurchaseRecommendationLine,
   receiveDelivery,
   getSupplierSummary,
@@ -388,6 +389,20 @@ export function useApprovePurchaseRecommendation(branchId: string) {
       queryClient.setQueryData(
         inventoryQueryKeys.purchaseRecommendation(branchId, data.generated_for_date),
         data
+      );
+    },
+  });
+}
+
+export function useSendPurchaseRecommendationToSuppliers(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recommendationId: string) =>
+      sendPurchaseRecommendationToSuppliers(branchId, recommendationId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        inventoryQueryKeys.purchaseRecommendation(branchId, data.recommendation.generated_for_date),
+        data.recommendation
       );
     },
   });

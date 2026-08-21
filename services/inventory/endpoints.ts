@@ -98,6 +98,8 @@ export const inventoryEndpoints = {
       `/api/inventory/branches/${branchId}/purchase-recommendation/${recommendationId}/approve/`,
     updateLine: (branchId: string, lineId: string) =>
       `/api/inventory/branches/${branchId}/purchase-recommendation/lines/${lineId}/`,
+    sendToSuppliers: (branchId: string, recommendationId: string) =>
+      `/api/inventory/branches/${branchId}/purchase-recommendation/${recommendationId}/send-to-suppliers/`,
   },
   receiveDelivery: {
     create: (branchId: string) => `/api/inventory/branches/${branchId}/receive-delivery/`,

@@ -17,6 +17,8 @@ type Props = {
 type FormState = {
   ingredient: string;
   supplier_name: string;
+  contact_email: string;
+  contact_phone: string;
   pack_size: string;
   pack_unit: string;
   cost_per_pack: string;
@@ -27,6 +29,8 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   ingredient: "",
   supplier_name: "",
+  contact_email: "",
+  contact_phone: "",
   pack_size: "",
   pack_unit: "kg",
   cost_per_pack: "",
@@ -64,6 +68,8 @@ export function SupplierModal({ open, onClose, branchId, ingredients }: Props) {
       await createMutation.mutateAsync({
         ingredient_id: form.ingredient,
         supplier_name: supplierName,
+        contact_email: form.contact_email.trim(),
+        contact_phone: form.contact_phone.trim(),
         pack_size: form.pack_size ? parseFloat(form.pack_size) : null,
         pack_unit: form.pack_unit,
         cost_per_pack: form.cost_per_pack ? parseFloat(form.cost_per_pack) : null,
@@ -138,6 +144,37 @@ export function SupplierModal({ open, onClose, branchId, ingredients }: Props) {
             className={fieldClass}
           />
         </div>
+
+        {/* Contact — needed to actually send this supplier a purchase order */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-[0.1em] text-text-muted mb-2">
+              Contact Email <span className="font-normal normal-case">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={form.contact_email}
+              onChange={(e) => set("contact_email", e.target.value)}
+              placeholder="orders@supplier.com"
+              className={fieldClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-[0.1em] text-text-muted mb-2">
+              Contact Phone <span className="font-normal normal-case">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={form.contact_phone}
+              onChange={(e) => set("contact_phone", e.target.value)}
+              placeholder="+256 700 000000"
+              className={fieldClass}
+            />
+          </div>
+        </div>
+        <p className="-mt-2 text-xs text-text-muted">
+          Add an email to be able to send this supplier purchase orders directly from Purchasing.
+        </p>
 
         {/* Pack size + unit */}
         <div className="grid grid-cols-2 gap-4">

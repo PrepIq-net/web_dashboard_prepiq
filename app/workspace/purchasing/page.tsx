@@ -15,6 +15,7 @@ import {
   usePurchaseRecommendation,
   useRecomputePurchaseRecommendation,
   useApprovePurchaseRecommendation,
+  useSendPurchaseRecommendationToSuppliers,
   useUpdatePurchaseRecommendationLine,
   useReceiveDelivery,
   useSupplierSummary,
@@ -463,6 +464,7 @@ function ForecastTab({
   const recQuery = usePurchaseRecommendation(branchId, date, Boolean(branchId));
   const recompute = useRecomputePurchaseRecommendation(branchId);
   const approve = useApprovePurchaseRecommendation(branchId);
+  const sendToSuppliers = useSendPurchaseRecommendationToSuppliers(branchId);
   const updateLine = useUpdatePurchaseRecommendationLine(branchId, date);
   const receive = useReceiveDelivery(branchId, date);
 
@@ -555,6 +557,12 @@ function ForecastTab({
               <Check className='h-3.5 w-3.5' /> {approve.isPending ? 'Approving…' : 'Approve'}
             </button>
           ) : null}
+          {recommendation && recommendation.status !== 'DRAFT' && !isReadOnlyBranchManager ? (
+            <button type='button' onClick={() => sendToSuppliers.mutate(recommendation.id)} disabled={sendToSuppliers.isPending}
+              className='inline-flex h-8 items-center gap-1.5 rounded-full border border-brand-gold/50 px-3 text-xs font-semibold text-brand-gold transition-colors hover:bg-brand-gold/10 disabled:opacity-60'>
+              <Shop className='h-3.5 w-3.5' /> {sendToSuppliers.isPending ? 'Sending…' : 'Send to supplier(s)'}
+            </button>
+          ) : null}
           {lines.length > 0 ? (
             <button type='button' onClick={exportLines} disabled={isReadOnlyBranchManager}
               className='inline-flex h-8 items-center gap-1 rounded-lg border border-surface-4 px-2.5 text-sm text-text-primary transition-colors hover:border-brand-gold/40 hover:text-brand-gold disabled:opacity-50'>
@@ -570,6 +578,31 @@ function ForecastTab({
           <p className='font-display text-2xl font-semibold text-brand-gold'>{money(recommendation.total_estimated_cost)}</p>
         </div>
       )}
+
+      {sendToSuppliers.data?.needs_contact_info.length ? (
+        <p className='mb-6 rounded-lg border border-status-warning/30 bg-status-warning/10 px-4 py-3 text-sm text-status-warning'>
+          No contact email on file for: {sendToSuppliers.data.needs_contact_info.join(', ')}. Add one on the
+          Recipes tab&apos;s supplier form to send them a purchase order.
+        </p>
+      ) : null}
+
+      {(recommendation?.supplier_dispatches.length ?? 0) > 0 ? (
+        <div className='mb-6 flex flex-wrap gap-2'>
+          {recommendation!.supplier_dispatches.map((d) => (
+            <span key={d.id}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                d.status === 'SENT'
+                  ? 'border-status-success/30 bg-status-success/10 text-status-success'
+                  : d.status === 'FAILED'
+                    ? 'border-status-critical/30 bg-status-critical/10 text-status-critical'
+                    : 'border-surface-4 bg-surface-3 text-text-muted'
+              }`}
+            >
+              {d.supplier_name} — {d.status === 'SENT' ? 'sent' : d.status === 'FAILED' ? 'failed' : 'sending…'}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <div className='overflow-x-auto rounded-xl border border-surface-4 bg-surface-2 scrollbar-thin'>
         {recQuery.isLoading ? (

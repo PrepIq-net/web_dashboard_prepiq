@@ -20,6 +20,7 @@ import {
   itemBatchRuleSchema,
   itemAvailabilityOverrideSchema,
   purchaseRecommendationSchema,
+  sendToSuppliersResponseSchema,
   ingredientVarianceCauseResponseSchema,
   receiveDeliveryResponseSchema,
   purchaseRecommendationLineSchema,
@@ -270,6 +271,8 @@ export async function getIngredientSuppliers(branchId: string) {
 export type IngredientSupplierPayload = {
   ingredient_id: string;
   supplier_name: string;
+  contact_email?: string;
+  contact_phone?: string;
   pack_size?: number | null;
   pack_unit?: string;
   cost_per_pack?: number | null;
@@ -315,6 +318,14 @@ export async function approvePurchaseRecommendation(branchId: string, recommenda
   return apiClientWithSchema(
     inventoryEndpoints.purchaseRecommendation.approve(branchId, recommendationId),
     purchaseRecommendationSchema,
+    { method: "POST" }
+  );
+}
+
+export async function sendPurchaseRecommendationToSuppliers(branchId: string, recommendationId: string) {
+  return apiClientWithSchema(
+    inventoryEndpoints.purchaseRecommendation.sendToSuppliers(branchId, recommendationId),
+    sendToSuppliersResponseSchema,
     { method: "POST" }
   );
 }

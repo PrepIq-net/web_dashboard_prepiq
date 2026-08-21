@@ -15,9 +15,12 @@ import { AssistantInput } from "@/components/assistant/assistant-input";
 import { AssistantMarkdown } from "@/components/assistant/assistant-markdown";
 import { AnalystChart } from "@/components/dashboard/insights/analyst-chart";
 import { AnalystExportCard } from "@/components/dashboard/insights/analyst-export-card";
+import { AnalystBundleCard } from "@/components/dashboard/insights/analyst-bundle-card";
+import { AddGoalForm } from "@/components/dashboard/insights/add-goal-form";
 import {
   useAnalystThread,
   useAnalystThreads,
+  useConfirmAnalystBundle,
   useCreateAnalystThread,
   useDeleteAnalystThread,
   useOpenAnalystWeek,
@@ -142,6 +145,9 @@ export function AnalysisTab({ branchId }: { branchId: string }) {
             />
 
             <MemoryList memories={memories} branchId={branchId} />
+            <div className="mt-3">
+              <AddGoalForm branchId={branchId} />
+            </div>
           </>
         )}
       </aside>
@@ -389,6 +395,8 @@ function MemoryList({
 // ── Transcript ──────────────────────────────────────────────────────────────
 
 function Transcript({
+  branchId,
+  threadId,
   messages,
   summarizedTurns,
   isLoading,
@@ -408,6 +416,23 @@ function Transcript({
   onSend: (message: string) => void;
 }) {
   const { t } = useTranslation();
+  const confirmBundle = useConfirmAnalystBundle(branchId);
+  // Ephemeral, this-page-load-only: once a bundle is resolved the card gives
+  // way to a plain result line instead of re-fetching a per-item live status
+  // for every past message. A stale reload can still show a resolved bundle's
+  // buttons, but confirm_pending_action_bundle is itself idempotent-safe —
+  // clicking them again just reports "no longer pending," never double-applies.
+  const [resolvedBundles, setResolvedBundles] = useState<Record<string, string>>({});
+  const handleBundleDecision = (messageId: string, applied: boolean) => {
+    confirmBundle.mutate(
+      { threadId, messageId, applied },
+      {
+        onSuccess: (data) => {
+          setResolvedBundles((prev) => ({ ...prev, [messageId]: data.message.content }));
+        },
+      },
+    );
+  };
   /*
    * The turn in flight, held locally.
    *
@@ -464,7 +489,17 @@ function Transcript({
 
             <div className="space-y-6">
               {messages.map((message) => (
-                <Bubble key={message.id} message={message} />
+                <Bubble
+                  key={message.id}
+                  message={message}
+                  resolvedBundleNote={resolvedBundles[message.id]}
+                  onBundleDecision={
+                    message.pending_action_bundle?.length
+                      ? (applied: boolean) => handleBundleDecision(message.id, applied)
+                      : undefined
+                  }
+                  bundleBusy={confirmBundle.isPending}
+                />
               ))}
               {inFlight ? (
                 <Bubble
@@ -474,6 +509,7 @@ function Transcript({
                     content: inFlight,
                     created_at: "",
                     artifacts: [],
+                    pending_action_bundle: null,
                   }}
                 />
               ) : null}
@@ -505,7 +541,17 @@ function Transcript({
 // A chart or export artifact renders as its own card, wider than the 82%-cap
 // text bubble (data needs the room; prose doesn't) and above it in a vertical
 // stack — same avatar, same turn, two shapes of content.
-function Bubble({ message }: { message: AnalystMessage }) {
+function Bubble({
+  message,
+  resolvedBundleNote,
+  onBundleDecision,
+  bundleBusy,
+}: {
+  message: AnalystMessage;
+  resolvedBundleNote?: string;
+  onBundleDecision?: (applied: boolean) => void;
+  bundleBusy?: boolean;
+}) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
@@ -530,6 +576,18 @@ function Bubble({ message }: { message: AnalystMessage }) {
         <div className="max-w-[82%] rounded-xl rounded-bl-md border border-surface-4 bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed text-text-primary">
           <AssistantMarkdown content={message.content} />
         </div>
+        {message.pending_action_bundle?.length ? (
+          resolvedBundleNote ? (
+            <p className="max-w-[82%] text-xs text-text-muted">{resolvedBundleNote}</p>
+          ) : (
+            <AnalystBundleCard
+              items={message.pending_action_bundle}
+              busy={bundleBusy}
+              onApproveAll={() => onBundleDecision?.(true)}
+              onDeclineAll={() => onBundleDecision?.(false)}
+            />
+          )
+        ) : null}
       </div>
     </div>
   );

@@ -220,6 +220,15 @@
       "selectLocation": "Select location",
       "openMenu": "Open menu"
     },
+    "orgAsk": {
+      "trigger": "Ask about all my branches",
+      "title": "Ask about all your branches",
+      "description": "A read-only summary across your whole organization — not tied to one branch.",
+      "empty": "Ask how your restaurants are doing, or which branch needs attention.",
+      "thinking": "Looking across your branches…",
+      "placeholder": "How are my restaurants doing?",
+      "send": "Send"
+    },
     "overview": {
       "eyebrow": "Dashboard",
       "title": "Overview",
@@ -2970,6 +2979,7 @@
       "confidence": "{{value}}% confidence",
       "seenTimes": "Seen {{count}} nights running",
       "resurfaced": "Resurfaced",
+      "deeperFindings": "A closer look",
       "tabs": {
         "summary": "Executive Summary",
         "feed": "Things You Should Know",
@@ -3114,6 +3124,21 @@
         "summarized": "{count} earlier turns summarised",
         "startTitle": "Ask the Analyst",
         "startBody": "Ask why a number moved, what a week cost you, or what to change next. Answers come from your own kitchen data, not guesses.",
+        "bundleTitle": "Prepared {count} change(s) for you to review",
+        "bundleApproveAll": "Approve all",
+        "bundleDeclineAll": "Decline all",
+        "bundleApplying": "Applying…",
+        "addGoal": "Add a goal",
+        "cancel": "Cancel",
+        "selectMetric": "Choose what to watch…",
+        "saving": "Saving…",
+        "save": "Save",
+        "comparator": {
+          "gt": "goes above",
+          "gte": "reaches or exceeds",
+          "lt": "drops below",
+          "lte": "falls to or below"
+        },
         "export": {
           "untitled": "Export",
           "rows": "{count} rows",
@@ -3689,6 +3714,8 @@
       "wasteRisk": "Waste Risk",
       "supplyRisk": "Supply Risk",
       "activeAlerts": "Active Alerts",
+      "exceptionsTitle": "Today's exceptions",
+      "exceptionsEmpty": "Nothing needs attention right now.",
       "itemRisks": "Item Risks",
       "stockoutWasteExposure": "Stockout Waste Exposure",
       "noItemRisks": "No Item Risks",
