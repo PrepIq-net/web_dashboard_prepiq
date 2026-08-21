@@ -101,6 +101,21 @@ export function InsightCard({
         </p>
       ) : null}
 
+      {/* An unprompted second look the nightly pipeline took at this HIGH/
+          CRITICAL finding — additive, and visually distinct from the
+          deterministic copy above so it never reads as part of the same
+          claim (see insights.services.investigator). */}
+      {body.deeper_findings ? (
+        <div className="mt-3 max-w-3xl rounded-lg border border-brand-gold/20 bg-brand-gold/[0.04] px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-gold">
+            {t("workspace.insights.deeperFindings")}
+          </p>
+          <p className="mt-1 text-[13px] leading-[22px] text-text-secondary">
+            {body.deeper_findings}
+          </p>
+        </div>
+      ) : null}
+
       {/* The deterministic instruction. Never model-authored — it is a fitted
           slope applied forward, which is why it can be stated as a quantity. */}
       {action && action.delta_qty !== null ? (

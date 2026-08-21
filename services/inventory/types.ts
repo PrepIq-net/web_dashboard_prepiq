@@ -244,6 +244,8 @@ export const ingredientSupplierSchema = z.object({
   ingredient_id: z.string(),
   ingredient_name: z.string().optional(),
   supplier_name: z.string(),
+  contact_email: z.string().optional().default(""),
+  contact_phone: z.string().optional().default(""),
   pack_size: z.coerce.number().nullable(),
   pack_unit: z.string(),
   cost_per_pack: z.coerce.number().nullable(),
@@ -324,6 +326,17 @@ export const purchaseRecommendationLineSchema = z.object({
 });
 export type PurchaseRecommendationLine = z.infer<typeof purchaseRecommendationLineSchema>;
 
+export const purchaseOrderDispatchSchema = z.object({
+  id: z.string(),
+  supplier_name: z.string(),
+  recipient_email: z.string(),
+  status: z.enum(["PENDING", "SENT", "FAILED"]),
+  line_count: z.number(),
+  sent_at: z.string().nullable(),
+  failure_reason: z.string(),
+});
+export type PurchaseOrderDispatch = z.infer<typeof purchaseOrderDispatchSchema>;
+
 export const purchaseRecommendationSchema = z.object({
   id: z.string(),
   branch_id: z.string(),
@@ -334,8 +347,16 @@ export const purchaseRecommendationSchema = z.object({
   approved_at: z.string().nullable(),
   computed_at: z.string(),
   lines: z.array(purchaseRecommendationLineSchema),
+  supplier_dispatches: z.array(purchaseOrderDispatchSchema).optional().default([]),
 });
 export type PurchaseRecommendation = z.infer<typeof purchaseRecommendationSchema>;
+
+export const sendToSuppliersResponseSchema = z.object({
+  sent: z.array(z.string()),
+  needs_contact_info: z.array(z.string()),
+  recommendation: purchaseRecommendationSchema,
+});
+export type SendToSuppliersResponse = z.infer<typeof sendToSuppliersResponseSchema>;
 
 export const ingredientVarianceCauseResponseSchema = z.object({
   usage_id: z.string(),

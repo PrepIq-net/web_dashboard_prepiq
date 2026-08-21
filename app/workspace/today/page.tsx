@@ -32,8 +32,10 @@ import {
   useLockBranchDayPlan,
   useUpdateBranchDayStatus,
   useUpdatePrepPlanItem,
+  useRiskSnapshot,
   productionIntelligenceQueryKeys,
 } from "@/services/production-intelligence/hooks";
+import { ExceptionsList } from "@/components/dashboard/risk/exceptions-list";
 import { useGenerateTasks } from "@/services";
 import { useTaskBoardRealtime } from "@/services/execution/use-task-board-realtime";
 import { useMenuItemRealtime } from "@/services/inventory/use-menu-item-realtime";
@@ -156,6 +158,11 @@ function TodayWorkspacePageContent() {
     { branch_id: safeBranchId, date: targetDate },
     canFetchData,
   );
+  // Top exceptions widget only — the full ranked list lives on /workspace/risk.
+  const riskSnapshotQuery = useRiskSnapshot({
+    branch_id: safeBranchId,
+    target_date: targetDate,
+  });
   const initializeMutation = useInitializeBranchDay();
   const evaluateMutation = useEvaluatePrepPlan();
   const lockPlanMutation = useLockBranchDayPlan();
@@ -1086,6 +1093,18 @@ function TodayWorkspacePageContent() {
                   }
                   onApplyFix={applyRiskAlertFix}
                 />
+
+                {(riskSnapshotQuery.data?.exceptions?.length ?? 0) > 0 && (
+                  <div className="rounded-xl border border-surface-4 bg-surface-1 p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold">
+                      {t("workspace.risk.exceptionsTitle")}
+                    </p>
+                    <ExceptionsList
+                      items={riskSnapshotQuery.data?.exceptions ?? []}
+                      limit={3}
+                    />
+                  </div>
+                )}
 
                 <PrepPlanSection
                   branchDay={branchDay}

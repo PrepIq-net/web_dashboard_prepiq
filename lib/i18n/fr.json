@@ -220,6 +220,15 @@
       "selectLocation": "Sélectionner un emplacement",
       "openMenu": "Ouvrir le menu"
     },
+    "orgAsk": {
+      "trigger": "Interroger toutes mes succursales",
+      "title": "Interroger toutes vos succursales",
+      "description": "Un résumé en lecture seule pour toute votre organisation — pas limité à une succursale.",
+      "empty": "Demandez comment vont vos restaurants, ou quelle succursale nécessite votre attention.",
+      "thinking": "Analyse de vos succursales…",
+      "placeholder": "Comment vont mes restaurants ?",
+      "send": "Envoyer"
+    },
     "overview": {
       "eyebrow": "Tableau de bord",
       "title": "Aperçu",
@@ -2970,6 +2979,7 @@
       "confidence": "{{value}} % de confiance",
       "seenTimes": "Observé {{count}} nuits d'affilée",
       "resurfaced": "Réapparu",
+      "deeperFindings": "Un examen approfondi",
       "tabs": {
         "summary": "Synthèse",
         "feed": "À savoir",
@@ -3114,6 +3124,21 @@
         "summarized": "{count} échanges précédents résumés",
         "startTitle": "Interroger l'analyste",
         "startBody": "Demandez pourquoi un chiffre a bougé, ce qu'une semaine vous a coûté, ou quoi changer ensuite. Les réponses viennent de vos propres données.",
+        "bundleTitle": "{count} changement(s) préparé(s) pour votre validation",
+        "bundleApproveAll": "Tout approuver",
+        "bundleDeclineAll": "Tout refuser",
+        "bundleApplying": "Application…",
+        "addGoal": "Ajouter un objectif",
+        "cancel": "Annuler",
+        "selectMetric": "Choisissez quoi surveiller…",
+        "saving": "Enregistrement…",
+        "save": "Enregistrer",
+        "comparator": {
+          "gt": "dépasse",
+          "gte": "atteint ou dépasse",
+          "lt": "descend sous",
+          "lte": "descend à ou sous"
+        },
         "export": {
           "untitled": "Export",
           "rows": "{count} lignes",
@@ -3689,6 +3714,8 @@
       "wasteRisk": "Risque de gaspillage",
       "supplyRisk": "Risque d'approvisionnement",
       "activeAlerts": "Alertes actives",
+      "exceptionsTitle": "Exceptions du jour",
+      "exceptionsEmpty": "Rien ne nécessite votre attention pour le moment.",
       "itemRisks": "Risques par article",
       "stockoutWasteExposure": "Exposition aux ruptures/gaspillage",
       "noItemRisks": "Aucun risque article",

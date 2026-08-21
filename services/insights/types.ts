@@ -93,6 +93,10 @@ export type QuantifiedAction = z.infer<typeof quantifiedActionSchema>;
 export const insightBodySchema = z.object({
   observation: z.string().optional().default(""),
   recommendation: z.string().optional().default(""),
+  // Added unprompted by the nightly pipeline's second-pass investigator for
+  // HIGH/CRITICAL findings only (insights.services.investigator) — additive
+  // to observation/recommendation above, never a replacement for them.
+  deeper_findings: z.string().optional().default(""),
   quantified_action: quantifiedActionSchema.optional().nullable(),
   evidence: z.array(evidenceSchema).optional().default([]),
   vectors: z.array(costVectorSchema).optional().default([]),
@@ -402,6 +406,26 @@ export const analystArtifactSchema = z.object({
 });
 export type AnalystArtifact = z.infer<typeof analystArtifactSchema>;
 
+/**
+ * One prepared-but-not-applied write inside a "do the work" bundle — the
+ * Analyst's Review & approve moment (ai_assistant.engine.run_tool_loop's
+ * bundle_mode). Shaped like the Today assistant's own `PendingAction`
+ * (services/assistant/types.ts) plus `action_log_id`, which is what the
+ * confirm-bundle call targets. `type` is a plain string, not the Today
+ * chat's closed `AssistantActionType` union — the Analyst can propose any
+ * write tool, and a bundle item this build doesn't specifically style should
+ * still render generically rather than fail to parse.
+ */
+export const pendingBundleItemSchema = z.object({
+  type: z.string(),
+  summary: z.string(),
+  item_title: z.string().nullable().optional(),
+  quantity: z.number().nullable().optional(),
+  destructive: z.boolean().optional(),
+  action_log_id: z.string(),
+});
+export type PendingBundleItem = z.infer<typeof pendingBundleItemSchema>;
+
 export const analystMessageSchema = z.object({
   id: z.string(),
   // Only user/assistant reach the client — tool turns are stored for audit and
@@ -412,8 +436,28 @@ export const analystMessageSchema = z.object({
   content: z.string(),
   created_at: z.string(),
   artifacts: z.array(analystArtifactSchema).default([]),
+  pending_action_bundle: z.array(pendingBundleItemSchema).nullable().optional(),
 });
 export type AnalystMessage = z.infer<typeof analystMessageSchema>;
+
+export const orgQueryResponseSchema = z.object({
+  answer: z.string(),
+});
+export type OrgQueryResponse = z.infer<typeof orgQueryResponseSchema>;
+
+export const confirmBundleResultSchema = z.object({
+  action_log_id: z.string(),
+  status: z.string(),
+  result: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export const confirmBundleResponseSchema = z.object({
+  applied_count: z.number(),
+  results: z.array(confirmBundleResultSchema),
+  message: analystMessageSchema,
+});
+export type ConfirmBundleResponse = z.infer<typeof confirmBundleResponseSchema>;
 
 export const analystMemorySchema = z.object({
   id: z.string(),
@@ -428,6 +472,23 @@ export const analystMemorySchema = z.object({
   created_at: z.string(),
 });
 export type AnalystMemory = z.infer<typeof analystMemorySchema>;
+
+// One pickable metric for the Goals form — mirrors insights.services.memory
+// .METRICS_MENU, the structured counterpart to the free-text sentence the
+// Analyst chat's `remember` tool parses.
+export const goalMetricSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  unit: z.string(),
+  is_percent: z.boolean(),
+});
+export type GoalMetric = z.infer<typeof goalMetricSchema>;
+
+export const goalsResponseSchema = z.object({
+  goals: z.array(analystMemorySchema),
+  metrics: z.array(goalMetricSchema),
+});
+export type GoalsResponse = z.infer<typeof goalsResponseSchema>;
 
 export const analystThreadsSchema = z.object({
   threads: z.array(analystThreadSchema),

@@ -49,6 +49,14 @@ export const insightsEndpoints = {
   openWeek: (branchId: string) =>
     `${BASE}/threads/open-week/${buildQuery({ branch_id: branchId })}`,
 
+  confirmBundle: (branchId: string, threadId: string) =>
+    `${BASE}/threads/${threadId}/confirm-bundle/${buildQuery({ branch_id: branchId })}`,
+
+  orgQuery: (organizationId: string) =>
+    `${BASE}/org-query/${buildQuery({ organization_id: organizationId })}`,
+
   memory: (branchId: string, memoryId: string) =>
     `${BASE}/memories/${memoryId}/${buildQuery({ branch_id: branchId })}`,
+
+  goals: (branchId: string) => `${BASE}/goals/${buildQuery({ branch_id: branchId })}`,
 };
