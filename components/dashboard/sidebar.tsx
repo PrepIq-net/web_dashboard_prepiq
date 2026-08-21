@@ -467,8 +467,17 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
                 onClick={closeMobile}
                 className={`flex justify-center rounded-full transition-opacity duration-[var(--motion-duration-fast)] hover:opacity-80 ${FOCUS_RING}`}
               >
-                <div className="flex h-8 w-8 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
-                  {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
+                <div className="flex h-8 w-8 select-none items-center justify-center overflow-hidden rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
+                  {user.profile_picture ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.profile_picture}
+                      alt={`${user.first_name} ${user.last_name}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"
+                  )}
                 </div>
               </Link>
             ) : (
@@ -477,8 +486,17 @@ export const DashboardSidebar = memo(function DashboardSidebarInner({
                 onClick={closeMobile}
                 className={`group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-[var(--motion-duration-fast)] hover:bg-surface-2/60 ${FOCUS_RING}`}
               >
-                <div className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
-                  {user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}
+                <div className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center overflow-hidden rounded-full border border-surface-4 bg-surface-3 text-[11px] font-semibold text-text-muted">
+                  {user.profile_picture ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.profile_picture}
+                      alt={`${user.first_name} ${user.last_name}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user.first_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-medium leading-tight text-text-primary transition-colors group-hover:text-brand-gold">

@@ -10,7 +10,7 @@ import type {
 import { HubMessageRow } from "./hub-message";
 import { buildHubMentionTargets } from "./hub-mentions";
 import { MessageComposer } from "./message-composer";
-import { dayKey, formatDayLabel, fullName } from "./hub-utils";
+import { dayKey, formatDayLabel, fullName, initials, resolveMediaUrl } from "./hub-utils";
 
 export function ThreadView({
   conversation,
@@ -198,16 +198,30 @@ export function ThreadView({
         ) : null}
 
         <div className="flex flex-shrink-0 -space-x-1.5">
-          {others.slice(0, 4).map((member) => (
-            <span
-              key={member.user.id}
-              title={fullName(member.user)}
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-2 bg-surface-4 text-[10px] font-medium text-text-secondary"
-            >
-              {member.user.first_name?.[0]}
-              {member.user.last_name?.[0]}
-            </span>
-          ))}
+          {others.slice(0, 4).map((member) =>
+            member.user.profile_picture ? (
+              <span
+                key={member.user.id}
+                title={fullName(member.user)}
+                className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-surface-2 bg-surface-4"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolveMediaUrl(mediaOrigin, member.user.profile_picture)}
+                  alt={fullName(member.user)}
+                  className="h-full w-full object-cover"
+                />
+              </span>
+            ) : (
+              <span
+                key={member.user.id}
+                title={fullName(member.user)}
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-2 bg-surface-4 text-[10px] font-medium text-text-secondary"
+              >
+                {initials(member.user)}
+              </span>
+            ),
+          )}
         </div>
       </div>
 

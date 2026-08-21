@@ -46,6 +46,7 @@ export default function OperationsHubPage() {
           first_name: user.first_name,
           last_name: user.last_name,
           email: user.email,
+          profile_picture: user.profile_picture,
         }}
       />
     </WorkspaceShell>

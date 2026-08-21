@@ -2,7 +2,8 @@
 
 import { Bell, ChatBubble, Group, Plus, Search, Sparks } from "iconoir-react";
 import type { HubConversation, HubNotification } from "@/services/hub";
-import { formatTime, initials } from "./hub-utils";
+import { resolveBackendFileUrl } from "@/lib/api/client";
+import { formatTime, fullName, initials } from "./hub-utils";
 
 function typeIcon(conversation: HubConversation) {
   if (conversation.conversation_type === "ASSISTANT")
@@ -127,11 +128,18 @@ export function ConversationRail({
                     active ? "bg-surface-3" : "hover:bg-surface-3/60"
                   }`}
                 >
-                  <span className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-surface-4 text-xs font-medium text-text-secondary">
+                  <span className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-4 text-xs font-medium text-text-secondary">
                     {conversation.conversation_type === "ASSISTANT" ? (
                       <Sparks className="h-4 w-4 text-brand-gold" />
                     ) : conversation.conversation_type === "GROUP" ? (
                       <Group className="h-4 w-4" />
+                    ) : other?.profile_picture ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveBackendFileUrl(other.profile_picture)}
+                        alt={fullName(other)}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       initials(other)
                     )}

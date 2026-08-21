@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Check, Group, Sparks, Xmark } from "iconoir-react";
 import { useHubDirectory, type DirectoryEntry } from "@/services/hub";
-import { initials } from "./hub-utils";
+import { resolveBackendFileUrl } from "@/lib/api/client";
+import { fullName, initials } from "./hub-utils";
 
 /**
  * Direct creation flow: click a person → conversation opens instantly.
@@ -109,8 +110,17 @@ export function NewChatPopover({
               onClick={() => pick(entry)}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-3 disabled:opacity-60"
             >
-              <span className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-4 text-xs font-medium text-text-secondary">
-                {initials(entry.user)}
+              <span className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-4 text-xs font-medium text-text-secondary">
+                {entry.user.profile_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolveBackendFileUrl(entry.user.profile_picture)}
+                    alt={fullName(entry.user)}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials(entry.user)
+                )}
                 {entry.online ? (
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-2 bg-status-success" />
                 ) : null}

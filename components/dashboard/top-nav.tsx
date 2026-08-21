@@ -282,11 +282,20 @@ const TopNavComponent = memo(function DashboardTopNav() {
               onClick={() => setAvatarMenuOpen((open) => !open)}
               className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-[#232327] pl-2 pr-2.5 text-left transition-colors duration-150 hover:bg-[#2A2A2E]"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-brand-gold/20 text-brand-gold">
-                <span className="text-[11px] font-semibold">
-                  {user?.first_name?.[0]}
-                  {user?.last_name?.[0]}
-                </span>
+              <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-[7px] bg-brand-gold/20 text-brand-gold">
+                {user?.profile_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.profile_picture}
+                    alt={`${user.first_name} ${user.last_name}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[11px] font-semibold">
+                    {user?.first_name?.[0]}
+                    {user?.last_name?.[0]}
+                  </span>
+                )}
               </div>
               <div className="hidden min-w-0 sm:block">
                 <p className="max-w-[120px] truncate text-[12px] font-medium text-[#F5F5F7]">
@@ -304,9 +313,20 @@ const TopNavComponent = memo(function DashboardTopNav() {
               <div className="fixed inset-x-3 bottom-3 z-50 rounded-2xl border border-[#2E2E33] bg-[#1C1C1F] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden lg:absolute lg:inset-auto lg:bottom-auto lg:right-0 lg:mt-2 lg:w-72">
                 {/* Identity header */}
                 <div className="flex items-center gap-3 px-4 py-4 border-b border-[#2A2A2E]">
-                  <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-brand-gold/15 text-brand-gold font-semibold text-[13px] select-none">
-                    {user?.first_name?.[0]}
-                    {user?.last_name?.[0]}
+                  <div className="h-10 w-10 shrink-0 overflow-hidden flex items-center justify-center rounded-xl bg-brand-gold/15 text-brand-gold font-semibold text-[13px] select-none">
+                    {user?.profile_picture ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={user.profile_picture}
+                        alt={`${user.first_name} ${user.last_name}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        {user?.first_name?.[0]}
+                        {user?.last_name?.[0]}
+                      </>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-[#F5F5F7]">

@@ -11,6 +11,7 @@ import {
   type HubUser,
   type RefType,
 } from "@/services/hub";
+import { resolveBackendFileUrl } from "@/lib/api/client";
 import { fullName, initials } from "./hub-utils";
 
 const POPOVER_WIDTH = 320;
@@ -216,8 +217,17 @@ export function QuickMessageButton({
                             active ? "bg-brand-gold/10" : "hover:bg-surface-3"
                           }`}
                         >
-                          <span className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-surface-4 text-[10px] font-medium text-text-secondary">
-                            {initials(entry.user)}
+                          <span className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-4 text-[10px] font-medium text-text-secondary">
+                            {entry.user.profile_picture ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={resolveBackendFileUrl(entry.user.profile_picture)}
+                                alt={fullName(entry.user)}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              initials(entry.user)
+                            )}
                             {entry.online ? (
                               <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-surface-2 bg-status-ok" />
                             ) : null}

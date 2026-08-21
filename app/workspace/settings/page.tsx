@@ -1786,12 +1786,17 @@ function UserRoleSettings({ orgId }: { orgId?: string }) {
           const member = info.row.original as OrganizationMember;
           return (
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-surface-4 bg-surface-2 text-xs font-semibold text-brand-gold">
-                {(
-                  member.first_name?.[0] ||
-                  member.email?.[0] ||
-                  "?"
-                ).toUpperCase()}
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-surface-4 bg-surface-2 text-xs font-semibold text-brand-gold">
+                {member.profile_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={member.profile_picture}
+                    alt={`${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() || member.email}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  (member.first_name?.[0] || member.email?.[0] || "?").toUpperCase()
+                )}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-text-primary">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { CommandPaletteProvider } from "@/components/command/command-palette-provider";
 import { useSidebarState } from "@/components/dashboard/sidebar-state";
@@ -62,8 +61,13 @@ export default function WorkspaceLayout({
   const branchesQuery = useBranches(user?.organization_id ?? "");
   const accessScopeQuery = useProductionIntelligenceAccessScope();
 
-  // Memoize user to prevent unnecessary re-renders of wrappers
-  const memoizedUser = useMemo(() => user, [user?.id]);
+  // `DashboardSidebarWrapper` is already `memo()`-wrapped, so it only
+  // re-renders when this reference changes — and react-query's structural
+  // sharing already gives `user` a stable reference across refetches that
+  // return identical data. Re-keying that off `user?.id` (as this used to)
+  // froze the sidebar on the first-loaded user object forever, since `id`
+  // never changes: a new profile photo, name, or role never reached it
+  // without a full page reload.
 
   // Declared below activeBranchId — see the gate block.
 
@@ -192,7 +196,7 @@ export default function WorkspaceLayout({
   return (
     <CommandPaletteProvider>
       <div className="flex min-h-screen bg-surface-1">
-        <DashboardSidebarWrapper user={memoizedUser} />
+        <DashboardSidebarWrapper user={user} />
         <main
           className={`min-w-0 flex-1 py-8 transition-[margin-left] duration-200 ${
             collapsed ? "lg:ml-20" : "lg:ml-64"
