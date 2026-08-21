@@ -2479,7 +2479,29 @@
       "prioritySupportDesc": "Intelligence and Command tiers receive priority access to our kitchen operations analysts to optimize your deployment.",
       "upToStaff": "Up to {limit} staff",
       "unlimitedStaff": "Unlimited staff",
-      "staffCapacity": "Staff Capacity"
+      "staffCapacity": "Staff Capacity",
+      "comparison": {
+        "eyebrow": "The Mental Model",
+        "title": "Not more PrepIQ. A different relationship with your kitchen.",
+        "subtitle": "Core sees what's happening. Intelligence understands it. Command acts on it.",
+        "planCore": "Core",
+        "planIntelligence": "Intelligence",
+        "planCommand": "Command",
+        "rows": {
+          "purpose": { "label": "Purpose", "core": "See", "intelligence": "Understand", "command": "Act" },
+          "forecasting": { "label": "Forecasting", "intelligence": "Advanced", "command": "Predictive" },
+          "operations": { "label": "Operations" },
+          "labor": { "label": "Labor", "core": "Manual", "intelligence": "AI-assisted", "command": "Autonomous" },
+          "aiAssistant": { "label": "AI Assistant", "core": "Basic", "intelligence": "Advanced", "command": "Advanced" },
+          "analyst": { "label": "Analyst", "core": "Snapshot", "intelligence": "Full", "command": "Full + org-wide" },
+          "agent": { "label": "Agent", "intelligence": "Assisted actions", "command": "Autonomous" },
+          "multiBranch": { "label": "Multi-branch", "core": "Limited", "command": "Advanced" },
+          "reports": { "label": "Reports", "core": "Basic", "intelligence": "AI reports", "command": "Executive intelligence" },
+          "automation": { "label": "Automation", "intelligence": "Approval-based", "command": "Autonomous" },
+          "crossBranch": { "label": "Cross-branch intelligence", "intelligence": "Limited" },
+          "enterpriseControls": { "label": "Enterprise controls", "intelligence": "Add-on" }
+        }
+      }
     },
     "checkout": {
       "title": "Complete your setup",
@@ -3028,6 +3050,19 @@
         "stale": "This analysis is from {{date}} and has not refreshed since.",
         "staleUnknown": "This analysis has not refreshed recently.",
         "detail": "Findings are computed overnight. What you see may not reflect the current state of the kitchen."
+      },
+      "snapshot": {
+        "title": "Today's Intelligence",
+        "revenue": "Revenue vs. normal",
+        "topDeviation": "Biggest mover",
+        "wasteRisk": "Waste risk",
+        "staffingCoverage": "Staffing coverage",
+        "noData": "No data yet",
+        "noDataReason": "This fills in after your first service day is closed and the overnight analysis runs.",
+        "upgradeCta": "Ask Analyst — upgrade to Intelligence",
+        "riskLow": "Low",
+        "riskMedium": "Medium",
+        "riskHigh": "High"
       },
       "summary": {
         "healthTitle": "Operational Health",

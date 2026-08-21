@@ -192,6 +192,30 @@ export type Freshness = {
   never_run: boolean;
 };
 
+// ── Core: Analyst Snapshot ───────────────────────────────────────────────────
+// Four numbers, no chat, no drill-down — Core's taste of the Analyst below
+// Intelligence's full workspace.
+
+export const snapshotSchema = z.object({
+  branch: z.object({
+    id: z.string(),
+    name: z.string(),
+    currency: z.string(),
+  }),
+  revenue_change_pct: z.number().nullable(),
+  top_deviation: z
+    .object({
+      item: z.string(),
+      change_pct: z.number().nullable(),
+    })
+    .nullable(),
+  waste_risk: z.enum(["Low", "Medium", "High"]).nullable(),
+  staffing_coverage_pct: z.number().nullable(),
+  upgrade_message: z.string(),
+  ...freshnessShape,
+});
+export type AnalystSnapshot = z.infer<typeof snapshotSchema>;
+
 // ── Tab 1: Executive summary ────────────────────────────────────────────────
 
 export const scoreComponentSchema = z.object({

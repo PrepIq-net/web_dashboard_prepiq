@@ -12,6 +12,7 @@ import type { InsightStatus } from "./types";
 export const insightsKeys = {
   all: ["insights"] as const,
   branch: (branchId: string) => [...insightsKeys.all, branchId] as const,
+  snapshot: (branchId: string) => [...insightsKeys.branch(branchId), "snapshot"] as const,
   summary: (branchId: string) => [...insightsKeys.branch(branchId), "summary"] as const,
   feed: (branchId: string, status?: string, type?: string) =>
     [...insightsKeys.branch(branchId), "feed", status ?? "", type ?? ""] as const,
@@ -34,6 +35,15 @@ const NIGHTLY = 5 * 60_000;
 // ─────────────────────────────────────────────────────────────────────────────
 // Read hooks
 // ─────────────────────────────────────────────────────────────────────────────
+
+export function useAnalystSnapshot(branchId?: string, enabled = true) {
+  return useQuery({
+    queryKey: insightsKeys.snapshot(branchId ?? ""),
+    queryFn: () => insightsService.getSnapshot(branchId!),
+    enabled: enabled && !!branchId,
+    staleTime: NIGHTLY,
+  });
+}
 
 export function useInsightSummary(branchId?: string, enabled = true) {
   return useQuery({

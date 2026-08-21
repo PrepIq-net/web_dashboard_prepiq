@@ -2479,7 +2479,29 @@
       "prioritySupportDesc": "Les niveaux Intelligence et Commande bénéficient d'un accès prioritaire à nos analystes des opérations de cuisine pour optimiser votre déploiement.",
       "upToStaff": "Jusqu'à {limit} employés",
       "unlimitedStaff": "Employés illimités",
-      "staffCapacity": "Capacité d'employés"
+      "staffCapacity": "Capacité d'employés",
+      "comparison": {
+        "eyebrow": "Le modèle mental",
+        "title": "Pas plus de PrepIQ. Une autre relation avec votre cuisine.",
+        "subtitle": "Core voit ce qui se passe. Intelligence le comprend. Command agit dessus.",
+        "planCore": "Core",
+        "planIntelligence": "Intelligence",
+        "planCommand": "Command",
+        "rows": {
+          "purpose": { "label": "Objectif", "core": "Voir", "intelligence": "Comprendre", "command": "Agir" },
+          "forecasting": { "label": "Prévisions", "intelligence": "Avancées", "command": "Prédictives" },
+          "operations": { "label": "Opérations" },
+          "labor": { "label": "Personnel", "core": "Manuel", "intelligence": "Assisté par IA", "command": "Autonome" },
+          "aiAssistant": { "label": "Assistant IA", "core": "De base", "intelligence": "Avancé", "command": "Avancé" },
+          "analyst": { "label": "Analyste", "core": "Aperçu", "intelligence": "Complet", "command": "Complet + réseau" },
+          "agent": { "label": "Agent", "intelligence": "Actions assistées", "command": "Autonome" },
+          "multiBranch": { "label": "Multi-succursale", "core": "Limité", "command": "Avancé" },
+          "reports": { "label": "Rapports", "core": "De base", "intelligence": "Rapports IA", "command": "Intelligence exécutive" },
+          "automation": { "label": "Automatisation", "intelligence": "Basée sur l'approbation", "command": "Autonome" },
+          "crossBranch": { "label": "Intelligence inter-succursales", "intelligence": "Limitée" },
+          "enterpriseControls": { "label": "Contrôles d'entreprise", "intelligence": "Module complémentaire" }
+        }
+      }
     },
     "checkout": {
       "title": "Terminez votre configuration",
@@ -3028,6 +3050,19 @@
         "stale": "Cette analyse date du {{date}} et n'a pas été actualisée depuis.",
         "staleUnknown": "Cette analyse n'a pas été actualisée récemment.",
         "detail": "Les constats sont calculés durant la nuit. Ce que vous voyez peut ne pas refléter l'état actuel de la cuisine."
+      },
+      "snapshot": {
+        "title": "L'intelligence du jour",
+        "revenue": "Revenu vs normale",
+        "topDeviation": "Plus gros écart",
+        "wasteRisk": "Risque de gaspillage",
+        "staffingCoverage": "Couverture du personnel",
+        "noData": "Pas encore de données",
+        "noDataReason": "Ces chiffres apparaissent après la clôture de votre première journée de service et l'analyse nocturne.",
+        "upgradeCta": "Interroger l'Analyste — passez à Intelligence",
+        "riskLow": "Faible",
+        "riskMedium": "Moyen",
+        "riskHigh": "Élevé"
       },
       "summary": {
         "healthTitle": "Santé opérationnelle",

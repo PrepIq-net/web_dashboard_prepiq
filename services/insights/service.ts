@@ -15,9 +15,16 @@ import {
   reportsSchema,
   rootCausesSchema,
   runsSchema,
+  snapshotSchema,
   summarySchema,
   type InsightStatus,
 } from "./types";
+
+export async function getSnapshot(branchId: string) {
+  return apiClientWithSchema(insightsEndpoints.snapshot(branchId), snapshotSchema, {
+    method: "GET",
+  });
+}
 
 export async function getSummary(branchId: string) {
   return apiClientWithSchema(insightsEndpoints.summary(branchId), summarySchema, {
