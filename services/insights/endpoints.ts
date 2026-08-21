@@ -10,6 +10,10 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const insightsEndpoints = {
+  // Core's taste of the Analyst — no chat, no drill-down, available below Intelligence.
+  snapshot: (branchId: string) =>
+    `${BASE}/snapshot/${buildQuery({ branch_id: branchId })}`,
+
   summary: (branchId: string) =>
     `${BASE}/summary/${buildQuery({ branch_id: branchId })}`,
 

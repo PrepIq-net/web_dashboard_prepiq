@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useCurrentUserProfile } from "@/services";
 import {
+  useAnalystSnapshot,
   useInsightFeed,
   useInsightReports,
   useInsightSummary,
@@ -33,6 +34,7 @@ import { OpportunitiesTab } from "@/components/dashboard/insights/opportunities-
 import { RootCausesTab } from "@/components/dashboard/insights/root-causes-tab";
 import { ReportsTab } from "@/components/dashboard/insights/reports-tab";
 import { AnalysisTab } from "@/components/dashboard/insights/analysis-tab";
+import { AnalystSnapshotCard } from "@/components/dashboard/insights/analyst-snapshot-card";
 
 type AnalystTab =
   | "SUMMARY"
@@ -42,15 +44,14 @@ type AnalystTab =
   | "REPORTS"
   | "ANALYSIS";
 
-/** The Intelligence tier, mirroring PLAN_TIER_MAP in services/payment/hooks. */
-const INTELLIGENCE_TIER = 2;
-
 /**
- * The Command tier. Tabs 1-4 read what the nightly pipeline already wrote and
- * cost nothing per view; the Analysis chat is the one surface that calls a
- * model per question, so it sits a tier above the rest of the workspace.
+ * The Intelligence tier, mirroring PLAN_TIER_MAP in services/payment/hooks.
+ * Every tab on this page, including Analysis (the conversational chat and its
+ * agent-assisted actions), requires Intelligence or above — Command's own
+ * differentiator is the cross-branch org-query and autonomous nightly
+ * investigation, not this workspace.
  */
-const COMMAND_TIER = 3;
+const INTELLIGENCE_TIER = 2;
 
 export default function InsightsPage() {
   const { t } = useTranslation();
@@ -90,7 +91,11 @@ export default function InsightsPage() {
   const [feedFilter, setFeedFilter] = useState<FeedFilter>("ACTIVE");
 
   const enabled = Boolean(safeBranchId) && !blocked && canView;
+  // Core sits below Intelligence but still has an active subscription — that
+  // is exactly the Snapshot's audience, not the generic upgrade prompt.
+  const snapshotEnabled = Boolean(safeBranchId) && tierBlocked && canView;
 
+  const snapshotQuery = useAnalystSnapshot(safeBranchId, snapshotEnabled);
   const summaryQuery = useInsightSummary(safeBranchId, enabled && activeTab === "SUMMARY");
   const feedQuery = useInsightFeed(
     safeBranchId,
@@ -182,11 +187,21 @@ export default function InsightsPage() {
       {subscriptionBlocked ? (
         <SubscriptionRequiredState variant={gateVariant} compact branchId={safeBranchId} />
       ) : tierBlocked ? (
-        <SubscriptionRequiredState
-          variant="intelligence_required"
-          currentPlanType={planType}
-          compact
-        />
+        // Core has an active subscription, just below Intelligence — a taste
+        // of the Analyst converts better here than a bare upgrade wall.
+        snapshotQuery.data ? (
+          <AnalystSnapshotCard data={snapshotQuery.data} />
+        ) : snapshotQuery.isLoading ? (
+          <div className="flex justify-center py-14">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <SubscriptionRequiredState
+            variant="intelligence_required"
+            currentPlanType={planType}
+            compact
+          />
+        )
       ) : (
         <>
           <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-4/60 scrollbar-thin">
@@ -264,22 +279,10 @@ export default function InsightsPage() {
           ) : null}
 
           {/*
-            The one tab gated above the page itself. The rest of the workspace
-            renders on Intelligence; the chat needs Command, so the gate lives
-            here rather than around the whole page — an Intelligence customer
-            should still get Tabs 1-4, and should see what the upgrade buys.
+            No extra gate here — the page-level `tierBlocked` check above
+            already requires Intelligence for every tab, this one included.
           */}
-          {activeTab === "ANALYSIS" ? (
-            tier < COMMAND_TIER ? (
-              <SubscriptionRequiredState
-                variant="command_required"
-                currentPlanType={planType}
-                compact
-              />
-            ) : (
-              <AnalysisTab branchId={safeBranchId} />
-            )
-          ) : null}
+          {activeTab === "ANALYSIS" ? <AnalysisTab branchId={safeBranchId} /> : null}
         </>
       )}
     </WorkspaceShell>

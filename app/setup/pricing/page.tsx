@@ -55,6 +55,58 @@ const PLAN_TIERS = {
   COMMAND: 3,
 } as const;
 
+/**
+ * The positioning table: a story ("See → Understand → Act"), not a feature
+ * dump. Static copy rather than derived from `plan.features` on purpose —
+ * this is the mental model, and it should read the same regardless of which
+ * bullet points a plan happens to carry this month.
+ */
+type ComparisonCell = { kind: "text"; key: string } | { kind: "check" } | { kind: "dash" };
+type ComparisonRow = {
+  key: string;
+  core: ComparisonCell;
+  intelligence: ComparisonCell;
+  command: ComparisonCell;
+};
+
+const CHECK: ComparisonCell = { kind: "check" };
+const DASH: ComparisonCell = { kind: "dash" };
+const text = (row: string, plan: "core" | "intelligence" | "command"): ComparisonCell => ({
+  kind: "text",
+  key: `setup.pricing.comparison.rows.${row}.${plan}`,
+});
+
+const COMPARISON_ROWS: ComparisonRow[] = [
+  { key: "purpose", core: text("purpose", "core"), intelligence: text("purpose", "intelligence"), command: text("purpose", "command") },
+  { key: "forecasting", core: CHECK, intelligence: text("forecasting", "intelligence"), command: text("forecasting", "command") },
+  { key: "operations", core: CHECK, intelligence: CHECK, command: CHECK },
+  { key: "labor", core: text("labor", "core"), intelligence: text("labor", "intelligence"), command: text("labor", "command") },
+  { key: "aiAssistant", core: text("aiAssistant", "core"), intelligence: text("aiAssistant", "intelligence"), command: text("aiAssistant", "command") },
+  { key: "analyst", core: text("analyst", "core"), intelligence: text("analyst", "intelligence"), command: text("analyst", "command") },
+  { key: "agent", core: DASH, intelligence: text("agent", "intelligence"), command: text("agent", "command") },
+  { key: "multiBranch", core: text("multiBranch", "core"), intelligence: CHECK, command: text("multiBranch", "command") },
+  { key: "reports", core: text("reports", "core"), intelligence: text("reports", "intelligence"), command: text("reports", "command") },
+  { key: "automation", core: DASH, intelligence: text("automation", "intelligence"), command: text("automation", "command") },
+  { key: "crossBranch", core: DASH, intelligence: text("crossBranch", "intelligence"), command: CHECK },
+  { key: "enterpriseControls", core: DASH, intelligence: text("enterpriseControls", "intelligence"), command: CHECK },
+];
+
+function ComparisonCellView({
+  cell,
+  t,
+}: {
+  cell: ComparisonCell;
+  t: (key: string, variables?: Record<string, string | number>) => string;
+}) {
+  if (cell.kind === "check") {
+    return <CheckCircle className="h-4 w-4 text-status-success" />;
+  }
+  if (cell.kind === "dash") {
+    return <span className="text-text-muted opacity-50">—</span>;
+  }
+  return <>{t(cell.key)}</>;
+}
+
 export default function PricingStepPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -314,6 +366,63 @@ export default function PricingStepPage() {
             );
           })}
         </div>
+
+        {/* Positioning table — the story, not the feature list */}
+        <section className="mb-20">
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-brand-gold">
+              {t("setup.pricing.comparison.eyebrow")}
+            </p>
+            <h2 className="font-display text-[28px] font-semibold tracking-tight md:text-[34px]">
+              {t("setup.pricing.comparison.title")}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-[15px] text-text-muted">
+              {t("setup.pricing.comparison.subtitle")}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-card border border-border-default">
+            <table className="w-full min-w-[640px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-border-default bg-surface-3/50">
+                  <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                    &nbsp;
+                  </th>
+                  <th className="px-6 py-4 text-[13px] font-semibold text-text-primary">
+                    {t("setup.pricing.comparison.planCore")}
+                  </th>
+                  <th className="px-6 py-4 text-[13px] font-semibold text-brand-gold">
+                    {t("setup.pricing.comparison.planIntelligence")}
+                  </th>
+                  <th className="px-6 py-4 text-[13px] font-semibold text-text-primary">
+                    {t("setup.pricing.comparison.planCommand")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON_ROWS.map((row) => (
+                  <tr key={row.key} className="border-b border-border-default/60 last:border-b-0">
+                    <th
+                      scope="row"
+                      className="px-6 py-3.5 text-[13px] font-medium text-text-secondary"
+                    >
+                      {t(`setup.pricing.comparison.rows.${row.key}.label`)}
+                    </th>
+                    <td className="px-6 py-3.5 text-[13px] text-text-secondary">
+                      <ComparisonCellView cell={row.core} t={t} />
+                    </td>
+                    <td className="px-6 py-3.5 text-[13px] font-medium text-text-primary">
+                      <ComparisonCellView cell={row.intelligence} t={t} />
+                    </td>
+                    <td className="px-6 py-3.5 text-[13px] text-text-secondary">
+                      <ComparisonCellView cell={row.command} t={t} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         {/* Brand Assurance */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-16 border-t border-chart-grid">
