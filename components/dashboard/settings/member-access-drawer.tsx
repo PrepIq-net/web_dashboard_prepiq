@@ -190,12 +190,17 @@ export function MemberAccessDrawer({
       >
         <header className="flex items-start justify-between gap-4 border-b border-surface-4 px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-surface-4 bg-surface-2 text-sm font-semibold text-brand-gold">
-              {(
-                member.first_name?.[0] ||
-                member.email?.[0] ||
-                "?"
-              ).toUpperCase()}
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-surface-4 bg-surface-2 text-sm font-semibold text-brand-gold">
+              {member.profile_picture ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={member.profile_picture}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                (member.first_name?.[0] || member.email?.[0] || "?").toUpperCase()
+              )}
             </span>
             <div className="min-w-0">
               <h2 className="truncate font-display text-lg font-semibold text-text-primary">

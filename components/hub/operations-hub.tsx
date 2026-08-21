@@ -35,6 +35,7 @@ interface CurrentUser {
   first_name: string;
   last_name: string;
   email: string;
+  profile_picture?: string | null;
 }
 
 type TypingState = Record<string, Record<string, { name: string; until: number }>>;
@@ -282,6 +283,7 @@ export function OperationsHub({ user }: { user: CurrentUser }) {
     first_name: user.first_name,
     last_name: user.last_name,
     email: user.email,
+    profile_picture: user.profile_picture ?? null,
   });
 
   const loadOlderMutation = useLoadOlderMessages(activeConversationId ?? "");

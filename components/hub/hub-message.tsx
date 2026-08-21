@@ -6,7 +6,7 @@ import type { HubMessage, MessageAction } from "@/services/hub";
 import { AttachmentView } from "./attachment-view";
 import { MentionedText, type HubMentionTarget } from "./hub-mentions";
 import { ReferenceCard } from "./reference-card";
-import { formatTime, fullName, initials } from "./hub-utils";
+import { formatTime, fullName, initials, resolveMediaUrl } from "./hub-utils";
 
 /** Centered chip for injected operational timeline events. */
 function EventChip({ message }: { message: HubMessage }) {
@@ -138,6 +138,15 @@ export function HubMessageRow({
           isAssistant ? (
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gold/15 text-brand-gold">
               <Sparks className="h-4 w-4" />
+            </span>
+          ) : message.sender?.profile_picture ? (
+            <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-surface-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveMediaUrl(mediaOrigin, message.sender.profile_picture)}
+                alt={fullName(message.sender)}
+                className="h-full w-full object-cover"
+              />
             </span>
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-4 text-xs font-medium text-text-secondary">
